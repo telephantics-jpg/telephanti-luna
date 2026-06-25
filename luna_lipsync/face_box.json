@@ -1,0 +1,20 @@
+{
+  "source": "luna-portrait.jpg",
+  "image_size": [
+    864,
+    1152
+  ],
+  "box": [
+    122,
+    617,
+    240,
+    616
+  ],
+  "pads": [
+    0,
+    18,
+    0,
+    0
+  ],
+  "note": "y1,y2,x1,x2 in pixels"
+}

@@ -24,3 +24,5 @@ services:
         value: grok-3-mini
       - key: TTS_VOICE
         value: en-US-AriaNeural
+      - key: LUNA_LIPSYNC
+        value: "1"

@@ -1,10 +1,7 @@
-.env
+models/lipsync/wav2lip.onnx
+static/lipsync_cache/*.mp4
+static/lipsync_cache/_work_*/
+static/lipsync_cache/_debug/
 __pycache__/
 *.pyc
-*.log
-.telephanti_enabled
-android-app/
-android-sdk/
-overlay_stderr.txt
-omni_buddy_state.json
-pet_settings.json
+.env

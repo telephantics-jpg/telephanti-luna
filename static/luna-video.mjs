@@ -1,7 +1,7 @@
 /**
  * Luna video avatar — HTML5 looping clips + canvas lip-sync overlay.
  */
-const BUILD = "70";
+const BUILD = "71";
 
 const CLIPS = {
   idle: "/static/avatars/luna-idle.mp4",
@@ -111,6 +111,57 @@ export class LunaVideoAvatar {
       return !this.video.paused;
     } catch {
       return false;
+    }
+  }
+
+  async playLipsyncOnce(url) {
+    if (!this.video || !url) return false;
+    const wasLoop = this.video.loop;
+    const prevSrc = this._currentClip || this.video.src;
+    this.speaking = true;
+    this.setState("speak");
+    this.targetMouth = 0;
+    this.mouth = 0;
+    try {
+      this.video.loop = false;
+      this.video.muted = false;
+      this.video.src = url + (url.includes("?") ? "&" : "?") + "v=" + BUILD;
+      this.video.load();
+      await new Promise((res) => {
+        const onReady = () => {
+          this.video.removeEventListener("loadeddata", onReady);
+          res();
+        };
+        this.video.addEventListener("loadeddata", onReady);
+        setTimeout(res, 1200);
+      });
+      await this.video.play();
+      this._markLive();
+      await new Promise((resolve) => {
+        const done = () => {
+          this.video.removeEventListener("ended", done);
+          this.video.removeEventListener("error", done);
+          resolve();
+        };
+        this.video.addEventListener("ended", done, { once: true });
+        this.video.addEventListener("error", done, { once: true });
+        setTimeout(done, Math.max(4000, (this.video.duration || 8) * 1000 + 400));
+      });
+      return true;
+    } catch (err) {
+      console.warn("Lipsync video:", err);
+      return false;
+    } finally {
+      this.video.muted = true;
+      this.video.loop = wasLoop;
+      this.speaking = false;
+      if (prevSrc) {
+        this.video.src = prevSrc;
+        this.video.load();
+        await this.video.play().catch(() => {});
+      } else {
+        await this._setClip("idle").catch(() => {});
+      }
     }
   }
 

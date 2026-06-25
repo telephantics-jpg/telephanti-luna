@@ -1,5 +1,7 @@
+import asyncio
 import base64
 import json
+import logging
 import mimetypes
 import os
 import sys
@@ -8,6 +10,7 @@ import shutil
 import socket
 import subprocess
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 mimetypes.add_type("application/javascript", ".mjs")
@@ -27,7 +30,11 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "70"
+LUNA_BUILD = "71"
+
+log = logging.getLogger("luna")
+_lipsync_executor = ThreadPoolExecutor(max_workers=1)
+_lipsync_jobs: dict[str, dict] = {}
 
 
 def _truthy_env(name: str) -> bool:
@@ -1264,13 +1271,79 @@ async def synthesize_speech(
         raise HTTPException(status_code=500, detail="TTS produced no audio")
 
     audio_bytes = b"".join(audio_chunks)
-    return {
+    payload = {
         "audio_b64": base64.b64encode(audio_bytes).decode("ascii"),
         "words": words,
         "wtimes": wtimes,
         "wdurations": wdurations,
         "voice": voice,
     }
+    lipsync_meta = schedule_lipsync_job(audio_bytes)
+    if lipsync_meta:
+        payload["lipsync"] = lipsync_meta
+    return payload
+
+
+def _lipsync_public_url(filename: str) -> str:
+    return f"/static/lipsync_cache/{filename}"
+
+
+def _run_lipsync_job(job_id: str, audio_bytes: bytes) -> None:
+    try:
+        from luna_lipsync.engine import get_engine, render_lipsync_video
+
+        engine = get_engine()
+        if not engine:
+            _lipsync_jobs[job_id] = {"status": "unavailable"}
+            return
+        cached = engine.cache_path(audio_bytes)
+        if cached.is_file() and cached.stat().st_size > 1024:
+            _lipsync_jobs[job_id] = {
+                "status": "done",
+                "url": _lipsync_public_url(cached.name),
+            }
+            return
+        out = render_lipsync_video(audio_bytes)
+        if out and out.is_file():
+            _lipsync_jobs[job_id] = {
+                "status": "done",
+                "url": _lipsync_public_url(out.name),
+            }
+        else:
+            _lipsync_jobs[job_id] = {"status": "failed"}
+    except Exception as exc:
+        log.warning("Lip-sync job %s failed: %s", job_id, exc)
+        _lipsync_jobs[job_id] = {"status": "failed", "error": str(exc)}
+
+
+def schedule_lipsync_job(audio_bytes: bytes) -> dict | None:
+    try:
+        from luna_lipsync.engine import get_engine, lipsync_available
+    except ImportError:
+        return None
+    if not lipsync_available():
+        return None
+    engine = get_engine()
+    if not engine:
+        return None
+    job_id = engine._cache_key(audio_bytes)
+    cached = engine.cache_path(audio_bytes)
+    if cached.is_file() and cached.stat().st_size > 1024:
+        return {
+            "job_id": job_id,
+            "status": "done",
+            "url": _lipsync_public_url(cached.name),
+        }
+    existing = _lipsync_jobs.get(job_id)
+    if existing and existing.get("status") in ("pending", "done"):
+        return {"job_id": job_id, **existing}
+    _lipsync_jobs[job_id] = {"status": "pending"}
+    try:
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(_lipsync_executor, _run_lipsync_job, job_id, audio_bytes)
+    except RuntimeError:
+        _run_lipsync_job(job_id, audio_bytes)
+    return {"job_id": job_id, "status": "pending"}
 
 
 @app.get("/")
@@ -1424,10 +1497,18 @@ async def health():
     configured = bool(
         os.getenv("XAI_API_KEY") and os.getenv("XAI_API_KEY") != "your_api_key_here"
     )
+    lipsync = False
+    try:
+        from luna_lipsync.engine import lipsync_available
+
+        lipsync = lipsync_available()
+    except ImportError:
+        lipsync = False
     return {
         "ok": True,
         "api_key_configured": configured,
         "tts": "edge-tts (free)",
+        "lipsync": lipsync,
         "build": LUNA_BUILD,
     }
 
@@ -2078,6 +2159,32 @@ async def speak(request: SpeakRequest):
     return await synthesize_speech(
         request.text, request.voice, request.rate, request.pitch, request.mood
     )
+
+
+class LipsyncRequest(BaseModel):
+    audio_b64: str
+
+
+@app.post("/api/lipsync")
+async def lipsync_start(request: LipsyncRequest):
+    if not request.audio_b64.strip():
+        raise HTTPException(status_code=400, detail="audio_b64 required")
+    try:
+        audio_bytes = base64.b64decode(request.audio_b64)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid audio_b64") from exc
+    meta = schedule_lipsync_job(audio_bytes)
+    if not meta:
+        return {"status": "unavailable", "job_id": None, "url": None}
+    return meta
+
+
+@app.get("/api/lipsync/{job_id}")
+async def lipsync_status(job_id: str):
+    job = _lipsync_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Unknown lip-sync job")
+    return {"job_id": job_id, **job}
 
 
 @app.post("/api/moan")

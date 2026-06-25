@@ -2821,8 +2821,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=70";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=70";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=71";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=71";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -4017,6 +4017,83 @@
     }
 
     let videoLipsyncStop = null;
+    let lipsyncAvailable = false;
+
+    async function refreshLipsyncCapability() {
+      try {
+        const info = await fetch("/api/health").then((r) => r.json());
+        lipsyncAvailable = !!info.lipsync;
+      } catch {
+        lipsyncAvailable = false;
+      }
+    }
+
+    async function pollLipsyncJob(meta, timeoutMs = 90000) {
+      if (!meta) return null;
+      if (meta.status === "done" && meta.url) return meta.url;
+      if (!meta.job_id) return null;
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        try {
+          const res = await fetch(`/api/lipsync/${meta.job_id}`);
+          if (!res.ok) break;
+          const data = await res.json();
+          if (data.status === "done" && data.url) return data.url;
+          if (data.status === "failed" || data.status === "unavailable") break;
+        } catch { /* retry */ }
+        await sleepMs(700);
+      }
+      return null;
+    }
+
+    async function playWebSpeechWithLipsync(speechPayload, audioB64, lipsyncMeta = null) {
+      if (!isPublicWebVisit() || !livePortrait?.playLipsyncOnce || !lipsyncAvailable || !audioB64) {
+        videoLipsyncStop = speechPayload?.words?.length ? driveVideoLipsync(speechPayload) : null;
+        try {
+          await playPetAudioB64(audioB64);
+        } finally {
+          videoLipsyncStop?.();
+          videoLipsyncStop = null;
+          livePortrait?.setMouthLevel?.(0);
+        }
+        return;
+      }
+
+      const meta = lipsyncMeta || { job_id: null, status: "pending" };
+      if (!meta.job_id && !meta.url) {
+        try {
+          const res = await fetch("/api/lipsync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ audio_b64: audioB64 }),
+          });
+          if (res.ok) Object.assign(meta, await res.json());
+        } catch { /* fallback below */ }
+      }
+
+      if (meta.status === "done" && meta.url) {
+        showToast("Playing Luna with synced lips…");
+        await livePortrait.playLipsyncOnce(meta.url);
+        return;
+      }
+
+      showToast("Syncing Luna's lips…");
+      const url = await pollLipsyncJob(meta, 90000);
+      if (url) {
+        await livePortrait.playLipsyncOnce(url);
+        return;
+      }
+
+      showToast("Lip-sync still warming up — using voice for now.");
+      videoLipsyncStop = speechPayload?.words?.length ? driveVideoLipsync(speechPayload) : null;
+      try {
+        await playPetAudioB64(audioB64);
+      } finally {
+        videoLipsyncStop?.();
+        videoLipsyncStop = null;
+        livePortrait?.setMouthLevel?.(0);
+      }
+    }
 
     function mouthLevelForWord(word = "") {
       const w = String(word).toLowerCase().replace(/[^a-z]/g, "");
@@ -4056,16 +4133,10 @@
       };
     }
 
-    async function playPetSpeech(speechPayload, audioB64) {
+    async function playPetSpeech(speechPayload, audioB64, lipsyncMeta = null) {
       if (!head) {
-        videoLipsyncStop?.();
-        videoLipsyncStop = speechPayload?.words?.length ? driveVideoLipsync(speechPayload) : null;
-        try {
-          if (audioB64) await playPetAudioB64(audioB64);
-        } finally {
-          videoLipsyncStop?.();
-          videoLipsyncStop = null;
-          livePortrait?.setMouthLevel?.(0);
+        if (audioB64) {
+          await playWebSpeechWithLipsync(speechPayload, audioB64, lipsyncMeta);
         }
         return;
       }
@@ -7675,9 +7746,11 @@
         setLunaAvatarState("idle");
         updateMoodBadge("happy");
         setStatus("online", "ok");
+        await refreshLipsyncCapability();
         if (!sessionStorage.getItem("luna-web-audio-hint")) {
           sessionStorage.setItem("luna-web-audio-hint", "1");
-          showToast("Tap ▶ on Luna for live video. Voice is off until 🔊.");
+          const lipHint = lipsyncAvailable ? " Realistic lip-sync is on." : "";
+          showToast(`Tap ▶ on Luna for live video. Voice is off until 🔊.${lipHint}`);
         }
         return;
       }
@@ -7889,7 +7962,7 @@
           wdurations: data.wdurations,
         };
 
-        await playPetSpeech(speechPayload, data.audio_b64);
+        await playPetSpeech(speechPayload, data.audio_b64, data.lipsync);
       } catch (err) {
         console.warn("Speech error:", err);
         if (data?.audio_b64) {

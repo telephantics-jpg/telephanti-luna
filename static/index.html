@@ -1212,14 +1212,24 @@
     .web-luna-figure { display: none; }
     body.web-cloud .web-luna-figure { display: flex; }
     body.web-cloud .pet-fallback-ring,
-    body.web-cloud .luna-icon-face { display: none; }
+    body.web-cloud .luna-icon-face,
+    body.web-cloud .pet-fallback-label,
+    body.web-cloud #loading { display: none !important; }
     body.web-cloud .pet-avatar-fallback.visible {
       display: flex !important;
       z-index: 8;
       pointer-events: auto;
     }
-    body.web-cloud #avatar canvas {
-      opacity: 0.12;
+    body.web-cloud.avatar-3d-ready #avatar canvas {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      z-index: 6;
+    }
+    body.web-cloud.avatar-3d-ready .pet-avatar-fallback {
+      display: none !important;
+    }
+    body.web-cloud.avatar-2d-ready #avatar canvas {
+      opacity: 0;
       pointer-events: none;
     }
     body.web-cloud .pet-avatar-fallback img.luna-icon-face {
@@ -1233,12 +1243,12 @@
     }
     body.web-cloud .web-luna-figure {
       position: relative;
-      width: min(52vw, 260px);
-      height: min(78vh, 520px);
+      width: min(62vw, 320px);
+      height: min(82vh, 580px);
       display: flex;
       flex-direction: column;
       align-items: center;
-      filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+      filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.5));
     }
     body.web-cloud .wl-part {
       border-radius: 999px;
@@ -1255,11 +1265,36 @@
       z-index: 1;
     }
     body.web-cloud .wl-face {
-      width: 92px;
-      height: 92px;
+      width: 96px;
+      height: 96px;
       margin-top: 18px;
       z-index: 2;
       background: linear-gradient(160deg, #f5d0c0, #e8b4a0);
+      position: relative;
+    }
+    body.web-cloud .wl-face::before,
+    body.web-cloud .wl-face::after {
+      content: "";
+      position: absolute;
+      top: 38px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff 0%, #6b8cff 55%, #3a5090 100%);
+      box-shadow: 0 0 6px rgba(107, 140, 255, 0.5);
+    }
+    body.web-cloud .wl-face::before { left: 22px; }
+    body.web-cloud .wl-face::after { right: 22px; }
+    body.web-cloud .wl-lips {
+      position: absolute;
+      top: 62px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 28px;
+      height: 10px;
+      border-radius: 0 0 14px 14px;
+      background: linear-gradient(180deg, #e87898, #c84868);
+      z-index: 3;
     }
     body.web-cloud .wl-neck {
       width: 44px;
@@ -1269,8 +1304,8 @@
       z-index: 1;
     }
     body.web-cloud .wl-bust {
-      width: 148px;
-      height: 88px;
+      width: 168px;
+      height: 96px;
       margin-top: 4px;
       border-radius: 48% 48% 42% 42%;
     }
@@ -2127,7 +2162,7 @@
         <div class="pet-fallback-ring"></div>
         <div class="web-luna-figure" id="web-luna-figure" aria-hidden="true">
           <div class="wl-hair"></div>
-          <div class="wl-face wl-part"></div>
+          <div class="wl-face wl-part"><div class="wl-lips"></div></div>
           <div class="wl-neck wl-part"></div>
           <div class="wl-bust wl-part"></div>
           <div class="wl-waist wl-part"></div>
@@ -2686,6 +2721,21 @@
       avatarWrap.classList.add(cls);
     }
 
+    function finishWebAvatarUi(mode = "2d") {
+      if (!isPublicWebVisit() || isPetMode()) return;
+      loadingEl.classList.remove("visible");
+      loadingEl.style.display = "none";
+      document.body.classList.remove("avatar-3d-ready", "avatar-2d-ready");
+      document.body.classList.add(mode === "3d" ? "avatar-3d-ready" : "avatar-2d-ready");
+      const lbl = document.getElementById("pet-fallback-label");
+      if (lbl) lbl.textContent = "";
+      if (mode === "3d") {
+        setPetFallbackVisible(false);
+      } else {
+        setPetFallbackVisible(true);
+      }
+    }
+
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
@@ -2701,8 +2751,7 @@
       if (speakOpt) speakOpt.checked = true;
       muteBtn.textContent = "🔊";
       const hint = document.getElementById("zone-hint");
-      if (hint) hint.textContent = "Tap Luna's body — each touch strips a layer";
-      setPetFallbackVisible(true, "Tap her body to strip · 💋 for moans · ✨ for dream peak");
+      if (hint) hint.textContent = "Tap or drag Luna — touch strips her layers";
       startTouchSense();
       setupWebAvatarClicks();
       bindGlobalAudioUnlock();
@@ -6700,6 +6749,12 @@
 
     function enableWebPortraitFallback(label = "Loading Luna…") {
       if (isPetMode()) return;
+      if (isPublicWebVisit()) {
+        loadingEl.classList.add("visible");
+        loadingEl.style.display = "";
+        loadingEl.textContent = label;
+        return;
+      }
       setPetFallbackVisible(true, label);
       loadingEl.classList.add("visible");
       loadingEl.textContent = label;
@@ -6744,8 +6799,7 @@
         console.warn("Avatar load:", err);
         head = null;
         if (!isPetMode()) {
-          enableWebPortraitFallback("Luna portrait — tap 🔊 to hear me");
-          showToast("3D avatar still loading — voice works. Tap 🔊 once.");
+          enableWebPortraitFallback("Loading interactive Luna…");
         } else {
           loadingEl.textContent = "Retrying without 3D body...";
         }
@@ -6786,20 +6840,23 @@
           setTimeout(() => welcomeGesture(), 1400);
           return;
         }
-        enableWebPortraitFallback("Tap Luna — touch to strip · 🔊 for voice");
         setupMic();
         setupWebCloudMode();
+        finishWebAvatarUi("2d");
         setStatus("online", "ok");
         return;
       }
       if (head.renderer && !isPetMode()) head.renderer.preserveDrawingBuffer = true;
-      markAvatarReady();
-      if (!isPetMode() && isPublicWebVisit()) {
+      const webVisit = !isPetMode() && isPublicWebVisit();
+      if (webVisit) {
         setupWebCloudMode();
+        finishWebAvatarUi("3d");
+      } else {
+        markAvatarReady();
       }
-      head.setMood("happy");
+      head.setMood("love");
       head.setView("full");
-      applyOutfit(isPetMode() ? (settings.outfitLevel ?? 3) : 0);
+      applyOutfit(isPetMode() ? (settings.outfitLevel ?? 3) : (webVisit ? (settings.outfitLevel ?? 1) : 0));
       updateMoodBadge("happy");
       head.setView(settings.view || "full");
       setupPixelCensor();
@@ -7277,11 +7334,11 @@
           showPetSpeech("Portrait mode — I can still hear you and help.");
         } else {
           loadingEl.style.display = "none";
-          enableWebPortraitFallback("Tap Luna — touch to strip · 🔊 for voice");
           setupMic();
           setupWebCloudMode();
+          finishWebAvatarUi("2d");
           setStatus("online", "ok");
-          showToast("Portrait mode — tap 🔊 once, then 💋 or ✨ for her voice.");
+          showToast("Tap Luna's body to touch & strip — 💋 and ✨ for her voice.");
         }
       }
 

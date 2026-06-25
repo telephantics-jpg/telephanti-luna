@@ -6215,6 +6215,7 @@
           return;
         }
 
+        unlockVoice().catch(() => {});
         const zone = zoneFromClick(e, canvas);
         head.lookAt(e.clientX, e.clientY, 2500);
         lunaReact(zone, "touch");
@@ -6499,6 +6500,10 @@
       } else {
         setTimeout(welcomeGesture, 800);
         if (isMobile()) startMobileLife();
+        if (!sessionStorage.getItem("luna-web-audio-hint")) {
+          sessionStorage.setItem("luna-web-audio-hint", "1");
+          showToast("Tap 🔊 once so you can hear Luna speak.");
+        }
       }
     }
 
@@ -6738,10 +6743,22 @@
       }
     }, 4000);
 
-    muteBtn.addEventListener("click", () => {
-      muted = !muted;
-      muteBtn.textContent = muted ? "🔇" : "🔊";
-      if (head) head.setMood(muted ? "neutral" : "happy");
+    muteBtn.addEventListener("click", async () => {
+      const currentlyOn = !muted && settings.autoSpeak;
+      const nextOn = !currentlyOn;
+      muted = !nextOn;
+      settings.autoSpeak = nextOn;
+      document.getElementById("opt-speak").checked = nextOn;
+      muteBtn.textContent = nextOn ? "🔊" : "🔇";
+      saveSettings();
+      if (head) head.setMood(nextOn ? "happy" : "neutral");
+      if (nextOn) {
+        await unlockVoice();
+        if (!voiceWelcomed) {
+          voiceWelcomed = true;
+          speakText("I'm right here — I can hear you.", "happy");
+        }
+      }
     });
 
     document.querySelectorAll(".mobile-tabs button").forEach((btn) => {

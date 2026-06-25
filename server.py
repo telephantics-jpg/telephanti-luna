@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "75"
+LUNA_BUILD = "76"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2553,16 +2553,22 @@ async def touch_sense(request: TouchSenseRequest):
     name_note = ""
     if request.profile and request.profile.user_name.strip():
         name_note = f" The user's name is {request.profile.user_name.strip()} — weave it in naturally if it fits."
-    tone = (
-        "Warm and playful but appropriate."
-        if bold
-        else "Professional-friendly virtual assistant — warm, personable, never explicit."
-    )
+    if heat < 45:
+        tone = (
+            "Warm assistant — acknowledge touch in half a sentence max, then ask a normal question or offer help. "
+            "Do NOT monologue about touch, skin, or senses."
+        )
+    elif bold and heat >= 65:
+        tone = "Warm and playful but still conversational — one sensual beat, then words."
+    else:
+        tone = (
+            "Friendly virtual assistant — personable, never explicit. "
+            "Light touch acknowledgment only; pivot to chat."
+        )
     prompt = (
         f"The user just {ctx_word} your {zone} on the avatar. Touch intensity: {heat_word} ({heat}/100). "
         f"{hint}{name_note} {tone} "
-        "Reply with 1–2 natural sentences (max 35 words total). Acknowledge the touch, then invite conversation "
-        "or offer help. Sound human and present — not breathy porn, not robotic. "
+        "Reply with ONE short sentence (max 22 words). No repeated touch commentary. "
         "Choose gesture wave or blush, mood happy or love, look_at user."
     )
     try:

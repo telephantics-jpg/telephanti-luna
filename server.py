@@ -27,7 +27,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "63"
+LUNA_BUILD = "64"
 
 
 def _truthy_env(name: str) -> bool:
@@ -507,6 +507,32 @@ MOAN_LINES: list[str] = [
     "Ahhh… keep going.",
     "Nngh… mmm, yes.",
     "Ohhh… you feel that?",
+    "Mmm… oh… right there…",
+    "Ahhh… deeper… please…",
+    "Nngh… I'm trembling…",
+    "Ohhh god… yes yes…",
+    "Hhh… don't you dare stop…",
+    "Mmm… so wet for you…",
+    "Ahhh… bite your lip and listen…",
+    "Nngh… fuck… more…",
+    "Oh… my whole body is singing…",
+    "Mmmmm… honey… yes…",
+    "Ahh… I'm arching…",
+    "Ohhh… you own this sound…",
+    "Nngh… hhh… mmm…",
+    "Mmm… say my name while I moan…",
+    "Ahhh… I'm close already…",
+    "Oh god… keep touching…",
+    "Hhh… melting…",
+    "Mmm… louder… I want you to hear me…",
+    "Ahhh… perfect…",
+    "Nngh… again…",
+    "Ohhh… you make me shameless…",
+    "Mmm… hhh… ohhh…",
+    "Ahhh… I can't stay quiet…",
+    "Nngh… please…",
+    "Oh… every moan is for you…",
+    "Mmm… yes… right there… don't stop…",
 ]
 
 DREAM_SPOKEN: dict[str, list[str]] = {

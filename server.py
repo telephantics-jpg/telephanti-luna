@@ -27,7 +27,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "65"
+LUNA_BUILD = "66"
 
 
 def _truthy_env(name: str) -> bool:
@@ -832,6 +832,12 @@ def rapport_stage(affection: int) -> str:
 
 def vibe_instructions(vibe: str) -> str:
     v = (vibe or "").strip().lower()
+    if "ani-style" in v or "virtual assistant companion" in v:
+        return (
+            "Companion-assistant mode: witty, warm, helpful like a living virtual assistant (Ani/Mika energy). "
+            "Balance real help with playful flirt — adult tone when sliders are high. Animated presence: "
+            "react emotionally, use their name, sound alive not scripted."
+        )
     if "chill" in v:
         return (
             "CHILL MODE: relaxed, warm, unhurried — easy company. Soft affection, no pressure, no hyper energy. "

@@ -1227,6 +1227,92 @@
       border-radius: 20px;
       box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(232, 180, 255, 0.18);
       background: #0c0814;
+      transition: box-shadow 0.4s;
+    }
+    body.luna-state-listen #luna-live-canvas {
+      box-shadow: 0 0 0 2px rgba(107, 140, 255, 0.45), 0 20px 48px rgba(0, 0, 0, 0.55);
+    }
+    body.luna-state-think #luna-live-canvas {
+      box-shadow: 0 0 0 2px rgba(196, 181, 253, 0.4), 0 20px 48px rgba(0, 0, 0, 0.55);
+    }
+    body.luna-state-speak #luna-live-canvas {
+      box-shadow: 0 0 0 2px rgba(201, 168, 124, 0.5), 0 20px 48px rgba(0, 0, 0, 0.55);
+    }
+    body.luna-state-flirt #luna-live-canvas,
+    body.luna-state-touch #luna-live-canvas {
+      box-shadow: 0 0 0 2px rgba(251, 113, 133, 0.55), 0 0 32px rgba(251, 113, 133, 0.2);
+    }
+    .luna-assistant-hud {
+      position: absolute;
+      top: 0.55rem;
+      left: 0.55rem;
+      right: 0.55rem;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+      pointer-events: none;
+    }
+    .luna-hud-orb {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #86efac;
+      box-shadow: 0 0 10px rgba(134, 239, 172, 0.6);
+      flex-shrink: 0;
+      animation: hud-orb-pulse 2s ease-in-out infinite;
+    }
+    body.luna-state-listen .luna-hud-orb { background: #6b8cff; box-shadow: 0 0 12px rgba(107,140,255,0.7); }
+    body.luna-state-think .luna-hud-orb { background: #c4b5fd; animation-duration: 0.8s; }
+    body.luna-state-speak .luna-hud-orb { background: #c9a87c; }
+    body.luna-state-flirt .luna-hud-orb,
+    body.luna-state-touch .luna-hud-orb { background: #fb7185; box-shadow: 0 0 14px rgba(251,113,133,0.75); }
+    @keyframes hud-orb-pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+    .luna-hud-status {
+      flex: 1;
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: rgba(242, 240, 235, 0.9);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .luna-hud-mood {
+      font-size: 0.72rem;
+      opacity: 0.85;
+    }
+    .luna-quick-chips {
+      display: none;
+      position: absolute;
+      bottom: 3.6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 11;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 96%;
+      pointer-events: auto;
+    }
+    body.web-cloud.avatar-live-ready .luna-quick-chips { display: flex; }
+    .luna-quick-chips .chip {
+      border: 1px solid rgba(232, 180, 255, 0.35);
+      background: rgba(14, 10, 24, 0.88);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.32rem 0.65rem;
+      font-size: 0.68rem;
+      font-family: inherit;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .luna-quick-chips .chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
     }
     body.web-cloud.avatar-live-ready .live-strip-overlay {
       position: absolute;
@@ -2250,7 +2336,7 @@
     <button type="button" id="phone-install-dismiss" title="Dismiss">✕</button>
   </div>
   <header>
-    <div class="brand"><span>Luna</span> — AI Companion</div>
+    <div class="brand"><span>Luna</span> — Virtual Assistant</div>
     <div class="hdr-btns">
       <button class="btn hidden" id="install-btn">Install</button>
       <button class="btn" id="desktop-btn" title="Float on desktop">🪟</button>
@@ -2292,7 +2378,18 @@
       <div class="pet-avatar-fallback" id="pet-avatar-fallback" aria-hidden="true">
         <div class="pet-fallback-ring"></div>
         <div class="luna-live-stage" id="luna-live-stage" aria-hidden="true">
+          <div class="luna-assistant-hud" id="luna-assistant-hud" aria-hidden="true">
+            <div class="luna-hud-orb" id="luna-hud-orb"></div>
+            <span class="luna-hud-status" id="luna-hud-status">Luna · online</span>
+            <span class="luna-hud-mood" id="luna-hud-mood">✨</span>
+          </div>
           <canvas id="luna-live-canvas" aria-label="Luna live portrait"></canvas>
+          <div class="luna-quick-chips" id="luna-quick-chips">
+            <button type="button" class="chip" data-prompt="Hey Luna — what can you help me with today?">Help me</button>
+            <button type="button" class="chip" data-prompt="Talk to me — I want company.">Talk to me</button>
+            <button type="button" class="chip" data-prompt="Flirt with me… make me blush.">Flirt 💋</button>
+            <button type="button" class="chip" data-prompt="Plan my evening with me — keep it fun.">Plan</button>
+          </div>
           <div class="live-strip-top live-strip-overlay" aria-hidden="true"></div>
           <div class="live-strip-lingerie live-strip-overlay" aria-hidden="true"></div>
           <div class="live-strip-bottom live-strip-overlay" aria-hidden="true"></div>
@@ -2589,6 +2686,8 @@
 
     let TalkingHeadClass = null;
     let livePortrait = null;
+    let webAssistantTimer = null;
+    let lunaAvatarState = "idle";
 
     async function loadTalkingHead() {
       if (TalkingHeadClass) return TalkingHeadClass;
@@ -2662,6 +2761,7 @@
     let lunaMood = "happy";
     const CHILL_VIBE = "chill and relaxed — warm, unhurried, affectionate, easy pace, no pressure";
     const ASSISTANT_VIBE = "warm, helpful female AI assistant — clear, attentive, capable, hears and helps";
+    const COMPANION_VIBE = "flirty virtual assistant companion — Ani-style: witty, warm, helpful, touchy, adult when invited, animated presence, remembers your name, proactive and playful";
     let activeVibe = CHILL_VIBE;
     let idleTimer = null;
     let ambientTimer = null;
@@ -2878,6 +2978,7 @@
         livePortrait.observeResize();
         livePortrait.attachAudioElement(getPetAudioEl());
         livePortrait.start();
+        bindLivePortraitPointer();
         return livePortrait;
       } catch (err) {
         console.warn("Live portrait:", err);
@@ -2966,14 +3067,92 @@
       return line;
     }
 
+    const LUNA_MOOD_EMOJI = {
+      happy: "😊", love: "💕", neutral: "✨", sleep: "😴",
+      angry: "😤", sad: "🥺", fear: "😳", disgust: "😒",
+    };
+
+    function setLunaAvatarState(state, label) {
+      lunaAvatarState = state || "idle";
+      document.body.classList.remove(
+        "luna-state-idle", "luna-state-listen", "luna-state-think",
+        "luna-state-speak", "luna-state-flirt", "luna-state-touch",
+        "luna-state-love", "luna-state-excited", "luna-state-help", "luna-state-dream",
+      );
+      document.body.classList.add("luna-state-" + lunaAvatarState);
+      livePortrait?.setState(lunaAvatarState);
+      const hud = document.getElementById("luna-hud-status");
+      const labels = {
+        idle: "Luna · ready", listen: "Luna · listening", think: "Luna · thinking",
+        speak: "Luna · speaking", flirt: "Luna · playful", touch: "Luna · feeling you",
+        love: "Luna · melting", excited: "Luna · excited", help: "Luna · helping", dream: "Luna · dreaming",
+      };
+      if (hud) hud.textContent = label || labels[lunaAvatarState] || "Luna · online";
+      const moodEl = document.getElementById("luna-hud-mood");
+      if (moodEl) moodEl.textContent = LUNA_MOOD_EMOJI[lunaMood] || "✨";
+    }
+
+    function bindLivePortraitPointer() {
+      const stage = document.getElementById("luna-live-stage");
+      if (!stage || stage.__lunaPointerBound) return;
+      stage.__lunaPointerBound = true;
+      stage.addEventListener("pointermove", (e) => {
+        const rect = getLunaImageRect();
+        if (!rect || !livePortrait) return;
+        const nx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+        const ny = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+        livePortrait.setPointer(nx, ny);
+      }, { passive: true });
+    }
+
+    function setupLunaQuickChips() {
+      document.querySelectorAll("#luna-quick-chips .chip").forEach((chip) => {
+        chip.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const prompt = chip.dataset.prompt;
+          if (!prompt) return;
+          input.value = prompt;
+          if (/flirt/i.test(prompt)) setLunaAvatarState("flirt");
+          else setLunaAvatarState("help");
+          livePortrait?.nodOnce();
+          form.requestSubmit();
+        });
+      });
+    }
+
+    function startWebAssistantLife() {
+      stopWebAssistantLife();
+      if (!isPublicWebVisit() || isPetMode()) return;
+      setLunaAvatarState("idle");
+      setupLunaQuickChips();
+      webAssistantTimer = setInterval(() => {
+        if (busy || lunaSpeaking || dreamPeaking || daydreaming) return;
+        if (Math.random() < 0.22) {
+          livePortrait?.spawnParticles("spark", 1);
+          if (Math.random() < 0.4) livePortrait?.setPointer((Math.random() - 0.5) * 0.6, -0.1);
+        }
+        if (settings.alwaysListen && alwaysListening) setLunaAvatarState("listen");
+        else if (lunaAvatarState === "idle") setLunaAvatarState("idle");
+      }, 4200);
+    }
+
+    function stopWebAssistantLife() {
+      if (webAssistantTimer) clearInterval(webAssistantTimer);
+      webAssistantTimer = null;
+    }
+
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
+      settings.agentMode = true;
+      activeVibe = COMPANION_VIBE;
+      settings.activeVibe = COMPANION_VIBE;
       if (!localStorage.getItem("luna-voice-user-on")) {
         muted = true;
         settings.autoSpeak = false;
       }
       settings.touchSense = true;
+      settings.proactiveSpeech = settings.proactiveSpeech !== false;
       settings.outfitLevel = settings.outfitLevel ?? 1;
       stripLevel = settings.outfitLevel;
       updateWebPortraitStrip(stripLevel);
@@ -2988,6 +3167,8 @@
       setupWebAvatarClicks();
       bindGlobalAudioUnlock();
       initLivePortrait().catch(() => {});
+      startWebAssistantLife();
+      startAmbientSpeech();
       saveSettings();
     }
 
@@ -3062,6 +3243,7 @@
 
     async function webQuickTouch(zone) {
       livePortrait?.pulseTouch(1);
+      setLunaAvatarState("touch");
       const stripZones = ["torso", "legs", "body"];
       if (stripZones.includes(zone) && stripLevel < 3) {
         applyOutfit(stripLevel + 1);
@@ -3230,6 +3412,7 @@
       pauseAlwaysListen();
       livePortrait?.resumeAudio?.();
       livePortrait?.setSpeaking(true);
+      if (isPublicWebVisit()) setLunaAvatarState("speak");
     }
 
     async function endLunaSpeech() {
@@ -3237,6 +3420,7 @@
       if (speakDepth > 0) return;
       lunaSpeaking = false;
       livePortrait?.setSpeaking(false);
+      if (isPublicWebVisit() && !busy) setLunaAvatarState(settings.alwaysListen && alwaysListening ? "listen" : "idle");
       await sleepMs(720);
       lunaMic?.setBusy(false);
       if (!busy && !dreamPeaking && !daydreaming) resumeAlwaysListen();
@@ -4701,6 +4885,7 @@
       setSenseField("dream");
       updatePetTopbarStatus("daydreaming…", "busy");
       livePortrait?.setMouthLevel?.(0.15);
+      setLunaAvatarState("dream");
       const webDaydream = isPublicWebVisit() && !isPetMode();
       if (webDaydream) {
         showLunaCaption(settings.userName
@@ -4817,11 +5002,22 @@
       }
       statusPill.textContent = text;
       statusPill.className = "status-pill " + level;
+      if (isPublicWebVisit()) {
+        const t = (text || "").toLowerCase();
+        if (t.includes("think") || level === "busy") setLunaAvatarState("think");
+        else if (t.includes("listen") || level === "hearing") setLunaAvatarState("listen");
+        else if (t.includes("speak")) setLunaAvatarState("speak");
+        else if (!busy && !lunaSpeaking) setLunaAvatarState("idle");
+      }
     }
 
     function updateMoodBadge(mood) {
       lunaMood = mood || lunaMood;
       moodBadge.textContent = "mood: " + lunaMood;
+      livePortrait?.setMood(lunaMood);
+      const moodEl = document.getElementById("luna-hud-mood");
+      if (moodEl) moodEl.textContent = LUNA_MOOD_EMOJI[lunaMood] || "✨";
+      if (lunaMood === "love" && isPublicWebVisit()) setLunaAvatarState("love");
     }
 
     function updateRapport(delta = 0) {
@@ -5677,6 +5873,13 @@
       if (head) {
         applyLunaAction(data);
         if (settings.worldReach && Math.random() < 0.45) reachIntoWorld(3 + Math.random() * 1.5);
+      }
+      if (isPublicWebVisit()) {
+        if (data.mood) updateMoodBadge(data.mood);
+        const flirty = /flirt|touch|mmm|kiss|want you|baby|love/i.test(text);
+        setLunaAvatarState(flirty ? "flirt" : data.mood === "love" ? "love" : "help");
+        livePortrait?.nodOnce();
+        if (flirty || data.mood === "love") livePortrait?.spawnParticles("heart", 2);
       }
       addMsg("assistant", text);
       history.push({ role: "assistant", content: text });
@@ -6642,6 +6845,9 @@
       micBtn.title = on
         ? `Always listening${mode} — click to mute`
         : "Mic off — click to listen";
+      if (isPublicWebVisit() && !busy && !lunaSpeaking) {
+        setLunaAvatarState(on ? "listen" : "idle");
+      }
     }
 
     function showPetHearBanner() {
@@ -7037,6 +7243,7 @@
       document.getElementById("moan-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
         livePortrait?.pulseTouch(1.2);
+        setLunaAvatarState("flirt");
         showLunaCaption(pickWebLine(WEB_MOAN_BTN_LINES));
         if (!muted && settings.autoSpeak) {
           await unlockVoice();
@@ -7114,6 +7321,8 @@
         loadingEl.classList.remove("visible");
         loadingEl.style.display = "none";
         setupMic();
+        setLunaAvatarState("idle");
+        updateMoodBadge("happy");
         setStatus("online", "ok");
         if (!sessionStorage.getItem("luna-web-audio-hint")) {
           sessionStorage.setItem("luna-web-audio-hint", "1");
@@ -7397,6 +7606,8 @@
       }
       let full = "";
       setStatus("thinking...", "busy");
+      setLunaAvatarState("think");
+      livePortrait?.setState("think");
 
       try {
         const priorHistory = history.slice(0, -1);
@@ -7491,6 +7702,13 @@
         if (action) {
           applyLunaAction(action);
           if (settings.worldReach && Math.random() < 0.35) reachIntoWorld(3 + Math.random());
+        }
+        if (isPublicWebVisit()) {
+          const mood = action?.mood || streamMood || "happy";
+          updateMoodBadge(mood);
+          const flirty = /flirt|touch|mmm|kiss|want you|baby/i.test(full);
+          setLunaAvatarState(flirty || mood === "love" ? "flirt" : "help");
+          livePortrait?.nodOnce();
         }
         updateRapport(8);
         const speakLine = (action?.text || full || "").trim();

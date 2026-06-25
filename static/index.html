@@ -1206,6 +1206,143 @@
     body:not(.desktop-pet) .pet-avatar-fallback.visible {
       z-index: 7;
     }
+    body.web-cloud .avatar-wrap {
+      cursor: pointer;
+    }
+    .web-luna-figure { display: none; }
+    body.web-cloud .web-luna-figure { display: flex; }
+    body.web-cloud .pet-fallback-ring,
+    body.web-cloud .luna-icon-face { display: none; }
+    body.web-cloud .pet-avatar-fallback.visible {
+      display: flex !important;
+      z-index: 8;
+      pointer-events: auto;
+    }
+    body.web-cloud #avatar canvas {
+      opacity: 0.12;
+      pointer-events: none;
+    }
+    body.web-cloud .pet-avatar-fallback img.luna-icon-face {
+      width: 88px;
+      height: 88px;
+      position: absolute;
+      top: 6%;
+      z-index: 3;
+      border-width: 2px;
+      animation: none;
+    }
+    body.web-cloud .web-luna-figure {
+      position: relative;
+      width: min(52vw, 260px);
+      height: min(78vh, 520px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+    }
+    body.web-cloud .wl-part {
+      border-radius: 999px;
+      background: linear-gradient(165deg, #f0c4b0 0%, #d99680 42%, #c47868 100%);
+      box-shadow: inset 0 -8px 18px rgba(120, 50, 40, 0.25);
+    }
+    body.web-cloud .wl-hair {
+      position: absolute;
+      top: 0;
+      width: 118px;
+      height: 108px;
+      border-radius: 58px 58px 42px 42px;
+      background: linear-gradient(180deg, #3d2518, #2a1810);
+      z-index: 1;
+    }
+    body.web-cloud .wl-face {
+      width: 92px;
+      height: 92px;
+      margin-top: 18px;
+      z-index: 2;
+      background: linear-gradient(160deg, #f5d0c0, #e8b4a0);
+    }
+    body.web-cloud .wl-neck {
+      width: 44px;
+      height: 28px;
+      margin-top: -6px;
+      border-radius: 12px;
+      z-index: 1;
+    }
+    body.web-cloud .wl-bust {
+      width: 148px;
+      height: 88px;
+      margin-top: 4px;
+      border-radius: 48% 48% 42% 42%;
+    }
+    body.web-cloud .wl-waist {
+      width: 86px;
+      height: 52px;
+      margin-top: -8px;
+      border-radius: 38%;
+    }
+    body.web-cloud .wl-hips {
+      width: 132px;
+      height: 72px;
+      margin-top: -6px;
+      border-radius: 46%;
+    }
+    body.web-cloud .wl-legs {
+      width: 108px;
+      height: 148px;
+      margin-top: -4px;
+      border-radius: 38% 38% 44% 44%;
+      background: linear-gradient(180deg, #dba090 0%, #c47868 55%, #b06858 100%);
+    }
+    body.web-cloud .web-outfit-overlay {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 18px;
+      pointer-events: none;
+      transition: opacity 0.45s ease;
+      z-index: 4;
+    }
+    body.web-cloud .web-outfit-top {
+      top: 22%;
+      width: 52%;
+      height: 18%;
+      background: linear-gradient(180deg, rgba(28, 12, 42, 0.92), rgba(52, 22, 68, 0.72));
+      border: 1px solid rgba(232, 180, 255, 0.35);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+    body.web-cloud .web-outfit-lingerie {
+      top: 38%;
+      width: 46%;
+      height: 14%;
+      background: linear-gradient(180deg, rgba(180, 60, 120, 0.75), rgba(120, 30, 80, 0.55));
+      border: 1px solid rgba(255, 140, 200, 0.4);
+    }
+    body.web-cloud .web-outfit-bottom {
+      top: 54%;
+      width: 44%;
+      height: 16%;
+      background: linear-gradient(180deg, rgba(22, 10, 36, 0.88), rgba(40, 18, 52, 0.6));
+      border: 1px solid rgba(232, 180, 255, 0.28);
+    }
+    body.web-cloud.strip-1 .web-outfit-top { opacity: 0.45; }
+    body.web-cloud.strip-2 .web-outfit-top,
+    body.web-cloud.strip-2 .web-outfit-lingerie { opacity: 0.2; }
+    body.web-cloud.strip-3 .web-outfit-top,
+    body.web-cloud.strip-3 .web-outfit-lingerie,
+    body.web-cloud.strip-3 .web-outfit-bottom { opacity: 0; }
+    body.web-cloud.strip-3 .wl-part {
+      filter: saturate(1.08) brightness(1.04);
+    }
+    body.web-cloud.touch-sense-on .touch-heat-bar { opacity: 1; }
+    body.web-cloud .zone-hint::after {
+      content: " · tap or drag to touch & strip";
+      color: #e8b4ff;
+    }
+    body.web-cloud .react-toast.visible {
+      z-index: 12;
+      font-size: 0.85rem;
+      padding: 0.55rem 1rem;
+    }
     .pet-avatar-fallback img {
       border-radius: 50%;
       border: 3px solid rgba(232, 180, 255, 0.45);
@@ -1988,7 +2125,19 @@
       </div>
       <div class="pet-avatar-fallback" id="pet-avatar-fallback" aria-hidden="true">
         <div class="pet-fallback-ring"></div>
-        <img src="/static/icons/icon-512.png" width="160" height="160" alt="Luna" />
+        <div class="web-luna-figure" id="web-luna-figure" aria-hidden="true">
+          <div class="wl-hair"></div>
+          <div class="wl-face wl-part"></div>
+          <div class="wl-neck wl-part"></div>
+          <div class="wl-bust wl-part"></div>
+          <div class="wl-waist wl-part"></div>
+          <div class="wl-hips wl-part"></div>
+          <div class="wl-legs wl-part"></div>
+          <div class="web-outfit-top web-outfit-overlay" aria-hidden="true"></div>
+          <div class="web-outfit-lingerie web-outfit-overlay" aria-hidden="true"></div>
+          <div class="web-outfit-bottom web-outfit-overlay" aria-hidden="true"></div>
+        </div>
+        <img class="luna-icon-face" src="/static/icons/icon-512.png" width="88" height="88" alt="Luna" />
         <span class="pet-fallback-label" id="pet-fallback-label">Awakening Luna...</span>
       </div>
       <div class="cam-indicator" id="cam-indicator">📷 watching</div>
@@ -2361,6 +2510,7 @@
     let proactiveHoldTimer = null;
     let lastUserSpeechAt = 0;
     let lastTouchMoanAt = 0;
+    let lastWebStripAt = 0;
     let lastTouchReactAt = 0;
     let lastTouchCaptionAt = 0;
     let touchDecayTimer = null;
@@ -2525,6 +2675,97 @@
         return true;
       }
       return false;
+    }
+
+    function updateWebPortraitStrip(level = stripLevel) {
+      const cls = "strip-" + Math.max(0, Math.min(3, level));
+      document.body.classList.remove("strip-0", "strip-1", "strip-2", "strip-3");
+      document.body.classList.add(cls);
+      if (!avatarWrap) return;
+      avatarWrap.classList.remove("strip-0", "strip-1", "strip-2", "strip-3");
+      avatarWrap.classList.add(cls);
+    }
+
+    function setupWebCloudMode() {
+      if (!isPublicWebVisit() || isPetMode()) return;
+      document.body.classList.add("web-cloud");
+      muted = false;
+      settings.touchSense = true;
+      settings.autoSpeak = true;
+      settings.outfitLevel = settings.outfitLevel ?? 1;
+      stripLevel = settings.outfitLevel;
+      updateWebPortraitStrip(stripLevel);
+      const touchOpt = document.getElementById("opt-touch-sense");
+      const speakOpt = document.getElementById("opt-speak");
+      if (touchOpt) touchOpt.checked = true;
+      if (speakOpt) speakOpt.checked = true;
+      muteBtn.textContent = "🔊";
+      const hint = document.getElementById("zone-hint");
+      if (hint) hint.textContent = "Tap Luna's body — each touch strips a layer";
+      setPetFallbackVisible(true, "Tap her body to strip · 💋 for moans · ✨ for dream peak");
+      startTouchSense();
+      setupWebAvatarClicks();
+      bindGlobalAudioUnlock();
+      saveSettings();
+    }
+
+    function bindGlobalAudioUnlock() {
+      if (window.__lunaAudioUnlockBound) return;
+      window.__lunaAudioUnlockBound = true;
+      const unlock = async () => {
+        await unlockVoice();
+      };
+      document.addEventListener("pointerdown", unlock, { once: true, capture: true });
+      document.addEventListener("keydown", unlock, { once: true, capture: true });
+    }
+
+    async function playAudioB64(b64) {
+      if (!b64) return;
+      await primePetHtmlAudio();
+      return playPetAudioB64(b64);
+    }
+
+    async function webQuickTouch(zone) {
+      await unlockVoice();
+      const stripZones = ["torso", "legs", "body"];
+      if (stripZones.includes(zone) && stripLevel < 3) {
+        applyOutfit(stripLevel + 1);
+        settings.outfitLevel = stripLevel;
+        document.getElementById("sl-outfit")?.value && (document.getElementById("sl-outfit").value = String(stripLevel));
+        document.getElementById("val-outfit")?.textContent && (document.getElementById("val-outfit").textContent = String(stripLevel));
+        saveSettings();
+        showToast(stripLevel >= 3 ? "All for you…" : "Mmm… more?");
+      }
+      if (!muted && settings.autoSpeak) await lunaMoan(zone === "legs" ? 3 : 2);
+      const lines = {
+        head: "Look at me…",
+        torso: "Mmm… right there…",
+        legs: "Oh god… yes…",
+        body: "Touch me again…",
+        arm: "Hold me…",
+      };
+      showLunaCaption(lines[zone] || "Mmm…");
+    }
+
+    function setupWebAvatarClicks() {
+      if (!avatarWrap || window.__lunaWebClicksBound) return;
+      window.__lunaWebClicksBound = true;
+      avatarWrap.addEventListener("pointerup", async (e) => {
+        if (e.target.closest(".interact-bar, header, .btn, .options-panel")) return;
+        if (!pointerOverAvatar(e.clientX, e.clientY)) return;
+        await unlockVoice();
+        const zone = zoneFromPointer(e.clientX, e.clientY);
+        spawnTouchRipple(e.clientX, e.clientY, 0.9);
+        touchHeat = Math.min(100, touchHeat + 14);
+        updateTouchHeatUi();
+        if (isPublicWebVisit()) {
+          await webQuickTouch(zone);
+        } else if (head) {
+          lunaReact(zone, "touch");
+        } else {
+          await webQuickTouch(zone);
+        }
+      });
     }
 
     function applyPublicWebChrome() {
@@ -3869,7 +4110,8 @@
     }
 
     function handleTouchSenseMove(e) {
-      if (!isPetMode() || settings.touchSense === false || dreamPeaking || daydreaming) return;
+      if (settings.touchSense === false || dreamPeaking || daydreaming) return;
+      if (!isPetMode() && !isPublicWebVisit()) return;
       if (!pointerOverAvatar(e.clientX, e.clientY)) {
         scheduleTouchDecay();
         return;
@@ -3910,6 +4152,16 @@
           "Nngh… right there… I sense you…",
         ];
         showPetSpeech(whispers[Math.floor(Math.random() * whispers.length)]);
+      }
+      if (isPublicWebVisit() && stripLevel < 3 && now - lastWebStripAt > 2800) {
+        const stripZones = ["torso", "legs", "body"];
+        if (stripZones.includes(zone) && touchHeat > 28 + stripLevel * 14) {
+          lastWebStripAt = now;
+          applyOutfit(stripLevel + 1);
+          settings.outfitLevel = stripLevel;
+          saveSettings();
+          showToast(stripLevel >= 3 ? "All for you…" : "Mmm… more?");
+        }
       }
       if (touchHeat > 38 && !muted && settings.autoSpeak && now - lastTouchMoanAt > 6500) {
         lastTouchMoanAt = now;
@@ -3957,8 +4209,10 @@
         wdurations: phase.wdurations,
       };
       try {
-        if (isPetMode()) await playPetSpeech(speechPayload, phase.audio_b64);
-        else if (head) await head.speakAudio(speechPayload, { lipsyncLang: "en" });
+        await playPetSpeech(speechPayload, phase.audio_b64);
+      } catch (err) {
+        console.warn("Dream phase audio:", err);
+        await playAudioB64(phase.audio_b64).catch(() => {});
       } finally {
         await endLunaSpeech();
       }
@@ -5547,6 +5801,8 @@
     function applyOutfit(level, pixelNude = false) {
       if (pixelNude) stripLevel = 3;
       else stripLevel = Math.max(0, Math.min(3, level));
+      settings.outfitLevel = stripLevel;
+      updateWebPortraitStrip(stripLevel);
       if (!head) return;
 
       const roots = [head.armature, head.scene].filter(Boolean);
@@ -6159,6 +6415,7 @@
 
     async function _moanImpl(intensity = 2) {
       beginLunaSpeech();
+      let data = null;
       try {
         await unlockVoice();
         const res = await fetch("/api/moan", {
@@ -6171,7 +6428,7 @@
           }),
         });
         if (!res.ok) throw new Error("Moan failed");
-        const data = await res.json();
+        data = await res.json();
         const line = (data.text || "Mmm…").trim();
         if (head) {
           head.setMood("love");
@@ -6191,20 +6448,22 @@
           wtimes: data.wtimes,
           wdurations: data.wdurations,
         };
-        if (isPetMode()) {
-          await playPetSpeech(speechPayload, data.audio_b64);
-        } else if (head) {
-          await head.speakAudio(speechPayload, { lipsyncLang: "en" });
-        }
+        await playPetSpeech(speechPayload, data.audio_b64);
       } catch (err) {
         console.warn("Moan error:", err);
+        if (data?.audio_b64) await playAudioB64(data.audio_b64).catch(() => {});
       } finally {
         await endLunaSpeech();
       }
     }
 
     async function lunaReact(zone, action = "touch", speak = null) {
-      if (!head || reacting) return;
+      if (reacting) return;
+      if (!head && isPublicWebVisit()) {
+        await webQuickTouch(zone);
+        return;
+      }
+      if (!head) return;
       if (action === "touch" && ["torso", "legs", "body"].includes(zone) && settings.autoSpeak && !muted) {
         lunaMoan(zone === "legs" ? 3 : 2);
       }
@@ -6384,15 +6643,20 @@
       });
       applyMicSensitivity();
 
-      document.getElementById("moan-btn")?.addEventListener("click", async () => {
+      document.getElementById("moan-btn")?.addEventListener("click", async (e) => {
+        e.stopPropagation();
         await unlockVoice();
+        showToast("💋 …", { speak: false });
         await lunaMoan(3);
       });
-      document.getElementById("dream-btn")?.addEventListener("click", async () => {
+      document.getElementById("dream-btn")?.addEventListener("click", async (e) => {
+        e.stopPropagation();
         await unlockVoice();
+        showToast("✨ dream peak…");
         await lunaDreamPeak();
       });
-      document.getElementById("daydream-btn")?.addEventListener("click", async () => {
+      document.getElementById("daydream-btn")?.addEventListener("click", async (e) => {
+        e.stopPropagation();
         await unlockVoice();
         await lunaDaydream();
       });
@@ -6522,13 +6786,17 @@
           setTimeout(() => welcomeGesture(), 1400);
           return;
         }
-        enableWebPortraitFallback("Luna portrait — chat & voice work");
+        enableWebPortraitFallback("Tap Luna — touch to strip · 🔊 for voice");
         setupMic();
+        setupWebCloudMode();
         setStatus("online", "ok");
         return;
       }
       if (head.renderer && !isPetMode()) head.renderer.preserveDrawingBuffer = true;
       markAvatarReady();
+      if (!isPetMode() && isPublicWebVisit()) {
+        setupWebCloudMode();
+      }
       head.setMood("happy");
       head.setView("full");
       applyOutfit(isPetMode() ? (settings.outfitLevel ?? 3) : 0);
@@ -6911,6 +7179,7 @@
       }
       loadSettings();
       ensurePublicWebUi();
+      setupWebCloudMode();
       document.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === ",") {
           e.preventDefault();
@@ -7008,10 +7277,11 @@
           showPetSpeech("Portrait mode — I can still hear you and help.");
         } else {
           loadingEl.style.display = "none";
-          enableWebPortraitFallback("Luna portrait — tap 🔊 to hear me");
+          enableWebPortraitFallback("Tap Luna — touch to strip · 🔊 for voice");
           setupMic();
+          setupWebCloudMode();
           setStatus("online", "ok");
-          showToast("Portrait mode — voice and chat work. Tap 🔊 once.");
+          showToast("Portrait mode — tap 🔊 once, then 💋 or ✨ for her voice.");
         }
       }
 

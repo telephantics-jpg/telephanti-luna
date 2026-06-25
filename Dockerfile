@@ -29,6 +29,7 @@ RUN mkdir -p static/avatars static/icons \
 ENV LUNA_CLOUD=1
 ENV LUNA_HOST=0.0.0.0
 ENV LUNA_PUBLIC_URL=https://telephanti.com
+ENV LUNA_PREWARM=0
 
 # Render sets PORT at runtime (do NOT hardcode 8767 here).
 EXPOSE 10000

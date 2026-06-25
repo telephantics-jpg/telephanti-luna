@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "74"
+LUNA_BUILD = "75"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -1523,12 +1523,10 @@ async def health():
         os.getenv("XAI_API_KEY") and os.getenv("XAI_API_KEY") != "your_api_key_here"
     )
     lipsync = False
-    try:
-        from luna_lipsync.engine import lipsync_available
-
-        lipsync = lipsync_available()
-    except ImportError:
-        lipsync = False
+    if os.getenv("LUNA_LIPSYNC", "1").strip().lower() not in ("0", "false", "no", "off"):
+        model = BASE_DIR / "models" / "lipsync" / "wav2lip.onnx"
+        portrait = BASE_DIR / "static" / "avatars" / "luna-portrait.jpg"
+        lipsync = model.is_file() and portrait.is_file()
     return {
         "ok": True,
         "api_key_configured": configured,

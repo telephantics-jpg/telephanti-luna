@@ -2847,8 +2847,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=74";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=74";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=75";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=75";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3200,7 +3200,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=74",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=75",
           });
           await livePortrait.load();
           livePortrait.observeResize();

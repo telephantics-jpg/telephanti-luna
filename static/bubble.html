@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luna</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0e101a;
+      color: #f2f0eb;
+      overflow: hidden;
+    }
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border: 1px solid rgba(201, 168, 124, 0.35);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .hdr {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.6rem;
+      background: #141824;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .hdr .name { font-weight: 700; color: #c9a87c; margin-right: auto; font-size: 0.9rem; }
+    .hdr .status { font-size: 0.65rem; color: #86efac; margin-right: 0.3rem; }
+    .hdr button {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #1a2030;
+      color: #f2f0eb;
+      border-radius: 6px;
+      padding: 0.2rem 0.45rem;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .hdr button.off { opacity: 0.4; }
+    .feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.55rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      min-height: 0;
+    }
+    .bubble {
+      max-width: 90%;
+      padding: 0.5rem 0.72rem;
+      border-radius: 14px;
+      font-size: 0.82rem;
+      line-height: 1.42;
+      word-break: break-word;
+    }
+    .bubble.luna {
+      align-self: flex-start;
+      background: rgba(201, 168, 124, 0.18);
+      border: 1px solid rgba(201, 168, 124, 0.35);
+      border-bottom-left-radius: 4px;
+    }
+    .bubble.you {
+      align-self: flex-end;
+      background: rgba(99, 102, 241, 0.28);
+      border: 1px solid rgba(129, 140, 248, 0.4);
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.sys {
+      align-self: center;
+      font-size: 0.68rem;
+      color: #8a8fa8;
+      text-align: center;
+      padding: 0.2rem;
+    }
+    .compose {
+      display: flex;
+      gap: 0.35rem;
+      padding: 0.45rem 0.55rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: #141824;
+      flex-shrink: 0;
+    }
+    .compose input {
+      flex: 1;
+      background: #0a0c14;
+      border: 1px solid rgba(201, 168, 124, 0.25);
+      border-radius: 20px;
+      padding: 0.5rem 0.85rem;
+      color: #f2f0eb;
+      font-size: 0.82rem;
+      outline: none;
+    }
+    .compose input:focus { border-color: #c9a87c; }
+    .compose button {
+      background: #c9a87c;
+      color: #1a1008;
+      border: none;
+      border-radius: 50%;
+      width: 2rem;
+      height: 2rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    video { display: none; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="hdr">
+      <span class="name">Luna</span>
+      <span class="status" id="status">online</span>
+      <button type="button" id="btn-sound" title="Voice">🔊</button>
+      <button type="button" id="btn-mic" title="Listen">🎤</button>
+      <button type="button" id="btn-moan" title="Moan">💋</button>
+      <button type="button" id="btn-cam" title="See you">📷</button>
+      <button type="button" id="btn-min" title="Minimize to taskbar">—</button>
+    </div>
+    <div class="feed" id="feed">
+      <div class="bubble sys">Click 🎤 once so I can hear you — then talk naturally. Or type below.</div>
+    </div>
+    <form class="compose" id="form">
+      <input id="input" placeholder="Talk to Luna..." autocomplete="off" maxlength="2000" />
+      <button type="submit">↑</button>
+    </form>
+  </div>
+  <audio id="audio" preload="auto"></audio>
+  <video id="video" muted playsinline autoplay></video>
+
+  <script type="module">
+    import { LunaMic } from "/static/luna-mic.mjs";
+
+    const feed = document.getElementById("feed");
+    const input = document.getElementById("input");
+    const statusEl = document.getElementById("status");
+    const audioEl = document.getElementById("audio");
+    const videoEl = document.getElementById("video");
+
+    let history = [];
+    let chatBusy = false;
+    let chatBusySince = 0;
+    let seeing = false;
+    let serverOk = false;
+    let soundOn = true;
+    let micOn = true;
+    let camOn = true;
+    let proactiveOn = true;
+    let audioReady = false;
+    let webcamStream = null;
+    let seeTimer = null;
+    let ambientTimer = null;
+    let mindTimer = null;
+    let proactiveTimer = null;
+    let proactivePhase = 0;
+    const recentLunaLines = [];
+    const RECENT_LINE_MAX = 10;
+    const RECENT_LINE_MS = 120_000;
+    let lunaMic = null;
+    let listening = false;
+    let speakQueue = Promise.resolve();
+
+    const profile = {
+      user_name: "",
+      affection: 200,
+      flirtiness: 100,
+      warmth: 100,
+      energy: 100,
+      boldness: 100,
+    };
+
+    function addBubble(role, text) {
+      const el = document.createElement("div");
+      el.className = "bubble " + role;
+      el.textContent = text;
+      feed.appendChild(el);
+      feed.scrollTop = feed.scrollHeight;
+      return el;
+    }
+
+    function setStatus(t, ok = true) {
+      statusEl.textContent = t;
+      statusEl.style.color = ok ? "#86efac" : "#fca5a5";
+    }
+
+    async function fetchJSON(url, options = {}, timeoutMs = 90000) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { ...options, signal: ctrl.signal });
+        const data = await res.json().catch(() => ({}));
+        return { res, data };
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function checkHealth() {
+      try {
+        const { res, data } = await fetchJSON("/api/health", {}, 8000);
+        serverOk = res.ok && !!data.ok;
+      } catch (e) {
+        serverOk = false;
+      }
+      if (serverOk) {
+        setStatus("online", true);
+      } else {
+        setStatus("offline", false);
+      }
+      return serverOk;
+    }
+
+    function b64ToBytes(b64) {
+      const bin = atob(b64);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    async function unlockAudio() {
+      try {
+        audioEl.volume = 1;
+        await audioEl.play().catch(() => {});
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        audioReady = true;
+        return true;
+      } catch (e) {
+        audioReady = false;
+        return false;
+      }
+    }
+
+    function normalizeLunaLine(text) {
+      return (text || "").replace(/\s+/g, " ").trim().toLowerCase();
+    }
+
+    function isRecentDuplicate(text) {
+      const norm = normalizeLunaLine(text);
+      if (!norm) return true;
+      const now = Date.now();
+      while (recentLunaLines.length && now - recentLunaLines[0].at > RECENT_LINE_MS) {
+        recentLunaLines.shift();
+      }
+      return recentLunaLines.some((entry) => entry.norm === norm);
+    }
+
+    function rememberLunaLine(text) {
+      const norm = normalizeLunaLine(text);
+      if (!norm) return;
+      recentLunaLines.push({ norm, at: Date.now() });
+      if (recentLunaLines.length > RECENT_LINE_MAX) recentLunaLines.shift();
+    }
+
+    async function deliverLunaLine(data) {
+      if (!data?.text) return;
+      const line = plainSpeech(data.text);
+      if (!line || isRecentDuplicate(line) || chatBusy) return;
+      addBubble("luna", line);
+      history.push({ role: "assistant", content: line });
+      rememberLunaLine(line);
+      if (data.mood) lunaMood = data.mood;
+      speak(line, data.mood);
+    }
+
+    function plainSpeech(text) {
+      if (!text) return "";
+      return text
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/\{[^{}]*\}/g, "")
+        .replace(/[*_#`]/g, "")
+        .replace(/\b(API|JSON|LLM|model|system|prompt|algorithm|laptop|computer|screen|device|machine|chatbot|bot|AI|assistant|program|software|webcam|microphone|tts)\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function mediumState() {
+      return {
+        ui_mode: "bubble",
+        voice_on: soundOn,
+        camera_on: camOn,
+        mic_on: micOn && listening,
+        proactive_on: proactiveOn,
+        can_write: true,
+        can_speak: true,
+        can_see: camOn && !!webcamStream,
+        can_hear: micOn && listening,
+      };
+    }
+
+    function lunaState() {
+      return {
+        mood: "love",
+        vibe: "chill and relaxed — warm, unhurried, affectionate, easy pace",
+        strip_level: 3,
+        profile,
+        medium: mediumState(),
+      };
+    }
+
+    function ambientContext() {
+      const m = mediumState();
+      const parts = [];
+      if (m.can_see) parts.push("She can see the user.");
+      if (m.can_hear) parts.push("She can hear the user speak.");
+      if (!m.voice_on) parts.push("Her voice is muted — she writes only.");
+      if (!m.can_see) parts.push("Sight is closed.");
+      if (!m.can_hear) parts.push("Hearing is closed — they type instead.");
+      return parts.join(" ") || "Quiet moment together.";
+    }
+
+    let lunaMood = "love";
+
+    async function playMoan(intensity = 2) {
+      if (!soundOn) return;
+      speakQueue = speakQueue.then(async () => {
+        await unlockAudio();
+        try {
+          const { res, data } = await fetchJSON("/api/moan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ intensity, mood: lunaMood || "love", voice: "ava" }),
+          }, 30000);
+          if (!res.ok) throw new Error("Moan failed");
+          const line = plainSpeech(data.text || "Mmm…");
+          if (line) addBubble("luna", line);
+          const blob = new Blob([b64ToBytes(data.audio_b64)], { type: "audio/mpeg" });
+          audioEl.src = URL.createObjectURL(blob);
+          audioEl.volume = 1;
+          await audioEl.play();
+        } catch (e) {
+          console.warn("moan", e);
+        }
+      }).catch(() => {});
+    }
+
+    function speak(text, mood) {
+      const line = plainSpeech(text);
+      if (!soundOn || !line) return;
+      speakQueue = speakQueue.then(async () => {
+        await unlockAudio();
+        try {
+          const { res, data } = await fetchJSON("/api/speak", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: line,
+              voice: "ava",
+              rate: 2,
+              pitch: 3,
+              mood: mood || lunaMood,
+            }),
+          }, 30000);
+          if (!res.ok) throw new Error("TTS failed");
+          const blob = new Blob([b64ToBytes(data.audio_b64)], { type: "audio/mpeg" });
+          audioEl.src = URL.createObjectURL(blob);
+          audioEl.volume = 1;
+          await audioEl.play();
+        } catch (e) {
+          console.warn("speak", e);
+        }
+      }).catch(() => {});
+    }
+
+    async function startCam() {
+      const btn = document.getElementById("btn-cam");
+      try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false,
+        });
+        videoEl.srcObject = webcamStream;
+        await new Promise((resolve) => {
+          if (videoEl.readyState >= 2) resolve();
+          else videoEl.onloadeddata = () => resolve();
+          setTimeout(resolve, 2000);
+        });
+        camOn = true;
+        btn.classList.remove("off");
+        clearInterval(seeTimer);
+        seeTimer = setInterval(lunaSee, 45000);
+        setTimeout(lunaSee, 4000);
+      } catch (e) {
+        camOn = false;
+        btn.classList.add("off");
+        addBubble("sys", "Camera blocked — I can still chat. Click 📷 to try again.");
+      }
+    }
+
+    function stopCam() {
+      clearInterval(seeTimer);
+      seeTimer = null;
+      if (webcamStream) {
+        webcamStream.getTracks().forEach((t) => t.stop());
+        webcamStream = null;
+      }
+      videoEl.srcObject = null;
+      camOn = false;
+      document.getElementById("btn-cam").classList.add("off");
+      addBubble("sys", "Camera off. I am not watching anymore.");
+    }
+
+    function captureFrame() {
+      if (!videoEl.videoWidth) return null;
+      const c = document.createElement("canvas");
+      c.width = 320;
+      c.height = Math.round((videoEl.videoHeight / videoEl.videoWidth) * 320);
+      c.getContext("2d").drawImage(videoEl, 0, 0, c.width, c.height);
+      return c.toDataURL("image/jpeg", 0.55).split(",")[1];
+    }
+
+    async function lunaSee() {
+      if (!camOn || chatBusy || seeing || !webcamStream) return;
+      const b64 = captureFrame();
+      if (!b64) return;
+      seeing = true;
+      setStatus("watching...", true);
+      try {
+        const { res, data } = await fetchJSON("/api/see", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...lunaState(),
+            image_b64: b64,
+            history: history.slice(-8),
+            motion: "watching",
+            presence: "user visible",
+          }),
+        }, 45000);
+        if (!res.ok || !data.text) return;
+        await deliverLunaLine(data);
+      } catch (e) {
+        console.warn("see", e);
+      } finally {
+        seeing = false;
+        if (!chatBusy) setStatus("online", true);
+      }
+    }
+
+    async function chat(text) {
+      if (!serverOk && !(await checkHealth())) {
+        addBubble("sys", "I cannot reach my server — close this and double-click Luna Companion again.");
+        return;
+      }
+      chatBusy = true;
+      chatBusySince = Date.now();
+      lunaMic?.setBusy(true);
+      setStatus("thinking...", true);
+      const bubble = addBubble("luna", "...");
+      try {
+        const prior = history.filter((h) => h.role === "user" || h.role === "assistant");
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 45000);
+        let res;
+        try {
+          res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: ctrl.signal,
+            body: JSON.stringify({
+              message: text,
+              history: prior.slice(0, -1).slice(-2),
+              fast: true,
+              ...lunaState(),
+            }),
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: "Chat failed" }));
+          throw new Error(err.detail || "Chat failed");
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let full = "";
+        let action = null;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = JSON.parse(line.slice(6));
+            if (payload.error) throw new Error(payload.error);
+            if (payload.text) {
+              full += payload.text;
+              bubble.textContent = full || "…";
+              bubble.style.color = "";
+              feed.scrollTop = feed.scrollHeight;
+            }
+            if (payload.action) action = payload.action;
+          }
+        }
+        full = plainSpeech(full) || "Hey. I am here.";
+        bubble.textContent = full;
+        history.push({ role: "assistant", content: full });
+        feed.scrollTop = feed.scrollHeight;
+        if (action?.mood) lunaMood = action.mood;
+        speak(full, action?.mood);
+      } catch (e) {
+        const msg = e.name === "AbortError"
+          ? "That took too long — try again."
+          : (e.message || "Chat failed");
+        bubble.textContent = msg;
+        bubble.style.color = "#fca5a5";
+        setStatus("error", false);
+        if (String(msg).includes("fetch") || String(msg).includes("Failed")) {
+          serverOk = false;
+          addBubble("sys", "Server offline — relaunch Luna Companion from your desktop.");
+        }
+      } finally {
+        chatBusy = false;
+        chatBusySince = 0;
+        lunaMic?.setBusy(false);
+        if (serverOk) setStatus("online", true);
+        if (micOn) startListening();
+        input.focus();
+      }
+    }
+
+    async function submitVoiceText(text) {
+      if (!text || chatBusy) return;
+      await unlockAudio();
+      addBubble("you", text);
+      history.push({ role: "user", content: text });
+      await chat(text);
+    }
+
+    async function lunaAmbient() {
+      if (!proactiveOn || chatBusy || seeing) return;
+      try {
+        const { res, data } = await fetchJSON("/api/ambient", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...lunaState(),
+            history: history.slice(-10),
+            context: ambientContext(),
+          }),
+        }, 30000);
+        if (!res.ok || !data.text || chatBusy) return;
+        await deliverLunaLine(data);
+      } catch (e) {
+        console.warn("ambient", e);
+      }
+    }
+
+    async function lunaMindInterject() {
+      if (!proactiveOn || chatBusy || seeing) return;
+      try {
+        const { res, data } = await fetchJSON("/api/interject", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...lunaState(),
+            history: history.slice(-12),
+            context: ambientContext(),
+          }),
+        }, 30000);
+        if (!res.ok || !data.text || chatBusy) return;
+        await deliverLunaLine(data);
+      } catch (e) {
+        console.warn("interject", e);
+      }
+    }
+
+    function startAmbient() {
+      clearTimeout(proactiveTimer);
+      clearTimeout(ambientTimer);
+      clearTimeout(mindTimer);
+      if (!proactiveOn) return;
+      const kinds = ["ambient", "interject"];
+      const scheduleNext = () => {
+        const kind = kinds[proactivePhase % kinds.length];
+        proactivePhase += 1;
+        const delay = kind === "ambient"
+          ? (0.9 + Math.random() * 1.3) * 60_000
+          : (55 + Math.random() * 75) * 1000;
+        proactiveTimer = setTimeout(async () => {
+          if (kind === "ambient") await lunaAmbient();
+          else await lunaMindInterject();
+          scheduleNext();
+        }, delay);
+      };
+      scheduleNext();
+    }
+
+    function stopAmbient() {
+      clearTimeout(proactiveTimer);
+      clearTimeout(ambientTimer);
+      clearTimeout(mindTimer);
+      proactiveTimer = null;
+      ambientTimer = null;
+      mindTimer = null;
+    }
+
+    function setupMic() {
+      const btn = document.getElementById("btn-mic");
+      lunaMic = new LunaMic({
+        onText: (text) => submitVoiceText(text),
+        onStatus: (status) => {
+          if (status === "hearing...") setStatus("hearing...", true);
+          else if (status === "listening") setStatus("listening", true);
+        },
+        onError: (msg) => {
+          micOn = false;
+          btn.classList.add("off");
+          addBubble("sys", msg);
+          listening = false;
+        },
+      });
+    }
+
+    async function startListening() {
+      if (!lunaMic || !micOn || chatBusy) return;
+      await unlockAudio();
+      const ok = await lunaMic.unlock();
+      if (!ok) {
+        listening = false;
+        btnMic.classList.add("off");
+        return;
+      }
+      await lunaMic.setEnabled(true);
+      listening = true;
+      btnMic.classList.remove("off");
+      setStatus("listening", true);
+    }
+
+    function stopListening() {
+      listening = false;
+      lunaMic?.setEnabled(false);
+    }
+
+    const btnMic = document.getElementById("btn-mic");
+
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text || chatBusy) return;
+      await unlockAudio();
+      input.value = "";
+      addBubble("you", text);
+      history.push({ role: "user", content: text });
+      if (/^(moan|mmm|groan)\b/i.test(text) || /moan for me/i.test(text)) {
+        await playMoan(/hard|loud|more/i.test(text) ? 3 : 2);
+        return;
+      }
+      await chat(text);
+    });
+
+    document.getElementById("btn-moan").addEventListener("click", async () => {
+      await unlockAudio();
+      await playMoan(3);
+    });
+
+    document.getElementById("btn-sound").addEventListener("click", async () => {
+      soundOn = !soundOn;
+      document.getElementById("btn-sound").classList.toggle("off", !soundOn);
+      document.getElementById("btn-sound").textContent = soundOn ? "🔊" : "🔇";
+      if (soundOn) {
+        await unlockAudio();
+        const last = feed.querySelector(".bubble.luna:last-of-type");
+        const line = last?.textContent?.trim() || "Hey. I am Luna. I am right here. Talk to me.";
+        speak(line);
+      }
+    });
+
+    btnMic.addEventListener("click", async () => {
+      micOn = !micOn;
+      btnMic.classList.toggle("off", !micOn);
+      if (micOn) {
+        await unlockAudio();
+        startListening();
+        addBubble("sys", "I am listening.");
+      } else {
+        stopListening();
+        addBubble("sys", "I cannot hear you now — type to me.");
+      }
+    });
+
+    document.getElementById("btn-cam").addEventListener("click", () => {
+      if (camOn) stopCam();
+      else startCam();
+    });
+
+    document.getElementById("btn-min").addEventListener("click", () => {
+      try { window.pywebview?.api?.minimize(); } catch (e) {}
+    });
+
+    input.addEventListener("focus", () => unlockAudio());
+
+    document.getElementById("btn-sound").classList.remove("off");
+
+    setInterval(checkHealth, 12000);
+    setInterval(() => {
+      if (chatBusy && chatBusySince && Date.now() - chatBusySince > 75000) {
+        chatBusy = false;
+        chatBusySince = 0;
+        setStatus("online", true);
+        addBubble("sys", "I got stuck — try sending again.");
+        input.focus();
+      }
+    }, 5000);
+
+    input.focus();
+
+    (async function boot() {
+      setupMic();
+      if (!(await checkHealth())) {
+        addBubble("sys", "Server offline — close this and double-click Luna Companion on Desktop.");
+        return;
+      }
+      addBubble("luna", "Mmm — there you are. Click 🎤 so I can hear you… or just type.");
+      history.push({ role: "assistant", content: "Mmm — there you are. Click 🎤 so I can hear you… or just type." });
+      input.focus();
+      startCam().catch(() => {});
+      addBubble("sys", "Tap 🎤 at the top, allow microphone, then speak.");
+      startAmbient();
+      fetchJSON("/api/react", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          zone: "body",
+          action: "greeting",
+          history: [],
+          ...lunaState(),
+        }),
+      }, 45000).then(({ res, data }) => {
+        if (!res.ok || !data?.text || chatBusy) return;
+        const line = plainSpeech(data.text);
+        if (!line) return;
+        const last = feed.querySelector(".bubble.luna:last-of-type");
+        if (last) last.textContent = line;
+        history[history.length - 1] = { role: "assistant", content: line };
+        if (data.mood) lunaMood = data.mood;
+        speak(line, data.mood);
+      }).catch((e) => console.warn("greet", e));
+    })();
+  </script>
+</body>
+</html>

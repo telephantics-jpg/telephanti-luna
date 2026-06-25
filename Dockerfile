@@ -1,0 +1,30 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY server.py telephanti_url.py make_icons.py ./
+COPY static ./static
+COPY quantum_samples ./quantum_samples
+COPY luna_quantum_lines.json ./
+
+RUN mkdir -p static/avatars static/icons \
+    && python make_icons.py \
+    && test -f static/avatars/brunette.glb || curl -fsSL \
+      -o static/avatars/brunette.glb \
+      https://raw.githubusercontent.com/met4citizen/TalkingHead/main/avatars/brunette.glb
+
+ENV LUNA_CLOUD=1
+ENV LUNA_HOST=0.0.0.0
+ENV LUNA_PUBLIC_URL=https://telephanti.com
+ENV PORT=8767
+
+EXPOSE 8767
+
+CMD ["python", "server.py"]

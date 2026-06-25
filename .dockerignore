@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+.env
+.git
+android-app
+android-sdk
+*.log
+overlay_stderr.txt
+omni_buddy_state.json
+pet_settings.json
+.telephanti_enabled
+terminals

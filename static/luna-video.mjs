@@ -1,7 +1,7 @@
 /**
  * Luna video avatar — HTML5 looping clips + canvas lip-sync overlay.
  */
-const BUILD = "71";
+const BUILD = "73";
 
 const CLIPS = {
   idle: "/static/avatars/luna-idle.mp4",
@@ -227,11 +227,11 @@ export class LunaVideoAvatar {
   setPointer(nx, ny) {
     this.targetEyeX = nx;
     this.targetEyeY = ny;
-    const parallax = Math.max(-8, Math.min(8, nx * 5));
-    const tilt = Math.max(-2, Math.min(2, ny * 1.5));
+    const parallax = Math.max(-3, Math.min(3, nx * 1.8));
+    const tilt = Math.max(-1, Math.min(1, ny * 0.8));
     const target = this.motionEl || this.video;
     if (target) {
-      target.style.transform = `translateX(${parallax}px) translateY(${tilt}px) scale(1.03)`;
+      target.style.transform = `translateX(${parallax}px) translateY(${tilt}px)`;
     }
   }
 

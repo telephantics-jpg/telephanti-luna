@@ -179,7 +179,7 @@ class LipsyncEngine:
 
         base_face, coords = self._face_crop(self.frame)
         count = 0
-        batch_size = 2
+        batch_size = 8
         for i in range(0, len(mel_chunks), batch_size):
             mels = mel_chunks[i : i + batch_size]
             img_batch = []

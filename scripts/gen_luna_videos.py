@@ -54,10 +54,11 @@ def main() -> int:
     if not PORTRAIT.exists():
         print("Missing portrait:", PORTRAIT, file=sys.stderr)
         return 1
+    # Micro-motion only — no 90s Ken Burns zoom slideshow
     specs = [
-        ("idle", 60, 95, 75, 1.0, 0.24),
-        ("speak", 48, 120, 90, 0.9, 0.3),
-        ("react", 42, 145, 105, 0.86, 0.34),
+        ("idle", 72, 6, 4, 1.0, 0.012),
+        ("speak", 48, 10, 6, 1.0, 0.018),
+        ("react", 36, 14, 8, 0.995, 0.022),
     ]
     for name, frames, ax, ay, zb, za in specs:
         seq = render_sequence(name, frames, ax, ay, zb, za)

@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "71"
+LUNA_BUILD = "73"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -74,6 +74,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.on_event("startup")
+async def prewarm_lipsync() -> None:
+    """Cache a short greeting clip so first speak feels instant."""
+    try:
+        from luna_lipsync.engine import lipsync_available, render_lipsync_video
+
+        if not lipsync_available():
+            return
+        greeting = await synthesize_speech("Hey — I'm Luna.", "", 0, 0, "happy")
+        audio_bytes = base64.b64decode(greeting["audio_b64"])
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(_lipsync_executor, render_lipsync_video, audio_bytes)
+        log.info("Lip-sync greeting pre-cached")
+    except Exception as exc:
+        log.info("Lip-sync prewarm skipped: %s", exc)
+
 
 ACTION_SCHEMA = """You control Luna's entire 3D world — her body, face, voice, outfit, scene, lighting, and camera.
 ALWAYS reply with ONLY valid JSON (no markdown) using this schema:

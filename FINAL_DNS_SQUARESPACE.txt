@@ -1,0 +1,34 @@
+TELEPHANTI.COM -> LUNA (your Render app is live)
+================================================
+
+Render URL (working now):
+  https://telephanti-luna.onrender.com
+
+STEP 1 — Render custom domains
+------------------------------
+Render -> luna service -> Settings -> Custom Domains -> Add:
+  telephanti.com
+  www.telephanti.com
+
+STEP 2 — Squarespace DNS (account.squarespace.com/domains)
+----------------------------------------------------------
+telephanti.com -> DNS Settings -> ADD RECORD (twice):
+
+  Record 1:
+    TYPE:  A
+    HOST:  @
+    DATA:  216.24.57.1
+
+  Record 2:
+    TYPE:  CNAME
+    HOST:  www
+    DATA:  telephanti-luna.onrender.com
+
+Keep _domainconnect, DKIM, DMARC, SPF — do not delete.
+
+STEP 3 — Wait & test
+--------------------
+Wait 15-60 minutes.
+Render: domains show Verified + SSL.
+Browser: https://telephanti.com
+         https://www.telephanti.com

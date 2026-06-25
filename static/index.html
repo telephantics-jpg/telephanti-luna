@@ -1904,9 +1904,34 @@
 <body>
   <script>
     (function () {
+      function isPublicWeb() {
+        var h = location.hostname.toLowerCase();
+        if (/[?&]web=1/.test(location.search)) return true;
+        return /\.onrender\.com$/i.test(h) || h === "telephanti.com" || h === "www.telephanti.com";
+      }
+      function forcePublicWebUi() {
+        if (!isPublicWeb() || /[?&]pet=1/.test(location.search)) return;
+        document.documentElement.classList.remove("desktop-overlay");
+        if (document.body) document.body.classList.remove("desktop-overlay");
+        try {
+          var raw = localStorage.getItem("luna-settings-v1");
+          if (raw) {
+            var s = JSON.parse(raw);
+            s.desktopOverlay = false;
+            localStorage.setItem("luna-settings-v1", JSON.stringify(s));
+          }
+        } catch (e) { /* ignore */ }
+      }
       if (/[?&]pet=1/.test(location.search)) {
         document.documentElement.classList.add("booting-pet");
       }
+      forcePublicWebUi();
+      document.addEventListener("DOMContentLoaded", function () {
+        forcePublicWebUi();
+        document.getElementById("options-backdrop")?.classList.remove("open");
+        document.getElementById("options-panel")?.classList.remove("open");
+        document.body?.classList.remove("pet-settings-open");
+      });
     })();
   </script>
   <div id="pet-boot-splash" class="pet-boot-splash" aria-live="polite">

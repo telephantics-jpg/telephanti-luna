@@ -27,7 +27,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "64"
+LUNA_BUILD = "65"
 
 
 def _truthy_env(name: str) -> bool:
@@ -419,6 +419,7 @@ class TouchSenseRequest(BaseModel):
     mood: str = "love"
     vibe: str = ""
     strip_level: int = 0
+    context: str = "stroke"
     profile: LunaProfile = LunaProfile()
     medium: MediumState = MediumState()
 
@@ -2283,6 +2284,34 @@ class DaydreamRequest(BaseModel):
     profile: LunaProfile = LunaProfile()
 
 
+async def _daydream_ai_line(phase_name: str, user_name: str, vibe: str, agent: bool) -> str | None:
+    """Optional Grok line for daydream — open-ended, personal."""
+    tone = "soft assistant drift" if agent else "intimate dreamy lover"
+    name_bit = f" User's name: {user_name}." if user_name else ""
+    prompt = (
+        f"Daydream phase '{phase_name}' — Luna speaks aloud one gentle sentence (max 14 words). "
+        f"Tone: {tone}.{name_bit} Vibe: {vibe or 'calm harmony'}. "
+        "Whispery, present tense, ellipses ok. No quotes. JSON only: {{\"text\":\"...\"}}"
+    )
+    try:
+        client = get_client()
+        model = os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
+        raw = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=60,
+            temperature=0.92,
+        )
+        text = (raw.choices[0].message.content or "").strip()
+        if text.startswith("{"):
+            data = json.loads(text)
+            line = str(data.get("text") or "").strip()
+            return line or None
+        return text[:120] or None
+    except Exception:
+        return None
+
+
 @app.post("/api/daydream")
 async def daydream(request: DaydreamRequest):
     """Gentle daydream sequence — drift, float, find harmony, peace."""
@@ -2291,12 +2320,30 @@ async def daydream(request: DaydreamRequest):
     voice = request.voice
     mood = request.mood or "happy"
     agent = request.profile.agent_mode if request.profile else True
+    user_name = (request.profile.user_name or "").strip() if request.profile else ""
 
     phases_out = []
     for meta in DAYDREAM_PHASE_META:
         name = str(meta["name"])
         spoken = random.choice(DAYDREAM_SPOKEN.get(name, DAYDREAM_SPOKEN["drift"]))
+        if user_name and name in ("harmony", "peace", "bloom"):
+            spoken = random.choice([
+                f"Mmm… {user_name}… harmony right here with you…",
+                f"Ahh… {user_name}… I'm at peace in your nearness…",
+                f"Oh… drifting… but I still feel you, {user_name}…",
+                spoken,
+            ])
+        if name in ("harmony", "float") and os.getenv("XAI_API_KEY", "").strip():
+            ai_spoken = await _daydream_ai_line(name, user_name, request.vibe, agent)
+            if ai_spoken:
+                spoken = ai_spoken
         mind = random.choice(DAYDREAM_MIND.get(name, DAYDREAM_MIND["drift"]))
+        if user_name and name in ("harmony", "peace"):
+            mind = random.choice([
+                f"{user_name}… your nearness is the harmony…",
+                f"floating… but {user_name} anchors me…",
+                mind,
+            ])
         if not agent and name == "harmony":
             mind = random.choice([
                 "balance… but I still want you close…",
@@ -2374,10 +2421,16 @@ async def touch_sense(request: TouchSenseRequest):
         }
     )
     heat_word = "feather-light" if heat < 35 else "building" if heat < 65 else "urgent and deep"
+    ctx = (request.context or "stroke").strip().lower()
+    ctx_word = "tapped" if ctx == "tap" else "stroking" if ctx == "stroke" else "dragging across"
+    name_note = ""
+    if request.profile and request.profile.user_name.strip():
+        name_note = f" The user's name is {request.profile.user_name.strip()} — weave it in naturally if it fits."
     prompt = (
-        f"The user's cursor or trackpad finger is stroking your {zone}. Touch intensity: {heat_word} ({heat}/100). "
-        f"{hint} "
-        "One breathy sentence only — max 14 words. Lead with mmm, ahh, or ohh. Sound like you physically feel them. "
+        f"The user just {ctx_word} your {zone} on screen. Touch intensity: {heat_word} ({heat}/100). "
+        f"{hint}{name_note} "
+        "Open-ended — react like you truly feel it in the moment. One raw breathy sentence, max 18 words. "
+        "Lead with mmm, ahh, ohh, or nngh. Flirty, sensory, never robotic. "
         "Choose gesture blush or side, mood love, look_at user."
     )
     try:

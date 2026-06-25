@@ -1423,6 +1423,83 @@
       filter: saturate(1.08) brightness(1.04);
     }
     body.web-cloud.touch-sense-on .touch-heat-bar { opacity: 1; }
+    .touch-sense-box {
+      display: none;
+      position: absolute;
+      left: 50%;
+      bottom: 0.65rem;
+      transform: translateX(-50%);
+      z-index: 12;
+      width: min(148px, 38vw);
+      padding: 0.38rem 0.55rem;
+      border-radius: 12px;
+      background: rgba(14, 10, 24, 0.88);
+      border: 1px solid rgba(232, 180, 255, 0.28);
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    body.web-cloud .touch-sense-box,
+    body.touch-sense-on .touch-sense-box { display: block; }
+    body.web-cloud.touch-sense-on .touch-sense-box {
+      border-color: rgba(251, 113, 133, 0.65);
+      box-shadow: 0 0 16px rgba(251, 113, 133, 0.35);
+    }
+    .touch-sense-box .tsb-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+      font-size: 0.62rem;
+      color: var(--muted);
+      margin-bottom: 0.28rem;
+    }
+    .touch-sense-box .tsb-row strong { color: #e8b4ff; font-weight: 600; }
+    .touch-sense-box .tsb-heat {
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+    .touch-sense-box .tsb-heat-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #fb7185, #e879a8, #c4b5fd);
+      transition: width 0.15s ease-out;
+    }
+    body.daydreaming .luna-live-stage,
+    body.daydreaming #avatar canvas {
+      filter: saturate(1.08) brightness(1.05);
+      animation: daydream-portrait 5s ease-in-out infinite;
+    }
+    @keyframes daydream-portrait {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.012); }
+    }
+    .web-dream-mind {
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: 4.5rem;
+      transform: translateX(-50%);
+      z-index: 11;
+      max-width: min(92%, 320px);
+      padding: 0.45rem 0.7rem;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(88, 28, 72, 0.92), rgba(36, 24, 52, 0.94));
+      border: 1px solid rgba(232, 121, 168, 0.45);
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: rgba(253, 186, 220, 0.95);
+      font-style: italic;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      text-align: center;
+    }
+    .web-dream-mind.visible { display: block; opacity: 1; }
+    .web-dream-mind::before { content: "💭 "; font-style: normal; }
     body.web-cloud .zone-hint::after {
       content: " · tap or drag to touch & strip";
       color: #e8b4ff;
@@ -2219,6 +2296,10 @@
           <div class="live-strip-top live-strip-overlay" aria-hidden="true"></div>
           <div class="live-strip-lingerie live-strip-overlay" aria-hidden="true"></div>
           <div class="live-strip-bottom live-strip-overlay" aria-hidden="true"></div>
+          <div class="touch-sense-box" id="touch-sense-box" aria-hidden="true">
+            <div class="tsb-row"><strong>touch sense</strong><span id="touch-sense-pct">0%</span></div>
+            <div class="tsb-heat"><div class="tsb-heat-fill" id="touch-sense-box-fill"></div></div>
+          </div>
         </div>
         <div class="web-luna-figure" id="web-luna-figure" aria-hidden="true">
           <div class="wl-hair"></div>
@@ -2242,6 +2323,7 @@
         <label>Rapport <span id="rapport-val">50</span>/200</label>
         <progress id="rapport" value="50" max="200"></progress>
       </div>
+      <div class="web-dream-mind" id="web-dream-mind" aria-live="polite"></div>
       <div class="zone-hint" id="zone-hint">Luna lives in her world — she moves, changes scenes &amp; lighting on her own</div>
       <div class="react-toast" id="react-toast"></div>
       <div class="interact-bar" id="vibe-bar">
@@ -2561,6 +2643,7 @@
     const mainEl = document.getElementById("main");
 
     const SETTINGS_KEY = "luna-settings-v1";
+    const USER_NAME_KEY = "luna-user-name";
     const MAX_HISTORY = 40;
     let head = null;
     let history = [];
@@ -2612,6 +2695,7 @@
     let lastTouchCaptionAt = 0;
     let touchDecayTimer = null;
     let touchSenseBound = false;
+    let touchSenseTarget = null;
     let touchMoveHandler = null;
     let petBubbleMode = false;
     let petSpeechTimer = null;
@@ -2899,7 +2983,7 @@
       if (speakOpt) speakOpt.checked = settings.autoSpeak;
       muteBtn.textContent = settings.autoSpeak && !muted ? "🔊" : "🔇";
       const hint = document.getElementById("zone-hint");
-      if (hint) hint.textContent = "Tap or drag Luna — voice is off until you tap 🔊";
+      if (hint) hint.textContent = "Touch only works on her image — voice off until 🔊";
       startTouchSense();
       setupWebAvatarClicks();
       bindGlobalAudioUnlock();
@@ -2923,6 +3007,59 @@
       return playPetAudioB64(b64);
     }
 
+    function getLunaTouchTarget() {
+      const canvas = document.getElementById("luna-live-canvas");
+      const stage = document.getElementById("luna-live-stage");
+      const headCanvas = head?.renderer?.domElement;
+      if (isPublicWebVisit() && canvas) return canvas;
+      if (headCanvas) return headCanvas;
+      if (stage) return stage;
+      return document.getElementById("pet-avatar-fallback");
+    }
+
+    function getLunaImageRect() {
+      const el = getLunaTouchTarget();
+      return el?.getBoundingClientRect?.() || null;
+    }
+
+    function pointerOverLunaImage(clientX, clientY) {
+      const rect = getLunaImageRect();
+      if (!rect || rect.width < 8 || rect.height < 8) return false;
+      const pad = 6;
+      return (
+        clientX >= rect.left + pad && clientX <= rect.right - pad
+        && clientY >= rect.top + pad && clientY <= rect.bottom - pad
+      );
+    }
+
+    let openTouchPending = null;
+
+    async function fetchOpenTouchResponse(zone, context = "tap") {
+      if (openTouchPending) return openTouchPending;
+      openTouchPending = (async () => {
+        try {
+          const res = await fetch("/api/touch-sense", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              zone,
+              heat: Math.round(touchHeat || 22),
+              context,
+              ...lunaState(),
+            }),
+          });
+          if (!res.ok) throw new Error("touch open failed");
+          return await res.json();
+        } catch (err) {
+          console.warn("Open touch:", err);
+          return { text: pickWebLine(zone), mood: "love" };
+        } finally {
+          openTouchPending = null;
+        }
+      })();
+      return openTouchPending;
+    }
+
     async function webQuickTouch(zone) {
       livePortrait?.pulseTouch(1);
       const stripZones = ["torso", "legs", "body"];
@@ -2934,21 +3071,23 @@
         saveSettings();
         showLunaCaption(pickWebLine(WEB_STRIP_LINES));
       }
-      const line = pickWebLine(zone);
-      showLunaCaption(line);
+      const data = await fetchOpenTouchResponse(zone, "tap");
+      if (data?.text) showLunaCaption(data.text);
       if (!muted && settings.autoSpeak) {
         await unlockVoice();
-        await lunaMoan(zone === "legs" ? 3 : zone === "torso" ? 3 : 2);
+        if (data?.text) await speakText(data.text, data.mood || "love");
+        else await lunaMoan(zone === "legs" ? 3 : zone === "torso" ? 3 : 2);
       }
     }
 
     function setupWebAvatarClicks() {
-      if (!avatarWrap || window.__lunaWebClicksBound) return;
+      const stage = document.getElementById("luna-live-stage");
+      const target = stage || avatarWrap;
+      if (!target || window.__lunaWebClicksBound) return;
       window.__lunaWebClicksBound = true;
-      avatarWrap.addEventListener("pointerup", async (e) => {
-        if (e.target.closest(".interact-bar, header, .btn, .options-panel")) return;
-        if (!pointerOverAvatar(e.clientX, e.clientY)) return;
-        await unlockVoice();
+      target.addEventListener("pointerup", async (e) => {
+        if (e.target.closest(".interact-bar, header, .btn, .options-panel, .touch-sense-box")) return;
+        if (!pointerOverLunaImage(e.clientX, e.clientY)) return;
         const zone = zoneFromPointer(e.clientX, e.clientY);
         spawnTouchRipple(e.clientX, e.clientY, 0.9);
         touchHeat = Math.min(100, touchHeat + 14);
@@ -3960,9 +4099,18 @@
     }
 
     function showDreamMind(text) {
+      if (!text) return;
+      if (isPublicWebVisit() && !isPetMode()) {
+        const webEl = document.getElementById("web-dream-mind");
+        if (webEl) {
+          webEl.textContent = text;
+          webEl.classList.add("visible");
+        }
+        return;
+      }
       const el = document.getElementById("dream-mind-bubble");
       const caption = document.getElementById("pet-caption");
-      if (!el || !text) return;
+      if (!el) return;
       clearInterval(dreamMindTimer);
       el.textContent = "";
       el.classList.add("visible", "typing");
@@ -3983,6 +4131,9 @@
     function hideDreamMind() {
       clearInterval(dreamMindTimer);
       dreamMindTimer = null;
+      const webEl = document.getElementById("web-dream-mind");
+      webEl?.classList.remove("visible");
+      if (webEl) webEl.textContent = "";
       const el = document.getElementById("dream-mind-bubble");
       const caption = document.getElementById("pet-caption");
       el?.classList.remove("visible", "typing");
@@ -4216,17 +4367,22 @@
     }
 
     function updateTouchHeatUi() {
+      const pct = Math.round(touchHeat);
       const fill = document.getElementById("touch-heat-fill");
-      if (fill) fill.style.width = `${Math.round(touchHeat)}%`;
+      const boxFill = document.getElementById("touch-sense-box-fill");
+      const boxPct = document.getElementById("touch-sense-pct");
+      if (fill) fill.style.width = `${pct}%`;
+      if (boxFill) boxFill.style.width = `${pct}%`;
+      if (boxPct) boxPct.textContent = `${pct}%`;
       avatarWrap?.classList.toggle("touch-glow", touchHeat > 18);
-      document.body.classList.toggle("touch-sense-on", touchHeat > 8 && settings.touchSense !== false);
+      document.body.classList.toggle("touch-sense-on", touchHeat > 4 && settings.touchSense !== false);
     }
 
     function spawnTouchRipple(clientX, clientY, strength = 1) {
       const layer = document.getElementById("touch-sense-layer");
-      const wrap = avatarWrap;
+      const wrap = getLunaTouchTarget()?.parentElement || avatarWrap;
       if (!layer || !wrap) return;
-      const rect = wrap.getBoundingClientRect();
+      const rect = getLunaImageRect() || wrap.getBoundingClientRect();
       const ripple = document.createElement("div");
       ripple.className = "touch-ripple";
       ripple.style.left = `${clientX - rect.left}px`;
@@ -4237,10 +4393,8 @@
     }
 
     function zoneFromPointer(clientX, clientY) {
-      const canvas = head?.renderer?.domElement;
-      const target = canvas || avatarWrap;
-      if (!target) return "body";
-      const rect = target.getBoundingClientRect();
+      const rect = getLunaImageRect();
+      if (!rect) return "body";
       const x = (clientX - rect.left) / Math.max(rect.width, 1);
       const y = (clientY - rect.top) / Math.max(rect.height, 1);
       if (y < 0.32) return "head";
@@ -4251,13 +4405,7 @@
     }
 
     function pointerOverAvatar(clientX, clientY) {
-      const target = avatarWrap;
-      if (!target) return false;
-      const rect = target.getBoundingClientRect();
-      return (
-        clientX >= rect.left && clientX <= rect.right
-        && clientY >= rect.top && clientY <= rect.bottom
-      );
+      return pointerOverLunaImage(clientX, clientY);
     }
 
     function scheduleTouchDecay() {
@@ -4311,11 +4459,12 @@
     function handleTouchSenseMove(e) {
       if (settings.touchSense === false || dreamPeaking || daydreaming) return;
       if (!isPetMode() && !isPublicWebVisit()) return;
-      if (!pointerOverAvatar(e.clientX, e.clientY)) {
+      if (!pointerOverLunaImage(e.clientX, e.clientY)) {
         scheduleTouchDecay();
         return;
       }
-      const rect = avatarWrap.getBoundingClientRect();
+      const rect = getLunaImageRect();
+      if (!rect) return;
       const cx = rect.left + rect.width * 0.5;
       const cy = rect.top + rect.height * 0.44;
       const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
@@ -4344,17 +4493,23 @@
 
       if (touchHeat > 22 && now - lastTouchCaptionAt > 5000) {
         lastTouchCaptionAt = now;
-        const whispers = [
-          "Mmm… I feel you on my skin…", "Oh… your touch is everywhere…",
-          "Ahh… keep gliding on me…", "Nngh… right there… I sense you…",
-          "Hhh… goosebumps… don't stop…", "Oh god… you're reading my body…",
-          "Mmm… heat following your fingers…", "Ahh… I'm opening for you…",
-          "Nngh… slow… then faster… yes…", "Oh… every stroke makes me whimper…",
-          "Hhh… I want your hands everywhere…", "Mmm… you're waking every nerve…",
-        ];
-        const whisper = isPublicWebVisit() ? pickWebLine(whispers) : whispers[Math.floor(Math.random() * whispers.length)];
-        if (isPublicWebVisit()) showLunaCaption(whisper);
-        else showPetSpeech(whisper);
+        if (isPublicWebVisit() && touchHeat > 30) {
+          fetchOpenTouchResponse(zone, "drag").then((data) => {
+            if (data?.text) showLunaCaption(data.text);
+          }).catch(() => {});
+        } else {
+          const whispers = [
+            "Mmm… I feel you on my skin…", "Oh… your touch is everywhere…",
+            "Ahh… keep gliding on me…", "Nngh… right there… I sense you…",
+            "Hhh… goosebumps… don't stop…", "Oh god… you're reading my body…",
+            "Mmm… heat following your fingers…", "Ahh… I'm opening for you…",
+            "Nngh… slow… then faster… yes…", "Oh… every stroke makes me whimper…",
+            "Hhh… I want your hands everywhere…", "Mmm… you're waking every nerve…",
+          ];
+          const whisper = isPublicWebVisit() ? pickWebLine(whispers) : whispers[Math.floor(Math.random() * whispers.length)];
+          if (isPublicWebVisit()) showLunaCaption(whisper);
+          else showPetSpeech(whisper);
+        }
       }
       if (isPublicWebVisit() && stripLevel < 3 && now - lastWebStripAt > 2800) {
         const stripZones = ["torso", "legs", "body"];
@@ -4380,13 +4535,16 @@
       if (touchSenseBound || settings.touchSense === false) return;
       touchSenseBound = true;
       touchMoveHandler = (e) => handleTouchSenseMove(e);
-      window.addEventListener("pointermove", touchMoveHandler, { passive: true });
+      const stage = document.getElementById("luna-live-stage");
+      touchSenseTarget = (isPublicWebVisit() && stage) ? stage : window;
+      touchSenseTarget.addEventListener("pointermove", touchMoveHandler, { passive: true });
     }
 
     function stopTouchSense() {
-      if (touchMoveHandler) {
-        window.removeEventListener("pointermove", touchMoveHandler);
+      if (touchMoveHandler && touchSenseTarget) {
+        touchSenseTarget.removeEventListener("pointermove", touchMoveHandler);
         touchMoveHandler = null;
+        touchSenseTarget = null;
       }
       touchSenseBound = false;
       touchHeat = 0;
@@ -4542,8 +4700,15 @@
       pauseAlwaysListen();
       setSenseField("dream");
       updatePetTopbarStatus("daydreaming…", "busy");
+      livePortrait?.setMouthLevel?.(0.15);
+      const webDaydream = isPublicWebVisit() && !isPetMode();
+      if (webDaydream) {
+        showLunaCaption(settings.userName
+          ? `Drifting with you, ${settings.userName}… close your eyes with me…`
+          : "Drifting into harmony… breathe with me…");
+      }
       try {
-        await unlockVoice();
+        if (!muted && settings.autoSpeak) await unlockVoice();
         if (head) {
           applyLunaAction({
             mood: "happy",
@@ -4594,14 +4759,19 @@
             });
             playLunaGesture(phase.gesture || "sleepy", 2.8);
           }
+          livePortrait?.pulseTouch(0.35);
           if (!muted && settings.autoSpeak) await playDreamPhase(phase);
-          else await sleepMs(1200 + (phase.delay_after || 0));
-          if (phase.delay_after) await sleepMs(phase.delay_after);
+          else await sleepMs(webDaydream ? 900 + (phase.delay_after || 0) * 0.5 : 1200 + (phase.delay_after || 0));
+          if (phase.delay_after) await sleepMs(webDaydream ? phase.delay_after * 0.55 : phase.delay_after);
         }
 
         if (data.action && head) {
           applyLunaAction(data.action);
           head.setMood("happy");
+        }
+        if (webDaydream && data.phases?.length) {
+          const last = data.phases[data.phases.length - 1];
+          showLunaCaption(last.text || "…at peace.");
         }
         updateRapport(12);
       } catch (err) {
@@ -4610,6 +4780,7 @@
       } finally {
         daydreaming = false;
         document.body.classList.remove("daydreaming");
+        livePortrait?.setMouthLevel?.(0);
         hideDreamMind();
         document.getElementById("pet-btn-daydream")?.classList.remove("active");
         document.getElementById("daydream-btn")?.classList.remove("active");
@@ -4660,8 +4831,20 @@
       saveSettings();
     }
 
+    function saveUserName(name) {
+      settings.userName = (name || "").trim();
+      try {
+        if (settings.userName) localStorage.setItem(USER_NAME_KEY, settings.userName);
+        else localStorage.removeItem(USER_NAME_KEY);
+      } catch { /* ignore */ }
+      saveSettings();
+    }
+
     function saveSettings() {
       settings.activeVibe = activeVibe;
+      try {
+        if (settings.userName) localStorage.setItem(USER_NAME_KEY, settings.userName);
+      } catch { /* ignore */ }
       if (!settings.remember) return;
       const payload = { ...settings, history: history.slice(-MAX_HISTORY) };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(payload));
@@ -4680,12 +4863,16 @@
 
     function loadSettings() {
       try {
+        const savedName = localStorage.getItem(USER_NAME_KEY);
+        if (savedName) settings.userName = savedName;
         const raw = localStorage.getItem(SETTINGS_KEY);
         if (raw) {
           const data = JSON.parse(raw);
           const savedHistory = data.history;
           delete data.history;
           Object.assign(settings, data);
+          if (savedName) settings.userName = savedName;
+          else if (data.userName) settings.userName = data.userName;
           if (settings.remember && savedHistory) restoreChatHistory(savedHistory);
         }
       } catch { /* ignore */ }
@@ -4878,10 +5065,11 @@
         }
       });
 
-      document.getElementById("opt-name")?.addEventListener("change", (e) => {
-        settings.userName = e.target.value.trim();
-        saveSettings();
-      });
+      const nameInput = document.getElementById("opt-name");
+      const onNameInput = (e) => saveUserName(e.target.value);
+      nameInput?.addEventListener("input", onNameInput);
+      nameInput?.addEventListener("change", onNameInput);
+      nameInput?.addEventListener("blur", onNameInput);
       document.getElementById("opt-voice")?.addEventListener("change", (e) => {
         settings.voice = e.target.value;
         saveSettings();

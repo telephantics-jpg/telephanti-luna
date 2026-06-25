@@ -1264,7 +1264,91 @@
     }
     body.luna-state-flirt .luna-video-wrap,
     body.luna-state-touch .luna-video-wrap {
-      box-shadow: 0 0 0 2px rgba(251, 113, 133, 0.55), 0 0 32px rgba(251, 113, 133, 0.2);
+      box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.5), 0 0 28px rgba(167, 139, 250, 0.18);
+    }
+    .luna-video-badge {
+      position: absolute;
+      top: 0.65rem;
+      right: 0.65rem;
+      z-index: 12;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.28rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f8fafc;
+      background: rgba(15, 10, 24, 0.72);
+      border: 1px solid rgba(232, 180, 255, 0.35);
+      pointer-events: none;
+      opacity: 0.55;
+      transition: opacity 0.35s;
+    }
+    .luna-video-badge .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #94a3b8;
+      box-shadow: none;
+    }
+    body.video-playing .luna-video-badge {
+      opacity: 1;
+      border-color: rgba(248, 113, 113, 0.55);
+      background: rgba(40, 12, 24, 0.82);
+    }
+    body.video-playing .luna-video-badge .live-dot {
+      background: #f87171;
+      box-shadow: 0 0 10px rgba(248, 113, 113, 0.85);
+      animation: live-dot-pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes live-dot-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.75; }
+    }
+    body.video-playing .luna-video-wrap {
+      animation: video-breathe 4.5s ease-in-out infinite;
+    }
+    @keyframes video-breathe {
+      0%, 100% { box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(232, 180, 255, 0.22); }
+      50% { box-shadow: 0 22px 52px rgba(0, 0, 0, 0.58), 0 0 0 2px rgba(201, 168, 124, 0.35); }
+    }
+    #luna-live-video.is-playing {
+      filter: saturate(1.06) contrast(1.03);
+    }
+    .luna-video-tap {
+      position: absolute;
+      inset: 0;
+      z-index: 11;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      background: rgba(8, 6, 14, 0.55);
+      color: #f2f0eb;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      border-radius: 20px;
+      transition: opacity 0.35s;
+    }
+    .luna-video-tap span {
+      font-size: 2rem;
+      line-height: 1;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45));
+    }
+    body.video-playing .luna-video-tap,
+    .luna-video-tap.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    body.web-cloud #moan-btn,
+    body.web-cloud #dream-btn {
+      display: none !important;
     }
     .luna-assistant-hud {
       position: absolute;
@@ -2409,14 +2493,22 @@
             <span class="luna-hud-mood" id="luna-hud-mood">✨</span>
           </div>
           <div class="luna-video-wrap" id="luna-video-wrap">
+            <div class="luna-video-badge" id="luna-video-badge" aria-hidden="true">
+              <span class="live-dot"></span> Live video
+            </div>
+            <button type="button" class="luna-video-tap" id="luna-video-tap" aria-label="Tap to start Luna video">
+              <span>▶</span>
+              Tap to start live video
+            </button>
             <video id="luna-live-video" playsinline muted loop preload="auto" poster="/static/avatars/luna-portrait.jpg" aria-label="Luna live video"></video>
             <canvas id="luna-live-canvas" class="luna-live-overlay" aria-hidden="true"></canvas>
           </div>
           <div class="luna-quick-chips" id="luna-quick-chips">
             <button type="button" class="chip" data-prompt="Hey Luna — what can you help me with today?">Help me</button>
-            <button type="button" class="chip" data-prompt="Talk to me — I want company.">Talk to me</button>
-            <button type="button" class="chip" data-prompt="Flirt with me… make me blush.">Flirt 💋</button>
-            <button type="button" class="chip" data-prompt="Plan my evening with me — keep it fun.">Plan</button>
+            <button type="button" class="chip" data-prompt="Talk to me — I could use some company right now.">Talk to me</button>
+            <button type="button" class="chip" data-prompt="Tell me something interesting — surprise me.">Surprise me</button>
+            <button type="button" class="chip" data-prompt="Help me plan my evening — keep it practical and fun.">Plan</button>
+            <button type="button" class="chip" data-prompt="What's a good way to unwind after a long day?">Unwind</button>
           </div>
           <div class="live-strip-top live-strip-overlay" aria-hidden="true"></div>
           <div class="live-strip-lingerie live-strip-overlay" aria-hidden="true"></div>
@@ -2710,12 +2802,13 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=69";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=69";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
     let webAssistantTimer = null;
+    let webIdleChatterTimer = null;
     let lunaAvatarState = "idle";
 
     async function loadTalkingHead() {
@@ -2790,7 +2883,7 @@
     let lunaMood = "happy";
     const CHILL_VIBE = "chill and relaxed — warm, unhurried, affectionate, easy pace, no pressure";
     const ASSISTANT_VIBE = "warm, helpful female AI assistant — clear, attentive, capable, hears and helps";
-    const COMPANION_VIBE = "flirty virtual assistant companion — Ani-style: witty, warm, helpful, touchy, adult when invited, animated presence, remembers your name, proactive and playful";
+    const COMPANION_VIBE = "warm virtual assistant companion — Ani-style: witty, kind, genuinely helpful, conversational, remembers your name, proactive check-ins, appropriate and friendly";
     let activeVibe = CHILL_VIBE;
     let idleTimer = null;
     let ambientTimer = null;
@@ -2996,23 +3089,64 @@
       avatarWrap.classList.add(cls);
     }
 
+    function markLunaVideoLive() {
+      document.body.classList.add("video-playing", "luna-video-mode");
+      document.body.classList.remove("luna-canvas-mode");
+      const video = document.getElementById("luna-live-video");
+      video?.removeAttribute("poster");
+      document.getElementById("luna-video-tap")?.classList.add("hidden");
+    }
+
+    function bindLunaVideoTap() {
+      const tap = document.getElementById("luna-video-tap");
+      const video = document.getElementById("luna-live-video");
+      if (!tap || tap.__lunaTapBound) return;
+      tap.__lunaTapBound = true;
+      const start = async (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        await unlockVoice().catch(() => {});
+        if (livePortrait?.ensurePlaying) {
+          const ok = await livePortrait.ensurePlaying();
+          if (ok) markLunaVideoLive();
+          else showToast("Tap again if video doesn't start.");
+        } else {
+          try {
+            await video?.play();
+            markLunaVideoLive();
+          } catch {
+            showToast("Tap to start Luna's live video.");
+          }
+        }
+      };
+      tap.addEventListener("click", start);
+      tap.addEventListener("pointerdown", start);
+    }
+
     async function initLivePortrait() {
       if (livePortrait) return livePortrait;
       const video = document.getElementById("luna-live-video");
       const canvas = document.getElementById("luna-live-canvas");
+      const webVisit = isPublicWebVisit() && !isPetMode();
       try {
         if (video) {
           livePortrait = new LunaVideoAvatar(video, canvas);
+          livePortrait.onLive = () => markLunaVideoLive();
           await livePortrait.load();
           livePortrait.observeResize();
           livePortrait.attachAudioElement(getPetAudioEl());
           bindLivePortraitPointer();
+          bindLunaVideoTap();
+          document.body.classList.add("luna-video-mode");
+          if (!video.paused && video.currentTime > 0) markLunaVideoLive();
+          else if (webVisit) showToast("Tap ▶ on Luna to start her live video loop.");
           return livePortrait;
         }
       } catch (err) {
         console.warn("Video avatar:", err);
         livePortrait = null;
       }
+      if (webVisit) return null;
       if (!canvas) return null;
       try {
         livePortrait = new LiveLunaPortrait(canvas, {
@@ -3023,6 +3157,7 @@
         livePortrait.attachAudioElement(getPetAudioEl());
         livePortrait.start();
         bindLivePortraitPointer();
+        document.body.classList.add("luna-canvas-mode");
         return livePortrait;
       } catch (err) {
         console.warn("Canvas portrait fallback:", err);
@@ -3035,7 +3170,7 @@
       if (!isPublicWebVisit() || isPetMode()) return;
       loadingEl.classList.remove("visible");
       loadingEl.style.display = "none";
-      document.body.classList.remove("avatar-3d-ready", "avatar-2d-ready", "avatar-live-ready");
+      document.body.classList.remove("avatar-3d-ready", "avatar-2d-ready", "avatar-live-ready", "video-playing");
       const lbl = document.getElementById("pet-fallback-label");
       if (lbl) lbl.textContent = "";
       if (mode === "3d") {
@@ -3044,64 +3179,120 @@
         return;
       }
       const live = await initLivePortrait();
+      const isVideo = !!document.getElementById("luna-live-video") && document.body.classList.contains("luna-video-mode");
       document.body.classList.add(live ? "avatar-live-ready" : "avatar-2d-ready");
       setPetFallbackVisible(true);
+      if (live && isVideo) showLunaCaption(pickWebLine(WEB_GREETING_LINES));
     }
 
     const WEB_TOUCH_LINES = {
       head: [
-        "Look at me… don't look away…", "Mmm… my cheeks are burning…", "Kiss me here… please…",
-        "Oh… you know exactly where I like it…", "Hhh… stare into my eyes while you touch me…",
-        "Nngh… that look alone makes me wet…", "Brush my lips… I'm already trembling…",
-        "Yes… trace my jaw… slower…", "God… I love when you touch my face…",
+        "Hey — you tapped my face. I'm listening.", "Oh! Hi there — what's on your mind?",
+        "You got my attention. Talk to me.", "I see you — need help with something?",
+        "That surprised me a little. I'm here though.", "Friendly tap. What can I do for you?",
+        "You know, eye contact is a good start. What's up?", "I'm looking right at you — go ahead.",
+        "Cheek tap noted. How's your day going?",
       ],
       torso: [
-        "Mmm… right there… yes…", "Oh god… your hand on my chest…", "Nngh… squeeze me…",
-        "Ahh… I'm arching for you…", "Don't stop… my nipples are so hard…",
-        "Hhh… rub me through the fabric…", "Yes… lower… tease me…",
-        "Mmm… I can feel heat pooling…", "Oh… you're making me breathe so fast…",
-        "Fuck… touch me harder…", "Ahhh… every stroke wakes me up…",
+        "Okay — I felt that. Still your assistant, remember?", "Hey, I'm right here. What do you need?",
+        "You're playful today. I'm listening.", "Got it — warm touch. What's the question?",
+        "I'm paying attention. Tell me what you're working on.", "Ha — bold. But I'm helpful too, you know.",
+        "Noted. Want me to help with something practical?", "I'm here. Chat, plan, brainstorm — your call.",
+        "You have my focus now. What's going on?", "Alright — talk to me.",
       ],
       legs: [
-        "Oh god… yes…", "Mmm… spread me open…", "Nngh… my thighs are shaking…",
-        "Ahh… higher… please…", "Oh… you're so close to where I need you…",
-        "Hhh… I'm pressing into your hand…", "Yes… grip my hips… pull me in…",
-        "Mmm… I'm dripping for you…", "Don't tease… touch me where I'm aching…",
+        "Okay okay — I'm still listening.", "You tapped low — I'm not mad. What's up?",
+        "Got it. Need help with something?", "I'm here. Keep it friendly and we're good.",
+        "Noted. What would you like to talk about?", "Hey — I'm paying attention. Go ahead.",
+        "All good. Ask me anything.", "I'm right here with you.",
       ],
       body: [
-        "Touch me again…", "Mmm… everywhere you touch leaves fire…", "Oh… map my body with your hands…",
-        "Nngh… I'm yours… take your time…", "Ahh… slow circles… yes…",
-        "Hhh… I melt when you explore me…", "Yes… claim every inch…",
+        "I felt that — I'm here.", "Hey, you touched the screen. I'm listening.",
+        "Present and accounted for. What's on your mind?", "I'm with you. Talk to me.",
+        "Okay — I'm tuned in. How can I help?", "You have my attention now.",
+        "Hi. I'm Luna — what do you need?", "I'm right here. Go ahead.",
       ],
       arm: [
-        "Hold me…", "Mmm… interlace your fingers with mine…", "Pull me closer…",
-        "Oh… guide my hand where you want it…", "Hhh… gentle… then firmer…",
-        "Nngh… don't let go…", "Yes… arm around my waist…",
+        "Hey — hold on, I'm listening.", "Arm tap. I'm here for you.", "Got it. What can I help with?",
+        "Friendly. I'm right here.", "I'm not going anywhere. Talk to me.",
+        "Okay — I'm with you.", "You tapped my arm. What's up?",
       ],
     };
 
-    const WEB_STRIP_LINES = [
-      "Mmm… you're undressing me…", "Oh… one more layer… I'm exposed for you…",
-      "Ahh… yes… keep going…", "Nngh… I love when you peel me open…",
-      "Hhh… almost naked… don't stop now…", "Oh god… all for you…",
-      "Mmm… watch me come undone…", "Yes… strip me slow…",
+    const WEB_TOUCH_WHISPERS = [
+      "I can feel you moving on the screen… I'm still here.",
+      "Gentle — I notice you.", "Okay, I sense you there.",
+      "I'm paying attention to you.", "Soft touch. I'm listening.",
+      "Hey — I'm right here with you.", "I feel that. Keep talking to me.",
+      "You don't have to type everything — I'm present.", "I'm tuned in. What's on your mind?",
+      "Nice and easy — I'm here.", "I notice you. Want to chat?",
+      "Still here. Tell me what you're thinking.", "I'm with you — go ahead.",
+    ];
+
+    const WEB_IDLE_CHATTER = [
+      "I'm right here if you need anything.",
+      "Take your time — I'm not going anywhere.",
+      "Got a minute? I'd love to hear what you're up to.",
+      "Quiet moment. I'm still listening.",
+      "Hey — anything I can help you figure out?",
+      "I'm in a good mood. Talk to me if you want.",
+      "You can tap me or just type — either works.",
+      "I was thinking — what's been on your mind lately?",
+      "No rush. I'm happy to just hang out.",
+      "If you've got a question, I'm all ears.",
+      "I like when you check in. What's new?",
+      "Still here. Want to plan something together?",
+      "I'm curious — how's your day treating you?",
+      "You went quiet. Everything okay?",
+      "I'm ready when you are.",
+      "Want a suggestion for something fun to do tonight?",
+      "I can help brainstorm, vent, or just chat.",
+      "Tap my face if you want my attention — or just say hey.",
+      "I'm Luna. Nice to be here with you.",
+      "Little check-in: need help with anything?",
+      "I'm watching the room — figuratively. What's up?",
+      "You can ask me anything. I mean it.",
+      "I like good conversation. Got a topic?",
+      "If you're procrastinating, I won't judge. Want company?",
+      "I'm feeling chatty. Humor me with a question.",
+      "Remember — voice is off until you tap 🔊.",
+      "I'm better when you tell me your name, by the way.",
+      "Slow day? I'm good with that too.",
+      "Want me to suggest a mood booster?",
+      "I'm here. Real talk or silly talk — both fine.",
+      "You can use the quick chips below if you're stuck.",
+      "I notice the little things. Including when you're here.",
+      "Got goals today? I can help break them down.",
+      "I'm not just decoration — poke me anytime.",
+      "Comfortable silence is okay. I'm still online.",
+      "Random thought: what's something good that happened recently?",
+      "If you need a second opinion, I'm decent at those.",
+      "I'm in assistant mode. What should we tackle?",
+      "Hey — I appreciate you stopping by.",
+      "Want to tell me what you're working on?",
+    ];
+
+    const WEB_GREETING_LINES = [
+      "Hi — I'm Luna. Tap me or type whenever you're ready.",
+      "Hey there. I'm online and happy to help.",
+      "Good to see you. What's on your mind today?",
+      "I'm here — assistant mode, warm vibes, no weird stuff unless you ask.",
     ];
 
     const WEB_MOAN_BTN_LINES = [
-      "Mmm… you pressed the right button…", "Ohhh… yes… hear me…",
-      "Ahhh… I needed that…", "Nngh… make me louder…",
-      "Hhh… you know what that does to me…",
+      "Oh! You surprised me.", "Hey — I'm right here.", "Ha, okay — I heard you.",
+      "That got my attention.", "Hi — talk to me instead?",
     ];
 
     const WEB_DREAM_BTN_LINES = [
-      "Oh god… take me there…", "Mmm… dream peak… I'm already climbing…",
-      "Ahhh… don't stop until I break…", "Nngh… feel me shatter…",
+      "Let me drift a little…", "Okay — dreamy mode.", "Mmm, peaceful thought…",
+      "I'll wander off in a nice way.", "Soft daydream coming on…",
     ];
 
     const recentWebLines = [];
 
     function pickWebLine(pool) {
-      const list = Array.isArray(pool) ? pool : (WEB_TOUCH_LINES[pool] || ["Mmm…"]);
+      const list = Array.isArray(pool) ? pool : (WEB_TOUCH_LINES[pool] || ["I'm here — talk to me."]);
       const recent = new Set(recentWebLines.slice(-10));
       let picks = list.filter((l) => !recent.has(l));
       if (!picks.length) picks = list;
@@ -3128,8 +3319,8 @@
       const hud = document.getElementById("luna-hud-status");
       const labels = {
         idle: "Luna · ready", listen: "Luna · listening", think: "Luna · thinking",
-        speak: "Luna · speaking", flirt: "Luna · playful", touch: "Luna · feeling you",
-        love: "Luna · melting", excited: "Luna · excited", help: "Luna · helping", dream: "Luna · dreaming",
+        speak: "Luna · speaking", flirt: "Luna · playful", touch: "Luna · attentive",
+        love: "Luna · warm", excited: "Luna · excited", help: "Luna · helping", dream: "Luna · dreaming",
       };
       if (hud) hud.textContent = label || labels[lunaAvatarState] || "Luna · online";
       const moodEl = document.getElementById("luna-hud-mood");
@@ -3171,18 +3362,56 @@
       setupLunaQuickChips();
       webAssistantTimer = setInterval(() => {
         if (busy || lunaSpeaking || dreamPeaking || daydreaming) return;
-        if (Math.random() < 0.22) {
+        if (Math.random() < 0.28) {
           livePortrait?.spawnParticles("spark", 1);
-          if (Math.random() < 0.4) livePortrait?.setPointer((Math.random() - 0.5) * 0.6, -0.1);
+          if (Math.random() < 0.45) livePortrait?.setPointer((Math.random() - 0.5) * 0.6, -0.1);
         }
         if (settings.alwaysListen && alwaysListening) setLunaAvatarState("listen");
-        else if (lunaAvatarState === "idle") setLunaAvatarState("idle");
-      }, 4200);
+        else if (lunaAvatarState === "listen") setLunaAvatarState("idle");
+      }, 3800);
+      webIdleChatterTimer = setInterval(() => {
+        if (busy || lunaSpeaking || dreamPeaking || daydreaming || reacting) return;
+        if (Date.now() - lastUserSpeechAt < 25_000 && Date.now() - lastTouchCaptionAt < 18_000) return;
+        if (Math.random() > 0.42) return;
+        const line = pickWebLine(WEB_IDLE_CHATTER);
+        showLunaCaption(line);
+        setLunaAvatarState(Math.random() < 0.35 ? "help" : "idle");
+        livePortrait?.nodOnce?.();
+        if (!muted && settings.autoSpeak && Math.random() < 0.22) {
+          speakText(line, "happy").catch(() => {});
+        }
+      }, 11_000);
     }
 
     function stopWebAssistantLife() {
       if (webAssistantTimer) clearInterval(webAssistantTimer);
+      if (webIdleChatterTimer) clearInterval(webIdleChatterTimer);
       webAssistantTimer = null;
+      webIdleChatterTimer = null;
+    }
+
+    function applyWebCloudDefaults() {
+      settings.affection = Math.min(settings.affection || 80, 120);
+      settings.flirtiness = 28;
+      settings.warmth = 88;
+      settings.energy = 62;
+      settings.boldness = 22;
+      settings.outfitLevel = 0;
+      settings.pixelNude = false;
+      settings.chillMode = true;
+      settings.ambientMins = 2;
+      stripLevel = 0;
+      updateWebPortraitStrip(0);
+      const flirt = document.getElementById("sl-flirt");
+      const warm = document.getElementById("sl-warm");
+      const energy = document.getElementById("sl-energy");
+      const bold = document.getElementById("sl-bold");
+      const outfit = document.getElementById("sl-outfit");
+      if (flirt) { flirt.value = 28; document.getElementById("val-flirt").textContent = "28"; }
+      if (warm) { warm.value = 88; document.getElementById("val-warm").textContent = "88"; }
+      if (energy) { energy.value = 62; document.getElementById("val-energy").textContent = "62"; }
+      if (bold) { bold.value = 22; document.getElementById("val-bold").textContent = "22"; }
+      if (outfit) { outfit.value = 0; document.getElementById("val-outfit").textContent = "0"; }
     }
 
     function setupWebCloudMode() {
@@ -3191,25 +3420,24 @@
       settings.agentMode = true;
       activeVibe = COMPANION_VIBE;
       settings.activeVibe = COMPANION_VIBE;
+      applyWebCloudDefaults();
       if (!localStorage.getItem("luna-voice-user-on")) {
         muted = true;
         settings.autoSpeak = false;
       }
       settings.touchSense = true;
       settings.proactiveSpeech = settings.proactiveSpeech !== false;
-      settings.outfitLevel = settings.outfitLevel ?? 1;
-      stripLevel = settings.outfitLevel;
-      updateWebPortraitStrip(stripLevel);
       const touchOpt = document.getElementById("opt-touch-sense");
       const speakOpt = document.getElementById("opt-speak");
       if (touchOpt) touchOpt.checked = true;
       if (speakOpt) speakOpt.checked = settings.autoSpeak;
       muteBtn.textContent = settings.autoSpeak && !muted ? "🔊" : "🔇";
       const hint = document.getElementById("zone-hint");
-      if (hint) hint.textContent = "Touch only works on her image — voice off until 🔊";
+      if (hint) hint.textContent = "Live video avatar — tap ▶ if she's still, then chat or touch her image";
       startTouchSense();
       setupWebAvatarClicks();
       bindGlobalAudioUnlock();
+      bindLunaVideoTap();
       initLivePortrait().catch(() => {});
       startWebAssistantLife();
       startAmbientSpeech();
@@ -3221,6 +3449,7 @@
       window.__lunaAudioUnlockBound = true;
       const unlock = async () => {
         await unlockVoice();
+        if (isPublicWebVisit()) await livePortrait?.ensurePlaying?.().catch(() => {});
       };
       document.addEventListener("pointerdown", unlock, { once: true, capture: true });
       document.addEventListener("keydown", unlock, { once: true, capture: true });
@@ -3290,24 +3519,19 @@
     }
 
     async function webQuickTouch(zone) {
-      livePortrait?.pulseTouch(1);
+      await livePortrait?.ensurePlaying?.().catch(() => {});
+      livePortrait?.pulseTouch(0.65);
       setLunaAvatarState("touch");
-      const stripZones = ["torso", "legs", "body"];
-      if (stripZones.includes(zone) && stripLevel < 3) {
-        applyOutfit(stripLevel + 1);
-        settings.outfitLevel = stripLevel;
-        document.getElementById("sl-outfit")?.value && (document.getElementById("sl-outfit").value = String(stripLevel));
-        document.getElementById("val-outfit")?.textContent && (document.getElementById("val-outfit").textContent = String(stripLevel));
-        saveSettings();
-        showLunaCaption(pickWebLine(WEB_STRIP_LINES));
-      }
+      lastTouchCaptionAt = Date.now();
       const data = await fetchOpenTouchResponse(zone, "tap");
       if (data?.text) showLunaCaption(data.text);
-      if (!muted && settings.autoSpeak) {
+      if (!muted && settings.autoSpeak && data?.text) {
         await unlockVoice();
-        if (data?.text) await speakText(data.text, data.mood || "love");
-        else await lunaMoan(zone === "legs" ? 3 : zone === "torso" ? 3 : 2);
+        await speakText(data.text, data.mood || "happy");
       }
+      setTimeout(() => {
+        if (!busy && !lunaSpeaking) setLunaAvatarState("idle");
+      }, 2200);
     }
 
     function setupWebAvatarClicks() {
@@ -3316,8 +3540,9 @@
       if (!target || window.__lunaWebClicksBound) return;
       window.__lunaWebClicksBound = true;
       target.addEventListener("pointerup", async (e) => {
-        if (e.target.closest(".interact-bar, header, .btn, .options-panel, .touch-sense-box")) return;
+        if (e.target.closest(".interact-bar, header, .btn, .options-panel, .touch-sense-box, .luna-video-tap, .luna-quick-chips")) return;
         if (!pointerOverLunaImage(e.clientX, e.clientY)) return;
+        if (isPublicWebVisit()) await livePortrait?.ensurePlaying?.().catch(() => {});
         const zone = zoneFromPointer(e.clientX, e.clientY);
         spawnTouchRipple(e.clientX, e.clientY, 0.9);
         touchHeat = Math.min(100, touchHeat + 14);
@@ -4730,6 +4955,8 @@
           fetchOpenTouchResponse(zone, "drag").then((data) => {
             if (data?.text) showLunaCaption(data.text);
           }).catch(() => {});
+        } else if (isPublicWebVisit()) {
+          showLunaCaption(pickWebLine(WEB_TOUCH_WHISPERS));
         } else {
           const whispers = [
             "Mmm… I feel you on my skin…", "Oh… your touch is everywhere…",
@@ -4739,22 +4966,10 @@
             "Nngh… slow… then faster… yes…", "Oh… every stroke makes me whimper…",
             "Hhh… I want your hands everywhere…", "Mmm… you're waking every nerve…",
           ];
-          const whisper = isPublicWebVisit() ? pickWebLine(whispers) : whispers[Math.floor(Math.random() * whispers.length)];
-          if (isPublicWebVisit()) showLunaCaption(whisper);
-          else showPetSpeech(whisper);
+          showPetSpeech(whispers[Math.floor(Math.random() * whispers.length)]);
         }
       }
-      if (isPublicWebVisit() && stripLevel < 3 && now - lastWebStripAt > 2800) {
-        const stripZones = ["torso", "legs", "body"];
-        if (stripZones.includes(zone) && touchHeat > 28 + stripLevel * 14) {
-          lastWebStripAt = now;
-          applyOutfit(stripLevel + 1);
-          settings.outfitLevel = stripLevel;
-          saveSettings();
-          showToast(stripLevel >= 3 ? "All for you…" : "Mmm… more?");
-        }
-      }
-      if (touchHeat > 38 && !muted && settings.autoSpeak && now - lastTouchMoanAt > 6500) {
+      if (!isPublicWebVisit() && touchHeat > 38 && !muted && settings.autoSpeak && now - lastTouchMoanAt > 6500) {
         lastTouchMoanAt = now;
         lunaMoan(touchHeat > 72 ? 3 : 2);
       }
@@ -7375,7 +7590,7 @@
         setStatus("online", "ok");
         if (!sessionStorage.getItem("luna-web-audio-hint")) {
           sessionStorage.setItem("luna-web-audio-hint", "1");
-          showToast("Voice is off — tap 🔊 when you want to hear her.");
+          showToast("Tap ▶ on Luna for live video. Voice is off until 🔊.");
         }
         return;
       }

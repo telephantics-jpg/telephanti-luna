@@ -2,6 +2,8 @@
  * Luna video avatar — HTML5 looping clips (modern Flash-style motion).
  * Same API surface as LiveLunaPortrait for drop-in use.
  */
+const BUILD = "69";
+
 const CLIPS = {
   idle: "/static/avatars/luna-idle.mp4",
   listen: "/static/avatars/luna-idle.mp4",
@@ -44,12 +46,33 @@ export class LunaVideoAvatar {
     this.targetEyeY = 0;
     this._currentClip = "";
     this._swapLock = false;
+    this._isLive = false;
+    this.onLive = null;
     this.analyser = null;
     this.audioCtx = null;
     this.source = null;
     this._audioAttached = false;
     this.viewW = 360;
     this.viewH = 520;
+    this._bindVideoEvents();
+  }
+
+  _bindVideoEvents() {
+    if (!this.video || this.video.__lunaBound) return;
+    this.video.__lunaBound = true;
+    const mark = () => this._markLive();
+    this.video.addEventListener("playing", mark);
+    this.video.addEventListener("timeupdate", () => {
+      if (!this._isLive && this.video.currentTime > 0.04 && !this.video.paused) mark();
+    });
+  }
+
+  _markLive() {
+    if (this._isLive) return;
+    this._isLive = true;
+    this.video?.removeAttribute("poster");
+    this.video?.classList.add("is-playing");
+    this.onLive?.();
   }
 
   async load() {
@@ -57,16 +80,30 @@ export class LunaVideoAvatar {
     this.video.loop = true;
     this.video.playsInline = true;
     this.video.setAttribute("playsinline", "");
+    this.video.setAttribute("webkit-playsinline", "");
     this.video.preload = "auto";
     await this._setClip("idle", true);
     try {
       await this.video.play();
+      this._markLive();
     } catch {
       /* needs user gesture */
     }
     this._resize();
     this.start();
     return this;
+  }
+
+  async ensurePlaying() {
+    if (!this.video) return false;
+    try {
+      if (this.audioCtx?.state === "suspended") await this.audioCtx.resume();
+      await this.video.play();
+      this._markLive();
+      return !this.video.paused;
+    } catch {
+      return false;
+    }
   }
 
   start() {
@@ -101,10 +138,7 @@ export class LunaVideoAvatar {
   }
 
   async resumeAudio() {
-    if (this.audioCtx?.state === "suspended") await this.audioCtx.resume();
-    try {
-      await this.video.play();
-    } catch { /* ignore */ }
+    await this.ensurePlaying();
   }
 
   setState(state = "idle") {
@@ -128,14 +162,17 @@ export class LunaVideoAvatar {
   setPointer(nx, ny) {
     this.targetEyeX = nx;
     this.targetEyeY = ny;
-    const parallax = Math.max(-6, Math.min(6, nx * 4));
-    if (this.video) this.video.style.transform = `translateX(${parallax}px) scale(1.02)`;
+    const parallax = Math.max(-10, Math.min(10, nx * 6));
+    const tilt = Math.max(-3, Math.min(3, ny * 2));
+    if (this.video) {
+      this.video.style.transform = `translateX(${parallax}px) translateY(${tilt}px) scale(1.04)`;
+    }
   }
 
   pulseTouch(strength = 1) {
     this.touchPulse = Math.min(1, this.touchPulse + 0.45 * strength);
     this.setState("touch");
-    this.spawnParticles("heart", 2 + Math.floor(strength * 3));
+    this.spawnParticles("spark", 2 + Math.floor(strength * 2));
   }
 
   setMouthLevel() { /* driven by speak clip */ }
@@ -143,9 +180,9 @@ export class LunaVideoAvatar {
   nodOnce() {
     if (!this.video) return;
     this.video.animate([
-      { transform: "translateY(0) scale(1.02)" },
-      { transform: "translateY(6px) scale(1.03)" },
-      { transform: "translateY(0) scale(1.02)" },
+      { transform: "translateY(0) scale(1.04)" },
+      { transform: "translateY(8px) scale(1.06)" },
+      { transform: "translateY(0) scale(1.04)" },
     ], { duration: 420, easing: "ease-out" });
   }
 
@@ -199,8 +236,8 @@ export class LunaVideoAvatar {
     if (this._swapLock) return;
     this._swapLock = true;
     try {
-      if (!initial) this.video.style.opacity = "0.65";
-      this.video.src = src + "?v=67";
+      if (!initial) this.video.style.opacity = "0.72";
+      this.video.src = src + "?v=" + BUILD;
       this.video.load();
       this.video.playbackRate = RATES[state] || 1;
       await new Promise((res) => {
@@ -214,6 +251,7 @@ export class LunaVideoAvatar {
       await this.video.play().catch(() => {});
       this.video.style.opacity = "1";
       this._currentClip = src;
+      if (!this.video.paused) this._markLive();
     } finally {
       this._swapLock = false;
     }
@@ -242,7 +280,7 @@ export class LunaVideoAvatar {
     if (this.touchPulse > 0.05) {
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.fillStyle = `rgba(251, 113, 133, ${this.touchPulse * 0.15})`;
+      ctx.fillStyle = `rgba(167, 139, 250, ${this.touchPulse * 0.12})`;
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
     }
@@ -253,7 +291,7 @@ export class LunaVideoAvatar {
       ctx.rotate(p.rot);
       ctx.globalAlpha = p.life * 0.9;
       if (p.kind === "heart") {
-        ctx.fillStyle = "#fb7185";
+        ctx.fillStyle = "#c4b5fd";
         ctx.font = `${p.size + 8}px serif`;
         ctx.fillText("♥", -5, 5);
       } else {

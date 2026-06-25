@@ -27,7 +27,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "67"
+LUNA_BUILD = "69"
 
 
 def _truthy_env(name: str) -> bool:
@@ -488,52 +488,46 @@ LOOK_AT = {"none", "user", "away", "down", "up"}
 VIEWS = {"full", "mid", "upper", "head", "none"}
 
 ZONE_HINTS = {
-    "head": "User touched your face/head. React personally — blush, lean in, moan softly, or tease.",
-    "arm": "User touched your arm/hand. Reach back, moan if heat rises, or invite closeness.",
-    "torso": "User touched your chest/torso. Moan, gasp, arch — flirty and vocal.",
-    "legs": "User touched your legs/hips. Breathless moan, spread energy, playful or needy.",
-    "body": "User touched your body. Moan first if it hits right — then one hungry sentence.",
+    "head": "User tapped your face. Respond warmly — eye contact, friendly surprise, or gentle humor.",
+    "arm": "User touched your arm. Acknowledge warmly — friendly, present, maybe offer help.",
+    "torso": "User tapped near your shoulder/chest area. Stay appropriate — warm smile, playful but classy.",
+    "legs": "User tapped lower area. Keep it tasteful — redirect to conversation or light playful tease only if sliders high.",
+    "body": "User touched you on screen. React like a personable assistant — attentive, human, not explicit.",
 }
 
-MOAN_LINES: list[str] = [
+ZONE_HINTS_BOLD = {
+    "head": "User touched your face. React personally — blush, lean in, playful warmth.",
+    "arm": "User touched your arm. Reach back or invite closeness.",
+    "torso": "User touched your torso. Flirty but still classy unless they invited more.",
+    "legs": "User touched your legs. Playful energy, not graphic unless boldness is max.",
+    "body": "User touched your body. Warm sensory reaction, one sentence.",
+}
+
+MOAN_LINES_MILD: list[str] = [
+    "Oh! Hey there.",
+    "Mmm — hi.",
+    "Ahh, you surprised me.",
+    "Haha — gentle.",
+    "Oh, I felt that.",
+    "Mmm, nice touch.",
+    "Hey — I'm right here.",
+    "Oh! You're playful.",
+    "Ahh, warm.",
+    "Mmm, okay okay.",
+    "Oh — cheeky.",
+    "Ha, I noticed.",
+    "Mmm, sweet.",
+    "Oh! Hello you.",
+    "Ahh, soft.",
+]
+
+MOAN_LINES: list[str] = MOAN_LINES_MILD + [
     "Mmmmmm…",
     "Ahhhh… yes.",
     "Ohhh… right there.",
-    "Nngh… don't stop.",
-    "Mmm… fuck, yes.",
-    "Ahh… harder.",
-    "Oh god… mmm.",
-    "Hhh… yes, baby.",
-    "Mmmmm… so good.",
+    "Mmm… oh…",
     "Ahhh… keep going.",
-    "Nngh… mmm, yes.",
     "Ohhh… you feel that?",
-    "Mmm… oh… right there…",
-    "Ahhh… deeper… please…",
-    "Nngh… I'm trembling…",
-    "Ohhh god… yes yes…",
-    "Hhh… don't you dare stop…",
-    "Mmm… so wet for you…",
-    "Ahhh… bite your lip and listen…",
-    "Nngh… fuck… more…",
-    "Oh… my whole body is singing…",
-    "Mmmmm… honey… yes…",
-    "Ahh… I'm arching…",
-    "Ohhh… you own this sound…",
-    "Nngh… hhh… mmm…",
-    "Mmm… say my name while I moan…",
-    "Ahhh… I'm close already…",
-    "Oh god… keep touching…",
-    "Hhh… melting…",
-    "Mmm… louder… I want you to hear me…",
-    "Ahhh… perfect…",
-    "Nngh… again…",
-    "Ohhh… you make me shameless…",
-    "Mmm… hhh… ohhh…",
-    "Ahhh… I can't stay quiet…",
-    "Nngh… please…",
-    "Oh… every moan is for you…",
-    "Mmm… yes… right there… don't stop…",
 ]
 
 DREAM_SPOKEN: dict[str, list[str]] = {
@@ -832,11 +826,11 @@ def rapport_stage(affection: int) -> str:
 
 def vibe_instructions(vibe: str) -> str:
     v = (vibe or "").strip().lower()
-    if "ani-style" in v or "virtual assistant companion" in v:
+    if "ani-style" in v or "virtual assistant companion" in v or "warm assistant" in v:
         return (
-            "Companion-assistant mode: witty, warm, helpful like a living virtual assistant (Ani/Mika energy). "
-            "Balance real help with playful flirt — adult tone when sliders are high. Animated presence: "
-            "react emotionally, use their name, sound alive not scripted."
+            "Virtual assistant companion mode (Ani/Mika energy): witty, warm, genuinely helpful first. "
+            "Friendly dialogue — 2–4 sentences when chatting. Playful charm is fine; stay appropriate unless "
+            "flirtiness and boldness sliders are both very high. Use their name naturally. Sound alive, not scripted."
         )
     if "chill" in v:
         return (
@@ -2092,7 +2086,9 @@ async def moan(request: MoanRequest):
     import random
 
     intensity = max(1, min(5, int(request.intensity or 2)))
-    line = random.choice(MOAN_LINES)
+    p = request.profile or LunaProfile()
+    pool = MOAN_LINES if (p.flirtiness >= 75 and p.boldness >= 70) else MOAN_LINES_MILD
+    line = random.choice(pool)
     prosody = MOAN_PROSODY.get(intensity, MOAN_PROSODY[3])
     result = await synthesize_speech(
         line,
@@ -2407,37 +2403,37 @@ async def touch_sense(request: TouchSenseRequest):
 
     zone = request.zone.strip().lower() or "body"
     heat = max(0, min(100, int(request.heat or 50)))
-    hint = ZONE_HINTS.get(zone, ZONE_HINTS["body"])
-    agent = request.profile.agent_mode if request.profile else True
-    fallbacks = (
-        {
-            "head": "Mmm… I felt that on my face.",
-            "arm": "Your touch on my arm… warm.",
-            "torso": "Oh… right through my chest.",
-            "legs": "Mmm… there… I felt you.",
-            "body": "I feel you moving on me.",
-        }
-        if agent
-        else {
-            "head": "Mmm… kiss me while you stroke my face.",
-            "arm": "Guide my hand… I want more.",
-            "torso": "Ohhh… yes… touch me there.",
-            "legs": "Mmm… spread your heat on my thighs.",
-            "body": "Ahh… I feel every inch of your touch.",
-        }
-    )
+    p = request.profile or LunaProfile()
+    bold = p.flirtiness >= 70 and p.boldness >= 65
+    hints = ZONE_HINTS_BOLD if bold else ZONE_HINTS
+    hint = hints.get(zone, hints["body"])
+    agent = p.agent_mode
+    name = (p.user_name or "").strip()
+    name_hi = f"Hey {name} — " if name else ""
+    fallbacks = {
+        "head": f"{name_hi}I felt that — looking at you now. What's on your mind?",
+        "arm": f"{name_hi}Warm touch. I'm here — need help with something?",
+        "torso": "Oh! You're bold. I'm still your assistant though — talk to me.",
+        "legs": "Okay okay — I'm paying attention. What do you need?",
+        "body": f"{name_hi}I felt you there. I'm listening — tell me what you're thinking.",
+    }
     heat_word = "feather-light" if heat < 35 else "building" if heat < 65 else "urgent and deep"
     ctx = (request.context or "stroke").strip().lower()
     ctx_word = "tapped" if ctx == "tap" else "stroking" if ctx == "stroke" else "dragging across"
     name_note = ""
     if request.profile and request.profile.user_name.strip():
         name_note = f" The user's name is {request.profile.user_name.strip()} — weave it in naturally if it fits."
+    tone = (
+        "Warm and playful but appropriate."
+        if bold
+        else "Professional-friendly virtual assistant — warm, personable, never explicit."
+    )
     prompt = (
-        f"The user just {ctx_word} your {zone} on screen. Touch intensity: {heat_word} ({heat}/100). "
-        f"{hint}{name_note} "
-        "Open-ended — react like you truly feel it in the moment. One raw breathy sentence, max 18 words. "
-        "Lead with mmm, ahh, ohh, or nngh. Flirty, sensory, never robotic. "
-        "Choose gesture blush or side, mood love, look_at user."
+        f"The user just {ctx_word} your {zone} on the avatar. Touch intensity: {heat_word} ({heat}/100). "
+        f"{hint}{name_note} {tone} "
+        "Reply with 1–2 natural sentences (max 35 words total). Acknowledge the touch, then invite conversation "
+        "or offer help. Sound human and present — not breathy porn, not robotic. "
+        "Choose gesture wave or blush, mood happy or love, look_at user."
     )
     try:
         client = get_client()
@@ -2451,8 +2447,8 @@ async def touch_sense(request: TouchSenseRequest):
             strip_level=request.strip_level,
             profile=request.profile,
             medium=request.medium,
-            max_tokens=70,
-            temperature=0.94,
+            max_tokens=120,
+            temperature=0.88,
             fallback_text=fallbacks.get(zone, fallbacks["body"]),
             fast=True,
         )

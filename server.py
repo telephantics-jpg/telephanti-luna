@@ -1247,8 +1247,8 @@ async def synthesize_speech(
 
 
 @app.get("/")
-async def index():
-    if is_cloud_mode():
+async def index(avatar: str | None = None, web: str | None = None):
+    if is_cloud_mode() and not (avatar == "1" and web == "1"):
         return RedirectResponse(
             f"/?avatar=1&web=1&v={LUNA_BUILD}",
             status_code=302,

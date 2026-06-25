@@ -223,10 +223,10 @@ export class LiveLunaPortrait {
 
   _stateMotion() {
     const s = this.state;
-    let breathe = 1 + Math.sin(this.t * 1.35) * 0.009;
-    let sway = Math.sin(this.t * 0.55) * 0.008;
+    let breathe = 1 + Math.sin(this.t * 1.35) * 0.003;
+    let sway = Math.sin(this.t * 0.55) * 0.002;
     let tilt = 0;
-    let bob = Math.sin(this.t * 0.9) * 2;
+    let bob = Math.sin(this.t * 0.9) * 0.6;
     let scaleBoost = 1;
 
     if (s === "listen") {

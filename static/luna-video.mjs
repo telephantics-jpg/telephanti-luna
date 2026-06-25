@@ -1,7 +1,7 @@
 /**
  * Luna video avatar — HTML5 looping clips + canvas lip-sync overlay.
  */
-const BUILD = "76";
+const BUILD = "77";
 
 const CLIPS = {
   idle: "/static/avatars/luna-idle.mp4",
@@ -18,15 +18,15 @@ const CLIPS = {
 
 const RATES = {
   idle: 1,
-  listen: 0.92,
-  think: 1.05,
-  speak: 1.12,
-  help: 1.02,
-  flirt: 1.15,
-  touch: 1.18,
-  love: 1.08,
-  excited: 1.2,
-  dream: 0.78,
+  listen: 1,
+  think: 1,
+  speak: 1,
+  help: 1,
+  flirt: 1,
+  touch: 1,
+  love: 1,
+  excited: 1,
+  dream: 1,
 };
 
 // Portrait mouth anchor (normalized) — tuned for luna-portrait.jpg
@@ -202,10 +202,12 @@ export class LunaVideoAvatar {
   }
 
   setState(state = "idle") {
-    this.state = state || "idle";
-    this._setClip(state).catch(() => {});
-    if (["flirt", "touch", "love", "excited"].includes(state)) {
-      this.spawnParticles("spark", 3 + Math.floor(Math.random() * 3));
+    const next = state || "idle";
+    const calm = ["idle", "listen", "help", "think", "dream"];
+    this.state = calm.includes(next) ? next : "idle";
+    this._setClip(this.state).catch(() => {});
+    if (["flirt", "touch", "love", "excited"].includes(next)) {
+      this.spawnParticles("spark", 1 + Math.floor(Math.random() * 2));
     }
   }
 
@@ -227,12 +229,8 @@ export class LunaVideoAvatar {
   setPointer(nx, ny) {
     this.targetEyeX = nx;
     this.targetEyeY = ny;
-    const parallax = Math.max(-3, Math.min(3, nx * 1.8));
-    const tilt = Math.max(-1, Math.min(1, ny * 0.8));
     const target = this.motionEl || this.video;
-    if (target) {
-      target.style.transform = `translateX(${parallax}px) translateY(${tilt}px)`;
-    }
+    if (target) target.style.transform = "translate(0, 0)";
   }
 
   pulseTouch(strength = 1, nx = null, ny = null) {
@@ -249,14 +247,7 @@ export class LunaVideoAvatar {
   }
 
   nodOnce() {
-    this.nod = 1;
-    const target = this.motionEl || this.video;
-    if (!target) return;
-    target.animate([
-      { transform: target.style.transform || "translateY(0) scale(1.03)" },
-      { transform: "translateY(8px) scale(1.05)" },
-      { transform: target.style.transform || "translateY(0) scale(1.03)" },
-    ], { duration: 420, easing: "ease-out" });
+    this.nod = 0.35;
   }
 
   spawnParticlesAt(nx, ny, kind = "spark", count = 3) {

@@ -2524,7 +2524,7 @@
       return false;
     }
 
-    function ensurePublicWebUi() {
+    function applyPublicWebChrome() {
       if (!isPublicWebVisit() || isPetMode()) return;
       settings.desktopOverlay = false;
       document.documentElement.classList.remove("desktop-overlay");
@@ -2532,9 +2532,13 @@
       const optDesktop = document.getElementById("opt-desktop");
       if (optDesktop) optDesktop.checked = false;
       document.getElementById("desktop-btn")?.setAttribute("hidden", "");
-      toggleOptions(false);
       mainEl.className = "main show-avatar";
       saveSettings();
+    }
+
+    function ensurePublicWebUi() {
+      applyPublicWebChrome();
+      toggleOptions(false);
     }
 
     function applyCloudMode(info) {
@@ -2552,7 +2556,7 @@
         "opt-omni-follow",
       ];
       if (info.cloud_mode) {
-        ensurePublicWebUi();
+        applyPublicWebChrome();
         document.getElementById("desktop-btn")?.setAttribute("hidden", "");
         localTools?.setAttribute("hidden", "");
         phoneHeading?.setAttribute("hidden", "");
@@ -4367,8 +4371,15 @@
       }
     }
 
+    let optionsPanelSetup = false;
+
     function setupOptionsPanel() {
-      optionsBtn?.addEventListener("click", () => toggleOptions(true));
+      if (optionsPanelSetup) return;
+      optionsPanelSetup = true;
+      optionsBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleOptions(true);
+      });
       document.getElementById("options-back")?.addEventListener("click", () => {
         if (isPetMode()) returnFromPetSettings();
         else toggleOptions(false);
@@ -4378,7 +4389,8 @@
         else toggleOptions(false);
       });
       document.getElementById("options-expand")?.addEventListener("click", () => togglePetSettingsExpand());
-      optionsBackdrop?.addEventListener("click", () => {
+      optionsBackdrop?.addEventListener("click", (e) => {
+        if (e.target !== optionsBackdrop) return;
         if (isPetMode()) returnFromPetSettings();
         else toggleOptions(false);
       });

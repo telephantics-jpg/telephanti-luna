@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "73"
+LUNA_BUILD = "74"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -76,9 +76,10 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-@app.on_event("startup")
-async def prewarm_lipsync() -> None:
-    """Cache a short greeting clip so first speak feels instant."""
+async def _prewarm_lipsync_background() -> None:
+    """Cache greeting clip in background — must not block Render health checks."""
+    if os.getenv("LUNA_PREWARM", "1").strip().lower() in ("0", "false", "no", "off"):
+        return
     try:
         from luna_lipsync.engine import lipsync_available, render_lipsync_video
 
@@ -91,6 +92,12 @@ async def prewarm_lipsync() -> None:
         log.info("Lip-sync greeting pre-cached")
     except Exception as exc:
         log.info("Lip-sync prewarm skipped: %s", exc)
+
+
+@app.on_event("startup")
+async def prewarm_lipsync() -> None:
+    """Start lip-sync prewarm without blocking — keeps /api/health instant for deploy."""
+    asyncio.create_task(_prewarm_lipsync_background())
 
 
 ACTION_SCHEMA = """You control Luna's entire 3D world — her body, face, voice, outfit, scene, lighting, and camera.

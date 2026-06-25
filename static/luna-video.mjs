@@ -1,7 +1,7 @@
 /**
  * Luna video avatar — HTML5 looping clips + canvas lip-sync overlay.
  */
-const BUILD = "73";
+const BUILD = "74";
 
 const CLIPS = {
   idle: "/static/avatars/luna-idle.mp4",

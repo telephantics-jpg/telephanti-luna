@@ -26,3 +26,5 @@ services:
         value: en-US-AriaNeural
       - key: LUNA_LIPSYNC
         value: "1"
+      - key: LUNA_PREWARM
+        value: "0"

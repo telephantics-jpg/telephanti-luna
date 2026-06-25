@@ -40,7 +40,9 @@
       padding: 0.7rem 1rem;
       border-bottom: 1px solid var(--border);
       background: rgba(20,24,36,0.9);
-      z-index: 10;
+      position: relative;
+      z-index: 50;
+      pointer-events: auto;
     }
     .brand { font-weight: 600; font-size: 1rem; }
     .brand span { color: var(--accent); }
@@ -2487,6 +2489,29 @@
       return isMobile() || (host !== "127.0.0.1" && host !== "localhost" && host !== "");
     }
 
+    function isPublicWebVisit() {
+      const host = location.hostname.toLowerCase();
+      const params = new URLSearchParams(location.search);
+      if (params.get("web") === "1") return true;
+      if (/\.onrender\.com$/i.test(host) || host === "telephanti.com" || host === "www.telephanti.com") {
+        return true;
+      }
+      return false;
+    }
+
+    function ensurePublicWebUi() {
+      if (!isPublicWebVisit() || isPetMode()) return;
+      settings.desktopOverlay = false;
+      document.documentElement.classList.remove("desktop-overlay");
+      document.body.classList.remove("desktop-overlay");
+      const optDesktop = document.getElementById("opt-desktop");
+      if (optDesktop) optDesktop.checked = false;
+      document.getElementById("desktop-btn")?.setAttribute("hidden", "");
+      toggleOptions(false);
+      mainEl.className = "main show-avatar";
+      saveSettings();
+    }
+
     function applyCloudMode(info) {
       const localTools = document.getElementById("opt-local-tools");
       const cloudBeacons = document.getElementById("opt-cloud-beacons");
@@ -2502,6 +2527,8 @@
         "opt-omni-follow",
       ];
       if (info.cloud_mode) {
+        ensurePublicWebUi();
+        document.getElementById("desktop-btn")?.setAttribute("hidden", "");
         localTools?.setAttribute("hidden", "");
         phoneHeading?.setAttribute("hidden", "");
         cloudBeacons?.removeAttribute("hidden");
@@ -6815,6 +6842,7 @@
         } catch { /* ignore */ }
       }
       loadSettings();
+      ensurePublicWebUi();
       document.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === ",") {
           e.preventDefault();
@@ -6842,12 +6870,19 @@
         lunaMood = "love";
         dismissPetBoot("Luna is waking up...");
         setPetFallbackVisible(true, "Loading Luna...");
-      } else if (urlOverlay || settings.desktopOverlay) setDesktopOverlay(true);
+      } else if (urlOverlay || (settings.desktopOverlay && !isPublicWebVisit())) {
+        setDesktopOverlay(true);
+      }
 
       try {
         setupOptionsPanel();
       } catch (err) {
         console.warn("Options panel setup:", err);
+      }
+      try {
+        setupMic();
+      } catch (err) {
+        console.warn("Mic setup:", err);
       }
       setupPetDialog();
       if ((isMobile() || params.get("mobile") === "1") && !isPetMode()) {
@@ -6855,7 +6890,11 @@
         const hint = document.getElementById("zone-hint");
         if (hint) hint.textContent = "Tap Luna to interact — she walks and talks. Use Chat tab to type.";
       }
-      if ((params.get("roam") === "1" || desktopLaunch) && params.get("opaque") !== "1") {
+      if (
+        !isPublicWebVisit() &&
+        (params.get("roam") === "1" || desktopLaunch) &&
+        params.get("opaque") !== "1"
+      ) {
         settings.desktopOverlay = true;
       }
 

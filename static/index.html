@@ -1203,6 +1203,9 @@
     .pet-avatar-fallback.visible {
       display: flex;
     }
+    body:not(.desktop-pet) .pet-avatar-fallback.visible {
+      z-index: 7;
+    }
     .pet-avatar-fallback img {
       border-radius: 50%;
       border: 3px solid rgba(232, 180, 255, 0.45);
@@ -3062,7 +3065,7 @@
           }
           if (isPetMode()) setPetLipsyncOnly(true);
         }
-        if (isPetMode()) await primePetHtmlAudio();
+        await primePetHtmlAudio();
         voiceUnlocked = true;
         warmVoice();
         return true;
@@ -6431,10 +6434,19 @@
       await unlockVoice();
     }
 
+    function enableWebPortraitFallback(label = "Loading Luna…") {
+      if (isPetMode()) return;
+      setPetFallbackVisible(true, label);
+      loadingEl.classList.add("visible");
+      loadingEl.textContent = label;
+    }
+
     async function initAvatar() {
       if (isPetMode()) {
         loadingEl.classList.add("visible");
         setPetFallbackVisible(true, "Loading her world...");
+      } else {
+        enableWebPortraitFallback("Loading Luna's avatar…");
       }
       try {
         const TalkingHead = await loadTalkingHead();
@@ -6467,12 +6479,16 @@
       } catch (err) {
         console.warn("Avatar load:", err);
         head = null;
-        if (!isPetMode()) throw err;
-        loadingEl.textContent = "Retrying without 3D body...";
+        if (!isPetMode()) {
+          enableWebPortraitFallback("Luna portrait — tap 🔊 to hear me");
+          showToast("3D avatar still loading — voice works. Tap 🔊 once.");
+        } else {
+          loadingEl.textContent = "Retrying without 3D body...";
+        }
       }
 
       loadingEl.classList.remove("visible");
-      if (!isPetMode()) loadingEl.style.display = "none";
+      if (!isPetMode() && head) loadingEl.style.display = "none";
       setupMic();
 
       if (isPetMode() && petBubbleMode) {
@@ -6506,9 +6522,13 @@
           setTimeout(() => welcomeGesture(), 1400);
           return;
         }
-        throw new Error("Avatar failed to load");
+        enableWebPortraitFallback("Luna portrait — chat & voice work");
+        setupMic();
+        setStatus("online", "ok");
+        return;
       }
       if (head.renderer && !isPetMode()) head.renderer.preserveDrawingBuffer = true;
+      markAvatarReady();
       head.setMood("happy");
       head.setView("full");
       applyOutfit(isPetMode() ? (settings.outfitLevel ?? 3) : 0);
@@ -6568,6 +6588,12 @@
           sessionStorage.setItem("luna-web-audio-hint", "1");
           showToast("Tap 🔊 once so you can hear Luna speak.");
         }
+        setTimeout(() => {
+          if (!voiceWelcomed && !muted && settings.autoSpeak) {
+            voiceWelcomed = true;
+            unlockVoice().then(() => speakText("Hi — I'm Luna. I'm right here.", "happy"));
+          }
+        }, 1200);
       }
     }
 
@@ -6599,6 +6625,7 @@
     async function _speakTextImpl(text, moodOverride) {
       beginLunaSpeech();
       setSenseField("speak");
+      let data = null;
       try {
         await unlockVoice();
         const mood = moodOverride || lunaMood || "happy";
@@ -6614,7 +6641,7 @@
           }),
         });
         if (!res.ok) throw new Error("TTS failed");
-        const data = await res.json();
+        data = await res.json();
         const audioBuf = b64ToArrayBuffer(data.audio_b64);
         const speechPayload = {
           audio: audioBuf,
@@ -6623,15 +6650,19 @@
           wdurations: data.wdurations,
         };
 
-        if (isPetMode()) {
-          await playPetSpeech(speechPayload, data.audio_b64);
-        } else if (head) {
-          await head.speakAudio(speechPayload, { lipsyncLang: "en" });
-        }
+        await playPetSpeech(speechPayload, data.audio_b64);
       } catch (err) {
         console.warn("Speech error:", err);
+        if (data?.audio_b64) {
+          try {
+            await playPetAudioB64(data.audio_b64);
+          } catch (playErr) {
+            console.warn("HTML audio fallback:", playErr);
+          }
+        }
         if (isPetMode() && petBubbleMode) appendPetBubble("system", "Tap 🔊 on the toolbar if you don't hear me.");
         else if (isPetMode()) showPetSpeech("Tap 🔊 on the toolbar if you don't hear me yet.");
+        else showToast("Tap 🔊 once so you can hear Luna speak.");
       } finally {
         await endLunaSpeech();
       }
@@ -6976,9 +7007,11 @@
           setStatus("online", "ok");
           showPetSpeech("Portrait mode — I can still hear you and help.");
         } else {
-          loadingEl.textContent = "Avatar load failed: " + err.message;
-          loadingEl.style.display = "block";
-          setStatus("avatar error", "err");
+          loadingEl.style.display = "none";
+          enableWebPortraitFallback("Luna portrait — tap 🔊 to hear me");
+          setupMic();
+          setStatus("online", "ok");
+          showToast("Portrait mode — voice and chat work. Tap 🔊 once.");
         }
       }
 

@@ -1,8 +1,7 @@
 /**
- * Luna video avatar — HTML5 looping clips (modern Flash-style motion).
- * Same API surface as LiveLunaPortrait for drop-in use.
+ * Luna video avatar — HTML5 looping clips + canvas lip-sync overlay.
  */
-const BUILD = "69";
+const BUILD = "70";
 
 const CLIPS = {
   idle: "/static/avatars/luna-idle.mp4",
@@ -30,9 +29,15 @@ const RATES = {
   dream: 0.78,
 };
 
+// Portrait mouth anchor (normalized) — tuned for luna-portrait.jpg
+const MOUTH = { x: 0.5, y: 0.575, w: 0.09, h: 0.035 };
+
 export class LunaVideoAvatar {
   constructor(videoEl, overlayCanvas = null) {
     this.video = videoEl;
+    this.motionEl = videoEl?.parentElement?.classList?.contains("luna-video-motion")
+      ? videoEl.parentElement
+      : null;
     this.canvas = overlayCanvas;
     this.ctx = overlayCanvas?.getContext("2d");
     this.state = "idle";
@@ -44,6 +49,9 @@ export class LunaVideoAvatar {
     this.particles = [];
     this.targetEyeX = 0;
     this.targetEyeY = 0;
+    this.mouth = 0;
+    this.targetMouth = 0;
+    this.nod = 0;
     this._currentClip = "";
     this._swapLock = false;
     this._isLive = false;
@@ -128,6 +136,7 @@ export class LunaVideoAvatar {
       if (!this.audioCtx) this.audioCtx = new AudioContext();
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = 256;
+      this.analyser.smoothingTimeConstant = 0.55;
       this.source = this.audioCtx.createMediaElementSource(el);
       this.source.connect(this.analyser);
       this.analyser.connect(this.audioCtx.destination);
@@ -145,7 +154,7 @@ export class LunaVideoAvatar {
     this.state = state || "idle";
     this._setClip(state).catch(() => {});
     if (["flirt", "touch", "love", "excited"].includes(state)) {
-      this.spawnParticles(state === "love" ? "heart" : "spark", 3 + Math.floor(Math.random() * 3));
+      this.spawnParticles("spark", 3 + Math.floor(Math.random() * 3));
     }
   }
 
@@ -155,64 +164,83 @@ export class LunaVideoAvatar {
 
   setSpeaking(on) {
     this.speaking = !!on;
-    if (on) this.setState("speak");
-    else if (this.state === "speak") this.setState("idle");
+    if (on) {
+      this.setState("speak");
+      this.nod = Math.max(this.nod, 0.5);
+    } else if (this.state === "speak") {
+      this.setState("idle");
+      this.targetMouth = 0;
+    }
   }
 
   setPointer(nx, ny) {
     this.targetEyeX = nx;
     this.targetEyeY = ny;
-    const parallax = Math.max(-10, Math.min(10, nx * 6));
-    const tilt = Math.max(-3, Math.min(3, ny * 2));
-    if (this.video) {
-      this.video.style.transform = `translateX(${parallax}px) translateY(${tilt}px) scale(1.04)`;
+    const parallax = Math.max(-8, Math.min(8, nx * 5));
+    const tilt = Math.max(-2, Math.min(2, ny * 1.5));
+    const target = this.motionEl || this.video;
+    if (target) {
+      target.style.transform = `translateX(${parallax}px) translateY(${tilt}px) scale(1.03)`;
     }
   }
 
-  pulseTouch(strength = 1) {
+  pulseTouch(strength = 1, nx = null, ny = null) {
     this.touchPulse = Math.min(1, this.touchPulse + 0.45 * strength);
     this.setState("touch");
-    this.spawnParticles("spark", 2 + Math.floor(strength * 2));
+    const count = 2 + Math.floor(strength * 2);
+    if (nx != null && ny != null) this.spawnParticlesAt(nx, ny, "spark", count);
+    else this.spawnParticles("spark", count);
   }
 
-  setMouthLevel() { /* driven by speak clip */ }
+  setMouthLevel(v) {
+    this.targetMouth = Math.max(0, Math.min(1, v));
+    if (v > 0.25) this.nod = Math.max(this.nod, 0.35);
+  }
 
   nodOnce() {
-    if (!this.video) return;
-    this.video.animate([
-      { transform: "translateY(0) scale(1.04)" },
-      { transform: "translateY(8px) scale(1.06)" },
-      { transform: "translateY(0) scale(1.04)" },
+    this.nod = 1;
+    const target = this.motionEl || this.video;
+    if (!target) return;
+    target.animate([
+      { transform: target.style.transform || "translateY(0) scale(1.03)" },
+      { transform: "translateY(8px) scale(1.05)" },
+      { transform: target.style.transform || "translateY(0) scale(1.03)" },
     ], { duration: 420, easing: "ease-out" });
   }
 
-  spawnParticles(kind = "spark", count = 3) {
+  spawnParticlesAt(nx, ny, kind = "spark", count = 3) {
     const w = this.viewW;
     const h = this.viewH;
+    const cx = Math.max(0, Math.min(1, nx)) * w;
+    const cy = Math.max(0, Math.min(1, ny)) * h;
     for (let i = 0; i < count; i++) {
       this.particles.push({
         kind,
-        x: w * (0.3 + Math.random() * 0.4),
-        y: h * (0.28 + Math.random() * 0.35),
-        vx: (Math.random() - 0.5) * 2,
-        vy: -0.8 - Math.random() * 1.2,
+        x: cx + (Math.random() - 0.5) * 28,
+        y: cy + (Math.random() - 0.5) * 20,
+        vx: (Math.random() - 0.5) * 2.2,
+        vy: -0.6 - Math.random() * 1.4,
         life: 1,
-        size: 4 + Math.random() * 8,
+        size: 4 + Math.random() * 7,
         rot: Math.random() * Math.PI,
       });
     }
   }
 
+  spawnParticles(kind = "spark", count = 3) {
+    this.spawnParticlesAt(0.5, 0.42, kind, count);
+  }
+
   observeResize() {
     if (this._resizeObs) return;
     this._resizeObs = new ResizeObserver(() => this._resize());
-    const parent = this.video?.parentElement;
+    const parent = this.video?.parentElement?.parentElement || this.video?.parentElement;
     if (parent) this._resizeObs.observe(parent);
     window.addEventListener("resize", () => this._resize());
   }
 
   _resize() {
-    const parent = this.video?.parentElement;
+    const parent = this.video?.parentElement?.parentElement || this.video?.parentElement;
     if (!parent) return;
     const rect = parent.getBoundingClientRect();
     this.viewW = Math.max(280, Math.min(rect.width || 360, 520));
@@ -225,6 +253,16 @@ export class LunaVideoAvatar {
       this.canvas.style.height = this.viewH + "px";
       this.ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
+  }
+
+  _readAudioLevel() {
+    if (!this.analyser || !this.speaking) return 0;
+    const buf = new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteFrequencyData(buf);
+    let sum = 0;
+    const n = Math.min(28, buf.length);
+    for (let i = 0; i < n; i++) sum += buf[i];
+    return Math.min(1, (sum / n) / 95);
   }
 
   async _setClip(state, initial = false) {
@@ -258,6 +296,17 @@ export class LunaVideoAvatar {
   }
 
   _step() {
+    const audioLvl = this._readAudioLevel();
+    if (this.speaking) {
+      this.targetMouth = Math.max(this.targetMouth * 0.82, audioLvl * 0.95);
+      if (audioLvl > 0.18 && Math.random() < 0.05) this.nod = Math.max(this.nod, 0.55);
+    }
+    this.mouth += (this.targetMouth - this.mouth) * 0.38;
+    if (!this.speaking) {
+      this.mouth *= 0.78;
+      this.targetMouth *= 0.85;
+    }
+    if (this.nod > 0) this.nod = Math.max(0, this.nod - 0.04);
     this.touchPulse *= 0.9;
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
@@ -268,6 +317,43 @@ export class LunaVideoAvatar {
       p.rot += 0.05;
       if (p.life <= 0) this.particles.splice(i, 1);
     }
+  }
+
+  _drawMouth(ctx, w, h) {
+    const open = this.mouth;
+    const mouthX = w * MOUTH.x;
+    const mouthY = h * MOUTH.y + this.nod * 5;
+    if (open <= 0.03) return;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+
+    const lipW = w * MOUTH.w * (0.75 + open * 0.55);
+    const lipH = h * MOUTH.h * (0.5 + open * 2.8);
+
+    ctx.fillStyle = `rgba(28, 8, 14, ${0.35 + open * 0.45})`;
+    ctx.beginPath();
+    ctx.ellipse(mouthX, mouthY + lipH * 0.15, lipW * 0.92, lipH, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = `rgba(175, 75, 95, ${0.25 + open * 0.35})`;
+    ctx.beginPath();
+    ctx.ellipse(mouthX, mouthY - lipH * 0.08, lipW, lipH * 0.42, 0, Math.PI, 0);
+    ctx.fill();
+
+    ctx.fillStyle = `rgba(195, 90, 110, ${0.3 + open * 0.4})`;
+    ctx.beginPath();
+    ctx.ellipse(mouthX, mouthY + lipH * 0.22, lipW * 0.95, lipH * 0.55, 0, 0, Math.PI);
+    ctx.fill();
+
+    if (open > 0.2) {
+      ctx.fillStyle = `rgba(255, 235, 230, ${open * 0.35})`;
+      ctx.beginPath();
+      ctx.ellipse(mouthX, mouthY + lipH * 0.05, lipW * 0.55, lipH * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
   }
 
   _drawOverlay() {
@@ -284,6 +370,8 @@ export class LunaVideoAvatar {
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
     }
+
+    this._drawMouth(ctx, w, h);
 
     for (const p of this.particles) {
       ctx.save();

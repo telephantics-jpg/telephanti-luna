@@ -27,7 +27,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "69"
+LUNA_BUILD = "70"
 
 
 def _truthy_env(name: str) -> bool:

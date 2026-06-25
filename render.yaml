@@ -3,7 +3,7 @@
 # 2. Render → New → Blueprint → connect repo
 # 3. Set XAI_API_KEY in the dashboard
 # 4. Add custom domain: telephanti.com + www.telephanti.com in Render dashboard
-# 5. Squarespace DNS: A @ → 216.24.57.1, CNAME www → your-app.onrender.com
+# 5. Squarespace DNS: A @ → 216.24.57.1, CNAME www → luna-ki77.onrender.com
 
 services:
   - type: web

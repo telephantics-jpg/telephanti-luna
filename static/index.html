@@ -1361,13 +1361,24 @@
       opacity: 0;
       pointer-events: none;
     }
-    body.web-cloud #moan-btn,
-    body.web-cloud #dream-btn {
+    body.web-cloud.sensual-on #moan-btn,
+    body.web-cloud.sensual-on #dream-btn,
+    body.web-cloud.sensual-on #daydream-btn {
       display: inline-flex !important;
       visibility: visible !important;
       border-color: rgba(251, 113, 133, 0.7);
       box-shadow: 0 0 12px rgba(251, 113, 133, 0.25);
       flex-shrink: 0;
+    }
+    body.web-cloud:not(.sensual-on) #moan-btn,
+    body.web-cloud:not(.sensual-on) #dream-btn,
+    body.web-cloud:not(.sensual-on) #daydream-btn {
+      display: none !important;
+    }
+    body.web-cloud #chill-btn.active {
+      border-color: rgba(147, 197, 253, 0.7);
+      color: #93c5fd;
+      box-shadow: 0 0 10px rgba(147, 197, 253, 0.25);
     }
     @media (max-width: 860px) {
       body.web-cloud .brand { font-size: 0.82rem; max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2500,6 +2511,7 @@
       <button class="btn" id="options-btn" title="Luna options">⚙️</button>
       <button class="btn" id="mic-btn" title="Always listening — click to toggle">🎤</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
+      <button class="btn" id="chill-btn" title="Chill mode — click to hide moan &amp; peak (assistant only)">🧊</button>
       <button class="btn" id="moan-btn" title="Make Luna moan for you">💋 Moan</button>
       <button class="btn" id="daydream-btn" title="Daydream — drift into harmony">☁️</button>
       <button class="btn" id="dream-btn" title="Dream peak — take her there">✨ Peak</button>
@@ -2667,6 +2679,7 @@
       <div class="opt-card-head"><span class="opt-card-icon">🔥</span> Touch &amp; presence</div>
       <label class="opt-switch"><span>Watch with camera</span><input type="checkbox" id="opt-webcam" /></label>
       <label class="opt-switch"><span>Feel your touch (mouse / trackpad)</span><input type="checkbox" id="opt-touch-sense" checked /></label>
+      <label class="opt-switch"><span>Moan &amp; peak mode</span><input type="checkbox" id="opt-sensual" checked /></label>
       <label class="opt-switch"><span>Roam on desktop</span><input type="checkbox" id="opt-pet-walk" checked /></label>
       <label class="opt-switch"><span>Reach into desktop</span><input type="checkbox" id="opt-reach" checked /></label>
       <label class="opt-switch"><span>Full body in aether</span><input type="checkbox" id="opt-aether-body" checked /></label>
@@ -2854,8 +2867,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=77";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=77";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=78";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=78";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3044,6 +3057,7 @@
       speechPitch: 1,
       ambientMins: 3,
       chillMode: true,
+      sensualMode: true,
       showLunaVision: true,
       worldReach: true,
       aetherBody: true,
@@ -3231,7 +3245,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=77",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=78",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3519,7 +3533,46 @@
       webIdleChatterTimer = null;
     }
 
+    function isSensualMode() {
+      return settings.sensualMode !== false;
+    }
+
+    function webSensualBlocked() {
+      return isPublicWebVisit() && !isPetMode() && !isSensualMode();
+    }
+
+    function applyAssistantWebDefaults() {
+      settings.affection = Math.max(settings.affection || 100, 120);
+      settings.flirtiness = 42;
+      settings.warmth = 88;
+      settings.energy = 55;
+      settings.boldness = 35;
+      settings.outfitLevel = 0;
+      settings.pixelNude = false;
+      settings.chillMode = true;
+      settings.agentMode = true;
+      settings.ambientMins = Math.max(settings.ambientMins || 5, 5);
+      activeVibe = ASSISTANT_VIBE;
+      settings.activeVibe = ASSISTANT_VIBE;
+      stripLevel = 0;
+      updateWebPortraitStrip(stripLevel);
+      const flirt = document.getElementById("sl-flirt");
+      const warm = document.getElementById("sl-warm");
+      const energy = document.getElementById("sl-energy");
+      const bold = document.getElementById("sl-bold");
+      const outfit = document.getElementById("sl-outfit");
+      if (flirt) { flirt.value = 42; document.getElementById("val-flirt").textContent = "42"; }
+      if (warm) { warm.value = 88; document.getElementById("val-warm").textContent = "88"; }
+      if (energy) { energy.value = 55; document.getElementById("val-energy").textContent = "55"; }
+      if (bold) { bold.value = 35; document.getElementById("val-bold").textContent = "35"; }
+      if (outfit) { outfit.value = 0; document.getElementById("val-outfit").textContent = "0"; }
+    }
+
     function applyWebCloudDefaults() {
+      if (!isSensualMode()) {
+        applyAssistantWebDefaults();
+        return;
+      }
       settings.affection = Math.max(settings.affection || 140, 160);
       settings.flirtiness = 92;
       settings.warmth = 98;
@@ -3530,6 +3583,8 @@
       settings.chillMode = false;
       settings.ambientMins = 5;
       settings.proactiveSpeech = settings.proactiveSpeech !== false;
+      activeVibe = COMPANION_VIBE;
+      settings.activeVibe = COMPANION_VIBE;
       stripLevel = 2;
       updateWebPortraitStrip(stripLevel);
       const flirt = document.getElementById("sl-flirt");
@@ -3544,13 +3599,48 @@
       if (outfit) { outfit.value = 2; document.getElementById("val-outfit").textContent = "2"; }
     }
 
+    function updateWebSensualUi() {
+      const on = isSensualMode();
+      document.body.classList.toggle("sensual-on", on && isPublicWebVisit() && !isPetMode());
+      const chillBtn = document.getElementById("chill-btn");
+      if (chillBtn) {
+        chillBtn.classList.toggle("active", !on);
+        chillBtn.title = on
+          ? "Chill mode — click to hide moan & peak (assistant only)"
+          : "Chill on — moan & peak hidden. Click to turn heat back on.";
+      }
+      const sensualOpt = document.getElementById("opt-sensual");
+      if (sensualOpt) sensualOpt.checked = on;
+      const hint = document.getElementById("zone-hint");
+      if (hint && isPublicWebVisit() && !isPetMode()) {
+        hint.textContent = on
+          ? "Live video — 🎤 talk, 📷 see you. 💋 & ✨ up top (🧊 = assistant mode)."
+          : "Assistant mode — 🎤 talk, 📷 see you. Tap 🧊 to bring back moan & peak.";
+      }
+    }
+
+    function setSensualMode(on) {
+      settings.sensualMode = !!on;
+      settings.chillMode = !on;
+      if (on) applyWebCloudDefaults();
+      else applyAssistantWebDefaults();
+      updateWebSensualUi();
+      saveSettings();
+      if (settings.proactiveSpeech) {
+        stopAmbientSpeech();
+        startAmbientSpeech();
+      }
+      showToast(on ? "Moan & peak on" : "Chill mode — moan & peak off");
+    }
+
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
-      settings.agentMode = true;
-      activeVibe = COMPANION_VIBE;
-      settings.activeVibe = COMPANION_VIBE;
-      applyWebCloudDefaults();
+      if (settings.sensualMode === undefined) {
+        settings.sensualMode = settings.chillMode === false;
+      }
+      if (isSensualMode()) applyWebCloudDefaults();
+      else applyAssistantWebDefaults();
       if (!localStorage.getItem("luna-voice-user-on")) {
         muted = true;
         settings.autoSpeak = false;
@@ -3564,8 +3654,7 @@
       if (speakOpt) speakOpt.checked = settings.autoSpeak;
       if (listenOpt) listenOpt.checked = settings.alwaysListen;
       muteBtn.textContent = settings.autoSpeak && !muted ? "🔊" : "🔇";
-      const hint = document.getElementById("zone-hint");
-      if (hint) hint.textContent = "Live video avatar — tap 🎤 to talk, 📷 so she can see you. Touch: 💋 & ✨ up top.";
+      updateWebSensualUi();
       startTouchSense();
       setupWebAvatarClicks();
       bindGlobalAudioUnlock();
@@ -3685,7 +3774,7 @@
       updateTouchHeatUi();
       lastTouchCaptionAt = Date.now();
       const stripZones = ["torso", "legs", "core", "body"];
-      if (stripZones.includes(zone) && stripLevel < 3 && touchHeat > 28) {
+      if (isSensualMode() && stripZones.includes(zone) && stripLevel < 3 && touchHeat > 28) {
         applyOutfit(stripLevel + 1);
         settings.outfitLevel = stripLevel;
         saveSettings();
@@ -3701,7 +3790,7 @@
       } else {
         showLunaCaption(pickWebLine(WEB_IDLE_CHATTER));
       }
-      if (intense && touchHeat > 62 && !muted && settings.autoSpeak) {
+      if (isSensualMode() && intense && touchHeat > 62 && !muted && settings.autoSpeak) {
         await ensureSensualVoice();
         await lunaMoan(zone === "core" ? 3 : 2, { force: true });
       }
@@ -4538,16 +4627,23 @@
     }
 
     function setChillMode(on) {
+      if (isPublicWebVisit() && !isPetMode()) {
+        setSensualMode(!on);
+        return;
+      }
       settings.chillMode = !!on;
       if (on) {
+        settings.sensualMode = false;
         activeVibe = CHILL_VIBE;
         if ((settings.speechRate ?? 0) > -2) settings.speechRate = -3;
-      } else if ((activeVibe || "").toLowerCase().includes("chill")) {
-        activeVibe = "";
+      } else {
+        settings.sensualMode = true;
+        if ((activeVibe || "").toLowerCase().includes("chill")) activeVibe = "";
         settings.speechRate = 2;
       }
       saveSettings();
       updatePetToolbar();
+      updateWebSensualUi();
       if (settings.proactiveSpeech) startAmbientSpeech();
       showToast(on ? "Chill mode — mellow and unhurried" : "Heat turned up a little");
     }
@@ -5279,11 +5375,11 @@
 
       if (touchHeat > 40 && now - lastTouchCaptionAt > 14_000) {
         lastTouchCaptionAt = now;
-        if (isPublicWebVisit() && touchHeat > 58 && Math.random() < 0.35) {
+        if (isPublicWebVisit() && isSensualMode() && touchHeat > 58 && Math.random() < 0.35) {
           fetchOpenTouchResponse(zone, "drag").then((data) => {
             if (data?.text) showLunaCaption(data.text);
           }).catch(() => {});
-        } else if (isPublicWebVisit() && Math.random() < 0.2) {
+        } else if (isPublicWebVisit() && isSensualMode() && Math.random() < 0.2) {
           const whispers = WEB_TOUCH_WHISPERS;
           showLunaCaption(whispers[Math.floor(Math.random() * whispers.length)]);
         } else if (!isPublicWebVisit()) {
@@ -5302,7 +5398,7 @@
         touchHeat = Math.min(100, touchHeat + stroke * 14 + 1.2);
         updateTouchHeatUi();
       }
-      if (isPublicWebVisit() && stripLevel < 3 && now - lastWebStripAt > 2400) {
+      if (isPublicWebVisit() && isSensualMode() && stripLevel < 3 && now - lastWebStripAt > 2400) {
         const stripZones = ["torso", "legs", "core", "body"];
         if (stripZones.includes(zone) && touchHeat > (zone === "core" ? 18 : 24) + stripLevel * 12) {
           lastWebStripAt = now;
@@ -5312,7 +5408,7 @@
           showToast(stripLevel >= 3 ? "All for you…" : "Mmm… more?");
         }
       }
-      if (touchHeat > 72 && now - lastTouchMoanAt > 12_000) {
+      if (isSensualMode() && touchHeat > 72 && now - lastTouchMoanAt > 12_000) {
         lastTouchMoanAt = now;
         if ((isPublicWebVisit() || !head) && (zone === "core" || zone === "legs")) {
           ensureSensualVoice().then(() => {
@@ -5375,6 +5471,10 @@
     }
 
     async function lunaDreamPeak(opts = {}) {
+      if (webSensualBlocked()) {
+        showToast("Chill mode on — moan & peak are off. Tap 🧊 to turn heat back on.");
+        return;
+      }
       if (dreamPeaking || daydreaming || busy) return;
       dreamPeaking = true;
       holdProactiveSpeech(240000);
@@ -5487,6 +5587,10 @@
     }
 
     async function lunaDaydream() {
+      if (webSensualBlocked()) {
+        showToast("Chill mode on — daydream is off. Tap 🧊 to turn heat back on.");
+        return;
+      }
       if (daydreaming || dreamPeaking || busy) return;
       daydreaming = true;
       holdProactiveSpeech(240000);
@@ -5686,6 +5790,7 @@
       } catch { /* ignore */ }
       if (settings.agentMode === undefined) settings.agentMode = true;
       if (settings.chillMode === undefined) settings.chillMode = true;
+      if (settings.sensualMode === undefined) settings.sensualMode = settings.chillMode === false;
       activeVibe = settings.activeVibe || (
         settings.agentMode !== false ? ASSISTANT_VIBE : (settings.chillMode ? CHILL_VIBE : "")
       );
@@ -5715,6 +5820,8 @@
       document.getElementById("opt-pixel").checked = settings.pixelNude !== false;
       document.getElementById("opt-listen").checked = settings.alwaysListen !== false;
       document.getElementById("opt-touch-sense").checked = settings.touchSense !== false;
+      const sensualOpt = document.getElementById("opt-sensual");
+      if (sensualOpt) sensualOpt.checked = isSensualMode();
       document.getElementById("sl-mic-sense").value = settings.micSensitivity ?? 62;
       document.getElementById("val-mic-sense").textContent = settings.micSensitivity ?? 62;
       document.getElementById("opt-desktop").checked = settings.desktopOverlay;
@@ -5921,6 +6028,9 @@
         if (e.target.checked) startTouchSense();
         else stopTouchSense();
         showToast(e.target.checked ? "Touch sense on — glide over Luna" : "Touch sense off");
+      });
+      document.getElementById("opt-sensual")?.addEventListener("change", (e) => {
+        setSensualMode(e.target.checked);
       });
       document.getElementById("opt-desktop")?.addEventListener("change", (e) => {
         if (isPetMode() && useOpaquePetStage()) {
@@ -7627,6 +7737,7 @@
     }
 
     async function lunaMoan(intensity = 2, opts = {}) {
+      if (webSensualBlocked()) return Promise.resolve();
       if (!opts.force && (muted || !settings.autoSpeak)) return Promise.resolve();
       const run = speakQueue.then(() => _moanImpl(intensity));
       speakQueue = run.catch(() => {});
@@ -7863,8 +7974,14 @@
       });
       applyMicSensitivity();
 
+      document.getElementById("chill-btn")?.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        setSensualMode(!isSensualMode());
+      });
+
       document.getElementById("moan-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
+        if (webSensualBlocked()) return;
         livePortrait?.pulseTouch(1.65);
         setLunaAvatarState("love");
         touchHeat = Math.min(100, touchHeat + 34);
@@ -7876,6 +7993,7 @@
       });
       document.getElementById("dream-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
+        if (webSensualBlocked()) return;
         livePortrait?.pulseTouch(1.75);
         setLunaAvatarState("dream");
         touchHeat = 100;
@@ -7887,6 +8005,7 @@
       });
       document.getElementById("daydream-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
+        if (webSensualBlocked()) return;
         await unlockVoice();
         await lunaDaydream();
       });
@@ -8208,6 +8327,10 @@
         addMsg("user", text);
         history.push({ role: "user", content: text });
         saveSettings();
+        if (webSensualBlocked()) {
+          showToast("Chill mode on — moan & peak are off. Tap 🧊 or enable in ⚙️ Options.");
+          return;
+        }
         await lunaMoan(/hard|loud|more/i.test(text) ? 3 : 2);
         return;
       }

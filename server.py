@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "79"
+LUNA_BUILD = "80"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -437,6 +437,14 @@ class MoanRequest(BaseModel):
     voice: str = ""
 
 
+class MoanOrgasmRequest(BaseModel):
+    mood: str = "love"
+    voice: str = ""
+    touch_heat: int = 0
+    vibe: str = ""
+    profile: LunaProfile = LunaProfile()
+
+
 class DreamPeakRequest(BaseModel):
     mood: str = "love"
     voice: str = ""
@@ -734,6 +742,67 @@ DAYDREAM_PHASE_META: list[dict[str, object]] = [
     {"name": "harmony", "intensity": 2, "delay_after": 720, "gesture": "heart", "pose": "side", "activity": "stretch", "scene": "aurora", "lighting": "warm"},
     {"name": "bloom", "intensity": 2, "delay_after": 560, "gesture": "blush", "pose": "hip", "activity": "freestyle", "scene": "sunset", "lighting": "warm"},
     {"name": "peace", "intensity": 1, "delay_after": 0, "gesture": "kiss", "pose": "sitting", "activity": "blow_kiss", "scene": "cosmic", "lighting": "soft"},
+]
+
+OH7_SPOKEN: dict[str, list[str]] = {
+    "oh1": ["Oh…", "Ohh…", "Mmm… oh…"],
+    "oh2": ["Ohh… mmm…", "Oh… yes…", "Mmm… ohh…"],
+    "oh3": ["Ohhh… yes…", "Ohhh… there…", "Ahh… ohhh…"],
+    "oh4": ["Ohhh god…", "Ohhh… deeper…", "Nngh… ohhh…"],
+    "oh5": ["Ohhhh… right there…", "Ohhhh… please…", "Ahhh… ohhhh… don't stop…"],
+    "oh6": ["Ohhhh… I'm so close…", "Ohhhh… please… yes…", "Nngh… ohhhh… harder…"],
+    "oh7": [
+        "Ohhhh god… yes… yes… I'm coming…",
+        "Ahhhh… oh god… yes yes yes…",
+        "Ohhhh… fuck… yes… I'm coming for you…",
+        "Nngh… ahhhh… oh god… don't stop…",
+    ],
+    "afterglow": DREAM_SPOKEN["waves"] + DREAM_SPOKEN["afterglow"],
+    "lucid_drift": DAYDREAM_SPOKEN["drift"],
+    "lucid_float": DAYDREAM_SPOKEN["float"],
+    "lucid_nod": [
+        "Mmm… eyes heavy… lucid… drifting off…",
+        "Hhh… oh… fading… still feeling you…",
+        "Oh… nodding off… soft… perfect…",
+        "Mmm… lucid dream… harmony… sleep…",
+    ],
+}
+
+OH7_MIND: dict[str, list[str]] = {
+    "oh1": ["oh… heat starting… low in my belly…", "first breath catching… already wet for you…"],
+    "oh2": ["building… mmm… can't hide it…", "your button woke every nerve…"],
+    "oh3": ["yes… climbing… thighs pressing…", "ohhh… I'm opening for this…"],
+    "oh4": ["god… deeper… mind going blank…", "every oh pulls me higher…"],
+    "oh5": ["right there… trembling… please…", "so close I can taste the edge…"],
+    "oh6": ["one more… I'll break… don't stop…", "begging inside… almost… almost…"],
+    "oh7": [
+        "breaking — oh god oh god — coming — yours —",
+        "white-hot — shattering — yes yes yes —",
+        "orgasm ripping through — can't breathe — perfect —",
+    ],
+    "afterglow": DREAM_MIND["waves"] + DREAM_MIND["afterglow"],
+    "lucid_drift": DAYDREAM_MIND["drift"],
+    "lucid_float": DAYDREAM_MIND["float"],
+    "lucid_nod": [
+        "lucid… heavy lids… still feeling aftershocks…",
+        "nodding off… warmth pooling… safe…",
+        "between awake and dream… oh… fading slow…",
+        "oh-seven echo… body humming… mind quiet…",
+    ],
+}
+
+OH7_PHASE_META: list[dict[str, object]] = [
+    {"name": "oh1", "intensity": 2, "delay_after": 280, "gesture": "blush", "pose": "side", "activity": "blush", "scene": "rose", "lighting": "soft", "nod": 0.15},
+    {"name": "oh2", "intensity": 2, "delay_after": 260, "gesture": "wink", "pose": "bend", "activity": "freestyle", "scene": "rose", "lighting": "warm", "nod": 0.22},
+    {"name": "oh3", "intensity": 3, "delay_after": 240, "gesture": "side", "pose": "bend", "activity": "stretch", "scene": "sunset", "lighting": "warm", "nod": 0.32},
+    {"name": "oh4", "intensity": 4, "delay_after": 220, "gesture": "blush", "pose": "bend", "activity": "orbit", "scene": "sunset", "lighting": "warm", "nod": 0.42},
+    {"name": "oh5", "intensity": 5, "delay_after": 200, "gesture": "plead", "pose": "oneknee", "activity": "orbit", "scene": "aurora", "lighting": "dramatic", "nod": 0.55},
+    {"name": "oh6", "intensity": 5, "delay_after": 180, "gesture": "plead", "pose": "oneknee", "activity": "spin", "scene": "aurora", "lighting": "dramatic", "nod": 0.68},
+    {"name": "oh7", "intensity": 6, "delay_after": 1400, "gesture": "plead", "pose": "kneel", "activity": "spin", "scene": "aurora", "lighting": "dramatic", "nod": 1.0, "climax": True},
+    {"name": "afterglow", "intensity": 4, "delay_after": 700, "gesture": "heart", "pose": "bend", "activity": "blow_kiss", "scene": "rose", "lighting": "warm", "nod": 0.35},
+    {"name": "lucid_drift", "intensity": 1, "delay_after": 900, "gesture": "sleepy", "pose": "sitting", "activity": "sit", "scene": "cosmic", "lighting": "soft", "nod": 0.2, "lucid": True},
+    {"name": "lucid_float", "intensity": 1, "delay_after": 1100, "gesture": "namaste", "pose": "straight", "activity": "orbit", "scene": "aurora", "lighting": "soft", "nod": 0.12, "lucid": True},
+    {"name": "lucid_nod", "intensity": 1, "delay_after": 0, "gesture": "sleepy", "pose": "sitting", "activity": "sit", "scene": "cosmic", "lighting": "soft", "nod": 0.05, "lucid": True},
 ]
 
 
@@ -2230,6 +2299,82 @@ async def moan(request: MoanRequest):
     result["text"] = line
     result["intensity"] = intensity
     return result
+
+
+@app.post("/api/moan-orgasm")
+async def moan_orgasm(request: MoanOrgasmRequest):
+    """OH-7 escalating orgasm from the moan button, then lucid nod-off drift."""
+    import random
+
+    voice = request.voice
+    mood = request.mood or "love"
+    agent = request.profile.agent_mode if request.profile else True
+    heat = max(0, min(100, int(request.touch_heat or 0)))
+    user_name = (request.profile.user_name or "").strip() if request.profile else ""
+
+    phases_out = []
+    for meta in OH7_PHASE_META:
+        name = str(meta["name"])
+        intensity = int(meta["intensity"])
+        if not agent and name in ("oh5", "oh6", "oh7"):
+            intensity = min(6, intensity + 1)
+        if heat >= 60 and name in ("oh4", "oh5", "oh6"):
+            intensity = min(6, intensity + 1)
+        spoken_pool = OH7_SPOKEN.get(name, OH7_SPOKEN["oh1"])
+        spoken = random.choice(spoken_pool)
+        if user_name and name == "lucid_nod":
+            spoken = random.choice([
+                f"Mmm… {user_name}… nodding off… still feeling you…",
+                f"Oh… lucid… fading… {user_name}…",
+                spoken,
+            ])
+        mind = random.choice(OH7_MIND.get(name, OH7_MIND["oh1"]))
+        phase_mood = "sleep" if meta.get("lucid") else mood
+        prosody = MOAN_PROSODY.get(intensity, MOAN_PROSODY[3])
+        audio = await synthesize_speech(
+            spoken, voice, prosody["rate"], prosody["pitch"], phase_mood
+        )
+        phases_out.append({
+            "name": name,
+            "text": spoken,
+            "mind": mind,
+            "intensity": intensity,
+            "delay_after": int(meta["delay_after"]),
+            "gesture": str(meta["gesture"]),
+            "pose": str(meta["pose"]),
+            "activity": str(meta["activity"]),
+            "scene": str(meta["scene"]),
+            "lighting": str(meta["lighting"]),
+            "look_at": "user",
+            "view": "mid",
+            "nod": float(meta.get("nod", 0.2)),
+            "climax": bool(meta.get("climax")),
+            "lucid": bool(meta.get("lucid")),
+            "audio_b64": audio["audio_b64"],
+            "words": audio["words"],
+            "wtimes": audio["wtimes"],
+            "wdurations": audio["wdurations"],
+        })
+
+    peak_beat = next((p for p in phases_out if p["name"] == "oh7"), phases_out[6])
+    return {
+        "phases": phases_out,
+        "mood": "love",
+        "touch_heat": max(heat, 88),
+        "action": {
+            "text": phases_out[-1]["text"],
+            "mood": "sleep",
+            "gesture": "sleepy",
+            "pose": "sitting",
+            "activity": "sit",
+            "lighting": "soft",
+            "scene": "cosmic",
+            "look_at": "user",
+            "view": "mid",
+            "duration": 10,
+        },
+        "peak": peak_beat,
+    }
 
 
 def _dream_peak_scripted_minds(heat: int, agent: bool) -> list[str]:

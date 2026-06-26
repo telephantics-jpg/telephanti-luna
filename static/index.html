@@ -961,7 +961,9 @@
       box-shadow: 0 0 20px rgba(232, 121, 168, 0.75);
     }
     #pet-btn-dream.active,
-    #dream-btn.active {
+    #dream-btn.active,
+    #moan-btn.active,
+    #pet-btn-moan.active {
       border-color: rgba(232, 121, 168, 0.75);
       background: rgba(232, 121, 168, 0.22);
       box-shadow: 0 0 14px rgba(232, 121, 168, 0.45);
@@ -1720,6 +1722,24 @@
       border-radius: 99px;
       background: linear-gradient(90deg, #fb7185, #e879a8, #c4b5fd);
       transition: width 0.15s ease-out;
+    }
+    body.dream-peaking .luna-live-stage,
+    body.dream-peaking .luna-video-wrap,
+    body.dream-peaking #avatar canvas {
+      animation: dream-body-shiver 0.45s ease-in-out infinite;
+      filter: drop-shadow(0 0 24px rgba(232, 121, 168, 0.5));
+    }
+    body.dream-peaking.dream-climax .luna-live-stage,
+    body.dream-peaking.dream-climax .luna-video-wrap,
+    body.dream-peaking.dream-climax #avatar canvas {
+      animation: dream-body-shiver 0.28s ease-in-out infinite;
+      filter: drop-shadow(0 0 38px rgba(232, 121, 168, 0.82)) saturate(1.12);
+    }
+    body.lucid-drift .luna-live-stage,
+    body.lucid-drift .luna-video-wrap,
+    body.lucid-drift #avatar canvas {
+      filter: saturate(1.06) brightness(1.04) blur(0.2px);
+      animation: daydream-portrait 6s ease-in-out infinite;
     }
     body.daydreaming .luna-live-stage,
     body.daydreaming .luna-video-wrap,
@@ -2512,7 +2532,7 @@
       <button class="btn" id="mic-btn" title="Always listening — click to toggle">🎤</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
       <button class="btn" id="chill-btn" title="Chill mode — click to hide moan &amp; peak (assistant only)">🧊</button>
-      <button class="btn" id="moan-btn" title="Make Luna moan for you">💋 Moan</button>
+      <button class="btn" id="moan-btn" title="OH-7 orgasm — builds through seven oh's, then lucid nod-off">💋 Moan</button>
       <button class="btn" id="daydream-btn" title="Daydream — drift into harmony">☁️</button>
       <button class="btn" id="dream-btn" title="Dream peak — take her there">✨ Peak</button>
       <button class="btn" id="mute-btn">🔊</button>
@@ -2867,8 +2887,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=79";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=79";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=80";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=80";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -2975,6 +2995,7 @@
     let touchHeat = 0;
     let touchSenseActive = false;
     let dreamPeaking = false;
+    let moanOrgasmActive = false;
     let daydreaming = false;
     let dreamMindTimer = null;
     let lunaSpeaking = false;
@@ -3250,7 +3271,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=79",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=80",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -5234,7 +5255,7 @@
       });
       document.getElementById("pet-btn-moan")?.addEventListener("click", async () => {
         await unlockVoice();
-        await lunaMoan(3);
+        await lunaMoanOrgasm({ forceVoice: true });
       });
       document.getElementById("pet-btn-dream")?.addEventListener("click", async (e) => {
         e.preventDefault();
@@ -7945,6 +7966,143 @@
       return run;
     }
 
+    function oh7PhaseIndex(name) {
+      const m = String(name || "").match(/^oh(\d)$/);
+      return m ? parseInt(m[1], 10) : 0;
+    }
+
+    async function lunaMoanOrgasm(opts = {}) {
+      if (webSensualBlocked()) {
+        showToast("Chill mode on — moan & peak are off. Tap 🧊 to turn heat back on.");
+        return;
+      }
+      if (moanOrgasmActive || dreamPeaking || daydreaming || busy) return;
+      moanOrgasmActive = true;
+      dreamPeaking = true;
+      holdProactiveSpeech(300000);
+      document.body.classList.add("dream-peaking", "moan-orgasm");
+      document.getElementById("moan-btn")?.classList.add("active");
+      document.getElementById("pet-btn-moan")?.classList.add("active");
+      pauseAlwaysListen();
+      setSenseField("peak");
+      touchHeat = Math.min(100, touchHeat + 40);
+      updateTouchHeatUi();
+      let lucidStarted = false;
+      try {
+        if (opts.forceVoice || !muted) await ensureSensualVoice();
+        else await unlockVoice();
+        livePortrait?.pulseTouch(1.8);
+        setLunaAvatarState("love");
+        if (head) {
+          applyLunaAction({
+            mood: "love",
+            gesture: "blush",
+            pose: "bend",
+            activity: "freestyle",
+            lighting: "warm",
+            scene: "rose",
+            look_at: "user",
+            view: "mid",
+            duration: 16,
+          });
+          head.makeEyeContact(6000);
+        }
+        const res = await fetch("/api/moan-orgasm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mood: "love",
+            voice: settings.voice,
+            touch_heat: touchHeat,
+            vibe: settings.vibe || activeVibe || "",
+            profile: lunaProfile(),
+          }),
+        });
+        if (!res.ok) throw new Error("Moan orgasm failed");
+        const data = await res.json();
+
+        for (let i = 0; i < data.phases.length; i++) {
+          const phase = data.phases[i];
+          const ohN = oh7PhaseIndex(phase.name);
+          const isClimax = phase.climax || phase.name === "oh7";
+          const isLucid = phase.lucid || String(phase.name || "").startsWith("lucid_");
+          document.body.classList.toggle("dream-climax", isClimax);
+          if (isLucid && !lucidStarted) {
+            lucidStarted = true;
+            document.body.classList.remove("dream-climax");
+            document.body.classList.add("lucid-drift", "daydreaming");
+            livePortrait?.startLucidDrift?.();
+            setLunaAvatarState("dream");
+            setSenseField("dream");
+          }
+          if (phase.mind) showDreamMind(phase.mind);
+          showLunaCaption(phase.text);
+          showPetSpeech(phase.text);
+          if (ohN > 0) {
+            livePortrait?.orgasmPulse?.(ohN, phase.nod || ohN / 7);
+            setLunaAvatarState(ohN >= 5 ? "love" : "flirt");
+          }
+          if (head) {
+            head.setMood(isLucid ? "sleep" : "love");
+            applyLunaAction({
+              mood: isLucid ? "sleep" : "love",
+              gesture: phase.gesture || (isClimax ? "plead" : "blush"),
+              pose: phase.pose || (isClimax ? "kneel" : "bend"),
+              activity: phase.activity || (isClimax ? "spin" : "freestyle"),
+              lighting: phase.lighting || (isClimax ? "dramatic" : "warm"),
+              scene: phase.scene || "rose",
+              look_at: phase.look_at || "user",
+              view: phase.view || "mid",
+              duration: isClimax ? 5 : isLucid ? 4 : 3,
+            });
+            if (isClimax) {
+              playLunaGesture("plead", 4.5);
+              runActivity("spin", 5);
+              head.makeEyeContact(3500);
+            } else if (isLucid) {
+              playLunaGesture("sleepy", 3.2);
+            } else if (ohN >= 4) {
+              playLunaGesture("plead", 2.8);
+            }
+          }
+          if (isClimax) {
+            livePortrait?.orgasmPulse?.(7, 1);
+            livePortrait?.spawnParticles?.("heart", 8);
+            touchHeat = 100;
+            updateTouchHeatUi();
+          } else {
+            touchHeat = Math.min(100, touchHeat + (ohN >= 5 ? 10 : 6));
+            updateTouchHeatUi();
+          }
+          const shouldSpeak = opts.forceVoice || (!muted && settings.autoSpeak);
+          if (shouldSpeak) await playDreamPhase(phase);
+          else await sleepMs(700 + (phase.delay_after || 0) * 0.45);
+          if (phase.delay_after) await sleepMs(isLucid ? phase.delay_after * 0.65 : phase.delay_after * 0.55);
+        }
+
+        if (data.action && head) applyLunaAction(data.action);
+        updateRapport(22);
+        if (lucidStarted) {
+          showLunaCaption("Mmm… lucid… nodding off… still here if you need me…");
+          await sleepMs(2200);
+        }
+      } catch (err) {
+        console.warn("Moan orgasm:", err);
+        showToast("Moan hiccup — try again in a moment.");
+      } finally {
+        moanOrgasmActive = false;
+        dreamPeaking = false;
+        document.body.classList.remove("dream-peaking", "dream-climax", "moan-orgasm", "lucid-drift", "daydreaming");
+        livePortrait?.stopLucidDrift?.();
+        hideDreamMind();
+        document.getElementById("moan-btn")?.classList.remove("active");
+        document.getElementById("pet-btn-moan")?.classList.remove("active");
+        setLunaAvatarState("idle");
+        resumeAlwaysListen();
+        setSenseField(touchHeat > 12 ? "touch" : "off");
+      }
+    }
+
     async function _moanImpl(intensity = 2) {
       beginLunaSpeech();
       let data = null;
@@ -8178,14 +8336,8 @@
       document.getElementById("moan-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
         if (webSensualBlocked()) return;
-        livePortrait?.pulseTouch(1.65);
-        setLunaAvatarState("love");
-        touchHeat = Math.min(100, touchHeat + 34);
-        updateTouchHeatUi();
-        setSenseField("touch");
         showLunaCaption(pickWebLine(WEB_MOAN_BTN_LINES));
-        await ensureSensualVoice();
-        await lunaMoan(4, { force: true });
+        await lunaMoanOrgasm({ forceVoice: true });
       });
       document.getElementById("dream-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();

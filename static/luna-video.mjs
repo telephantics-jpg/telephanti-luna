@@ -1,7 +1,7 @@
 /**
  * Luna video avatar — HTML5 looping clips + canvas lip-sync overlay.
  */
-const BUILD = "79";
+const BUILD = "80";
 
 const CLIPS = {
   idle: "/static/avatars/luna-idle.mp4",
@@ -52,6 +52,8 @@ export class LunaVideoAvatar {
     this.mouth = 0;
     this.targetMouth = 0;
     this.nod = 0;
+    this.orgasmNod = 0;
+    this.lucidDrift = 0;
     this._currentClip = "";
     this._swapLock = false;
     this._isLive = false;
@@ -250,6 +252,29 @@ export class LunaVideoAvatar {
     this.nod = 0.35;
   }
 
+  orgasmPulse(level = 1, nodStrength = 0.5) {
+    const lv = Math.max(1, Math.min(7, level));
+    this.orgasmNod = Math.min(1, nodStrength);
+    this.nod = Math.max(this.nod, this.orgasmNod);
+    this.touchPulse = Math.min(1, this.touchPulse + 0.22 * lv);
+    this.targetMouth = Math.min(1, this.targetMouth + 0.08 * lv);
+    this.setState(lv >= 6 ? "love" : lv >= 4 ? "touch" : "flirt");
+    this.spawnParticles(lv >= 6 ? "heart" : "spark", lv >= 6 ? 6 : 2 + Math.floor(lv * 0.5));
+  }
+
+  startLucidDrift() {
+    this.lucidDrift = 1;
+    this.orgasmNod = 0;
+    this.touchPulse = 0;
+    this.setState("dream");
+  }
+
+  stopLucidDrift() {
+    this.lucidDrift = 0;
+    this.orgasmNod = 0;
+    this.setState("idle");
+  }
+
   spawnParticlesAt(nx, ny, kind = "spark", count = 3) {
     const w = this.viewW;
     const h = this.viewH;
@@ -348,7 +373,20 @@ export class LunaVideoAvatar {
       this.mouth *= 0.78;
       this.targetMouth *= 0.85;
     }
-    if (this.nod > 0) this.nod = Math.max(0, this.nod - 0.04);
+    if (this.lucidDrift > 0) {
+      this.lucidDrift = Math.max(0, this.lucidDrift - 0.0009);
+      const sway = Math.sin(this.t * 0.035) * 0.28 * this.lucidDrift;
+      this.nod = sway;
+      this.targetMouth = Math.max(0, this.targetMouth * 0.92 - 0.015);
+      this.mouth *= 0.9;
+    } else {
+      if (this.orgasmNod > 0) {
+        this.nod = Math.max(this.nod, this.orgasmNod * (0.85 + Math.sin(this.t * 0.12) * 0.15));
+        this.orgasmNod = Math.max(0, this.orgasmNod - 0.018);
+      } else if (this.nod > 0) {
+        this.nod = Math.max(0, this.nod - 0.04);
+      }
+    }
     this.touchPulse *= 0.9;
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];

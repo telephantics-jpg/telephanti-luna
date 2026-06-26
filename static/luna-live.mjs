@@ -28,6 +28,8 @@ export class LiveLunaPortrait {
     this.targetEyeY = 0;
     this.headTilt = 0;
     this.nod = 0;
+    this.orgasmNod = 0;
+    this.lucidDrift = 0;
     this.wink = 0;
     this.particles = [];
     this.analyser = null;
@@ -137,6 +139,27 @@ export class LiveLunaPortrait {
     this.nod = 1;
   }
 
+  orgasmPulse(level = 1, nodStrength = 0.5) {
+    const lv = Math.max(1, Math.min(7, level));
+    this.orgasmNod = Math.min(1, nodStrength);
+    this.nod = Math.max(this.nod, this.orgasmNod);
+    this.targetBlush = Math.min(1, this.targetBlush + 0.12 * lv);
+    this.targetMouth = Math.min(1, this.targetMouth + 0.1 * lv);
+    this.spawnParticles(lv >= 6 ? "heart" : "spark", lv >= 6 ? 5 : 2 + Math.floor(lv * 0.5));
+  }
+
+  startLucidDrift() {
+    this.lucidDrift = 1;
+    this.orgasmNod = 0;
+    this.setState("dream");
+  }
+
+  stopLucidDrift() {
+    this.lucidDrift = 0;
+    this.orgasmNod = 0;
+    this.setState("idle");
+  }
+
   spawnParticles(kind = "spark", count = 3) {
     const w = this.viewW || 360;
     const h = this.viewH || 520;
@@ -207,7 +230,17 @@ export class LiveLunaPortrait {
     }
     if (this.blink > 0) this.blink = Math.max(0, this.blink - 0.16);
     if (this.wink > 0) this.wink = Math.max(0, this.wink - 0.12);
-    if (this.nod > 0) this.nod = Math.max(0, this.nod - 0.045);
+    if (this.lucidDrift > 0) {
+      this.lucidDrift = Math.max(0, this.lucidDrift - 0.0009);
+      this.nod = Math.sin(this.t * 0.035) * 0.35 * this.lucidDrift;
+      this.targetMouth = Math.max(0, this.targetMouth * 0.9 - 0.02);
+      this.targetBlush = Math.max(0.04, this.targetBlush * 0.98);
+    } else if (this.orgasmNod > 0) {
+      this.nod = Math.max(this.nod, this.orgasmNod * (0.85 + Math.sin(this.t * 0.12) * 0.15));
+      this.orgasmNod = Math.max(0, this.orgasmNod - 0.02);
+    } else if (this.nod > 0) {
+      this.nod = Math.max(0, this.nod - 0.045);
+    }
     this.touchPulse *= 0.88;
 
     for (let i = this.particles.length - 1; i >= 0; i--) {

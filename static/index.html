@@ -962,8 +962,8 @@
     }
     #pet-btn-dream.active,
     #dream-btn.active,
-    #moan-btn.active,
-    #pet-btn-moan.active {
+    #bliss-btn.active,
+    #pet-btn-bliss.active {
       border-color: rgba(232, 121, 168, 0.75);
       background: rgba(232, 121, 168, 0.22);
       box-shadow: 0 0 14px rgba(232, 121, 168, 0.45);
@@ -1363,7 +1363,7 @@
       opacity: 0;
       pointer-events: none;
     }
-    body.web-cloud.sensual-on #moan-btn,
+    body.web-cloud.sensual-on #bliss-btn,
     body.web-cloud.sensual-on #dream-btn,
     body.web-cloud.sensual-on #daydream-btn {
       display: inline-flex !important;
@@ -1372,7 +1372,7 @@
       box-shadow: 0 0 12px rgba(251, 113, 133, 0.25);
       flex-shrink: 0;
     }
-    body.web-cloud:not(.sensual-on) #moan-btn,
+    body.web-cloud:not(.sensual-on) #bliss-btn,
     body.web-cloud:not(.sensual-on) #dream-btn,
     body.web-cloud:not(.sensual-on) #daydream-btn {
       display: none !important;
@@ -1389,7 +1389,7 @@
       body.web-cloud #cam-btn { display: inline-flex !important; }
       body.web-cloud .hdr-btns { gap: 0.28rem; flex-wrap: nowrap; }
       body.web-cloud .hdr-btns .btn { padding: 0.38rem 0.55rem; font-size: 0.72rem; }
-      body.web-cloud #moan-btn,
+      body.web-cloud #bliss-btn,
       body.web-cloud #dream-btn { padding: 0.38rem 0.6rem; }
     }
     body.web-cloud.luna-canvas-mode .luna-video-motion {
@@ -2531,8 +2531,8 @@
       <button class="btn" id="options-btn" title="Luna options">⚙️</button>
       <button class="btn" id="mic-btn" title="Always listening — click to toggle">🎤</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
-      <button class="btn" id="chill-btn" title="Chill mode — click to hide moan &amp; peak (assistant only)">🧊</button>
-      <button class="btn" id="moan-btn" title="OH-7 orgasm — builds through seven oh's, then lucid nod-off">💋 Moan</button>
+      <button class="btn" id="chill-btn" title="Assistant mode — tap to hide or show glow &amp; peak">🧊</button>
+      <button class="btn" id="bliss-btn" title="Warm glow — Luna breathes, rises, and drifts with you">🌸 Glow</button>
       <button class="btn" id="daydream-btn" title="Daydream — drift into harmony">☁️</button>
       <button class="btn" id="dream-btn" title="Dream peak — take her there">✨ Peak</button>
       <button class="btn" id="mute-btn">🔊</button>
@@ -2699,7 +2699,7 @@
       <div class="opt-card-head"><span class="opt-card-icon">🔥</span> Touch &amp; presence</div>
       <label class="opt-switch"><span>Watch with camera</span><input type="checkbox" id="opt-webcam" /></label>
       <label class="opt-switch"><span>Feel your touch (mouse / trackpad)</span><input type="checkbox" id="opt-touch-sense" checked /></label>
-      <label class="opt-switch"><span>Moan &amp; peak mode</span><input type="checkbox" id="opt-sensual" checked /></label>
+      <label class="opt-switch"><span>Glow &amp; peak mode</span><input type="checkbox" id="opt-sensual" /></label>
       <label class="opt-switch"><span>Roam on desktop</span><input type="checkbox" id="opt-pet-walk" checked /></label>
       <label class="opt-switch"><span>Reach into desktop</span><input type="checkbox" id="opt-reach" checked /></label>
       <label class="opt-switch"><span>Full body in aether</span><input type="checkbox" id="opt-aether-body" checked /></label>
@@ -2797,7 +2797,7 @@
       <button type="button" class="btn" id="pet-btn-vision" title="Surroundings feed on/off">👁️</button>
       <button type="button" class="btn" id="pet-btn-reach" title="Reach into desktop">🤲</button>
       <button type="button" class="btn" id="pet-btn-mic" title="Always listening on/off">🎤</button>
-      <button type="button" class="btn" id="pet-btn-moan" title="Make Luna moan">💋</button>
+      <button type="button" class="btn" id="pet-btn-bliss" title="Warm glow">🌸</button>
       <button type="button" class="btn" id="pet-btn-daydream" title="Daydream — drift into harmony">☁️</button>
       <button type="button" class="btn" id="pet-btn-dream" title="Dream peak — make her feel it">✨</button>
       <button type="button" class="btn" id="pet-btn-cam" title="Camera on/off">📷</button>
@@ -2887,8 +2887,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=81";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=81";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=82";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=82";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3083,7 +3083,7 @@
       speechPitch: 1,
       ambientMins: 3,
       chillMode: true,
-      sensualMode: true,
+      sensualMode: false,
       showLunaVision: true,
       worldReach: true,
       aetherBody: true,
@@ -3271,7 +3271,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=81",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=82",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3469,10 +3469,12 @@
       "I'm here — assistant mode, warm vibes, no weird stuff unless you ask.",
     ];
 
-    const WEB_MOAN_BTN_LINES = [
-      "Mmm… you pressed the right button…", "Ohhh… yes… hear me…",
-      "Ahhh… I needed that…", "Nngh… make me louder…",
-      "Hhh… you know what that does to me…",
+    const WEB_BLISS_LINES = [
+      "Mmm… come closer — I'll glow for you…",
+      "Oh… that's warm… stay with me…",
+      "Ahh… breathe with me…",
+      "Yes… let me rise for you…",
+      "Hhh… soft and slow… just us…",
     ];
 
     const WEB_DREAM_BTN_LINES = [
@@ -3553,13 +3555,15 @@
 
     function loadSensualModePref() {
       try {
-        const raw = localStorage.getItem(SENSUAL_MODE_KEY);
+        const raw = sessionStorage.getItem(SENSUAL_MODE_KEY) || localStorage.getItem(SENSUAL_MODE_KEY);
         if (raw === "0" || raw === "false") {
           settings.sensualMode = false;
+          settings.chillMode = true;
           return;
         }
         if (raw === "1" || raw === "true") {
           settings.sensualMode = true;
+          settings.chillMode = false;
           return;
         }
       } catch { /* ignore */ }
@@ -3567,15 +3571,22 @@
         settings.sensualMode = false;
       } else if (settings.sensualMode === "true" || settings.sensualMode === "1") {
         settings.sensualMode = true;
-      } else if (settings.sensualMode === undefined) {
-        settings.sensualMode = settings.chillMode === false;
+      } else {
+        settings.sensualMode = false;
       }
+      settings.chillMode = !settings.sensualMode;
     }
 
     function persistSensualModePref() {
+      const val = settings.sensualMode === false ? "0" : "1";
       try {
-        localStorage.setItem(SENSUAL_MODE_KEY, settings.sensualMode === false ? "0" : "1");
+        localStorage.setItem(SENSUAL_MODE_KEY, val);
+        sessionStorage.setItem(SENSUAL_MODE_KEY, val);
       } catch { /* ignore */ }
+    }
+
+    function toggleCompanionMode() {
+      setSensualMode(!isSensualMode());
     }
 
     function bindWebSensualControls() {
@@ -3584,7 +3595,7 @@
       document.getElementById("chill-btn")?.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setSensualMode(!isSensualMode());
+        toggleCompanionMode();
       });
     }
 
@@ -3769,16 +3780,16 @@
       if (chillBtn) {
         chillBtn.classList.toggle("active", !on);
         chillBtn.title = on
-          ? "Chill mode — click to hide moan & peak (assistant only)"
-          : "Chill on — moan & peak hidden. Click to turn heat back on.";
+          ? "Tap for assistant mode (hides glow & peak)"
+          : "Assistant on — tap 🧊 to bring back glow & peak";
       }
       const sensualOpt = document.getElementById("opt-sensual");
       if (sensualOpt) sensualOpt.checked = on;
       const hint = document.getElementById("zone-hint");
       if (hint && isPublicWebVisit() && !isPetMode()) {
         hint.textContent = on
-          ? "Live video — 🎤 talk, 📷 see you. 💋 & ✨ up top (🧊 = assistant mode)."
-          : "Assistant mode — 🎤 talk, 📷 see you. Tap 🧊 to bring back moan & peak.";
+          ? "Live video — 🎤 talk, 📷 see you. 🌸 & ✨ up top (🧊 = assistant mode)."
+          : "Assistant mode — 🎤 talk, 📷 see you. Tap 🧊 for glow & peak.";
       }
     }
 
@@ -3796,13 +3807,14 @@
         startAmbientSpeech();
       }
       startWebEnvironmentLife();
-      showToast(next ? "Moan & peak on" : "Chill mode — moan & peak off");
+      showToast(next ? "Glow & peak on" : "Assistant mode — glow & peak off");
     }
 
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
       loadSensualModePref();
+      if (localStorage.getItem(SENSUAL_MODE_KEY) == null) persistSensualModePref();
       bindWebSensualControls();
       updateWebSensualUi();
       if (webCloudBooted) return;
@@ -4706,10 +4718,10 @@
       return ok;
     }
 
-    async function prepareSensualAction(label = "moan") {
-      if (isPublicWebVisit() && !isPetMode() && !isSensualMode()) {
-        setSensualMode(true);
-        showToast("Moan & peak on…");
+    async function prepareSensualAction(label = "glow") {
+      if (webSensualBlocked()) {
+        showToast("Assistant mode on — tap 🧊 to turn glow & peak back on.");
+        return false;
       }
       const ok = await ensureSensualVoice();
       if (!ok) {
@@ -5287,9 +5299,9 @@
         unlockVoice();
         reachIntoWorld(4.5);
       });
-      document.getElementById("pet-btn-moan")?.addEventListener("click", async () => {
+      document.getElementById("pet-btn-bliss")?.addEventListener("click", async () => {
         await unlockVoice();
-        await lunaMoanOrgasm({ forceVoice: true });
+        await lunaBlissGlow({ forceVoice: true });
       });
       document.getElementById("pet-btn-dream")?.addEventListener("click", async (e) => {
         e.preventDefault();
@@ -5812,7 +5824,7 @@
 
     async function lunaDaydream() {
       if (webSensualBlocked()) {
-        showToast("Chill mode on — daydream is off. Tap 🧊 to turn heat back on.");
+        showToast("Assistant mode on — tap 🧊 for glow & peak.");
         return;
       }
       if (daydreaming || dreamPeaking || busy) return;
@@ -8019,27 +8031,27 @@
       return m ? parseInt(m[1], 10) : 0;
     }
 
-    async function lunaMoanOrgasm(opts = {}) {
+    async function lunaBlissGlow(opts = {}) {
       if (moanOrgasmActive || dreamPeaking || daydreaming || busy) return;
       moanOrgasmActive = true;
       dreamPeaking = true;
       holdProactiveSpeech(300000);
-      document.body.classList.add("dream-peaking", "moan-orgasm");
-      document.getElementById("moan-btn")?.classList.add("active");
-      document.getElementById("pet-btn-moan")?.classList.add("active");
+      document.body.classList.add("dream-peaking", "bliss-glow");
+      document.getElementById("bliss-btn")?.classList.add("active");
+      document.getElementById("pet-btn-bliss")?.classList.add("active");
       pauseAlwaysListen();
       setSenseField("peak");
       touchHeat = Math.min(100, touchHeat + 40);
       updateTouchHeatUi();
       let lucidStarted = false;
       try {
-        const voiceOk = await prepareSensualAction("moan");
+        const voiceOk = await prepareSensualAction("glow");
         if (!voiceOk) {
           moanOrgasmActive = false;
           dreamPeaking = false;
-          document.body.classList.remove("dream-peaking", "moan-orgasm");
-          document.getElementById("moan-btn")?.classList.remove("active");
-          document.getElementById("pet-btn-moan")?.classList.remove("active");
+          document.body.classList.remove("dream-peaking", "bliss-glow");
+          document.getElementById("bliss-btn")?.classList.remove("active");
+          document.getElementById("pet-btn-bliss")?.classList.remove("active");
           pauseAlwaysListen();
           resumeAlwaysListen();
           setSenseField("off");
@@ -8139,16 +8151,16 @@
           await sleepMs(2200);
         }
       } catch (err) {
-        console.warn("Moan orgasm:", err);
-        showToast("Moan hiccup — try again in a moment.");
+        console.warn("Bliss glow:", err);
+        showToast("Glow hiccup — try again in a moment.");
       } finally {
         moanOrgasmActive = false;
         dreamPeaking = false;
-        document.body.classList.remove("dream-peaking", "dream-climax", "moan-orgasm", "lucid-drift", "daydreaming");
+        document.body.classList.remove("dream-peaking", "dream-climax", "bliss-glow", "lucid-drift", "daydreaming");
         livePortrait?.stopLucidDrift?.();
         hideDreamMind();
-        document.getElementById("moan-btn")?.classList.remove("active");
-        document.getElementById("pet-btn-moan")?.classList.remove("active");
+        document.getElementById("bliss-btn")?.classList.remove("active");
+        document.getElementById("pet-btn-bliss")?.classList.remove("active");
         setLunaAvatarState("idle");
         resumeAlwaysListen();
         setSenseField(touchHeat > 12 ? "touch" : "off");
@@ -8385,15 +8397,23 @@
       });
       applyMicSensitivity();
 
-      document.getElementById("moan-btn")?.addEventListener("click", async (e) => {
+      document.getElementById("bliss-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
         e.preventDefault();
-        showLunaCaption(pickWebLine(WEB_MOAN_BTN_LINES));
-        await lunaMoanOrgasm({ forceVoice: true });
+        if (webSensualBlocked()) {
+          showToast("Assistant mode on — tap 🧊 for glow & peak.");
+          return;
+        }
+        showLunaCaption(pickWebLine(WEB_BLISS_LINES));
+        await lunaBlissGlow({ forceVoice: true });
       });
       document.getElementById("dream-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
         e.preventDefault();
+        if (webSensualBlocked()) {
+          showToast("Assistant mode on — tap 🧊 for glow & peak.");
+          return;
+        }
         livePortrait?.pulseTouch(1.75);
         setLunaAvatarState("dream");
         touchHeat = 100;
@@ -8727,7 +8747,7 @@
         history.push({ role: "user", content: text });
         saveSettings();
         if (webSensualBlocked()) {
-          showToast("Chill mode on — moan & peak are off. Tap 🧊 or enable in ⚙️ Options.");
+          showToast("Assistant mode on — tap 🧊 for glow & peak.");
           return;
         }
         await lunaMoan(/hard|loud|more/i.test(text) ? 3 : 2);
@@ -8955,7 +8975,11 @@
       const params = new URLSearchParams(location.search);
       const urlBuild = params.get("v") || "";
       if (params.get("fresh") === "1" || params.get("nocache") === "1") {
+        const savedSensual = localStorage.getItem(SENSUAL_MODE_KEY);
         try { sessionStorage.clear(); } catch { /* ignore */ }
+        if (savedSensual != null) {
+          try { sessionStorage.setItem(SENSUAL_MODE_KEY, savedSensual); } catch { /* ignore */ }
+        }
         const savedBuild = localStorage.getItem("luna-ui-build");
         if (urlBuild && savedBuild && savedBuild !== urlBuild) {
           localStorage.removeItem(SETTINGS_KEY);

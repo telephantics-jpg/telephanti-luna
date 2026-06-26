@@ -30,6 +30,10 @@
       --stage-max-h: 620px;
       --flash-x: 50%;
       --flash-y: 50%;
+      --opal-pearl: rgba(248, 250, 255, 0.38);
+      --opal-red: rgba(168, 92, 108, 0.22);
+      --opal-blue: rgba(108, 148, 210, 0.22);
+      --opal-mix: rgba(138, 128, 188, 0.18);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; }
@@ -925,38 +929,49 @@
     }
     .touch-ripple {
       position: absolute;
-      width: 48px;
-      height: 48px;
-      margin: -24px 0 0 -24px;
+      width: 44px;
+      height: 44px;
+      margin: -22px 0 0 -22px;
       border-radius: 50%;
-      border: 2px solid rgba(251, 113, 133, 0.65);
-      background: radial-gradient(circle, rgba(251, 113, 133, 0.35), transparent 70%);
-      animation: touch-ripple-out 0.9s ease-out forwards;
+      border: 1.5px solid rgba(148, 178, 228, 0.42);
+      background: radial-gradient(circle, var(--opal-pearl) 0%, var(--opal-blue) 38%, transparent 72%);
+      animation: touch-ripple-out 0.95s ease-out forwards;
       pointer-events: none;
     }
     @keyframes touch-ripple-out {
-      0% { transform: scale(0.35); opacity: 0.95; }
-      100% { transform: scale(2.2); opacity: 0; }
+      0% { transform: scale(0.4); opacity: 0.7; }
+      100% { transform: scale(1.9); opacity: 0; }
     }
     .touch-ripple.ripple-flash {
-      border-color: rgba(255, 255, 255, 0.8);
-      background: radial-gradient(circle, rgba(255, 210, 225, 0.7) 0%, rgba(251, 113, 133, 0.45) 32%, transparent 72%);
-      box-shadow: 0 0 22px rgba(251, 113, 133, 0.65), 0 0 44px rgba(196, 181, 253, 0.35);
+      border-color: rgba(235, 242, 255, 0.55);
+      background: radial-gradient(circle, var(--opal-pearl) 0%, var(--opal-blue) 30%, var(--opal-red) 52%, transparent 74%);
+      box-shadow: 0 0 14px rgba(108, 148, 210, 0.22), 0 0 22px rgba(168, 92, 108, 0.14);
+    }
+    .touch-ripple.ripple-warm {
+      border-color: rgba(255, 238, 242, 0.5);
+      background: radial-gradient(circle, var(--opal-pearl) 0%, var(--opal-red) 36%, var(--opal-mix) 54%, transparent 74%);
+      box-shadow: 0 0 14px rgba(168, 92, 108, 0.2), 0 0 20px rgba(108, 148, 210, 0.12);
     }
     .touch-spark {
       position: absolute;
-      width: 10px;
-      height: 10px;
-      margin: -5px 0 0 -5px;
+      width: 7px;
+      height: 7px;
+      margin: -3.5px 0 0 -3.5px;
       border-radius: 50%;
-      background: radial-gradient(circle, #fff 0%, rgba(251, 113, 133, 0.95) 42%, transparent 72%);
-      box-shadow: 0 0 14px rgba(251, 113, 133, 0.85), 0 0 28px rgba(196, 181, 253, 0.45);
-      animation: touch-spark-pop 0.7s ease-out forwards;
       pointer-events: none;
+      animation: touch-spark-pop 0.75s ease-out forwards;
+    }
+    .touch-spark.spark-opal-blue {
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(120, 165, 225, 0.55) 45%, transparent 72%);
+      box-shadow: 0 0 10px rgba(108, 148, 210, 0.35);
+    }
+    .touch-spark.spark-opal-red {
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.92) 0%, rgba(175, 98, 112, 0.5) 45%, transparent 72%);
+      box-shadow: 0 0 10px rgba(168, 92, 108, 0.3);
     }
     @keyframes touch-spark-pop {
-      0% { transform: scale(0.25) rotate(0deg); opacity: 1; }
-      100% { transform: scale(2.8) rotate(200deg); opacity: 0; }
+      0% { transform: scale(0.3) rotate(0deg); opacity: 0.85; }
+      100% { transform: scale(2.1) rotate(160deg); opacity: 0; }
     }
     .luna-touch-flash {
       position: fixed;
@@ -966,26 +981,44 @@
       opacity: 0;
       background: radial-gradient(
         circle at var(--flash-x) var(--flash-y),
-        rgba(251, 113, 133, 0.42) 0%,
-        rgba(196, 181, 253, 0.16) 28%,
-        transparent 62%
+        var(--opal-pearl) 0%,
+        var(--opal-blue) 24%,
+        transparent 56%
+      );
+    }
+    .luna-touch-flash.flash-opal-mix {
+      background: radial-gradient(
+        circle at var(--flash-x) var(--flash-y),
+        var(--opal-pearl) 0%,
+        var(--opal-blue) 20%,
+        var(--opal-red) 36%,
+        transparent 58%
+      );
+    }
+    .luna-touch-flash.flash-opal-red {
+      background: radial-gradient(
+        circle at var(--flash-x) var(--flash-y),
+        var(--opal-pearl) 0%,
+        var(--opal-red) 26%,
+        var(--opal-mix) 40%,
+        transparent 58%
       );
     }
     body.touch-flash-on .luna-touch-flash {
-      animation: touch-screen-flash 0.58s ease-out forwards;
+      animation: touch-screen-flash 0.62s ease-out forwards;
     }
     @keyframes touch-screen-flash {
-      0% { opacity: 0.9; }
-      35% { opacity: 0.5; }
+      0% { opacity: 0.42; }
+      40% { opacity: 0.2; }
       100% { opacity: 0; }
     }
     .avatar-wrap.touch-flash-pulse .luna-video-wrap,
     .avatar-wrap.touch-flash-pulse #avatar canvas {
-      animation: touch-portrait-flash 0.48s ease-out;
+      animation: touch-portrait-flash 0.5s ease-out;
     }
     @keyframes touch-portrait-flash {
       0% { filter: brightness(1) saturate(1); }
-      25% { filter: brightness(1.18) saturate(1.12) drop-shadow(0 0 28px rgba(251, 113, 133, 0.55)); }
+      30% { filter: brightness(1.06) saturate(1.04) drop-shadow(0 0 18px rgba(108, 148, 210, 0.28)) drop-shadow(0 0 12px rgba(168, 92, 108, 0.18)); }
       100% { filter: brightness(1) saturate(1); }
     }
     .touch-heat-bar {
@@ -1530,8 +1563,8 @@
       z-index: 50;
       opacity: 0;
       transition: opacity 0.2s;
-      background: radial-gradient(circle, rgba(251, 113, 133, 0.55) 0%, rgba(196, 181, 253, 0.2) 45%, transparent 72%);
-      box-shadow: 0 0 18px rgba(251, 113, 133, 0.35);
+      background: radial-gradient(circle, rgba(248, 250, 255, 0.5) 0%, rgba(108, 148, 210, 0.28) 42%, rgba(168, 92, 108, 0.14) 58%, transparent 72%);
+      box-shadow: 0 0 14px rgba(108, 148, 210, 0.22);
     }
     body.touch-sense-on .luna-feel-cursor.visible { opacity: 1; }
     .mobile-feel-bar {
@@ -3090,8 +3123,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=92";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=92";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=93";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=93";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3479,7 +3512,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=92",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=93",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -4285,7 +4318,7 @@
         if (!pointerOverLunaImage(e.clientX, e.clientY)) return;
         if (isPublicWebVisit()) await livePortrait?.ensurePlaying?.().catch(() => {});
         const zone = zoneFromPointer(e.clientX, e.clientY);
-        spawnTouchRipple(e.clientX, e.clientY, 1);
+        spawnTouchRipple(e.clientX, e.clientY, 0.88, zone);
         updateFeelCursor(e.clientX, e.clientY, true);
         touchHeat = Math.min(100, touchHeat + 14);
         updateTouchHeatUi();
@@ -5964,9 +5997,19 @@
       };
     }
 
-    function spawnTouchFlash(clientX, clientY, strength = 1) {
+    function opalFlashTone(zone = "body") {
+      const warmZones = ["core", "torso", "legs", "body"];
+      if (touchHeat > 52 && warmZones.includes(zone)) return "red";
+      if (touchHeat > 28 || warmZones.includes(zone)) return "mix";
+      return "blue";
+    }
+
+    function spawnTouchFlash(clientX, clientY, strength = 1, zone = "body") {
       const flash = document.getElementById("luna-touch-flash");
       if (!flash) return;
+      const tone = opalFlashTone(zone);
+      flash.classList.remove("flash-opal-blue", "flash-opal-mix", "flash-opal-red");
+      flash.classList.add(tone === "red" ? "flash-opal-red" : tone === "mix" ? "flash-opal-mix" : "flash-opal-blue");
       const x = (clientX / Math.max(window.innerWidth, 1)) * 100;
       const y = (clientY / Math.max(window.innerHeight, 1)) * 100;
       flash.style.setProperty("--flash-x", `${x}%`);
@@ -5975,45 +6018,51 @@
       void flash.offsetWidth;
       document.body.classList.add("touch-flash-on");
       if (touchFlashTimer) clearTimeout(touchFlashTimer);
-      touchFlashTimer = setTimeout(() => document.body.classList.remove("touch-flash-on"), 600);
-      if (strength > 0.45) {
+      touchFlashTimer = setTimeout(() => document.body.classList.remove("touch-flash-on"), 640);
+      if (strength > 0.72 || touchHeat > 48) {
         avatarWrap?.classList.add("touch-flash-pulse");
-        setTimeout(() => avatarWrap?.classList.remove("touch-flash-pulse"), 520);
+        setTimeout(() => avatarWrap?.classList.remove("touch-flash-pulse"), 540);
       }
     }
 
-    function spawnTouchSparks(clientX, clientY, count = 3, strength = 1) {
+    function spawnTouchSparks(clientX, clientY, count = 2, strength = 1, zone = "body") {
       const layer = getTouchEffectLayer();
       if (!layer) return;
       const layerRect = layer.getBoundingClientRect();
-      const n = Math.max(1, Math.min(6, count));
+      const tone = opalFlashTone(zone);
+      const n = Math.max(1, Math.min(4, count));
       for (let i = 0; i < n; i++) {
         const spark = document.createElement("div");
-        spark.className = "touch-spark";
-        const angle = (Math.PI * 2 * i) / n + Math.random() * 0.6;
-        const dist = 10 + Math.random() * 20 * strength;
+        const useRed = tone === "red" || (tone === "mix" && i % 2 === 1);
+        spark.className = "touch-spark " + (useRed ? "spark-opal-red" : "spark-opal-blue");
+        const angle = (Math.PI * 2 * i) / n + Math.random() * 0.45;
+        const dist = 8 + Math.random() * 14 * strength;
         spark.style.left = `${clientX - layerRect.left + Math.cos(angle) * dist}px`;
         spark.style.top = `${clientY - layerRect.top + Math.sin(angle) * dist}px`;
         layer.appendChild(spark);
-        setTimeout(() => spark.remove(), 720);
+        setTimeout(() => spark.remove(), 760);
       }
     }
 
-    function spawnTouchRipple(clientX, clientY, strength = 1) {
+    function spawnTouchRipple(clientX, clientY, strength = 1, zone = "body") {
       const layer = getTouchEffectLayer();
       if (!layer) return;
       const layerRect = layer.getBoundingClientRect();
+      const tone = opalFlashTone(zone);
       const ripple = document.createElement("div");
       ripple.className = "touch-ripple";
-      if (strength > 0.32) ripple.classList.add("ripple-flash");
+      if (strength > 0.55) {
+        ripple.classList.add(tone === "red" ? "ripple-warm" : "ripple-flash");
+      }
       ripple.style.left = `${clientX - layerRect.left}px`;
       ripple.style.top = `${clientY - layerRect.top}px`;
-      ripple.style.opacity = String(Math.min(1, 0.35 + strength * 0.45));
+      ripple.style.opacity = String(Math.min(0.72, 0.22 + strength * 0.32));
       layer.appendChild(ripple);
-      setTimeout(() => ripple.remove(), 950);
-      if (strength > 0.2) {
-        spawnTouchFlash(clientX, clientY, strength);
-        spawnTouchSparks(clientX, clientY, 2 + Math.floor(strength * 3), strength);
+      setTimeout(() => ripple.remove(), 980);
+      if (strength > 0.42) {
+        spawnTouchFlash(clientX, clientY, strength, zone);
+        const sparkCount = strength > 0.75 ? 3 : 2;
+        spawnTouchSparks(clientX, clientY, sparkCount, strength, zone);
       }
     }
 
@@ -6137,9 +6186,10 @@
       setSenseField("touch");
       scheduleTouchDecay();
 
+      const zone = zoneFromPointer(e.clientX, e.clientY);
       updateFeelCursor(e.clientX, e.clientY, true);
       if (stroke > 0.08) {
-        spawnTouchRipple(e.clientX, e.clientY, stroke);
+        spawnTouchRipple(e.clientX, e.clientY, stroke, zone);
         const norm = clientToPortraitNorm(e.clientX, e.clientY);
         if (norm && isPublicWebVisit()) livePortrait?.pulseTouch?.(stroke * 0.75, norm.nx, norm.ny);
       }
@@ -6149,7 +6199,6 @@
       }
 
       const now = Date.now();
-      const zone = zoneFromPointer(e.clientX, e.clientY);
 
       if (touchHeat > 40 && now - lastTouchCaptionAt > 14_000) {
         lastTouchCaptionAt = now;
@@ -6394,8 +6443,8 @@
       const feelRect = getLunaImageRect();
       const fx = feelRect ? feelRect.left + feelRect.width * 0.5 : window.innerWidth * 0.5;
       const fy = feelRect ? feelRect.top + feelRect.height * 0.42 : window.innerHeight * 0.42;
-      spawnTouchFlash(fx, fy, 1);
-      spawnTouchSparks(fx, fy, 5, 1);
+      spawnTouchFlash(fx, fy, 0.8, "torso");
+      spawnTouchSparks(fx, fy, 2, 0.7, "torso");
       setLunaAvatarState("love");
       showLunaCaption("Mmm… feel me… glide your finger or cursor over me…");
       try {

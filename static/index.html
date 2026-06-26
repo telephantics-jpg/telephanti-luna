@@ -2962,8 +2962,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=89";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=89";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=90";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=90";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3347,7 +3347,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=89",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=90",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -5626,14 +5626,14 @@
         ) {
           return "long";
         }
-        return settings.agentMode !== false ? "voice" : "short";
+        return "flow";
       }
       if (settings.agentMode !== false) {
         if (/^(hi|hey|yo|sup|hello|ok|okay|yeah|yes|no|nah|thanks|thank you|lol|hmm|mmm|wow|bye|gn|goodnight)$/i.test(low)) {
           return "short";
         }
       }
-      if (!t) return "medium";
+      if (!t) return "flow";
       if (
         /^(hi|hey|yo|sup|hello|ok|okay|yeah|yes|no|nah|thanks|thank you|lol|hmm|mmm|wow|bye|gn|goodnight)$/i.test(low)
       ) {
@@ -5649,7 +5649,7 @@
       }
       if (t.length > 75 && (t.includes("?") || (t.match(/\./g) || []).length >= 2)) return "long";
       if (/^(how|why|what if)\b/i.test(low) && t.length > 50) return "long";
-      return "medium";
+      return isSensualMode() ? "flow" : "medium";
     }
 
     function isRecentDuplicate(text) {
@@ -9038,11 +9038,16 @@
       } catch { /* warm-up is best-effort */ }
     }
 
-    function nextSentenceChunk(text, fromIndex = 0) {
+    function nextNaturalSpeakChunk(text, fromIndex = 0) {
       const tail = (text || "").slice(fromIndex);
-      const m = tail.match(/^[\s\S]*?[.!?…](?:\s+|$)/);
-      if (m && m[0].trim().length >= 4) {
-        return { chunk: m[0].trim(), len: m[0].length };
+      if (!tail.trim()) return null;
+      const multi = tail.match(/^((?:[^.!?…]*[.!?…]\s*){2,})/);
+      if (multi && multi[1].trim().length >= 10) {
+        return { chunk: multi[1].trim(), len: multi[1].length };
+      }
+      const breath = tail.match(/^[\s\S]*?[…—](?:\s+|$)/);
+      if (breath && breath[0].trim().length >= 18) {
+        return { chunk: breath[0].trim(), len: breath[0].length };
       }
       return null;
     }
@@ -9082,10 +9087,10 @@
       return promise;
     }
 
-    function tryStreamSentenceSpeak(full, mood) {
+    function tryStreamNaturalSpeak(full, mood) {
       if (muted || !settings.autoSpeak) return;
       while (true) {
-        const hit = nextSentenceChunk(full, streamSpokenLen);
+        const hit = nextNaturalSpeakChunk(full, streamSpokenLen);
         if (!hit) break;
         streamSpokenLen += hit.len;
         prefetchSpeak(hit.chunk, mood);
@@ -9245,7 +9250,7 @@
         let action = null;
         const chatBody = {
           message: text,
-          history: priorHistory.slice(-(lengthMode === "voice" || lengthMode === "short" ? 4 : 6)),
+          history: priorHistory.slice(-(lengthMode === "flow" || lengthMode === "voice" || lengthMode === "short" ? 4 : 6)),
           fast: true,
           length_mode: lengthMode,
           env_context: [desktopEnv?.summary, lastVisionContext ? `Luna sees: ${lastVisionContext}` : ""]
@@ -9315,7 +9320,7 @@
                 if (dlg) dlg.scrollTop = 99999;
               }
               if (head && full.length > 4) head.makeEyeContact(900);
-              tryStreamSentenceSpeak(full, streamMood);
+              tryStreamNaturalSpeak(full, streamMood);
             }
             if (payload.action) {
               action = payload.action;
@@ -9345,9 +9350,10 @@
           await enableLunaVoice().catch(() => {});
           if (settings.autoSpeak && !muted) {
             const mood = action?.mood || streamMood;
-            tryStreamSentenceSpeak(speakLine, mood);
+            tryStreamNaturalSpeak(speakLine, mood);
             const tail = speakLine.slice(streamSpokenLen).trim();
             if (tail.length > 1) {
+              prefetchSpeak(tail, mood);
               await speakText(tail, mood, { priority: true });
             }
             await speakQueue.catch(() => {});

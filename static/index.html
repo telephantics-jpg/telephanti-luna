@@ -1387,6 +1387,62 @@
     body.web-cloud.assistant-locked #daydream-btn {
       display: none !important;
     }
+    body.web-cloud #feel-btn.active {
+      border-color: rgba(251, 113, 133, 0.75);
+      background: rgba(251, 113, 133, 0.22);
+      box-shadow: 0 0 14px rgba(251, 113, 133, 0.45);
+    }
+    body.warm-feel .luna-live-stage,
+    body.warm-feel .luna-video-wrap {
+      filter: drop-shadow(0 0 22px rgba(251, 113, 133, 0.45)) saturate(1.06);
+      animation: warm-feel-glow 2.4s ease-in-out infinite;
+    }
+    @keyframes warm-feel-glow {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.008); }
+    }
+    .luna-feel-cursor {
+      position: fixed;
+      width: 28px;
+      height: 28px;
+      margin: -14px 0 0 -14px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.2s;
+      background: radial-gradient(circle, rgba(251, 113, 133, 0.55) 0%, rgba(196, 181, 253, 0.2) 45%, transparent 72%);
+      box-shadow: 0 0 18px rgba(251, 113, 133, 0.35);
+    }
+    body.touch-sense-on .luna-feel-cursor.visible { opacity: 1; }
+    .mobile-feel-bar {
+      display: none;
+      position: fixed;
+      right: 0.65rem;
+      bottom: calc(3.1rem + var(--safe-b));
+      z-index: 45;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    body.web-cloud.phone-client .mobile-feel-bar { display: flex; }
+    @media (max-width: 860px) {
+      body.web-cloud .mobile-feel-bar { display: flex; }
+      body.web-cloud .main.show-chat .mobile-feel-bar { display: none; }
+    }
+    .mobile-feel-bar .btn {
+      width: 2.65rem;
+      height: 2.65rem;
+      border-radius: 50%;
+      padding: 0;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(251, 113, 133, 0.35);
+      background: rgba(14, 10, 24, 0.92);
+    }
+    .mobile-feel-bar .btn.active {
+      border-color: rgba(251, 113, 133, 0.75);
+      box-shadow: 0 0 16px rgba(251, 113, 133, 0.4);
+    }
     @media (max-width: 860px) {
       body.web-cloud .brand { font-size: 0.82rem; max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       body.web-cloud #desktop-btn,
@@ -1396,6 +1452,7 @@
       body.web-cloud .hdr-btns .btn { padding: 0.38rem 0.55rem; font-size: 0.72rem; }
       body.web-cloud #bliss-btn,
       body.web-cloud #dream-btn { padding: 0.38rem 0.6rem; }
+      body.web-cloud #feel-btn { display: inline-flex !important; padding: 0.38rem 0.6rem; }
     }
     body.web-cloud.luna-canvas-mode .luna-video-motion {
       visibility: hidden;
@@ -2537,6 +2594,7 @@
       <button class="btn" id="mic-btn" title="Always listening — click to toggle">🎤</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
       <button class="btn" id="chill-btn" title="Assistant mode — tap to hide or show glow &amp; peak">🧊</button>
+      <button class="btn" id="feel-btn" title="Warm feel — Luna glows and responds to your touch">💗 Feel</button>
       <button class="btn" id="bliss-btn" title="Warm glow — Luna breathes, rises, and drifts with you">🌸 Glow</button>
       <button class="btn" id="daydream-btn" title="Daydream — drift into harmony">☁️</button>
       <button class="btn" id="dream-btn" title="Dream peak — take her there">✨ Peak</button>
@@ -2591,6 +2649,7 @@
             </div>
             <canvas id="luna-live-canvas" class="luna-live-overlay" aria-hidden="true"></canvas>
             <div class="luna-touch-layer" id="luna-touch-layer" aria-hidden="true"></div>
+            <div class="luna-feel-cursor" id="luna-feel-cursor" aria-hidden="true"></div>
           </div>
           <div class="luna-quick-chips" id="luna-quick-chips">
             <button type="button" class="chip" data-prompt="Hey Luna — what can you help me with today?">Help me</button>
@@ -2603,7 +2662,7 @@
           <div class="live-strip-lingerie live-strip-overlay" aria-hidden="true"></div>
           <div class="live-strip-bottom live-strip-overlay" aria-hidden="true"></div>
           <div class="touch-sense-box" id="touch-sense-box" aria-hidden="true">
-            <div class="tsb-row"><strong>touch sense</strong><span id="touch-sense-pct">0%</span></div>
+            <div class="tsb-row"><strong>feel · touch</strong><span id="touch-sense-pct">0%</span></div>
             <div class="tsb-heat"><div class="tsb-heat-fill" id="touch-sense-box-fill"></div></div>
           </div>
         </div>
@@ -2703,7 +2762,7 @@
     <div class="opt-card">
       <div class="opt-card-head"><span class="opt-card-icon">🔥</span> Touch &amp; presence</div>
       <label class="opt-switch"><span>Watch with camera</span><input type="checkbox" id="opt-webcam" /></label>
-      <label class="opt-switch"><span>Feel your touch (mouse / trackpad)</span><input type="checkbox" id="opt-touch-sense" checked /></label>
+      <label class="opt-switch"><span>Feel your touch (cursor, finger, trackpad)</span><input type="checkbox" id="opt-touch-sense" checked /></label>
       <label class="opt-switch"><span>Glow &amp; peak mode</span><input type="checkbox" id="opt-sensual" /></label>
       <label class="opt-switch"><span>Roam on desktop</span><input type="checkbox" id="opt-pet-walk" checked /></label>
       <label class="opt-switch"><span>Reach into desktop</span><input type="checkbox" id="opt-reach" checked /></label>
@@ -2815,7 +2874,7 @@
     </div>
   </div>
 
-  <audio id="pet-audio" preload="auto" style="display:none"></audio>
+  <audio id="pet-audio" preload="auto" playsinline webkit-playsinline style="display:none"></audio>
   <video id="webcam-capture" muted playsinline autoplay aria-hidden="true" style="position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1"></video>
 
   <div class="luna-see-box loading" id="luna-see-box" title="Luna's surroundings">
@@ -2885,6 +2944,11 @@
     <button class="btn" id="float-exit" title="Exit cutout">✕</button>
   </div>
 
+  <div class="mobile-feel-bar" id="mobile-feel-bar" aria-label="Quick controls">
+    <button type="button" class="btn" id="mobile-mute-btn" title="Voice on/off">🔊</button>
+    <button type="button" class="btn" id="mobile-feel-btn" title="Warm feel">💗</button>
+  </div>
+
   <nav class="mobile-tabs">
     <button type="button" class="active" data-view="avatar">Avatar</button>
     <button type="button" data-view="chat">Chat</button>
@@ -2892,8 +2956,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=86";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=86";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=87";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=87";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3276,7 +3340,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=86",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=87",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3406,6 +3470,13 @@
       "Hhh… my core is pulsing for you…", "Mmm… you're waking every nerve…",
     ];
 
+    const WEB_ASSISTANT_TOUCH_LINES = [
+      "Mmm… I feel you there…", "Oh… warm… stay close.",
+      "Ahh… your touch is lovely…", "I sense you — glide over me.",
+      "Mmm… goosebumps…", "Oh… right there… I feel that.",
+      "Warmth where you're touching…", "Mmm… keep going…",
+    ];
+
     const WEB_IDLE_CHATTER = [
       "I'm right here if you need anything.",
       "Take your time — I'm not going anywhere.",
@@ -3525,16 +3596,33 @@
       if (moodEl) moodEl.textContent = LUNA_MOOD_EMOJI[lunaMood] || "✨";
     }
 
+    function updateFeelCursor(clientX, clientY, overLuna = true) {
+      const cursor = document.getElementById("luna-feel-cursor");
+      if (!cursor || settings.touchSense === false) return;
+      if (!overLuna) {
+        cursor.classList.remove("visible");
+        return;
+      }
+      cursor.style.left = `${clientX}px`;
+      cursor.style.top = `${clientY}px`;
+      cursor.classList.add("visible");
+    }
+
     function bindLivePortraitPointer() {
       const stage = document.getElementById("luna-live-stage");
       if (!stage || stage.__lunaPointerBound) return;
       stage.__lunaPointerBound = true;
       stage.addEventListener("pointermove", (e) => {
         const rect = getLunaImageRect();
-        if (!rect || !livePortrait) return;
+        const over = pointerOverLunaImage(e.clientX, e.clientY);
+        updateFeelCursor(e.clientX, e.clientY, over);
+        if (!rect || !livePortrait || !over) return;
         const nx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
         const ny = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
         livePortrait.setPointer(nx, ny);
+      }, { passive: true });
+      stage.addEventListener("pointerleave", () => {
+        document.getElementById("luna-feel-cursor")?.classList.remove("visible");
       }, { passive: true });
     }
 
@@ -3934,6 +4022,7 @@
         }
       };
       document.addEventListener("pointerdown", unlock, { once: true, capture: true });
+      document.addEventListener("touchstart", unlock, { once: true, capture: true });
       document.addEventListener("keydown", unlock, { once: true, capture: true });
     }
 
@@ -4045,8 +4134,10 @@
         if (isPublicWebVisit()) await livePortrait?.ensurePlaying?.().catch(() => {});
         const zone = zoneFromPointer(e.clientX, e.clientY);
         spawnTouchRipple(e.clientX, e.clientY, 0.9);
+        updateFeelCursor(e.clientX, e.clientY, true);
         touchHeat = Math.min(100, touchHeat + 14);
         updateTouchHeatUi();
+        setSenseField("touch");
         if (isPublicWebVisit()) {
           await webQuickTouch(zone, e.clientX, e.clientY);
         } else if (head) {
@@ -4755,25 +4846,69 @@
       }
       const speakOpt = document.getElementById("opt-speak");
       if (speakOpt) speakOpt.checked = settings.autoSpeak;
-      if (muteBtn) muteBtn.textContent = settings.autoSpeak && !muted ? "🔊" : "🔇";
+      syncVoiceButtons();
     }
 
     function isVoiceExplicitlyOff() {
       return localStorage.getItem("luna-voice-user-on") === "0";
     }
 
+    function syncVoiceButtons() {
+      const on = settings.autoSpeak && !muted && !isVoiceExplicitlyOff();
+      const icon = on ? "🔊" : "🔇";
+      if (muteBtn) muteBtn.textContent = icon;
+      const mobileMute = document.getElementById("mobile-mute-btn");
+      if (mobileMute) {
+        mobileMute.textContent = icon;
+        mobileMute.classList.toggle("active", on);
+      }
+    }
+
     async function enableLunaVoice() {
-      if (isVoiceExplicitlyOff()) return false;
+      if (isVoiceExplicitlyOff()) {
+        try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
+      }
       muted = false;
       settings.autoSpeak = true;
       try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
       const speakOpt = document.getElementById("opt-speak");
       if (speakOpt) speakOpt.checked = true;
-      if (muteBtn) muteBtn.textContent = "🔊";
+      syncVoiceButtons();
       saveSettings();
       const ok = await unlockVoice();
+      if (!ok && isMobile()) {
+        await primePetHtmlAudio().catch(() => {});
+      }
       livePortrait?.setSpeaking?.(false);
-      return ok;
+      return ok || voiceUnlocked;
+    }
+
+    async function toggleLunaVoice() {
+      const explicitlyOff = isVoiceExplicitlyOff();
+      const needsUnlock = !voiceUnlocked || muted || !settings.autoSpeak;
+      if (!explicitlyOff && !needsUnlock) {
+        try { localStorage.setItem("luna-voice-user-on", "0"); } catch { /* ignore */ }
+        muted = true;
+        settings.autoSpeak = false;
+        document.getElementById("opt-speak").checked = false;
+        syncVoiceButtons();
+        saveSettings();
+        if (head) head.setMood("neutral");
+        showLunaCaption("Voice off — tap 🔊 when you want me to speak again…");
+        return;
+      }
+      const ok = await enableLunaVoice();
+      if (head) head.setMood("happy");
+      if (!ok) {
+        showToast("Tap again and allow sound if your browser asks.");
+        return;
+      }
+      if (!voiceWelcomed) {
+        voiceWelcomed = true;
+        await speakText("I'm right here — can you hear me?", "happy", { priority: true });
+      } else {
+        await speakText("Voice on — talk to me.", "happy", { priority: true });
+      }
     }
 
     async function unlockVoice() {
@@ -5683,7 +5818,8 @@
       setSenseField("touch");
       scheduleTouchDecay();
 
-      if (stroke > 0.15) {
+      updateFeelCursor(e.clientX, e.clientY, true);
+      if (stroke > 0.08) {
         spawnTouchRipple(e.clientX, e.clientY, stroke);
         const norm = clientToPortraitNorm(e.clientX, e.clientY);
         if (norm && isPublicWebVisit()) livePortrait?.pulseTouch?.(stroke * 0.75, norm.nx, norm.ny);
@@ -5702,8 +5838,8 @@
           fetchOpenTouchResponse(zone, "drag").then((data) => {
             if (data?.text) showLunaCaption(data.text);
           }).catch(() => {});
-        } else if (isPublicWebVisit() && isSensualMode() && Math.random() < 0.2) {
-          const whispers = WEB_TOUCH_WHISPERS;
+        } else if (isPublicWebVisit() && Math.random() < 0.28) {
+          const whispers = isSensualMode() ? WEB_TOUCH_WHISPERS : WEB_ASSISTANT_TOUCH_LINES;
           showLunaCaption(whispers[Math.floor(Math.random() * whispers.length)]);
         } else if (!isPublicWebVisit()) {
           const whispers = [
@@ -5750,8 +5886,10 @@
       touchSenseBound = true;
       touchMoveHandler = (e) => handleTouchSenseMove(e);
       const stage = document.getElementById("luna-live-stage");
-      touchSenseTarget = (isPublicWebVisit() && stage) ? stage : window;
+      const main = document.getElementById("main");
+      touchSenseTarget = (isPublicWebVisit() && (stage || main)) ? (stage || main) : window;
       touchSenseTarget.addEventListener("pointermove", touchMoveHandler, { passive: true });
+      if (isPublicWebVisit()) bindLivePortraitPointer();
     }
 
     function stopTouchSense() {
@@ -5920,6 +6058,73 @@
         resumeAlwaysListen();
         setSenseField(touchHeat > 12 ? "touch" : "off");
         updatePetTopbarStatus("online", "ok");
+      }
+    }
+
+    async function lunaWarmFeel() {
+      if (busy || dreamPeaking || daydreaming || moanOrgasmActive) return;
+      daydreaming = true;
+      holdProactiveSpeech(120000);
+      document.body.classList.add("warm-feel");
+      document.getElementById("feel-btn")?.classList.add("active");
+      pauseAlwaysListen();
+      setSenseField("touch");
+      touchHeat = Math.min(100, touchHeat + 32);
+      updateTouchHeatUi();
+      livePortrait?.pulseTouch?.(1.4);
+      setLunaAvatarState("love");
+      showLunaCaption("Mmm… feel me… glide your finger or cursor over me…");
+      try {
+        await enableLunaVoice();
+        const res = await fetch("/api/warm-feel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mood: "love",
+            voice: settings.voice,
+            touch_heat: touchHeat,
+            vibe: settings.vibe || activeVibe || "",
+            profile: lunaProfile(),
+          }),
+        });
+        if (!res.ok) throw new Error("Warm feel failed");
+        const data = await res.json();
+        for (const phase of data.phases || []) {
+          if (phase.mind) showDreamMind(phase.mind);
+          showLunaCaption(phase.text);
+          livePortrait?.pulseTouch?.(0.55);
+          livePortrait?.nodOnce?.();
+          if (!muted && settings.autoSpeak) {
+            beginLunaSpeech();
+            try {
+              await playPetSpeech({
+                audio: b64ToArrayBuffer(phase.audio_b64),
+                words: phase.words,
+                wtimes: phase.wtimes,
+                wdurations: phase.wdurations,
+              }, phase.audio_b64);
+            } catch {
+              await playPetAudioB64(phase.audio_b64);
+            } finally {
+              await endLunaSpeech();
+            }
+          } else if (phase.delay_after) {
+            await sleepMs(phase.delay_after);
+          }
+        }
+        if (data.action && head) applyLunaAction(data.action);
+        updateRapport(8);
+      } catch (err) {
+        console.warn("Warm feel:", err);
+        showToast("Feel hiccup — tap 💗 again.");
+      } finally {
+        daydreaming = false;
+        document.body.classList.remove("warm-feel");
+        document.getElementById("feel-btn")?.classList.remove("active");
+        hideDreamMind();
+        resumeAlwaysListen();
+        setSenseField(touchHeat > 8 ? "touch" : "off");
+        if (!busy && !lunaSpeaking) setLunaAvatarState(settings.alwaysListen && alwaysListening ? "listen" : "idle");
       }
     }
 
@@ -8514,6 +8719,14 @@
       });
       applyMicSensitivity();
 
+      const triggerWarmFeel = async (e) => {
+        e?.stopPropagation?.();
+        e?.preventDefault?.();
+        await lunaWarmFeel();
+      };
+      document.getElementById("feel-btn")?.addEventListener("click", triggerWarmFeel);
+      document.getElementById("mobile-feel-btn")?.addEventListener("click", triggerWarmFeel);
+
       document.getElementById("bliss-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -8572,7 +8785,12 @@
       });
 
       document.getElementById("float-mic")?.addEventListener("click", () => micBtn.click());
-      document.getElementById("float-mute")?.addEventListener("click", () => muteBtn.click());
+      document.getElementById("float-mute")?.addEventListener("click", () => toggleLunaVoice());
+      document.getElementById("mobile-mute-btn")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleLunaVoice();
+      });
       document.getElementById("float-opts")?.addEventListener("click", () => toggleOptions(true));
       document.getElementById("float-exit")?.addEventListener("click", () => setDesktopOverlay(false));
 
@@ -9143,26 +9361,11 @@
       }
     }, 4000);
 
-    muteBtn.addEventListener("click", async () => {
-      const currentlyOn = !isVoiceExplicitlyOff();
-      if (currentlyOn) {
-        try { localStorage.setItem("luna-voice-user-on", "0"); } catch { /* ignore */ }
-        muted = true;
-        settings.autoSpeak = false;
-        document.getElementById("opt-speak").checked = false;
-        muteBtn.textContent = "🔇";
-        saveSettings();
-        if (head) head.setMood("neutral");
-        showLunaCaption("Voice off — tap 🔊 when you want me to speak again…");
-      } else {
-        await enableLunaVoice();
-        if (head) head.setMood("happy");
-        if (!voiceWelcomed) {
-          voiceWelcomed = true;
-          speakText("I'm right here — talk to me anytime.", "happy");
-        }
-      }
+    muteBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      toggleLunaVoice();
     });
+    muteBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
 
     document.querySelectorAll(".mobile-tabs button").forEach((btn) => {
       btn.addEventListener("click", () => {

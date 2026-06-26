@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "86"
+LUNA_BUILD = "87"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -455,6 +455,14 @@ class MoanOrgasmRequest(BaseModel):
 
 
 class DreamPeakRequest(BaseModel):
+    mood: str = "love"
+    voice: str = ""
+    touch_heat: int = 0
+    vibe: str = ""
+    profile: LunaProfile = LunaProfile()
+
+
+class WarmFeelRequest(BaseModel):
     mood: str = "love"
     voice: str = ""
     touch_heat: int = 0
@@ -2694,6 +2702,105 @@ async def daydream(request: DaydreamRequest):
             "look_at": "user",
             "view": "mid",
             "duration": 12,
+        },
+    }
+
+
+WARM_FEEL_PHASE_META: list[dict[str, object]] = [
+    {"name": "harmony", "intensity": 2, "delay_after": 280, "gesture": "heart", "pose": "side", "activity": "stretch", "scene": "aurora", "lighting": "warm"},
+    {"name": "bloom", "intensity": 2, "delay_after": 220, "gesture": "blush", "pose": "hip", "activity": "freestyle", "scene": "sunset", "lighting": "warm"},
+    {"name": "peace", "intensity": 1, "delay_after": 0, "gesture": "kiss", "pose": "sitting", "activity": "blow_kiss", "scene": "cosmic", "lighting": "soft"},
+]
+
+
+@app.post("/api/warm-feel")
+async def warm_feel(request: WarmFeelRequest):
+    """Short warm sensation — pleasant glow, works in assistant mode."""
+    import random
+
+    voice = request.voice
+    mood = request.mood or "love"
+    agent = request.profile.agent_mode if request.profile else True
+    user_name = (request.profile.user_name or "").strip() if request.profile else ""
+    heat = max(0, min(100, int(request.touch_heat or 40)))
+
+    phases_out = []
+    for meta in WARM_FEEL_PHASE_META:
+        name = str(meta["name"])
+        if agent:
+            spoken_pool = {
+                "harmony": [
+                    "Mmm… I feel you — warm and close.",
+                    "Oh… that's lovely… stay right there.",
+                    "Ahh… harmony with you… breathe with me.",
+                ],
+                "bloom": [
+                    "Oh… blooming inside… this feels so good.",
+                    "Mmm… warmth spreading… I love this.",
+                    "Ahh… you make me glow.",
+                ],
+                "peace": [
+                    "…peace… still feeling you near me.",
+                    "Mmm… carry this warmth with you.",
+                    "Ahh… thank you for that.",
+                ],
+            }
+        else:
+            spoken = random.choice(DAYDREAM_SPOKEN.get(name, DAYDREAM_SPOKEN["drift"]))
+            spoken_pool = None
+        if spoken_pool is not None:
+            spoken = random.choice(spoken_pool.get(name, DAYDREAM_SPOKEN.get(name, ["Mmm…"])))
+        if user_name:
+            spoken = random.choice([
+                f"Mmm… {user_name}… I feel you.",
+                f"Oh… {user_name}… warmth right here.",
+                spoken,
+            ])
+        if name == "harmony" and os.getenv("XAI_API_KEY", "").strip():
+            ai_spoken = await _daydream_ai_line(name, user_name, request.vibe, agent)
+            if ai_spoken:
+                spoken = ai_spoken
+        mind = random.choice(DAYDREAM_MIND.get(name, DAYDREAM_MIND["harmony"]))
+        intensity = int(meta["intensity"])
+        prosody = MOAN_PROSODY.get(intensity, MOAN_PROSODY[2])
+        phase_mood = "love" if name != "peace" else "happy"
+        audio = await synthesize_speech(
+            spoken, voice, prosody["rate"], prosody["pitch"], phase_mood, fast=True
+        )
+        phases_out.append({
+            "name": name,
+            "text": spoken,
+            "mind": mind,
+            "intensity": intensity,
+            "delay_after": int(meta["delay_after"]),
+            "gesture": str(meta["gesture"]),
+            "pose": str(meta["pose"]),
+            "activity": str(meta["activity"]),
+            "scene": str(meta["scene"]),
+            "lighting": str(meta["lighting"]),
+            "look_at": "user",
+            "view": "mid",
+            "audio_b64": audio["audio_b64"],
+            "words": audio["words"],
+            "wtimes": audio["wtimes"],
+            "wdurations": audio["wdurations"],
+        })
+
+    return {
+        "phases": phases_out,
+        "mood": "love",
+        "heat": heat,
+        "action": {
+            "text": phases_out[-1]["text"],
+            "mood": "love",
+            "gesture": "heart",
+            "pose": "sitting",
+            "activity": "sit",
+            "lighting": "warm",
+            "scene": "aurora",
+            "look_at": "user",
+            "view": "mid",
+            "duration": 8,
         },
     }
 

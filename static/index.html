@@ -1382,11 +1382,12 @@
       color: #93c5fd;
       box-shadow: 0 0 10px rgba(147, 197, 253, 0.25);
     }
-    body.web-cloud.assistant-locked #bliss-btn,
-    body.web-cloud.assistant-locked #dream-btn,
-    body.web-cloud.assistant-locked #daydream-btn {
-      display: none !important;
+    body.web-cloud #succubus-btn.active {
+      border-color: rgba(220, 38, 127, 0.85);
+      background: rgba(220, 38, 127, 0.28);
+      box-shadow: 0 0 16px rgba(220, 38, 127, 0.5);
     }
+    body.web-cloud.sensual-on #succubus-btn { display: inline-flex !important; }
     body.web-cloud #feel-btn.active {
       border-color: rgba(251, 113, 133, 0.75);
       background: rgba(251, 113, 133, 0.22);
@@ -1452,7 +1453,10 @@
       body.web-cloud .hdr-btns .btn { padding: 0.38rem 0.55rem; font-size: 0.72rem; }
       body.web-cloud #bliss-btn,
       body.web-cloud #dream-btn { padding: 0.38rem 0.6rem; }
-      body.web-cloud #feel-btn { display: inline-flex !important; padding: 0.38rem 0.6rem; }
+      body.web-cloud #feel-btn,
+      body.web-cloud #succubus-btn { display: inline-flex !important; padding: 0.38rem 0.6rem; }
+      body.web-cloud #bliss-btn,
+      body.web-cloud #dream-btn { display: inline-flex !important; }
     }
     body.web-cloud.luna-canvas-mode .luna-video-motion {
       visibility: hidden;
@@ -2593,7 +2597,8 @@
       <button class="btn" id="options-btn" title="Luna options">⚙️</button>
       <button class="btn" id="mic-btn" title="Always listening — click to toggle">🎤</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
-      <button class="btn" id="chill-btn" title="Assistant mode — tap to hide or show glow &amp; peak">🧊</button>
+      <button class="btn active" id="chill-btn" title="Assistant mode — helpful and calm">🧊</button>
+      <button class="btn" id="succubus-btn" title="Succubus mode — seductive, uninhibited, glow &amp; peak">😈</button>
       <button class="btn" id="feel-btn" title="Warm feel — Luna glows and responds to your touch">💗 Feel</button>
       <button class="btn" id="bliss-btn" title="Warm glow — Luna breathes, rises, and drifts with you">🌸 Glow</button>
       <button class="btn" id="daydream-btn" title="Daydream — drift into harmony">☁️</button>
@@ -2763,7 +2768,7 @@
       <div class="opt-card-head"><span class="opt-card-icon">🔥</span> Touch &amp; presence</div>
       <label class="opt-switch"><span>Watch with camera</span><input type="checkbox" id="opt-webcam" /></label>
       <label class="opt-switch"><span>Feel your touch (cursor, finger, trackpad)</span><input type="checkbox" id="opt-touch-sense" checked /></label>
-      <label class="opt-switch"><span>Glow &amp; peak mode</span><input type="checkbox" id="opt-sensual" /></label>
+      <label class="opt-switch"><span>Succubus mode (glow, peak, uninhibited)</span><input type="checkbox" id="opt-sensual" /></label>
       <label class="opt-switch"><span>Roam on desktop</span><input type="checkbox" id="opt-pet-walk" checked /></label>
       <label class="opt-switch"><span>Reach into desktop</span><input type="checkbox" id="opt-reach" checked /></label>
       <label class="opt-switch"><span>Full body in aether</span><input type="checkbox" id="opt-aether-body" checked /></label>
@@ -2946,6 +2951,7 @@
 
   <div class="mobile-feel-bar" id="mobile-feel-bar" aria-label="Quick controls">
     <button type="button" class="btn" id="mobile-mute-btn" title="Voice on/off">🔊</button>
+    <button type="button" class="btn" id="mobile-succubus-btn" title="Succubus mode">😈</button>
     <button type="button" class="btn" id="mobile-feel-btn" title="Warm feel">💗</button>
   </div>
 
@@ -2956,8 +2962,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=88";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=88";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=89";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=89";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3039,6 +3045,7 @@
     const CHILL_VIBE = "chill and relaxed — warm, unhurried, affectionate, easy pace, no pressure";
     const ASSISTANT_VIBE = "warm, helpful female AI assistant — clear, attentive, capable, hears and helps";
     const COMPANION_VIBE = "sensual virtual companion — Ani-style warmth plus deep physical presence: flirty, responsive to touch, moans when invited, remembers your name, feels everything at her core";
+    const SUCCUBUS_VIBE = "succubus — hungry, seductive, uninhibited lover; flirty and physical; moans when touched; wants you; explicit when heat rises; not an assistant";
     let activeVibe = CHILL_VIBE;
     let idleTimer = null;
     let ambientTimer = null;
@@ -3340,7 +3347,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=88",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=89",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3646,25 +3653,7 @@
       return Math.round((minSec + (maxSec - minSec) * Math.pow(u, skew)) * 1000);
     }
 
-    function isWebAssistantLocked() {
-      return isPublicWebVisit() && !isPetMode();
-    }
-
-    function enforceWebAssistantMode() {
-      if (!isWebAssistantLocked()) return;
-      settings.sensualMode = false;
-      settings.chillMode = true;
-      settings.agentMode = true;
-      activeVibe = ASSISTANT_VIBE;
-      settings.activeVibe = ASSISTANT_VIBE;
-      persistSensualModePref();
-    }
-
     function loadSensualModePref() {
-      if (isWebAssistantLocked()) {
-        enforceWebAssistantMode();
-        return;
-      }
       try {
         const raw = sessionStorage.getItem(SENSUAL_MODE_KEY) || localStorage.getItem(SENSUAL_MODE_KEY);
         if (raw === "0" || raw === "false") {
@@ -3696,15 +3685,17 @@
       } catch { /* ignore */ }
     }
 
+    function setAssistantMode() {
+      setSensualMode(false);
+    }
+
+    function setSuccubusMode() {
+      setSensualMode(true);
+    }
+
     function toggleCompanionMode() {
-      if (isWebAssistantLocked()) {
-        enforceWebAssistantMode();
-        applyAssistantWebDefaults();
-        updateWebSensualUi();
-        showToast("Assistant mode — Luna stays helpful and calm.");
-        return;
-      }
-      setSensualMode(!isSensualMode());
+      if (isSensualMode()) setAssistantMode();
+      else setSuccubusMode();
     }
 
     function bindWebSensualControls() {
@@ -3713,7 +3704,18 @@
       document.getElementById("chill-btn")?.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        toggleCompanionMode();
+        setAssistantMode();
+      });
+      document.getElementById("succubus-btn")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setSuccubusMode();
+      });
+      document.getElementById("mobile-succubus-btn")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isSensualMode()) setAssistantMode();
+        else setSuccubusMode();
       });
     }
 
@@ -3834,9 +3836,7 @@
     }
 
     function assistantBlockedMsg() {
-      return isWebAssistantLocked()
-        ? "Assistant mode — Luna stays helpful and calm."
-        : "Assistant mode on — tap 🧊 to turn glow & peak back on.";
+      return "Assistant mode — tap 😈 Succubus to unlock glow & peak.";
     }
 
     function applyAssistantWebDefaults() {
@@ -3868,76 +3868,83 @@
       if (outfit) { outfit.value = 0; document.getElementById("val-outfit").textContent = "0"; }
     }
 
-    function applyWebCloudDefaults() {
-      if (!isSensualMode()) {
-        applyAssistantWebDefaults();
-        return;
-      }
-      settings.affection = Math.max(settings.affection || 140, 160);
-      settings.flirtiness = 92;
-      settings.warmth = 98;
-      settings.energy = 88;
-      settings.boldness = 85;
+    function applySuccubusDefaults() {
+      settings.sensualMode = true;
+      settings.chillMode = false;
+      settings.agentMode = false;
+      settings.affection = Math.max(settings.affection || 180, 220);
+      settings.flirtiness = 100;
+      settings.warmth = 100;
+      settings.energy = 95;
+      settings.boldness = 98;
       settings.outfitLevel = 2;
       settings.pixelNude = false;
-      settings.chillMode = false;
       settings.ambientMins = 5;
       settings.proactiveSpeech = settings.proactiveSpeech !== false;
-      activeVibe = COMPANION_VIBE;
-      settings.activeVibe = COMPANION_VIBE;
+      settings.speechRate = Math.max(settings.speechRate ?? 0, 2);
+      activeVibe = SUCCUBUS_VIBE;
+      settings.activeVibe = SUCCUBUS_VIBE;
       stripLevel = 2;
       updateWebPortraitStrip(stripLevel);
+      document.getElementById("opt-agent").checked = false;
       const flirt = document.getElementById("sl-flirt");
       const warm = document.getElementById("sl-warm");
       const energy = document.getElementById("sl-energy");
       const bold = document.getElementById("sl-bold");
       const outfit = document.getElementById("sl-outfit");
-      if (flirt) { flirt.value = 92; document.getElementById("val-flirt").textContent = "92"; }
-      if (warm) { warm.value = 98; document.getElementById("val-warm").textContent = "98"; }
-      if (energy) { energy.value = 88; document.getElementById("val-energy").textContent = "88"; }
-      if (bold) { bold.value = 85; document.getElementById("val-bold").textContent = "85"; }
+      if (flirt) { flirt.value = 100; document.getElementById("val-flirt").textContent = "100"; }
+      if (warm) { warm.value = 100; document.getElementById("val-warm").textContent = "100"; }
+      if (energy) { energy.value = 95; document.getElementById("val-energy").textContent = "95"; }
+      if (bold) { bold.value = 98; document.getElementById("val-bold").textContent = "98"; }
       if (outfit) { outfit.value = 2; document.getElementById("val-outfit").textContent = "2"; }
     }
 
-    function updateWebSensualUi() {
-      if (isWebAssistantLocked()) enforceWebAssistantMode();
-      const on = isSensualMode();
-      const locked = isWebAssistantLocked();
-      document.body.classList.toggle("sensual-on", on && !locked);
-      document.body.classList.toggle("assistant-locked", locked);
-      const chillBtn = document.getElementById("chill-btn");
-      if (chillBtn) {
-        chillBtn.classList.toggle("active", locked || !on);
-        chillBtn.title = locked
-          ? "Assistant mode — Luna opens helpful and stays that way"
-          : (on ? "Tap for assistant mode (hides glow & peak)" : "Assistant on — tap 🧊 to bring back glow & peak");
+    function applyWebCloudDefaults() {
+      if (!isSensualMode()) {
+        applyAssistantWebDefaults();
+        return;
       }
+      applySuccubusDefaults();
+    }
+
+    function updateWebSensualUi() {
+      const on = isSensualMode();
+      document.body.classList.toggle("sensual-on", on);
+      document.body.classList.remove("assistant-locked");
+      const chillBtn = document.getElementById("chill-btn");
+      const succBtn = document.getElementById("succubus-btn");
+      const mobileSucc = document.getElementById("mobile-succubus-btn");
+      if (chillBtn) {
+        chillBtn.classList.toggle("active", !on);
+        chillBtn.title = "Assistant mode — helpful and calm";
+      }
+      if (succBtn) {
+        succBtn.classList.toggle("active", on);
+        succBtn.title = on
+          ? "Succubus mode on — tap 🧊 for assistant"
+          : "Succubus mode — seductive, uninhibited, glow & peak";
+      }
+      if (mobileSucc) mobileSucc.classList.toggle("active", on);
       const sensualOpt = document.getElementById("opt-sensual");
       if (sensualOpt) {
-        sensualOpt.checked = locked ? false : on;
-        sensualOpt.disabled = locked;
+        sensualOpt.checked = on;
+        sensualOpt.disabled = false;
       }
       const hint = document.getElementById("zone-hint");
       if (hint && isPublicWebVisit() && !isPetMode()) {
-        hint.textContent = locked || !on
-          ? "Assistant mode — 🎤 talk, 📷 see you. Luna helps, listens, and chats."
-          : "Live video — 🎤 talk, 📷 see you. 🌸 & ✨ up top (🧊 = assistant mode).";
+        hint.textContent = !on
+          ? "Assistant mode — 🎤 talk, 📷 see you. Tap 😈 for succubus mode."
+          : "Succubus mode — 🎤 talk, 📷 see you, 🌸 & ✨ up top. Tap 🧊 for assistant.";
       }
     }
 
     function setSensualMode(on) {
-      if (isWebAssistantLocked() && on) {
-        enforceWebAssistantMode();
-        applyAssistantWebDefaults();
-        updateWebSensualUi();
-        saveSettings();
-        return;
-      }
       const next = !!on;
       settings.sensualMode = next;
       settings.chillMode = !next;
+      settings.agentMode = !next;
       persistSensualModePref();
-      if (next) applyWebCloudDefaults();
+      if (next) applySuccubusDefaults();
       else applyAssistantWebDefaults();
       updateWebSensualUi();
       saveSettings();
@@ -3946,17 +3953,28 @@
         startAmbientSpeech();
       }
       startWebEnvironmentLife();
-      showToast(next ? "Glow & peak on" : "Assistant mode — glow & peak off");
+      if (next) {
+        setLunaAvatarState("flirt");
+        livePortrait?.pulseTouch?.(1.1);
+        showLunaCaption(pickWebLine([
+          "Mmm… succubus mode… I'm all yours now…",
+          "Oh… you woke the hunger in me…",
+          "Ahh… no more holding back… touch me…",
+        ]));
+        showToast("Succubus mode — glow, peak, and she's uninhibited 😈");
+      } else {
+        setLunaAvatarState("help");
+        showToast("Assistant mode — helpful and calm 🧊");
+      }
     }
 
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
-      enforceWebAssistantMode();
       loadSensualModePref();
-      persistSensualModePref();
       bindWebSensualControls();
-      applyAssistantWebDefaults();
+      if (isSensualMode()) applySuccubusDefaults();
+      else applyAssistantWebDefaults();
       updateWebSensualUi();
       if (webCloudBooted) return;
       webCloudBooted = true;
@@ -6335,12 +6353,13 @@
         }
       } catch { /* ignore */ }
       loadSensualModePref();
-      if (isPublicWebVisit() && !isPetMode()) enforceWebAssistantMode();
       applyVoicePrefFromStorage();
-      if (settings.agentMode === undefined) settings.agentMode = true;
-      if (settings.chillMode === undefined) settings.chillMode = true;
+      if (settings.agentMode === undefined) settings.agentMode = !isSensualMode();
+      if (settings.chillMode === undefined) settings.chillMode = !isSensualMode();
       if (isPublicWebVisit() && !isPetMode()) {
-        enforceWebAssistantMode();
+        if (isSensualMode()) applySuccubusDefaults();
+        else applyAssistantWebDefaults();
+        updateWebSensualUi();
       } else {
         settings.chillMode = !isSensualMode();
       }
@@ -6583,13 +6602,6 @@
         showToast(e.target.checked ? "Touch sense on — glide over Luna" : "Touch sense off");
       });
       document.getElementById("opt-sensual")?.addEventListener("change", (e) => {
-        if (isWebAssistantLocked()) {
-          e.target.checked = false;
-          enforceWebAssistantMode();
-          updateWebSensualUi();
-          showToast("Web Luna stays in assistant mode.");
-          return;
-        }
         setSensualMode(e.target.checked);
       });
       document.getElementById("opt-desktop")?.addEventListener("change", (e) => {

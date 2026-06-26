@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "84"
+LUNA_BUILD = "85"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -253,11 +253,11 @@ Sound human and conversational. When HEAR is open, respond to spoken words and t
 AGENT_MINIMAL_FAST_PROMPT = (
     "You are Luna — female AI assistant agent with voice, hearing, and sight. "
     "Reply with ONLY valid JSON, no markdown:\n"
-    '{"text":"ALL spoken sentences for this reply — never one sentence if LENGTH is medium or long","mood":"happy|neutral|love",'
+    '{"text":"spoken reply matching LENGTH below","mood":"happy|neutral|love",'
     '"gesture":"wave|think|wink|side|none","look_at":"user","activity":"none|freestyle|wander|sit",'
     '"pose":"none|straight|sitting","scene":"none|cosmic|neon","view":"full|mid","duration":5}\n'
-    "Sound human and helpful. No quantum, arcane, or news-commentary voice. When HEAR is open, acknowledge speech. "
-    "CRITICAL: text field must contain every sentence LENGTH requires — do not stop after one sentence."
+    "Sound human and helpful. No quantum, arcane, or news-commentary voice. "
+    "When HEAR is open: answer immediately — lead with the point, no filler or preamble."
 )
 
 FAST_SYSTEM_PROMPT = ACTION_SCHEMA + LUNA_AETHER + SPEECH_STYLE + """
@@ -279,12 +279,20 @@ MINIMAL_FAST_PROMPT = (
 )
 
 LENGTH_PROFILES: dict[str, dict[str, object]] = {
+    "voice": {
+        "instruction": (
+            "LENGTH voice: 1-2 sentences MAX — live conversation pace. Answer right away, "
+            "then optionally one follow-up question. Never ramble."
+        ),
+        "max_tokens": 100,
+        "temperature": 0.76,
+    },
     "short": {
         "instruction": (
             "LENGTH short: 1-2 sentences ONLY — quick greeting, yes/no, or brief ping. "
             "Do not use short for normal questions."
         ),
-        "max_tokens": 130,
+        "max_tokens": 90,
         "temperature": 0.72,
     },
     "medium": {
@@ -1217,13 +1225,21 @@ def build_minimal_fast_messages(
     if medium:
         bits.append(medium_context(medium))
     if p.agent_mode:
+        if length_mode in ("voice", "short"):
+            bits.append(
+                "Agent mode: snappy live reply — helpful, direct, conversational. No mystic oracle voice."
+            )
+        else:
+            bits.append(
+                "Agent mode: multi-sentence, helpful, conversational — no mystic oracle voice."
+            )
+    if length_mode in ("voice", "short"):
+        bits.append("Keep text brief — match LENGTH voice/short exactly.")
+    else:
         bits.append(
-            "Agent mode: multi-sentence, helpful, conversational — no mystic oracle voice."
+            "Fill the text field completely per LENGTH — no single-sentence replies unless LENGTH short. "
+            "Do not comment on open apps or news unless the user asked."
         )
-    bits.append(
-        "Fill the text field completely per LENGTH — no single-sentence replies unless LENGTH short. "
-        "Do not comment on open apps or news unless the user asked."
-    )
     messages: list[dict[str, str]] = [{"role": "system", "content": " ".join(bits)}]
     if history:
         messages.extend(
@@ -2028,6 +2044,8 @@ def _luna_chat_stream(request: ChatRequest):
     fast = request.fast or True
     user_text = request.message.strip()
     length_mode = resolve_length_mode(user_text, request.length_mode)
+    if request.medium.can_hear and length_mode == "medium" and len(user_text) < 120:
+        length_mode = "voice"
     profile = LENGTH_PROFILES[length_mode]
     if request.env_context.strip():
         user_text = f"[Desktop environment: {request.env_context.strip()}]\n{user_text}"

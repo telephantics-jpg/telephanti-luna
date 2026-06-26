@@ -21,15 +21,15 @@ export class LunaMic {
     this.source = null;
     this.timeData = null;
 
-    // Balanced defaults — full phrases, fewer cut-offs and TTS bleed triggers
+    // Snappy turn-taking — still catches full phrases
     this.minSpeechRms = 0.0032;
     this.minSpeechPeak = 0.009;
     this.silenceRms = 0.0018;
-    this.silenceHoldMs = 580;
-    this.maxRecordMs = 16000;
-    this.minRecordMs = 320;
-    this.monitorIntervalMs = 42;
-    this.warmupMs = 120;
+    this.silenceHoldMs = 380;
+    this.maxRecordMs = 14000;
+    this.minRecordMs = 220;
+    this.monitorIntervalMs = 36;
+    this.warmupMs = 60;
   }
 
   async unlock() {
@@ -97,15 +97,15 @@ export class LunaMic {
     else if (this.enabled && !this.busy) this._startMonitor();
   }
 
-  /** sensitivity 0–100: higher = catches quieter speech, waits longer for full sentences */
-  applySensitivity(sensitivity = 62) {
-    const s = Math.max(0, Math.min(100, Number(sensitivity) || 62));
+  /** sensitivity 0–100: higher = catches quieter speech; lower hold = faster replies */
+  applySensitivity(sensitivity = 52) {
+    const s = Math.max(0, Math.min(100, Number(sensitivity) || 52));
     const gain = 0.55 + s / 100;
     this.minSpeechRms = 0.0052 / gain;
     this.minSpeechPeak = 0.014 / gain;
-    this.silenceHoldMs = 380 + Math.round(s * 4.2);
-    this.minRecordMs = 260 + Math.round(s * 1.4);
-    this.maxRecordMs = 14000 + Math.round(s * 40);
+    this.silenceHoldMs = 260 + Math.round(s * 2.4);
+    this.minRecordMs = 180 + Math.round(s * 1.0);
+    this.maxRecordMs = 12000 + Math.round(s * 35);
   }
 
   async setEnabled(on) {
@@ -181,6 +181,7 @@ export class LunaMic {
     let recording = false;
     let recordStarted = 0;
     let lastSpeechAt = 0;
+    let hadSpeechDuringRecord = false;
     let warmupUntil = Date.now() + this.warmupMs;
     let chunks = [];
     let mime = "";
@@ -204,6 +205,7 @@ export class LunaMic {
       recording = true;
       recordStarted = Date.now();
       lastSpeechAt = recordStarted;
+      hadSpeechDuringRecord = false;
 
       this.recorder.ondataavailable = (e) => {
         if (e.data?.size > 0) chunks.push(e.data);
@@ -220,8 +222,7 @@ export class LunaMic {
           return;
         }
 
-        const analysis = await this._analyzeBlob(blob);
-        if (analysis.hasSpeech) {
+        if (hadSpeechDuringRecord || blob.size > 900) {
           this.onStatus("hearing...");
           await this._transcribeBlob(blob);
         }
@@ -259,6 +260,7 @@ export class LunaMic {
 
       if (speaking) {
         lastSpeechAt = now;
+        hadSpeechDuringRecord = true;
         if (!recording) beginRecord();
         clearTimeout(this.stopTimer);
         this.stopTimer = setTimeout(endRecord, this.silenceHoldMs);
@@ -341,16 +343,8 @@ export class LunaMic {
 
   async _transcribeBlob(blob) {
     try {
-      let upload = blob;
-      if (blob.type.includes("webm") || blob.type.includes("ogg")) {
-        try {
-          upload = await this._blobToWav(blob);
-        } catch (decodeErr) {
-          console.warn("LunaMic wav decode:", decodeErr);
-        }
-      }
       const form = new FormData();
-      form.append("file", upload, upload.type.includes("wav") ? "luna.wav" : "luna.webm");
+      form.append("file", blob, blob.type.includes("wav") ? "luna.wav" : "luna.webm");
       const res = await fetch("/api/transcribe-file", {
         method: "POST",
         body: form,

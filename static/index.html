@@ -2678,7 +2678,7 @@
       </div>
       <label class="opt-switch"><span>Always listening</span><input type="checkbox" id="opt-listen" checked /></label>
       <div class="opt-row"><label>Hear me better <span id="val-mic-sense">62</span></label><input type="range" id="sl-mic-sense" min="20" max="95" value="62" /></div>
-      <p class="opt-hint">Higher = catches quieter speech and waits for full sentences before replying.</p>
+      <p class="opt-hint">Higher = catches quieter speech. Lower = Luna replies sooner after you pause.</p>
       <label class="opt-switch"><span>Speak replies aloud</span><input type="checkbox" id="opt-speak" checked /></label>
       <div class="opt-row"><select id="opt-voice"></select></div>
       <div class="opt-grid-2">
@@ -2892,8 +2892,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=84";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=84";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=85";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=85";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3098,7 +3098,7 @@
       omniFollow: true,
       outfitLevel: 3,
       touchSense: true,
-      micSensitivity: 70,
+      micSensitivity: 52,
     };
 
     function b64ToArrayBuffer(b64) {
@@ -3276,7 +3276,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=84",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=85",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3762,6 +3762,8 @@
       settings.chillMode = true;
       settings.agentMode = true;
       settings.ambientMins = Math.max(settings.ambientMins || 5, 5);
+      settings.speechRate = Math.max(settings.speechRate ?? 0, 4);
+      settings.micSensitivity = Math.min(settings.micSensitivity ?? 52, 58);
       activeVibe = ASSISTANT_VIBE;
       settings.activeVibe = ASSISTANT_VIBE;
       stripLevel = 0;
@@ -3871,6 +3873,9 @@
       if (webCloudBooted) return;
       webCloudBooted = true;
       applyVoicePrefFromStorage();
+      settings.speechRate = Math.max(settings.speechRate ?? 0, 4);
+      settings.micSensitivity = Math.min(settings.micSensitivity ?? 52, 58);
+      applyMicSensitivity();
       settings.touchSense = true;
       settings.alwaysListen = settings.alwaysListen !== false;
       const touchOpt = document.getElementById("opt-touch-sense");
@@ -4266,7 +4271,7 @@
       settings.speechRate = -2;
       settings.speechPitch = 2;
       settings.ambientMins = 5;
-      settings.micSensitivity = 70;
+      settings.micSensitivity = 52;
       stripLevel = 2;
       muted = false;
       rapportEl.value = settings.affection;
@@ -5417,6 +5422,8 @@
 
     let voiceSubmitPending = false;
     let voiceSubmitLength = "";
+    let earlySpeakStarted = false;
+    let earlySpokeLen = 0;
 
     function addMsg(role, text, opts = {}) {
       const el = document.createElement("div");
@@ -5436,11 +5443,24 @@
     function guessResponseLength(text, { fromVoice = false } = {}) {
       const t = (text || "").trim();
       const low = t.toLowerCase().replace(/[!.?…]+$/g, "");
-      if (fromVoice || settings.agentMode !== false) {
+      if (fromVoice) {
         if (/^(hi|hey|yo|sup|hello|ok|okay|yeah|yes|no|nah|thanks|thank you|lol|hmm|mmm|wow|bye|gn|goodnight)$/i.test(low)) {
           return "short";
         }
-        if (fromVoice) return "medium";
+        if (
+          t.length > 130 ||
+          /tell me|explain|describe|story|elaborate|in detail|talk about|walk me through|go on|keep going|more about|deeper|longer answer/i.test(
+            low
+          )
+        ) {
+          return "long";
+        }
+        return settings.agentMode !== false ? "voice" : "short";
+      }
+      if (settings.agentMode !== false) {
+        if (/^(hi|hey|yo|sup|hello|ok|okay|yeah|yes|no|nah|thanks|thank you|lol|hmm|mmm|wow|bye|gn|goodnight)$/i.test(low)) {
+          return "short";
+        }
       }
       if (!t) return "medium";
       if (
@@ -6190,7 +6210,7 @@
     }
 
     function applyMicSensitivity() {
-      if (settings.micSensitivity === undefined) settings.micSensitivity = 70;
+      if (settings.micSensitivity === undefined) settings.micSensitivity = 52;
       lunaMic?.applySensitivity(settings.micSensitivity);
     }
 
@@ -8011,7 +8031,7 @@
         lastUserActivity = Date.now();
         holdProactiveSpeech(180000);
         voiceSubmitPending = true;
-        voiceSubmitLength = "medium";
+        voiceSubmitLength = guessResponseLength(trimmed, { fromVoice: true });
         setSenseField("hear");
         addMsg("user", trimmed, { heard: true });
         history.push({ role: "user", content: trimmed });
@@ -8769,6 +8789,28 @@
       } catch { /* warm-up is best-effort */ }
     }
 
+    function extractEarlySpeakChunk(text) {
+      const t = (text || "").trim();
+      if (t.length < 8) return "";
+      const sentence = t.match(/^[\s\S]*?[.!?…](?:\s+|$)/);
+      if (sentence && sentence[0].trim().length >= 8) return sentence[0].trim();
+      if (t.length >= 28 && /\s/.test(t)) return t;
+      return "";
+    }
+
+    function tryStartEarlySpeak(full, mood) {
+      if (earlySpeakStarted || muted || !settings.autoSpeak) return;
+      const chunk = extractEarlySpeakChunk(full);
+      if (!chunk) return;
+      earlySpeakStarted = true;
+      earlySpokeLen = chunk.length;
+      enableLunaVoice().catch(() => {});
+      setLunaAvatarState("speak");
+      livePortrait?.setState("speak");
+      setStatus("speaking...", "ok");
+      speakText(chunk, mood);
+    }
+
     function speakText(text, moodOverride) {
       if (!text.trim()) return Promise.resolve();
       const run = speakQueue.then(async () => {
@@ -8885,7 +8927,9 @@
         petStreamBubble = appendPetDialogMsg("assistant", "Thinking...");
       }
       let full = "";
-      setStatus("thinking...", "busy");
+      earlySpeakStarted = false;
+      earlySpokeLen = 0;
+      setStatus("listening...", "hearing");
       setLunaAvatarState("think");
       livePortrait?.setState("think");
 
@@ -8894,7 +8938,7 @@
         let action = null;
         const chatBody = {
           message: text,
-          history: priorHistory.slice(-6),
+          history: priorHistory.slice(-(lengthMode === "voice" || lengthMode === "short" ? 4 : 6)),
           fast: true,
           length_mode: lengthMode,
           env_context: [desktopEnv?.summary, lastVisionContext ? `Luna sees: ${lastVisionContext}` : ""]
@@ -8963,10 +9007,8 @@
                 if (feed) feed.scrollTop = feed.scrollHeight;
                 if (dlg) dlg.scrollTop = 99999;
               }
-              if (head && full.length > 4) {
-                head.makeEyeContact(900);
-                if (!busy || busySince) setStatus("speaking...", "ok");
-              }
+              if (head && full.length > 4) head.makeEyeContact(900);
+              tryStartEarlySpeak(full, streamMood);
             }
             if (payload.action) {
               action = payload.action;
@@ -8995,7 +9037,14 @@
         if (speakLine) {
           await enableLunaVoice().catch(() => {});
           if (settings.autoSpeak && !muted) {
-            await speakText(speakLine, action?.mood || streamMood);
+            const mood = action?.mood || streamMood;
+            if (earlySpeakStarted) {
+              await speakQueue.catch(() => {});
+              const rest = speakLine.slice(earlySpokeLen).trim();
+              if (rest.length > 4) await speakText(rest, mood);
+            } else {
+              await speakText(speakLine, mood);
+            }
           }
         }
       } catch (err) {

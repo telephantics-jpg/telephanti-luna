@@ -33,27 +33,34 @@ export class LunaMic {
   }
 
   async unlock() {
-    try {
-      if (!this.stream?.active) {
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            channelCount: 1,
-            sampleRate: 48000,
-            sampleSize: 16,
-            latency: 0,
-          },
-        });
+    const constraints = [
+      {
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      },
+      { audio: true },
+    ];
+    for (const audio of constraints) {
+      try {
+        if (!this.stream?.active) {
+          this.stream = await navigator.mediaDevices.getUserMedia(audio);
+        }
+        await this._ensureAnalyser();
+        this.unlocked = true;
+        return true;
+      } catch (err) {
+        if (this.stream) {
+          this.stream.getTracks().forEach((t) => t.stop());
+          this.stream = null;
+        }
       }
-      await this._ensureAnalyser();
-      this.unlocked = true;
-      return true;
-    } catch (err) {
-      this.onError("Allow microphone access — click 🎤 then Allow in the popup.");
-      return false;
     }
+    this.onError("Allow microphone access — tap 🎤 then Allow in the popup.");
+    return false;
   }
 
   async _ensureAnalyser() {
@@ -63,7 +70,7 @@ export class LunaMic {
       return;
     }
     this._teardownAnalyser();
-    this.audioCtx = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
+    this.audioCtx = new AudioContext({ latencyHint: "interactive" });
     this.source = this.audioCtx.createMediaStreamSource(this.stream);
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 1024;

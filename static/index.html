@@ -36,7 +36,13 @@
       --opal-mix: rgba(138, 128, 188, 0.18);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
+    html, body {
+      height: 100%;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      overflow-x: clip;
+    }
     body {
       font-family: "DM Sans", system-ui, sans-serif;
       background: var(--bg);
@@ -54,16 +60,29 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.7rem 1rem;
+      gap: 0.4rem;
+      padding: 0.7rem max(1rem, var(--safe-r)) 0.7rem max(1rem, var(--safe-l));
       border-bottom: 1px solid var(--border);
       background: rgba(20,24,36,0.9);
       position: relative;
       z-index: 50;
       pointer-events: auto;
+      min-width: 0;
+      flex-shrink: 0;
     }
-    .brand { font-weight: 600; font-size: 1rem; }
+    .brand {
+      font-weight: 600;
+      font-size: 1rem;
+      flex-shrink: 1;
+      min-width: 0;
+    }
     .brand span { color: var(--accent); }
-    .hdr-btns { display: flex; gap: 0.4rem; }
+    .hdr-btns {
+      display: flex;
+      gap: 0.4rem;
+      flex-shrink: 0;
+      min-width: 0;
+    }
     .btn {
       border: 1px solid var(--border);
       background: #1a2030;
@@ -79,7 +98,13 @@
       display: grid;
       grid-template-columns: 1.2fr 1fr;
       min-height: 0;
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
       overflow: hidden;
+    }
+    body.phone-client .main {
+      grid-template-columns: 1fr !important;
     }
     #avatar {
       width: 100%;
@@ -125,7 +150,7 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-y: contain;
       scroll-padding-bottom: 0.85rem;
-      padding: 0.75rem 0.75rem 0.5rem;
+      padding: 0.75rem max(0.75rem, var(--safe-r)) 0.5rem max(0.75rem, var(--safe-l));
       display: flex;
       flex-direction: column;
       gap: 0.55rem;
@@ -154,7 +179,7 @@
     .input-row {
       display: flex;
       gap: 0.45rem;
-      padding: 0.55rem 0.75rem calc(0.55rem + var(--safe-b));
+      padding: 0.55rem max(0.75rem, var(--safe-r)) calc(0.55rem + var(--safe-b)) max(0.75rem, var(--safe-l));
       border-top: none;
     }
     #input {
@@ -714,13 +739,47 @@
       body.web-cloud #mute-btn,
       body.web-cloud #feel-btn,
       body.web-cloud #succubus-btn { display: none !important; }
+      body.phone-client .avatar-wrap,
+      body.phone-client .chat {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+    }
+    @media (max-width: 860px) and (orientation: portrait) {
+      header {
+        padding: 0.42rem max(0.45rem, var(--safe-r)) 0.42rem max(0.45rem, var(--safe-l));
+        gap: 0.3rem;
+      }
+      .brand {
+        max-width: 28%;
+        font-size: 0.74rem;
+      }
+      .hdr-btns {
+        flex: 1 1 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        padding-bottom: 1px;
+        mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 12px), transparent 100%);
+      }
+      .hdr-btns::-webkit-scrollbar { display: none; }
+      .hdr-btns .btn { flex-shrink: 0; }
+      body.web-cloud .status-pill {
+        right: max(0.45rem, var(--safe-r));
+        max-width: 42%;
+      }
+      .mobile-feel-bar { right: max(0.45rem, var(--safe-r)); }
     }
     @media (max-width: 480px) {
       :root { --hdr-h: 2.9rem; --stage-max-w: 320px; --stage-max-h: 480px; }
       header { padding: 0.45rem 0.55rem; }
       body.web-cloud .hdr-btns .btn { padding: 0.34rem 0.48rem; font-size: 0.68rem; }
       body.web-cloud .luna-live-stage {
-        width: min(94vw, var(--stage-max-w));
+        width: min(100%, var(--stage-max-w));
         height: min(calc(100dvh - var(--chrome-v) - 1.25rem), var(--stage-max-h));
       }
       body.web-cloud .luna-assistant-hud { top: 0.35rem; left: 0.35rem; right: 0.35rem; }
@@ -1400,7 +1459,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: min(88vw, var(--stage-max-w));
+      width: min(100%, var(--stage-max-w));
       height: min(calc(100dvh - var(--chrome-v) - 2rem), var(--stage-max-h));
       max-height: 100%;
       flex-shrink: 1;
@@ -1601,11 +1660,15 @@
     .mobile-feel-bar {
       display: none;
       position: fixed;
-      right: 0.65rem;
+      right: max(0.55rem, var(--safe-r));
       bottom: calc(3.1rem + var(--safe-b));
       z-index: 45;
       flex-direction: column;
       gap: 0.45rem;
+    }
+    .mobile-feel-bar .btn.mic-on {
+      border-color: rgba(134, 239, 172, 0.7);
+      box-shadow: 0 0 14px rgba(134, 239, 172, 0.35);
     }
     body.web-cloud.phone-client .mobile-feel-bar { display: flex; }
     @media (max-width: 860px) {
@@ -3145,6 +3208,7 @@
   <div id="luna-touch-flash" class="luna-touch-flash" aria-hidden="true"></div>
 
   <div class="mobile-feel-bar" id="mobile-feel-bar" aria-label="Quick controls">
+    <button type="button" class="btn" id="mobile-mic-btn" title="Listen / mic">🎤</button>
     <button type="button" class="btn" id="mobile-mute-btn" title="Voice on/off">🔊</button>
     <button type="button" class="btn" id="mobile-succubus-btn" title="Succubus mode">😈</button>
     <button type="button" class="btn" id="mobile-feel-btn" title="Warm feel">💗</button>
@@ -3156,9 +3220,9 @@
   </nav>
 
   <script type="module">
-    import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=94";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=94";
+    import { LunaMic } from "/static/luna-mic.mjs?v=95";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=95";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=95";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3546,7 +3610,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=94",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=95",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -4229,9 +4293,11 @@
       if (window.__lunaAudioUnlockBound) return;
       window.__lunaAudioUnlockBound = true;
       const unlock = async () => {
+        await ensureMobileAudioCtx().catch(() => {});
         const voiceOk = await enableLunaVoice();
         if (isPublicWebVisit() && !isPetMode()) {
           await livePortrait?.ensurePlaying?.().catch(() => {});
+          await ensureWebHear();
           if (!voiceWelcomed && voiceOk) {
             voiceWelcomed = true;
             speakText("Hi — I'm Luna. Talk to me anytime.", "happy");
@@ -4855,6 +4921,11 @@
           el.muted = false;
           el.volume = 1;
         }
+        if (settings.alwaysListen && alwaysListening && lunaMic) {
+          const ok = await lunaMic.unlock().catch(() => false);
+          if (ok) await lunaMic.setEnabled(true);
+          updateMicUi();
+        }
       };
       window.addEventListener("orientationchange", () => setTimeout(recover, 80));
       window.addEventListener("resize", () => {
@@ -5241,9 +5312,9 @@
         const primed = await primePetHtmlAudio();
         await livePortrait?.resumeAudio?.();
         await lunaSpeakVideo?.resumeAudio?.();
-        voiceUnlocked = primed || !!mobileAudioCtx;
-        if (primed) warmVoice();
-        return primed;
+        voiceUnlocked = primed || (mobileAudioCtx && mobileAudioCtx.state === "running") || !!mobileAudioCtx;
+        if (primed || voiceUnlocked) warmVoice();
+        return voiceUnlocked || primed;
       } catch (err) {
         console.warn("Voice unlock:", err);
         return false;
@@ -6161,12 +6232,20 @@
       if (mainEl?.classList.contains("show-chat")) scrollChatToEnd();
     }
 
+    function updateOrientationLayout() {
+      const portrait = window.innerHeight >= window.innerWidth;
+      document.body.classList.toggle("portrait-layout", portrait);
+      document.body.classList.toggle("landscape-layout", !portrait);
+      updateResponsiveChrome();
+      if (mainEl?.classList.contains("show-chat")) scrollChatToEnd();
+    }
+
     function bindResponsiveChrome() {
       if (responsiveChromeBound) return;
       responsiveChromeBound = true;
-      updateResponsiveChrome();
-      window.addEventListener("resize", updateResponsiveChrome, { passive: true });
-      window.addEventListener("orientationchange", () => setTimeout(updateResponsiveChrome, 120), { passive: true });
+      updateOrientationLayout();
+      window.addEventListener("resize", updateOrientationLayout, { passive: true });
+      window.addEventListener("orientationchange", () => setTimeout(updateOrientationLayout, 140), { passive: true });
       if (window.visualViewport) {
         window.visualViewport.addEventListener("resize", updateResponsiveChrome, { passive: true });
       }
@@ -8632,6 +8711,12 @@
       micBtn.classList.toggle("always-on", on);
       micBtn.classList.toggle("active", on);
       document.getElementById("float-mic")?.classList.toggle("always-on", on);
+      const mobileMic = document.getElementById("mobile-mic-btn");
+      if (mobileMic) {
+        mobileMic.classList.toggle("mic-on", on);
+        mobileMic.classList.toggle("active", on);
+        mobileMic.title = on ? "Listening — tap to mute" : "Tap to talk to Luna";
+      }
       const mode = lunaMic?.mode === "server" ? " (server)" : "";
       micBtn.title = on
         ? `Always listening${mode} — click to mute`
@@ -9221,7 +9306,15 @@
         await toggleWebCamera();
       });
 
+      document.getElementById("mobile-mic-btn")?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await enableLunaVoice();
+        micBtn.click();
+      });
+
       micBtn.addEventListener("click", async () => {
+        await enableLunaVoice();
         await unlockVoice();
         if (!settings.alwaysListen) {
           settings.alwaysListen = true;

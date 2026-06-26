@@ -25,9 +25,9 @@ export class LunaMic {
     this.minSpeechRms = 0.0032;
     this.minSpeechPeak = 0.009;
     this.silenceRms = 0.0018;
-    this.silenceHoldMs = 380;
+    this.silenceHoldMs = 280;
     this.maxRecordMs = 14000;
-    this.minRecordMs = 220;
+    this.minRecordMs = 180;
     this.monitorIntervalMs = 36;
     this.warmupMs = 60;
   }
@@ -103,8 +103,8 @@ export class LunaMic {
     const gain = 0.55 + s / 100;
     this.minSpeechRms = 0.0052 / gain;
     this.minSpeechPeak = 0.014 / gain;
-    this.silenceHoldMs = 260 + Math.round(s * 2.4);
-    this.minRecordMs = 180 + Math.round(s * 1.0);
+    this.silenceHoldMs = 190 + Math.round(s * 1.35);
+    this.minRecordMs = 140 + Math.round(s * 0.7);
     this.maxRecordMs = 12000 + Math.round(s * 35);
   }
 
@@ -263,10 +263,18 @@ export class LunaMic {
         hadSpeechDuringRecord = true;
         if (!recording) beginRecord();
         clearTimeout(this.stopTimer);
-        this.stopTimer = setTimeout(endRecord, this.silenceHoldMs);
+        const elapsed = recording ? now - recordStarted : 0;
+        const hold = elapsed < 2200
+          ? Math.round(this.silenceHoldMs * 1.45)
+          : this.silenceHoldMs;
+        this.stopTimer = setTimeout(endRecord, hold);
       } else if (recording) {
         const silentFor = now - lastSpeechAt;
-        if (silentFor >= this.silenceHoldMs) endRecord();
+        const elapsed = now - recordStarted;
+        const hold = elapsed < 2200
+          ? Math.round(this.silenceHoldMs * 1.45)
+          : this.silenceHoldMs;
+        if (silentFor >= hold) endRecord();
       }
 
       if (recording && now - recordStarted >= this.maxRecordMs) endRecord();

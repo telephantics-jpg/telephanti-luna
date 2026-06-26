@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "87"
+LUNA_BUILD = "88"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2135,9 +2135,9 @@ def _google_stt_from_wav(wav_path: str) -> str:
     recognizer.dynamic_energy_threshold = True
     recognizer.dynamic_energy_adjustment_damping = 0.15
     recognizer.dynamic_energy_ratio = 1.35
-    recognizer.pause_threshold = 0.55
-    recognizer.phrase_threshold = 0.1
-    recognizer.non_speaking_duration = 0.35
+    recognizer.pause_threshold = 0.36
+    recognizer.phrase_threshold = 0.08
+    recognizer.non_speaking_duration = 0.2
     with sr.AudioFile(wav_path) as source:
         recognizer.adjust_for_ambient_noise(source, duration=0.12)
         audio = recognizer.record(source)

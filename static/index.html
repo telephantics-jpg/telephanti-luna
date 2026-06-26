@@ -1382,6 +1382,11 @@
       color: #93c5fd;
       box-shadow: 0 0 10px rgba(147, 197, 253, 0.25);
     }
+    body.web-cloud.assistant-locked #bliss-btn,
+    body.web-cloud.assistant-locked #dream-btn,
+    body.web-cloud.assistant-locked #daydream-btn {
+      display: none !important;
+    }
     @media (max-width: 860px) {
       body.web-cloud .brand { font-size: 0.82rem; max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       body.web-cloud #desktop-btn,
@@ -2887,8 +2892,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=83";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=83";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=84";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=84";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3271,7 +3276,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=83",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=84",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3553,7 +3558,25 @@
       return Math.round((minSec + (maxSec - minSec) * Math.pow(u, skew)) * 1000);
     }
 
+    function isWebAssistantLocked() {
+      return isPublicWebVisit() && !isPetMode();
+    }
+
+    function enforceWebAssistantMode() {
+      if (!isWebAssistantLocked()) return;
+      settings.sensualMode = false;
+      settings.chillMode = true;
+      settings.agentMode = true;
+      activeVibe = ASSISTANT_VIBE;
+      settings.activeVibe = ASSISTANT_VIBE;
+      persistSensualModePref();
+    }
+
     function loadSensualModePref() {
+      if (isWebAssistantLocked()) {
+        enforceWebAssistantMode();
+        return;
+      }
       try {
         const raw = sessionStorage.getItem(SENSUAL_MODE_KEY) || localStorage.getItem(SENSUAL_MODE_KEY);
         if (raw === "0" || raw === "false") {
@@ -3586,6 +3609,13 @@
     }
 
     function toggleCompanionMode() {
+      if (isWebAssistantLocked()) {
+        enforceWebAssistantMode();
+        applyAssistantWebDefaults();
+        updateWebSensualUi();
+        showToast("Assistant mode — Luna stays helpful and calm.");
+        return;
+      }
       setSensualMode(!isSensualMode());
     }
 
@@ -3715,6 +3745,12 @@
       return isPublicWebVisit() && !isPetMode() && !isSensualMode();
     }
 
+    function assistantBlockedMsg() {
+      return isWebAssistantLocked()
+        ? "Assistant mode — Luna stays helpful and calm."
+        : "Assistant mode on — tap 🧊 to turn glow & peak back on.";
+    }
+
     function applyAssistantWebDefaults() {
       settings.affection = Math.max(settings.affection || 100, 120);
       settings.flirtiness = 42;
@@ -3774,26 +3810,39 @@
     }
 
     function updateWebSensualUi() {
+      if (isWebAssistantLocked()) enforceWebAssistantMode();
       const on = isSensualMode();
-      document.body.classList.toggle("sensual-on", on && isPublicWebVisit() && !isPetMode());
+      const locked = isWebAssistantLocked();
+      document.body.classList.toggle("sensual-on", on && !locked);
+      document.body.classList.toggle("assistant-locked", locked);
       const chillBtn = document.getElementById("chill-btn");
       if (chillBtn) {
-        chillBtn.classList.toggle("active", !on);
-        chillBtn.title = on
-          ? "Tap for assistant mode (hides glow & peak)"
-          : "Assistant on — tap 🧊 to bring back glow & peak";
+        chillBtn.classList.toggle("active", locked || !on);
+        chillBtn.title = locked
+          ? "Assistant mode — Luna opens helpful and stays that way"
+          : (on ? "Tap for assistant mode (hides glow & peak)" : "Assistant on — tap 🧊 to bring back glow & peak");
       }
       const sensualOpt = document.getElementById("opt-sensual");
-      if (sensualOpt) sensualOpt.checked = on;
+      if (sensualOpt) {
+        sensualOpt.checked = locked ? false : on;
+        sensualOpt.disabled = locked;
+      }
       const hint = document.getElementById("zone-hint");
       if (hint && isPublicWebVisit() && !isPetMode()) {
-        hint.textContent = on
-          ? "Live video — 🎤 talk, 📷 see you. 🌸 & ✨ up top (🧊 = assistant mode)."
-          : "Assistant mode — 🎤 talk, 📷 see you. Tap 🧊 for glow & peak.";
+        hint.textContent = locked || !on
+          ? "Assistant mode — 🎤 talk, 📷 see you. Luna helps, listens, and chats."
+          : "Live video — 🎤 talk, 📷 see you. 🌸 & ✨ up top (🧊 = assistant mode).";
       }
     }
 
     function setSensualMode(on) {
+      if (isWebAssistantLocked() && on) {
+        enforceWebAssistantMode();
+        applyAssistantWebDefaults();
+        updateWebSensualUi();
+        saveSettings();
+        return;
+      }
       const next = !!on;
       settings.sensualMode = next;
       settings.chillMode = !next;
@@ -3813,14 +3862,14 @@
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
+      enforceWebAssistantMode();
       loadSensualModePref();
-      if (localStorage.getItem(SENSUAL_MODE_KEY) == null) persistSensualModePref();
+      persistSensualModePref();
       bindWebSensualControls();
+      applyAssistantWebDefaults();
       updateWebSensualUi();
       if (webCloudBooted) return;
       webCloudBooted = true;
-      if (isSensualMode()) applyWebCloudDefaults();
-      else applyAssistantWebDefaults();
       applyVoicePrefFromStorage();
       settings.touchSense = true;
       settings.alwaysListen = settings.alwaysListen !== false;
@@ -4738,7 +4787,7 @@
 
     async function prepareSensualAction(label = "glow") {
       if (webSensualBlocked()) {
-        showToast("Assistant mode on — tap 🧊 to turn glow & peak back on.");
+        showToast(assistantBlockedMsg());
         return false;
       }
       const ok = await enableLunaVoice();
@@ -5842,7 +5891,7 @@
 
     async function lunaDaydream() {
       if (webSensualBlocked()) {
-        showToast("Assistant mode on — tap 🧊 for glow & peak.");
+        showToast(assistantBlockedMsg());
         return;
       }
       if (daydreaming || dreamPeaking || busy) return;
@@ -6043,10 +6092,15 @@
         }
       } catch { /* ignore */ }
       loadSensualModePref();
+      if (isPublicWebVisit() && !isPetMode()) enforceWebAssistantMode();
       applyVoicePrefFromStorage();
       if (settings.agentMode === undefined) settings.agentMode = true;
       if (settings.chillMode === undefined) settings.chillMode = true;
-      if (isPublicWebVisit()) settings.chillMode = !isSensualMode();
+      if (isPublicWebVisit() && !isPetMode()) {
+        enforceWebAssistantMode();
+      } else {
+        settings.chillMode = !isSensualMode();
+      }
       activeVibe = settings.activeVibe || (
         settings.agentMode !== false ? ASSISTANT_VIBE : (settings.chillMode ? CHILL_VIBE : "")
       );
@@ -6286,6 +6340,13 @@
         showToast(e.target.checked ? "Touch sense on — glide over Luna" : "Touch sense off");
       });
       document.getElementById("opt-sensual")?.addEventListener("change", (e) => {
+        if (isWebAssistantLocked()) {
+          e.target.checked = false;
+          enforceWebAssistantMode();
+          updateWebSensualUi();
+          showToast("Web Luna stays in assistant mode.");
+          return;
+        }
         setSensualMode(e.target.checked);
       });
       document.getElementById("opt-desktop")?.addEventListener("change", (e) => {
@@ -8424,7 +8485,7 @@
         e.preventDefault();
         await enableLunaVoice();
         if (webSensualBlocked()) {
-          showToast("Assistant mode on — tap 🧊 for glow & peak.");
+          showToast(assistantBlockedMsg());
           return;
         }
         showLunaCaption(pickWebLine(WEB_BLISS_LINES));
@@ -8435,7 +8496,7 @@
         e.preventDefault();
         await enableLunaVoice();
         if (webSensualBlocked()) {
-          showToast("Assistant mode on — tap 🧊 for glow & peak.");
+          showToast(assistantBlockedMsg());
           return;
         }
         livePortrait?.pulseTouch(1.75);
@@ -8782,7 +8843,7 @@
         history.push({ role: "user", content: text });
         saveSettings();
         if (webSensualBlocked()) {
-          showToast("Assistant mode on — tap 🧊 for glow & peak.");
+          showToast(assistantBlockedMsg());
           return;
         }
         await lunaMoan(/hard|loud|more/i.test(text) ? 3 : 2);

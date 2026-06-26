@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "85"
+LUNA_BUILD = "86"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -437,6 +437,7 @@ class SpeakRequest(BaseModel):
     rate: int = 0
     pitch: int = 0
     mood: str = "happy"
+    fast: bool = True
 
 
 class MoanRequest(BaseModel):
@@ -1348,6 +1349,8 @@ async def synthesize_speech(
     rate: int = 0,
     pitch: int = 0,
     mood: str = "happy",
+    *,
+    fast: bool = True,
 ) -> dict:
     default = os.getenv("TTS_VOICE", "en-US-AvaNeural")
     voice = VOICE_CHOICES.get(voice_key.strip().lower(), default) if voice_key else default
@@ -1388,9 +1391,10 @@ async def synthesize_speech(
         "wdurations": wdurations,
         "voice": voice,
     }
-    lipsync_meta = schedule_lipsync_job(audio_bytes)
-    if lipsync_meta:
-        payload["lipsync"] = lipsync_meta
+    if not fast:
+        lipsync_meta = schedule_lipsync_job(audio_bytes)
+        if lipsync_meta:
+            payload["lipsync"] = lipsync_meta
     return payload
 
 
@@ -2267,7 +2271,12 @@ async def speak(request: SpeakRequest):
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
     return await synthesize_speech(
-        request.text, request.voice, request.rate, request.pitch, request.mood
+        request.text,
+        request.voice,
+        request.rate,
+        request.pitch,
+        request.mood,
+        fast=request.fast,
     )
 
 

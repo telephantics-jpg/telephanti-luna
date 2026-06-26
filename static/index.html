@@ -2892,8 +2892,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=85";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=85";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=86";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=86";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3276,7 +3276,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=85",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=86",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3873,6 +3873,7 @@
       if (webCloudBooted) return;
       webCloudBooted = true;
       applyVoicePrefFromStorage();
+      warmVoice().catch(() => {});
       settings.speechRate = Math.max(settings.speechRate ?? 0, 4);
       settings.micSensitivity = Math.min(settings.micSensitivity ?? 52, 58);
       applyMicSensitivity();
@@ -4193,7 +4194,7 @@
       lunaSpeaking = false;
       livePortrait?.setSpeaking(false);
       if (isPublicWebVisit() && !busy) setLunaAvatarState(settings.alwaysListen && alwaysListening ? "listen" : "idle");
-      await sleepMs(720);
+      await sleepMs(isPublicWebVisit() ? 180 : 720);
       lunaMic?.setBusy(false);
       if (!busy && !dreamPeaking && !daydreaming) resumeAlwaysListen();
     }
@@ -4529,7 +4530,19 @@
     }
 
     async function playWebSpeechWithLipsync(speechPayload, audioB64, lipsyncMeta = null) {
-      const canLipsync = isPublicWebVisit() && lipsyncAvailable && audioB64 && (lunaSpeakVideo || livePortrait?.playLipsyncOnce);
+      if (isPublicWebVisit()) {
+        videoLipsyncStop = speechPayload?.words?.length ? driveVideoLipsync(speechPayload) : null;
+        try {
+          await playPetAudioB64(audioB64);
+        } finally {
+          videoLipsyncStop?.();
+          videoLipsyncStop = null;
+          livePortrait?.setMouthLevel?.(0);
+        }
+        return;
+      }
+
+      const canLipsync = lipsyncAvailable && audioB64 && (lunaSpeakVideo || livePortrait?.playLipsyncOnce);
       if (!canLipsync) {
         videoLipsyncStop = speechPayload?.words?.length ? driveVideoLipsync(speechPayload) : null;
         try {
@@ -5424,6 +5437,7 @@
     let voiceSubmitLength = "";
     let earlySpeakStarted = false;
     let earlySpokeLen = 0;
+    let ttsPrefetch = null;
 
     function addMsg(role, text, opts = {}) {
       const el = document.createElement("div");
@@ -8780,9 +8794,10 @@
           body: JSON.stringify({
             text: "Hey.",
             voice: settings.voice,
-            rate: settings.speechRate ?? 2,
+            rate: settings.speechRate ?? 4,
             pitch: settings.speechPitch ?? 3,
             mood: "happy",
+            fast: true,
           }),
         });
         voiceWarmed = true;
@@ -8791,11 +8806,50 @@
 
     function extractEarlySpeakChunk(text) {
       const t = (text || "").trim();
-      if (t.length < 8) return "";
-      const sentence = t.match(/^[\s\S]*?[.!?…](?:\s+|$)/);
-      if (sentence && sentence[0].trim().length >= 8) return sentence[0].trim();
-      if (t.length >= 28 && /\s/.test(t)) return t;
+      if (t.length < 6) return "";
+      const clause = t.match(/^[\s\S]*?[.!?…,](?:\s+|$)/);
+      if (clause && clause[0].trim().length >= 6) return clause[0].trim();
+      if (t.length >= 12 && /\s/.test(t)) return t;
       return "";
+    }
+
+    function ttsPrefetchKey(text, mood) {
+      return `${(text || "").trim()}|${mood || "happy"}`;
+    }
+
+    function prefetchSpeak(text, moodOverride) {
+      const trimmed = (text || "").trim();
+      if (!trimmed || muted || !settings.autoSpeak) return null;
+      const mood = moodOverride || lunaMood || "happy";
+      const key = ttsPrefetchKey(trimmed, mood);
+      if (ttsPrefetch?.key === key) return ttsPrefetch.promise;
+      const promise = fetch("/api/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: trimmed,
+          voice: settings.voice,
+          rate: settings.speechRate ?? 4,
+          pitch: settings.speechPitch ?? 3,
+          mood,
+          fast: true,
+        }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || "TTS failed");
+        }
+        return res.json();
+      });
+      ttsPrefetch = { key, promise };
+      return promise;
+    }
+
+    function tryPrefetchSpeak(full, mood) {
+      if (earlySpeakStarted || muted || !settings.autoSpeak) return;
+      const chunk = extractEarlySpeakChunk(full);
+      if (!chunk) return;
+      prefetchSpeak(chunk, mood);
     }
 
     function tryStartEarlySpeak(full, mood) {
@@ -8804,24 +8858,54 @@
       if (!chunk) return;
       earlySpeakStarted = true;
       earlySpokeLen = chunk.length;
-      enableLunaVoice().catch(() => {});
+      prefetchSpeak(chunk, mood);
       setLunaAvatarState("speak");
       livePortrait?.setState("speak");
       setStatus("speaking...", "ok");
-      speakText(chunk, mood);
+      speakText(chunk, mood, { priority: true });
     }
 
-    function speakText(text, moodOverride) {
+    function speakText(text, moodOverride, opts = {}) {
       if (!text.trim()) return Promise.resolve();
-      const run = speakQueue.then(async () => {
+      const impl = async () => {
         if (!isVoiceExplicitlyOff() && (muted || !settings.autoSpeak)) {
           await enableLunaVoice();
         }
         if (muted || !settings.autoSpeak) return;
         await _speakTextImpl(text, moodOverride);
-      });
+      };
+      const run = opts.priority ? impl() : speakQueue.then(impl);
       speakQueue = run.catch(() => {});
       return run;
+    }
+
+    async function fetchSpeakPayload(text, moodOverride) {
+      const trimmed = (text || "").trim();
+      const mood = moodOverride || lunaMood || "happy";
+      const key = ttsPrefetchKey(trimmed, mood);
+      if (ttsPrefetch?.key === key) {
+        const pending = ttsPrefetch.promise;
+        ttsPrefetch = null;
+        return pending;
+      }
+      return fetch("/api/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: trimmed,
+          voice: settings.voice,
+          rate: settings.speechRate ?? 4,
+          pitch: settings.speechPitch ?? 3,
+          mood,
+          fast: true,
+        }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || "TTS failed");
+        }
+        return res.json();
+      });
     }
 
     async function _speakTextImpl(text, moodOverride) {
@@ -8829,21 +8913,9 @@
       setSenseField("speak");
       let data = null;
       try {
-        await unlockVoice();
-        const mood = moodOverride || lunaMood || "happy";
-        const res = await fetch("/api/speak", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text,
-            voice: settings.voice,
-            rate: settings.speechRate ?? 2,
-            pitch: settings.speechPitch ?? 3,
-            mood,
-          }),
-        });
-        if (!res.ok) throw new Error("TTS failed");
-        data = await res.json();
+        if (!voiceUnlocked) await unlockVoice();
+        else await resumePortraitAudioCtx();
+        data = await fetchSpeakPayload(text, moodOverride);
         const audioBuf = b64ToArrayBuffer(data.audio_b64);
         const speechPayload = {
           audio: audioBuf,
@@ -8907,12 +8979,15 @@
         voiceSubmitPending = false;
         voiceSubmitLength = "";
       }
+      speakQueue = Promise.resolve();
+      ttsPrefetch = null;
       busy = true;
       setSenseField("think");
       busySince = Date.now();
       lunaMic?.setBusy(true);
       pauseAlwaysListen();
       sendBtn.disabled = true;
+      enableLunaVoice().catch(() => {});
       if (head) {
         head.setMood("neutral");
         playLunaGesture("think", 2.5);
@@ -9008,6 +9083,7 @@
                 if (dlg) dlg.scrollTop = 99999;
               }
               if (head && full.length > 4) head.makeEyeContact(900);
+              tryPrefetchSpeak(full, streamMood);
               tryStartEarlySpeak(full, streamMood);
             }
             if (payload.action) {
@@ -9043,7 +9119,7 @@
               const rest = speakLine.slice(earlySpokeLen).trim();
               if (rest.length > 4) await speakText(rest, mood);
             } else {
-              await speakText(speakLine, mood);
+              await speakText(speakLine, mood, { priority: true });
             }
           }
         }

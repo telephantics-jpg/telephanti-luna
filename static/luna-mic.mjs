@@ -20,8 +20,8 @@ export class LunaMic {
     this.analyser = null;
     this.source = null;
     this.timeData = null;
+    this._trackEndedBound = false;
 
-    // Snappy turn-taking — still catches full phrases
     this.minSpeechRms = 0.0032;
     this.minSpeechPeak = 0.009;
     this.silenceRms = 0.0018;
@@ -32,7 +32,57 @@ export class LunaMic {
     this.warmupMs = 60;
   }
 
+  _isIOS() {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  _pickMime() {
+    const candidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+      "audio/aac",
+    ];
+    for (const mime of candidates) {
+      if (MediaRecorder.isTypeSupported(mime)) return mime;
+    }
+    return "";
+  }
+
+  resetForRetry() {
+    this._stopMonitor();
+    this._stopRecording();
+    this._teardownAnalyser();
+    if (this.stream) {
+      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream = null;
+    }
+    this._trackEndedBound = false;
+    this.unlocked = false;
+    this.enabled = false;
+  }
+
+  _bindTrackLifecycle() {
+    if (this._trackEndedBound || !this.stream) return;
+    this._trackEndedBound = true;
+    for (const track of this.stream.getTracks()) {
+      track.addEventListener("ended", () => {
+        this.unlocked = false;
+        this.onStatus("mic-retry");
+        if (this.enabled && !this.busy) {
+          this.unlock().then((ok) => {
+            if (ok && !this.paused && !this.busy) this._startMonitor();
+          });
+        }
+      });
+    }
+  }
+
   async unlock() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.onError("Microphone not supported in this browser.");
+      return false;
+    }
     const constraints = [
       {
         audio: {
@@ -44,21 +94,32 @@ export class LunaMic {
       },
       { audio: true },
     ];
+    let lastErr = null;
     for (const audio of constraints) {
       try {
         if (!this.stream?.active) {
+          if (this.stream) {
+            this.stream.getTracks().forEach((t) => t.stop());
+            this.stream = null;
+          }
           this.stream = await navigator.mediaDevices.getUserMedia(audio);
+          this._trackEndedBound = false;
         }
         await this._ensureAnalyser();
+        this._bindTrackLifecycle();
         this.unlocked = true;
+        this.mode = "browser";
         return true;
       } catch (err) {
+        lastErr = err;
         if (this.stream) {
           this.stream.getTracks().forEach((t) => t.stop());
           this.stream = null;
         }
+        this._trackEndedBound = false;
       }
     }
+    console.warn("LunaMic unlock:", lastErr);
     this.onError("Allow microphone access — tap 🎤 then Allow in the popup.");
     return false;
   }
@@ -104,7 +165,6 @@ export class LunaMic {
     else if (this.enabled && !this.busy) this._startMonitor();
   }
 
-  /** sensitivity 0–100: higher = catches quieter speech; lower hold = faster replies */
   applySensitivity(sensitivity = 52) {
     const s = Math.max(0, Math.min(100, Number(sensitivity) || 52));
     const gain = 0.55 + s / 100;
@@ -145,6 +205,7 @@ export class LunaMic {
       this.stream.getTracks().forEach((t) => t.stop());
       this.stream = null;
     }
+    this._trackEndedBound = false;
     this.unlocked = false;
   }
 
@@ -177,11 +238,11 @@ export class LunaMic {
 
   async _startMonitor() {
     if (!this.enabled || this.paused || this.busy) return;
-    if (!this.unlocked) {
+    if (!this.unlocked || !this.stream?.active) {
       const ok = await this.unlock();
       if (!ok) return;
     }
-    this.mode = "server";
+    this.mode = "browser";
     this.onStatus("listening");
     this._stopMonitor();
 
@@ -195,11 +256,7 @@ export class LunaMic {
 
     const beginRecord = () => {
       if (recording || !this.stream?.active) return;
-      mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : "";
+      mime = this._pickMime();
       try {
         this.recorder = mime
           ? new MediaRecorder(this.stream, { mimeType: mime, audioBitsPerSecond: 128000 })
@@ -232,6 +289,8 @@ export class LunaMic {
         if (hadSpeechDuringRecord || blob.size > 900) {
           this.onStatus("hearing...");
           await this._transcribeBlob(blob);
+        } else {
+          this.onStatus("no-speech");
         }
         if (this.enabled && !this.paused && !this.busy) this.onStatus("listening");
       };
@@ -241,6 +300,7 @@ export class LunaMic {
       } catch {
         recording = false;
         this.recorder = null;
+        this.onError("Could not start microphone recording.");
       }
     };
 
@@ -255,7 +315,10 @@ export class LunaMic {
 
     this.monitorTimer = setInterval(() => {
       if (!this.enabled || this.paused || this.busy) return;
-      if (!this.stream?.active) return;
+      if (!this.stream?.active) {
+        this.onStatus("mic-retry");
+        return;
+      }
 
       const now = Date.now();
       if (now < warmupUntil) return;
@@ -286,36 +349,6 @@ export class LunaMic {
 
       if (recording && now - recordStarted >= this.maxRecordMs) endRecord();
     }, this.monitorIntervalMs);
-  }
-
-  async _analyzeBlob(blob) {
-    if (!blob || blob.size < 280) {
-      return { hasSpeech: false, rms: 0, peak: 0 };
-    }
-    const ctx = new AudioContext();
-    try {
-      const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
-      const samples = buf.getChannelData(0);
-      if (!samples.length) return { hasSpeech: false, rms: 0, peak: 0 };
-
-      let peak = 0;
-      let sumSq = 0;
-      const step = Math.max(1, Math.floor(samples.length / 12000));
-      let count = 0;
-      for (let i = 0; i < samples.length; i += step) {
-        const a = Math.abs(samples[i]);
-        if (a > peak) peak = a;
-        sumSq += samples[i] * samples[i];
-        count++;
-      }
-      const rms = Math.sqrt(sumSq / Math.max(1, count));
-      const hasSpeech = peak >= this.minSpeechPeak * 0.85 || rms >= this.minSpeechRms * 0.85;
-      return { hasSpeech, rms, peak };
-    } catch {
-      return { hasSpeech: blob.size > 900, rms: 0, peak: 0 };
-    } finally {
-      ctx.close().catch(() => {});
-    }
   }
 
   async _blobToWav(blob) {
@@ -356,22 +389,43 @@ export class LunaMic {
     }
   }
 
+  async _prepareUploadBlob(blob) {
+    const preferWav = this._isIOS() || blob.type.includes("mp4") || !blob.type.includes("webm");
+    if (!preferWav) return { blob, name: "luna.webm" };
+    try {
+      return { blob: await this._blobToWav(blob), name: "luna.wav" };
+    } catch (err) {
+      console.warn("LunaMic wav convert:", err);
+      return { blob, name: blob.type.includes("mp4") ? "luna.mp4" : "luna.webm" };
+    }
+  }
+
   async _transcribeBlob(blob) {
     try {
+      let { blob: upload, name } = await this._prepareUploadBlob(blob);
       const form = new FormData();
-      form.append("file", blob, blob.type.includes("wav") ? "luna.wav" : "luna.webm");
-      const res = await fetch("/api/transcribe-file", {
-        method: "POST",
-        body: form,
-      });
-      const data = await res.json().catch(() => ({}));
+      form.append("file", upload, name);
+      let res = await fetch("/api/transcribe-file", { method: "POST", body: form });
+      let data = await res.json().catch(() => ({}));
+      if (!res.ok && name !== "luna.wav") {
+        const wavPack = await this._prepareUploadBlob(blob);
+        if (wavPack.name === "luna.wav") {
+          const form2 = new FormData();
+          form2.append("file", wavPack.blob, wavPack.name);
+          res = await fetch("/api/transcribe-file", { method: "POST", body: form2 });
+          data = await res.json().catch(() => ({}));
+        }
+      }
       if (!res.ok) throw new Error(data.detail || "Transcribe failed");
       const text = (data.text || "").trim();
-      if (text.length >= 2) this.onText(text);
-      else this.onStatus("listening");
+      if (text.length >= 2) {
+        this.onText(text);
+      } else {
+        this.onStatus("no-speech");
+      }
     } catch (err) {
       console.warn("LunaMic:", err);
-      this.onStatus("listening");
+      this.onStatus("no-speech");
     }
   }
 }

@@ -696,6 +696,53 @@
     .status-pill.ok { color: #86efac; border-color: rgba(134,239,172,0.35); }
     .status-pill.busy { color: var(--accent); border-color: rgba(201,168,124,0.45); }
     .status-pill.err { color: #fca5a5; border-color: rgba(248,113,113,0.35); }
+    .brand-sub { color: var(--muted); font-weight: 500; }
+    .mobile-action-dock {
+      display: none;
+      flex-shrink: 0;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.3rem;
+      padding: 0.38rem max(0.4rem, var(--safe-l)) 0.32rem max(0.4rem, var(--safe-r));
+      border-top: 1px solid var(--border);
+      background: rgba(12, 15, 26, 0.98);
+    }
+    .mobile-action-dock .dock-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.12rem;
+      min-height: 2.85rem;
+      padding: 0.32rem 0.15rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 11px;
+      background: rgba(22, 26, 40, 0.92);
+      color: var(--text);
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .mobile-action-dock .dock-btn .dock-icon { font-size: 1.05rem; line-height: 1; }
+    .mobile-action-dock .dock-btn .dock-label {
+      font-size: 0.52rem;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+      text-align: center;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .mobile-action-dock .dock-btn.active,
+    .mobile-action-dock .dock-btn.mic-on {
+      border-color: rgba(134, 239, 172, 0.55);
+      box-shadow: 0 0 10px rgba(134, 239, 172, 0.2);
+    }
+    .mobile-action-dock .dock-btn.voice-on {
+      border-color: rgba(201, 168, 124, 0.55);
+    }
+    .mobile-action-dock .dock-sensual { display: none; }
+    body.web-cloud.sensual-on .mobile-action-dock .dock-sensual { display: flex; }
     .mobile-tabs {
       display: none;
       flex-shrink: 0;
@@ -715,6 +762,19 @@
     .mobile-tabs button.active { color: var(--accent); border-top: 2px solid var(--accent); margin-top: -1px; }
     @media (max-width: 860px) {
       :root { --stage-max-w: 360px; --stage-max-h: 540px; }
+      body.web-cloud {
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
+      }
+      body.web-cloud .mobile-action-dock { display: grid; }
+      body.web-cloud .hdr-btns { display: none !important; }
+      body.web-cloud .brand { max-width: none; font-size: 0.88rem; }
+      body.web-cloud .brand-sub { display: none; }
+      body.web-cloud header {
+        padding: 0.45rem max(0.5rem, var(--safe-r)) 0.45rem max(0.5rem, var(--safe-l));
+      }
+      body.web-cloud .mobile-feel-bar { display: none !important; }
+      body.web-cloud .luna-quick-chips { bottom: 0.35rem; }
+      body.web-cloud .touch-sense-box { bottom: 0.25rem; }
       .main { grid-template-columns: 1fr; }
       .main.show-chat .avatar-wrap { display: none; }
       .main.show-avatar .chat { display: none; }
@@ -1708,8 +1768,6 @@
       body.web-cloud .hdr-btns .btn { padding: 0.38rem 0.55rem; font-size: 0.72rem; }
       body.web-cloud #bliss-btn,
       body.web-cloud #dream-btn { padding: 0.38rem 0.6rem; }
-      body.web-cloud #bliss-btn,
-      body.web-cloud #dream-btn { display: inline-flex !important; }
     }
     body.web-cloud.luna-canvas-mode .luna-video-motion {
       visibility: hidden;
@@ -2244,7 +2302,15 @@
       pointer-events: auto;
       text-align: center;
     }
-    body.desktop-pet .pet-hear-banner.visible { display: flex; }
+    body.desktop-pet .pet-hear-banner.visible,
+    body.web-cloud.phone-client .pet-hear-banner.visible,
+    body.web-cloud.portrait-layout .pet-hear-banner.visible { display: flex; }
+    body.web-cloud .pet-hear-banner {
+      bottom: calc(6.2rem + var(--safe-b));
+      left: max(0.45rem, var(--safe-l));
+      right: max(0.45rem, var(--safe-r));
+      z-index: 90;
+    }
     .pet-hear-banner button {
       width: 100%;
       padding: 0.7rem 1rem;
@@ -2843,7 +2909,7 @@
     <button type="button" id="phone-install-dismiss" title="Dismiss">✕</button>
   </div>
   <header>
-    <div class="brand"><span>Luna</span> — Virtual Assistant</div>
+    <div class="brand"><span>Luna</span><span class="brand-sub"> — Virtual Assistant</span></div>
     <div class="hdr-btns">
       <button class="btn hidden" id="install-btn">Install</button>
       <button class="btn" id="desktop-btn" title="Float on desktop">🪟</button>
@@ -3157,8 +3223,8 @@
   </div>
 
   <div class="pet-hear-banner" id="pet-hear-banner" aria-live="polite">
-    <button type="button" id="pet-hear-btn">🎤 Tap so Luna can hear you</button>
-    <span>Your assistant is listening-ready — click <strong>Allow</strong> when Windows asks</span>
+    <button type="button" id="pet-hear-btn">🎤 Tap — allow microphone</button>
+    <span id="pet-hear-hint">Tap above, then tap <strong>Allow</strong> so Luna can hear you.</span>
   </div>
   <button type="button" class="pet-settings-fab" id="pet-settings-fab" title="Open Luna settings (Ctrl+,)">⚙️ Settings</button>
 
@@ -3214,15 +3280,27 @@
     <button type="button" class="btn" id="mobile-feel-btn" title="Warm feel">💗</button>
   </div>
 
+  <nav class="mobile-action-dock" id="mobile-action-dock" aria-label="Luna controls">
+    <button type="button" class="dock-btn" id="dock-mic" title="Listen"><span class="dock-icon">🎤</span><span class="dock-label">Listen</span></button>
+    <button type="button" class="dock-btn" id="dock-voice" title="Voice"><span class="dock-icon">🔊</span><span class="dock-label">Voice</span></button>
+    <button type="button" class="dock-btn" id="dock-chill" title="Assistant"><span class="dock-icon">🧊</span><span class="dock-label">Assist</span></button>
+    <button type="button" class="dock-btn" id="dock-succubus" title="Succubus"><span class="dock-icon">😈</span><span class="dock-label">Succubus</span></button>
+    <button type="button" class="dock-btn" id="dock-cam" title="Camera"><span class="dock-icon">📷</span><span class="dock-label">See</span></button>
+    <button type="button" class="dock-btn" id="dock-feel" title="Feel"><span class="dock-icon">💗</span><span class="dock-label">Feel</span></button>
+    <button type="button" class="dock-btn dock-sensual" id="dock-glow" title="Glow"><span class="dock-icon">🌸</span><span class="dock-label">Glow</span></button>
+    <button type="button" class="dock-btn dock-sensual" id="dock-peak" title="Peak"><span class="dock-icon">✨</span><span class="dock-label">Peak</span></button>
+    <button type="button" class="dock-btn" id="dock-options" title="Settings"><span class="dock-icon">⚙️</span><span class="dock-label">Settings</span></button>
+  </nav>
+
   <nav class="mobile-tabs">
     <button type="button" class="active" data-view="avatar">Avatar</button>
     <button type="button" data-view="chat">Chat</button>
   </nav>
 
   <script type="module">
-    import { LunaMic } from "/static/luna-mic.mjs?v=95";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=95";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=95";
+    import { LunaMic } from "/static/luna-mic.mjs?v=96";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=96";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=96";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3610,7 +3688,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=95",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=96",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -4188,6 +4266,7 @@
           : "Succubus mode — seductive, uninhibited, glow & peak";
       }
       if (mobileSucc) mobileSucc.classList.toggle("active", on);
+      syncMobileDockUi();
       const sensualOpt = document.getElementById("opt-sensual");
       if (sensualOpt) {
         sensualOpt.checked = on;
@@ -5248,6 +5327,68 @@
         mobileMute.textContent = icon;
         mobileMute.classList.toggle("active", on);
       }
+      syncMobileDockUi();
+    }
+
+    function syncMobileDockUi() {
+      const on = settings.alwaysListen && alwaysListening;
+      const voiceOn = settings.autoSpeak && !muted && !isVoiceExplicitlyOff();
+      const sensual = isSensualMode();
+      document.getElementById("dock-mic")?.classList.toggle("mic-on", on);
+      document.getElementById("dock-voice")?.classList.toggle("voice-on", voiceOn);
+      const voiceIcon = document.querySelector("#dock-voice .dock-icon");
+      if (voiceIcon) voiceIcon.textContent = voiceOn ? "🔊" : "🔇";
+      document.getElementById("dock-chill")?.classList.toggle("active", !sensual);
+      document.getElementById("dock-succubus")?.classList.toggle("active", sensual);
+      document.getElementById("dock-cam")?.classList.toggle("active", !!settings.webcamWatch);
+      document.getElementById("dock-feel")?.classList.toggle("active", document.body.classList.contains("warm-feel"));
+    }
+
+    function setupMobileDock() {
+      if (window.__lunaMobileDockBound) return;
+      window.__lunaMobileDockBound = true;
+      const proxy = (dockId, targetId, before) => {
+        document.getElementById(dockId)?.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (before) await before();
+          document.getElementById(targetId)?.click();
+          syncMobileDockUi();
+        });
+      };
+      proxy("dock-mic", "mic-btn", () => enableLunaVoice());
+      proxy("dock-voice", "mobile-mute-btn");
+      proxy("dock-chill", "chill-btn");
+      proxy("dock-succubus", "succubus-btn");
+      proxy("dock-cam", "cam-btn");
+      proxy("dock-feel", "feel-btn");
+      proxy("dock-glow", "bliss-btn");
+      proxy("dock-peak", "dream-btn");
+      document.getElementById("dock-options")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleOptions(true);
+      });
+      syncMobileDockUi();
+    }
+
+    async function retryMicAccess() {
+      await enableLunaVoice();
+      lunaMic?.resetForRetry?.();
+      settings.alwaysListen = true;
+      const listenOpt = document.getElementById("opt-listen");
+      if (listenOpt) listenOpt.checked = true;
+      saveSettings();
+      await startAlwaysListen();
+      if (alwaysListening) {
+        hidePetHearBanner();
+        showToast("I'm listening — say something.");
+        showLunaCaption("I can hear you now — talk to me.");
+      } else {
+        showPetHearBanner();
+        showToast("Tap Allow when your phone asks for the microphone.");
+      }
+      syncMobileDockUi();
     }
 
     async function enableLunaVoice() {
@@ -5930,7 +6071,8 @@
       document.getElementById("pet-hear-btn")?.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        await enablePetHearing();
+        if (isPetMode()) await enablePetHearing();
+        else await retryMicAccess();
       });
       document.getElementById("pet-btn-opts")?.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -6225,7 +6367,9 @@
       const tabs = document.querySelector(".mobile-tabs");
       const banner = document.getElementById("phone-install-banner");
       let chrome = 0;
+      const dock = document.getElementById("mobile-action-dock");
       if (header) chrome += header.getBoundingClientRect().height;
+      if (dock && getComputedStyle(dock).display !== "none") chrome += dock.getBoundingClientRect().height;
       if (tabs && getComputedStyle(tabs).display !== "none") chrome += tabs.getBoundingClientRect().height;
       if (banner?.classList.contains("visible")) chrome += banner.getBoundingClientRect().height;
       document.documentElement.style.setProperty("--chrome-v", `${chrome + parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-t")) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-b"))}px`);
@@ -6251,10 +6395,12 @@
       }
       const header = document.querySelector("header");
       const tabs = document.querySelector(".mobile-tabs");
+      const dock = document.getElementById("mobile-action-dock");
       if (typeof ResizeObserver !== "undefined") {
         const ro = new ResizeObserver(() => updateResponsiveChrome());
         if (header) ro.observe(header);
         if (tabs) ro.observe(tabs);
+        if (dock) ro.observe(dock);
       }
     }
 
@@ -8724,10 +8870,19 @@
       if (isPublicWebVisit() && !busy && !lunaSpeaking) {
         setLunaAvatarState(on ? "listen" : "idle");
       }
+      syncMobileDockUi();
     }
 
     function showPetHearBanner() {
-      if (!isPetMode() || (settings.alwaysListen && alwaysListening)) return;
+      if (settings.alwaysListen && alwaysListening) return;
+      const showOnWeb = isPublicWebVisit() && isMobile() && !isPetMode();
+      if (!isPetMode() && !showOnWeb) return;
+      const hint = document.getElementById("pet-hear-hint");
+      if (hint) {
+        hint.innerHTML = isPetMode()
+          ? "Click <strong>Allow</strong> when Windows asks."
+          : "Tap <strong>Allow</strong> when your phone asks for the microphone.";
+      }
       document.getElementById("pet-hear-banner")?.classList.add("visible");
     }
 
@@ -8762,12 +8917,23 @@
       if (!ok) {
         alwaysListening = false;
         updateMicUi();
+        syncMobileDockUi();
         showPetHearBanner();
+        if (isMobile()) {
+          showToast("Microphone blocked — tap 🎤 and Allow.");
+          showLunaCaption("Tap 🎤 below and allow the microphone so I can hear you.");
+        }
         return;
       }
       await lunaMic.setEnabled(true);
-      alwaysListening = true;
+      alwaysListening = lunaMic.enabled && lunaMic.unlocked;
+      if (!alwaysListening) {
+        showPetHearBanner();
+        syncMobileDockUi();
+        return;
+      }
       updateMicUi();
+      syncMobileDockUi();
       updatePetToolbar();
       hidePetHearBanner();
       setSenseField("hear");
@@ -9219,9 +9385,14 @@
       if (micSetup) return;
       micSetup = true;
 
+      setupMobileDock();
+
       lunaMic = new LunaMic({
         onText: (text) => {
-          if (!isValidUserTranscript(text)) return;
+          if (!isValidUserTranscript(text)) {
+            if (busy || lunaSpeaking) showToast("One sec — still talking…");
+            return;
+          }
           if (head) {
             head.setMood("happy");
             head.makeEyeContact(2500);
@@ -9232,29 +9403,37 @@
           if (status === "hearing..." || status === "listening") {
             setSenseField("hear");
             setStatus(status === "hearing..." ? "hearing you..." : "listening", "hearing");
+          } else if (status === "no-speech") {
+            showToast("Didn't catch that — try again.");
+          } else if (status === "mic-retry") {
+            showPetHearBanner();
           }
         },
         onError: async (msg) => {
           if (!micPromptShown) {
             micPromptShown = true;
-            showToast("Tap 🎤 and Allow — or Luna will try server hearing.");
+            showToast(msg || "Tap 🎤 and Allow microphone access.");
           }
-          const ok = await serverHearFallback(14);
-          if (ok) {
-            alwaysListening = true;
-            settings.alwaysListen = true;
-            document.getElementById("opt-listen").checked = true;
-            saveSettings();
-            updateMicUi();
-            hidePetHearBanner();
-            return;
+          if (!isMobile() && !isPetMode()) {
+            const ok = await serverHearFallback(14);
+            if (ok) {
+              alwaysListening = true;
+              settings.alwaysListen = true;
+              document.getElementById("opt-listen").checked = true;
+              saveSettings();
+              updateMicUi();
+              syncMobileDockUi();
+              hidePetHearBanner();
+              return;
+            }
           }
-          settings.alwaysListen = false;
-          document.getElementById("opt-listen").checked = false;
-          saveSettings();
           alwaysListening = false;
           updateMicUi();
+          syncMobileDockUi();
           showPetHearBanner();
+          if (isMobile()) {
+            showLunaCaption("Tap 🎤 in the bar below — then Allow microphone.");
+          }
         },
       });
       applyMicSensitivity();

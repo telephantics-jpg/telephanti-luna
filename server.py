@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "95"
+LUNA_BUILD = "96"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2186,6 +2186,10 @@ async def transcribe_file(file: UploadFile = File(...)):
         suffix = ".wav"
     elif file.content_type and "ogg" in file.content_type:
         suffix = ".ogg"
+    elif file.content_type and ("mp4" in file.content_type or "m4a" in file.content_type):
+        suffix = ".mp4"
+    elif file.filename and file.filename.lower().endswith(".mp4"):
+        suffix = ".mp4"
 
     with tempfile.TemporaryDirectory() as tmp:
         src = Path(tmp) / f"audio{suffix}"

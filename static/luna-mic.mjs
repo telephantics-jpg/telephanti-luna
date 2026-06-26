@@ -7,6 +7,7 @@ export class LunaMic {
     this.onText = opts.onText;
     this.onStatus = opts.onStatus || (() => {});
     this.onError = opts.onError || (() => {});
+    this.onLevel = opts.onLevel || (() => {});
     this.enabled = false;
     this.paused = false;
     this.busy = false;
@@ -327,6 +328,8 @@ export class LunaMic {
       const speaking =
         peak >= this.minSpeechPeak ||
         rms >= this.minSpeechRms;
+
+      this.onLevel(rms, peak, speaking);
 
       if (speaking) {
         lastSpeechAt = now;

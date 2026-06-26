@@ -1814,6 +1814,45 @@
     body.luna-state-speak .luna-hud-orb { background: #c9a87c; }
     body.luna-state-flirt .luna-hud-orb,
     body.luna-state-touch .luna-hud-orb { background: #fb7185; box-shadow: 0 0 14px rgba(251,113,133,0.75); }
+    .luna-memory-thread {
+      display: none;
+      position: absolute;
+      top: 2.85rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 12;
+      max-width: min(92%, 300px);
+      padding: 0.34rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.62rem;
+      line-height: 1.35;
+      color: #d8c4ff;
+      background: rgba(18, 14, 32, 0.9);
+      border: 1px solid rgba(196, 181, 253, 0.32);
+      pointer-events: none;
+      text-align: center;
+      transition: opacity 0.35s;
+    }
+    .luna-memory-thread.visible { display: block; }
+    .luna-memory-thread::before { content: "✦ "; opacity: 0.85; }
+    .luna-listen-ring {
+      position: absolute;
+      inset: -3px;
+      border-radius: 22px;
+      pointer-events: none;
+      z-index: 8;
+      opacity: 0;
+      border: 2px solid rgba(134, 239, 172, 0.45);
+      transition: opacity 0.2s;
+    }
+    body.mic-hearing .luna-listen-ring {
+      opacity: 1;
+      animation: listen-ring-pulse 1.15s ease-in-out infinite;
+    }
+    @keyframes listen-ring-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(134, 239, 172, 0.38); transform: scale(1); }
+      50% { box-shadow: 0 0 0 10px rgba(134, 239, 172, 0); transform: scale(1.004); }
+    }
     @keyframes hud-orb-pulse {
       0%, 100% { transform: scale(1); opacity: 0.9; }
       50% { transform: scale(1.2); opacity: 1; }
@@ -2303,10 +2342,17 @@
       text-align: center;
     }
     body.desktop-pet .pet-hear-banner.visible,
-    body.web-cloud.phone-client .pet-hear-banner.visible,
-    body.web-cloud.portrait-layout .pet-hear-banner.visible { display: flex; }
+    body.web-cloud .pet-hear-banner.visible { display: flex; }
     body.web-cloud .pet-hear-banner {
-      bottom: calc(6.2rem + var(--safe-b));
+      bottom: 1.15rem;
+    }
+    @media (max-width: 860px) {
+      body.web-cloud .pet-hear-banner {
+        bottom: calc(6.2rem + var(--safe-b));
+      }
+    }
+    body.web-cloud.phone-client .pet-hear-banner,
+    body.web-cloud.portrait-layout .pet-hear-banner {
       left: max(0.45rem, var(--safe-l));
       right: max(0.45rem, var(--safe-r));
       z-index: 90;
@@ -2960,7 +3006,9 @@
             <span class="luna-hud-status" id="luna-hud-status">Luna · online</span>
             <span class="luna-hud-mood" id="luna-hud-mood">✨</span>
           </div>
+          <div class="luna-memory-thread" id="luna-memory-thread" aria-live="polite"></div>
           <div class="luna-video-wrap" id="luna-video-wrap">
+            <div class="luna-listen-ring" id="luna-listen-ring" aria-hidden="true"></div>
             <div class="luna-video-badge" id="luna-video-badge" aria-hidden="true">
               <span class="live-dot"></span><span>Live video</span>
             </div>
@@ -3298,9 +3346,9 @@
   </nav>
 
   <script type="module">
-    import { LunaMic } from "/static/luna-mic.mjs?v=96";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=96";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=96";
+    import { LunaMic } from "/static/luna-mic.mjs?v=97";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=97";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=97";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3688,7 +3736,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=96",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=97",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -4334,7 +4382,9 @@
       updateWebSensualUi();
       startTouchSense();
       setupWebAvatarClicks();
+      setupMic();
       bindGlobalAudioUnlock();
+      bindPersistentMicUnlock();
       bindMobileAudioRecovery();
       bindResponsiveChrome();
       bindLunaVideoTap();
@@ -4371,23 +4421,52 @@
     function bindGlobalAudioUnlock() {
       if (window.__lunaAudioUnlockBound) return;
       window.__lunaAudioUnlockBound = true;
-      const unlock = async () => {
+      const unlockVoiceOnce = async () => {
         await ensureMobileAudioCtx().catch(() => {});
         const voiceOk = await enableLunaVoice();
         if (isPublicWebVisit() && !isPetMode()) {
           await livePortrait?.ensurePlaying?.().catch(() => {});
-          await ensureWebHear();
           if (!voiceWelcomed && voiceOk) {
             voiceWelcomed = true;
             speakText("Hi — I'm Luna. Talk to me anytime.", "happy");
           }
-        } else if (isPublicWebVisit()) {
-          await ensureWebHear();
         }
       };
-      document.addEventListener("pointerdown", unlock, { once: true, capture: true });
-      document.addEventListener("touchstart", unlock, { once: true, capture: true });
-      document.addEventListener("keydown", unlock, { once: true, capture: true });
+      document.addEventListener("pointerdown", unlockVoiceOnce, { once: true, capture: true });
+      document.addEventListener("touchstart", unlockVoiceOnce, { once: true, capture: true });
+      document.addEventListener("keydown", unlockVoiceOnce, { once: true, capture: true });
+    }
+
+    function bindPersistentMicUnlock() {
+      if (window.__lunaMicUnlockBound) return;
+      window.__lunaMicUnlockBound = true;
+      let micTryTimer = null;
+      const tryEnableMic = async () => {
+        if (!settings.alwaysListen || alwaysListening || micPaused) return;
+        if (!lunaMic) setupMic();
+        if (!lunaMic) return;
+        await startAlwaysListen();
+      };
+      const scheduleTry = () => {
+        clearTimeout(micTryTimer);
+        micTryTimer = setTimeout(tryEnableMic, 40);
+      };
+      document.addEventListener("pointerdown", scheduleTry, { capture: true });
+      document.addEventListener("keydown", scheduleTry, { capture: true });
+    }
+
+    function updateMemoryThread(text) {
+      const el = document.getElementById("luna-memory-thread");
+      if (!el || !isPublicWebVisit() || isPetMode()) return;
+      const trimmed = (text || "").trim();
+      if (trimmed.length < 6) return;
+      const snippet = trimmed.length > 52 ? `${trimmed.slice(0, 52)}…` : trimmed;
+      el.textContent = `holding: ${snippet}`;
+      el.classList.add("visible");
+    }
+
+    function setMicHearingVisual(on) {
+      document.body.classList.toggle("mic-hearing", !!on);
     }
 
     async function playAudioB64(b64) {
@@ -8875,13 +8954,15 @@
 
     function showPetHearBanner() {
       if (settings.alwaysListen && alwaysListening) return;
-      const showOnWeb = isPublicWebVisit() && isMobile() && !isPetMode();
+      const showOnWeb = isPublicWebVisit() && !isPetMode();
       if (!isPetMode() && !showOnWeb) return;
       const hint = document.getElementById("pet-hear-hint");
       if (hint) {
         hint.innerHTML = isPetMode()
           ? "Click <strong>Allow</strong> when Windows asks."
-          : "Tap <strong>Allow</strong> when your phone asks for the microphone.";
+          : isMobile()
+            ? "Tap <strong>Allow</strong> when your phone asks for the microphone."
+            : "Click <strong>Allow</strong> in the browser popup when it appears.";
       }
       document.getElementById("pet-hear-banner")?.classList.add("visible");
     }
@@ -8922,6 +9003,9 @@
         if (isMobile()) {
           showToast("Microphone blocked — tap 🎤 and Allow.");
           showLunaCaption("Tap 🎤 below and allow the microphone so I can hear you.");
+        } else {
+          showToast("Click 🎤 in the header and Allow microphone access.");
+          showLunaCaption("Click 🎤 — then Allow — so I can hear you on your PC.");
         }
         return;
       }
@@ -8943,6 +9027,7 @@
     function stopAlwaysListen() {
       alwaysListening = false;
       lunaMic?.setEnabled(false);
+      setMicHearingVisual(false);
       updateMicUi();
       if (!busy) setStatus("online", "ok");
     }
@@ -8960,6 +9045,7 @@
         setSenseField("hear");
         addMsg("user", trimmed, { heard: true });
         history.push({ role: "user", content: trimmed });
+        updateMemoryThread(trimmed);
         saveSettings();
         if (isPetMode()) {
           const heard = trimmed.length > 72 ? `${trimmed.slice(0, 72)}…` : trimmed;
@@ -9388,6 +9474,13 @@
       setupMobileDock();
 
       lunaMic = new LunaMic({
+        onLevel: (rms, peak, speaking) => {
+          if (!alwaysListening) {
+            setMicHearingVisual(false);
+            return;
+          }
+          setMicHearingVisual(speaking || peak >= 0.012 || rms >= 0.004);
+        },
         onText: (text) => {
           if (!isValidUserTranscript(text)) {
             if (busy || lunaSpeaking) showToast("One sec — still talking…");
@@ -9566,12 +9659,17 @@
         await refreshLipsyncCapability();
         document.getElementById("cam-btn")?.classList.toggle("active", settings.webcamWatch && !!webcamStream);
         if (settings.webcamWatch && !webcamStream) startWebcam().catch(() => {});
-        setTimeout(() => ensureWebHear().catch(() => {}), 800);
+        setTimeout(() => {
+          if (settings.alwaysListen && !alwaysListening) showPetHearBanner();
+        }, 1800);
         if (!sessionStorage.getItem("luna-web-audio-hint")) {
           sessionStorage.setItem("luna-web-audio-hint", "1");
           applyVoicePrefFromStorage();
           const lipHint = lipsyncAvailable ? " Lip-sync when she talks." : "";
-          showToast(`Voice is on — tap once anywhere to hear me, then 🎤 to talk.${lipHint}`);
+          const micHint = isMobile()
+            ? " Tap 🎤 in the bar to talk."
+            : " Click 🎤 in the header to talk.";
+          showToast(`Voice is on — click once anywhere to hear me.${micHint}${lipHint}`);
         }
         return;
       }
@@ -9921,6 +10019,7 @@
       if (!voiceSubmitPending) {
         addMsg("user", text);
         history.push({ role: "user", content: text });
+        updateMemoryThread(text);
         saveSettings();
       } else {
         voiceSubmitPending = false;

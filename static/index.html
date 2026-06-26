@@ -1444,6 +1444,16 @@
       border-color: rgba(251, 113, 133, 0.75);
       box-shadow: 0 0 16px rgba(251, 113, 133, 0.4);
     }
+    #pet-audio {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0.02;
+      pointer-events: none;
+      z-index: 2147483646;
+    }
     @media (max-width: 860px) {
       body.web-cloud .brand { font-size: 0.82rem; max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       body.web-cloud #desktop-btn,
@@ -2879,7 +2889,7 @@
     </div>
   </div>
 
-  <audio id="pet-audio" preload="auto" playsinline webkit-playsinline style="display:none"></audio>
+  <audio id="pet-audio" preload="auto" playsinline webkit-playsinline x-webkit-airplay="allow"></audio>
   <video id="webcam-capture" muted playsinline autoplay aria-hidden="true" style="position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1"></video>
 
   <div class="luna-see-box loading" id="luna-see-box" title="Luna's surroundings">
@@ -2962,8 +2972,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=90";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=90";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=91";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=91";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3099,6 +3109,8 @@
     let voiceWarmed = false;
     let petHtmlAudioReady = false;
     let petAudioBlobUrl = null;
+    let mobileAudioCtx = null;
+    let mobileAudioSource = null;
     let desktopEnv = null;
     let lastDesktopEnvKey = "";
     let envLifeTimer = null;
@@ -3347,7 +3359,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=90",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=91",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3993,6 +4005,7 @@
       startTouchSense();
       setupWebAvatarClicks();
       bindGlobalAudioUnlock();
+      bindMobileAudioRecovery();
       bindLunaVideoTap();
       initLivePortrait().catch(() => {});
       startWebAssistantLife();
@@ -4255,6 +4268,7 @@
     function setupPhoneClient() {
       if (!isPhoneClient()) return;
       document.body.classList.add("phone-client");
+      bindMobileAudioRecovery();
       const banner = document.getElementById("phone-install-banner");
       if (banner && !localStorage.getItem("luna-phone-banner-dismissed")) {
         banner.classList.add("visible");
@@ -4573,11 +4587,93 @@
     }
 
     function stopPetHtmlAudio() {
+      stopMobileAudio();
       const el = getPetAudioEl();
       if (!el) return;
       el.pause();
       el.currentTime = 0;
       revokePetAudioUrl();
+    }
+
+    function stopMobileAudio() {
+      try {
+        if (mobileAudioSource) {
+          mobileAudioSource.stop();
+          mobileAudioSource.disconnect();
+        }
+      } catch { /* ignore */ }
+      mobileAudioSource = null;
+    }
+
+    async function ensureMobileAudioCtx() {
+      if (!isMobile()) return null;
+      try {
+        if (!mobileAudioCtx || mobileAudioCtx.state === "closed") {
+          mobileAudioCtx = new AudioContext();
+        }
+        if (mobileAudioCtx.state === "suspended" || mobileAudioCtx.state === "interrupted") {
+          await mobileAudioCtx.resume();
+        }
+        return mobileAudioCtx;
+      } catch (err) {
+        console.warn("Mobile AudioContext:", err);
+        return null;
+      }
+    }
+
+    async function playMobileAudioB64(b64) {
+      const ctx = await ensureMobileAudioCtx();
+      if (!ctx) throw new Error("Mobile audio unavailable");
+      stopMobileAudio();
+      const raw = b64ToArrayBuffer(b64);
+      const buf = await ctx.decodeAudioData(raw.slice(0));
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      mobileAudioSource = src;
+      livePortrait?.setSpeaking?.(true);
+      lunaSpeakVideo?.setSpeaking?.(true);
+      return new Promise((resolve, reject) => {
+        src.onended = () => {
+          mobileAudioSource = null;
+          livePortrait?.setSpeaking?.(false);
+          lunaSpeakVideo?.setSpeaking?.(false);
+          resolve();
+        };
+        try {
+          src.start(0);
+        } catch (err) {
+          mobileAudioSource = null;
+          livePortrait?.setSpeaking?.(false);
+          lunaSpeakVideo?.setSpeaking?.(false);
+          reject(err);
+        }
+      });
+    }
+
+    function bindMobileAudioRecovery() {
+      if (window.__lunaMobileAudioBound || !isMobile()) return;
+      window.__lunaMobileAudioBound = true;
+      let resizeTimer = null;
+      const recover = async () => {
+        await ensureMobileAudioCtx();
+        await resumePortraitAudioCtx();
+        await livePortrait?.resumeAudio?.();
+        await lunaSpeakVideo?.resumeAudio?.();
+        const el = getPetAudioEl();
+        if (el) {
+          el.muted = false;
+          el.volume = 1;
+        }
+      };
+      window.addEventListener("orientationchange", () => setTimeout(recover, 80));
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(recover, 160);
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) recover();
+      });
     }
 
     function setPetLipsyncOnly(on) {
@@ -4791,9 +4887,17 @@
     }
 
     async function playPetAudioB64(b64) {
+      await resumePortraitAudioCtx();
+      await ensureMobileAudioCtx();
+      if (isMobile()) {
+        try {
+          return await playMobileAudioB64(b64);
+        } catch (mobileErr) {
+          console.warn("Mobile WebAudio playback, trying element:", mobileErr);
+        }
+      }
       const el = getPetAudioEl();
       if (!el) throw new Error("No pet audio element");
-      await resumePortraitAudioCtx();
       if (!petHtmlAudioReady) await primePetHtmlAudio();
       stopPetHtmlAudio();
       const bytes = new Uint8Array(b64ToArrayBuffer(b64));
@@ -4943,10 +5047,11 @@
           if (isPetMode()) setPetLipsyncOnly(true);
         }
         await resumePortraitAudioCtx();
+        await ensureMobileAudioCtx();
         const primed = await primePetHtmlAudio();
         await livePortrait?.resumeAudio?.();
         await lunaSpeakVideo?.resumeAudio?.();
-        voiceUnlocked = primed;
+        voiceUnlocked = primed || !!mobileAudioCtx;
         if (primed) warmVoice();
         return primed;
       } catch (err) {

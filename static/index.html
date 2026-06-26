@@ -21,6 +21,15 @@
       --border: rgba(255,255,255,0.08);
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-t: env(safe-area-inset-top, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+      --hdr-h: 3.15rem;
+      --tabs-h: 2.55rem;
+      --chrome-v: calc(var(--hdr-h) + var(--tabs-h) + var(--safe-t) + var(--safe-b));
+      --stage-max-w: 400px;
+      --stage-max-h: 620px;
+      --flash-x: 50%;
+      --flash-y: 50%;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; }
@@ -29,9 +38,13 @@
       background: var(--bg);
       color: var(--text);
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto minmax(0, 1fr) auto;
       height: 100dvh;
+      max-height: 100dvh;
       padding-top: var(--safe-t);
+      padding-left: var(--safe-l);
+      padding-right: var(--safe-r);
+      overflow: hidden;
     }
     header {
       display: flex;
@@ -62,6 +75,7 @@
       display: grid;
       grid-template-columns: 1.2fr 1fr;
       min-height: 0;
+      overflow: hidden;
     }
     #avatar {
       width: 100%;
@@ -644,11 +658,58 @@
     }
     .mobile-tabs button.active { color: var(--accent); border-top: 2px solid var(--accent); margin-top: -1px; }
     @media (max-width: 860px) {
+      :root { --stage-max-w: 360px; --stage-max-h: 540px; }
       .main { grid-template-columns: 1fr; }
       .main.show-chat .avatar-wrap { display: none; }
       .main.show-avatar .chat { display: none; }
       .chat { border-left: none; }
       .mobile-tabs { display: flex; }
+      body.web-cloud .interact-bar { display: none; }
+      body.web-cloud .rapport-bar,
+      body.web-cloud .mood-badge { display: none; }
+      body.web-cloud .zone-hint {
+        top: 2.35rem;
+        font-size: 0.64rem;
+        max-width: 92%;
+        line-height: 1.35;
+      }
+      body.web-cloud .luna-quick-chips { bottom: 2.6rem; }
+      body.web-cloud .touch-sense-box { bottom: 0.4rem; width: min(136px, 34vw); }
+      body.web-cloud .mobile-feel-bar { bottom: calc(2.55rem + var(--safe-b)); }
+      body.web-cloud #mute-btn,
+      body.web-cloud #feel-btn,
+      body.web-cloud #succubus-btn { display: none !important; }
+    }
+    @media (max-width: 480px) {
+      :root { --hdr-h: 2.9rem; --stage-max-w: 320px; --stage-max-h: 480px; }
+      header { padding: 0.45rem 0.55rem; }
+      body.web-cloud .hdr-btns .btn { padding: 0.34rem 0.48rem; font-size: 0.68rem; }
+      body.web-cloud .luna-live-stage {
+        width: min(94vw, var(--stage-max-w));
+        height: min(calc(100dvh - var(--chrome-v) - 1.25rem), var(--stage-max-h));
+      }
+      body.web-cloud .luna-assistant-hud { top: 0.35rem; left: 0.35rem; right: 0.35rem; }
+      body.web-cloud .luna-hud-status { font-size: 0.56rem; }
+      body.web-cloud .luna-quick-chips .chip { font-size: 0.62rem; padding: 0.28rem 0.55rem; }
+      body.web-cloud .status-pill { top: 0.45rem; right: 0.45rem; font-size: 0.6rem; }
+    }
+    @media (max-height: 700px) and (max-width: 860px) {
+      :root { --stage-max-h: 420px; }
+      body.web-cloud .zone-hint { display: none; }
+      body.web-cloud .luna-quick-chips { bottom: 2.1rem; }
+    }
+    @media (min-width: 861px) {
+      .luna-live-stage {
+        width: min(42vw, var(--stage-max-w));
+        height: min(calc(100dvh - var(--chrome-v) - 2.5rem), var(--stage-max-h));
+      }
+    }
+    @media (min-width: 1200px) {
+      .main {
+        max-width: 1440px;
+        margin: 0 auto;
+        width: 100%;
+      }
     }
     html.desktop-overlay, body.desktop-overlay,
     html.desktop-pet, body.desktop-pet {
@@ -876,6 +937,56 @@
     @keyframes touch-ripple-out {
       0% { transform: scale(0.35); opacity: 0.95; }
       100% { transform: scale(2.2); opacity: 0; }
+    }
+    .touch-ripple.ripple-flash {
+      border-color: rgba(255, 255, 255, 0.8);
+      background: radial-gradient(circle, rgba(255, 210, 225, 0.7) 0%, rgba(251, 113, 133, 0.45) 32%, transparent 72%);
+      box-shadow: 0 0 22px rgba(251, 113, 133, 0.65), 0 0 44px rgba(196, 181, 253, 0.35);
+    }
+    .touch-spark {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      margin: -5px 0 0 -5px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff 0%, rgba(251, 113, 133, 0.95) 42%, transparent 72%);
+      box-shadow: 0 0 14px rgba(251, 113, 133, 0.85), 0 0 28px rgba(196, 181, 253, 0.45);
+      animation: touch-spark-pop 0.7s ease-out forwards;
+      pointer-events: none;
+    }
+    @keyframes touch-spark-pop {
+      0% { transform: scale(0.25) rotate(0deg); opacity: 1; }
+      100% { transform: scale(2.8) rotate(200deg); opacity: 0; }
+    }
+    .luna-touch-flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 180;
+      opacity: 0;
+      background: radial-gradient(
+        circle at var(--flash-x) var(--flash-y),
+        rgba(251, 113, 133, 0.42) 0%,
+        rgba(196, 181, 253, 0.16) 28%,
+        transparent 62%
+      );
+    }
+    body.touch-flash-on .luna-touch-flash {
+      animation: touch-screen-flash 0.58s ease-out forwards;
+    }
+    @keyframes touch-screen-flash {
+      0% { opacity: 0.9; }
+      35% { opacity: 0.5; }
+      100% { opacity: 0; }
+    }
+    .avatar-wrap.touch-flash-pulse .luna-video-wrap,
+    .avatar-wrap.touch-flash-pulse #avatar canvas {
+      animation: touch-portrait-flash 0.48s ease-out;
+    }
+    @keyframes touch-portrait-flash {
+      0% { filter: brightness(1) saturate(1); }
+      25% { filter: brightness(1.18) saturate(1.12) drop-shadow(0 0 28px rgba(251, 113, 133, 0.55)); }
+      100% { filter: brightness(1) saturate(1); }
     }
     .touch-heat-bar {
       position: fixed;
@@ -1225,8 +1336,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: min(72vw, 400px);
-      height: min(82vh, 620px);
+      width: min(88vw, var(--stage-max-w));
+      height: min(calc(100dvh - var(--chrome-v) - 2rem), var(--stage-max-h));
+      max-height: 100%;
+      flex-shrink: 1;
     }
     body.web-cloud.avatar-live-ready .luna-live-stage {
       display: flex;
@@ -1388,6 +1501,11 @@
       box-shadow: 0 0 16px rgba(220, 38, 127, 0.5);
     }
     body.web-cloud.sensual-on #succubus-btn { display: inline-flex !important; }
+    @media (max-width: 860px) {
+      body.web-cloud.sensual-on #succubus-btn,
+      body.web-cloud #feel-btn,
+      body.web-cloud #mute-btn { display: none !important; }
+    }
     body.web-cloud #feel-btn.active {
       border-color: rgba(251, 113, 133, 0.75);
       background: rgba(251, 113, 133, 0.22);
@@ -1463,8 +1581,6 @@
       body.web-cloud .hdr-btns .btn { padding: 0.38rem 0.55rem; font-size: 0.72rem; }
       body.web-cloud #bliss-btn,
       body.web-cloud #dream-btn { padding: 0.38rem 0.6rem; }
-      body.web-cloud #feel-btn,
-      body.web-cloud #succubus-btn { display: inline-flex !important; padding: 0.38rem 0.6rem; }
       body.web-cloud #bliss-btn,
       body.web-cloud #dream-btn { display: inline-flex !important; }
     }
@@ -2959,6 +3075,8 @@
     <button class="btn" id="float-exit" title="Exit cutout">✕</button>
   </div>
 
+  <div id="luna-touch-flash" class="luna-touch-flash" aria-hidden="true"></div>
+
   <div class="mobile-feel-bar" id="mobile-feel-bar" aria-label="Quick controls">
     <button type="button" class="btn" id="mobile-mute-btn" title="Voice on/off">🔊</button>
     <button type="button" class="btn" id="mobile-succubus-btn" title="Succubus mode">😈</button>
@@ -2972,8 +3090,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=91";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=91";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=92";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=92";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3080,6 +3198,8 @@
     let petScreenBeforeSettings = "main";
     let touchHeat = 0;
     let touchSenseActive = false;
+    let touchFlashTimer = null;
+    let responsiveChromeBound = false;
     let dreamPeaking = false;
     let moanOrgasmActive = false;
     let daydreaming = false;
@@ -3359,7 +3479,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=91",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=92",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -4006,6 +4126,7 @@
       setupWebAvatarClicks();
       bindGlobalAudioUnlock();
       bindMobileAudioRecovery();
+      bindResponsiveChrome();
       bindLunaVideoTap();
       initLivePortrait().catch(() => {});
       startWebAssistantLife();
@@ -4164,7 +4285,7 @@
         if (!pointerOverLunaImage(e.clientX, e.clientY)) return;
         if (isPublicWebVisit()) await livePortrait?.ensurePlaying?.().catch(() => {});
         const zone = zoneFromPointer(e.clientX, e.clientY);
-        spawnTouchRipple(e.clientX, e.clientY, 0.9);
+        spawnTouchRipple(e.clientX, e.clientY, 1);
         updateFeelCursor(e.clientX, e.clientY, true);
         touchHeat = Math.min(100, touchHeat + 14);
         updateTouchHeatUi();
@@ -4268,6 +4389,7 @@
     function setupPhoneClient() {
       if (!isPhoneClient()) return;
       document.body.classList.add("phone-client");
+      bindResponsiveChrome();
       bindMobileAudioRecovery();
       const banner = document.getElementById("phone-install-banner");
       if (banner && !localStorage.getItem("luna-phone-banner-dismissed")) {
@@ -4276,6 +4398,7 @@
       document.getElementById("phone-install-dismiss")?.addEventListener("click", () => {
         document.getElementById("phone-install-banner")?.classList.remove("visible");
         localStorage.setItem("luna-phone-banner-dismissed", "1");
+        updateResponsiveChrome();
       });
     }
 
@@ -5841,17 +5964,86 @@
       };
     }
 
+    function spawnTouchFlash(clientX, clientY, strength = 1) {
+      const flash = document.getElementById("luna-touch-flash");
+      if (!flash) return;
+      const x = (clientX / Math.max(window.innerWidth, 1)) * 100;
+      const y = (clientY / Math.max(window.innerHeight, 1)) * 100;
+      flash.style.setProperty("--flash-x", `${x}%`);
+      flash.style.setProperty("--flash-y", `${y}%`);
+      document.body.classList.remove("touch-flash-on");
+      void flash.offsetWidth;
+      document.body.classList.add("touch-flash-on");
+      if (touchFlashTimer) clearTimeout(touchFlashTimer);
+      touchFlashTimer = setTimeout(() => document.body.classList.remove("touch-flash-on"), 600);
+      if (strength > 0.45) {
+        avatarWrap?.classList.add("touch-flash-pulse");
+        setTimeout(() => avatarWrap?.classList.remove("touch-flash-pulse"), 520);
+      }
+    }
+
+    function spawnTouchSparks(clientX, clientY, count = 3, strength = 1) {
+      const layer = getTouchEffectLayer();
+      if (!layer) return;
+      const layerRect = layer.getBoundingClientRect();
+      const n = Math.max(1, Math.min(6, count));
+      for (let i = 0; i < n; i++) {
+        const spark = document.createElement("div");
+        spark.className = "touch-spark";
+        const angle = (Math.PI * 2 * i) / n + Math.random() * 0.6;
+        const dist = 10 + Math.random() * 20 * strength;
+        spark.style.left = `${clientX - layerRect.left + Math.cos(angle) * dist}px`;
+        spark.style.top = `${clientY - layerRect.top + Math.sin(angle) * dist}px`;
+        layer.appendChild(spark);
+        setTimeout(() => spark.remove(), 720);
+      }
+    }
+
     function spawnTouchRipple(clientX, clientY, strength = 1) {
       const layer = getTouchEffectLayer();
       if (!layer) return;
       const layerRect = layer.getBoundingClientRect();
       const ripple = document.createElement("div");
       ripple.className = "touch-ripple";
+      if (strength > 0.32) ripple.classList.add("ripple-flash");
       ripple.style.left = `${clientX - layerRect.left}px`;
       ripple.style.top = `${clientY - layerRect.top}px`;
       ripple.style.opacity = String(Math.min(1, 0.35 + strength * 0.45));
       layer.appendChild(ripple);
       setTimeout(() => ripple.remove(), 950);
+      if (strength > 0.2) {
+        spawnTouchFlash(clientX, clientY, strength);
+        spawnTouchSparks(clientX, clientY, 2 + Math.floor(strength * 3), strength);
+      }
+    }
+
+    function updateResponsiveChrome() {
+      const header = document.querySelector("header");
+      const tabs = document.querySelector(".mobile-tabs");
+      const banner = document.getElementById("phone-install-banner");
+      let chrome = 0;
+      if (header) chrome += header.getBoundingClientRect().height;
+      if (tabs && getComputedStyle(tabs).display !== "none") chrome += tabs.getBoundingClientRect().height;
+      if (banner?.classList.contains("visible")) chrome += banner.getBoundingClientRect().height;
+      document.documentElement.style.setProperty("--chrome-v", `${chrome + parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-t")) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-b"))}px`);
+    }
+
+    function bindResponsiveChrome() {
+      if (responsiveChromeBound) return;
+      responsiveChromeBound = true;
+      updateResponsiveChrome();
+      window.addEventListener("resize", updateResponsiveChrome, { passive: true });
+      window.addEventListener("orientationchange", () => setTimeout(updateResponsiveChrome, 120), { passive: true });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", updateResponsiveChrome, { passive: true });
+      }
+      const header = document.querySelector("header");
+      const tabs = document.querySelector(".mobile-tabs");
+      if (typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(() => updateResponsiveChrome());
+        if (header) ro.observe(header);
+        if (tabs) ro.observe(tabs);
+      }
     }
 
     function zoneFromPointer(clientX, clientY) {
@@ -6199,6 +6391,11 @@
       touchHeat = Math.min(100, touchHeat + 32);
       updateTouchHeatUi();
       livePortrait?.pulseTouch?.(1.4);
+      const feelRect = getLunaImageRect();
+      const fx = feelRect ? feelRect.left + feelRect.width * 0.5 : window.innerWidth * 0.5;
+      const fy = feelRect ? feelRect.top + feelRect.height * 0.42 : window.innerHeight * 0.42;
+      spawnTouchFlash(fx, fy, 1);
+      spawnTouchSparks(fx, fy, 5, 1);
       setLunaAvatarState("love");
       showLunaCaption("Mmm… feel me… glide your finger or cursor over me…");
       try {

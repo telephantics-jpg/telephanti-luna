@@ -3346,9 +3346,9 @@
   </nav>
 
   <script type="module">
-    import { LunaMic } from "/static/luna-mic.mjs?v=97";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=97";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=97";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=98";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=98";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=98";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3736,7 +3736,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=97",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=98",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -7194,7 +7194,11 @@
 
     function applyMicSensitivity() {
       if (settings.micSensitivity === undefined) settings.micSensitivity = 52;
-      lunaMic?.applySensitivity(settings.micSensitivity);
+      const desktop = !isMobile();
+      const sens = desktop
+        ? Math.max(settings.micSensitivity, 68)
+        : settings.micSensitivity;
+      lunaMic?.applySensitivity?.(sens, { desktop });
     }
 
     function setupSettingsVibeChips() {
@@ -9022,6 +9026,9 @@
       hidePetHearBanner();
       setSenseField("hear");
       setStatus("listening", "hearing");
+      if (!isMobile() && lunaMic.mode === "webspeech") {
+        showToast("PC voice ready — speak naturally.");
+      }
     }
 
     function stopAlwaysListen() {
@@ -9473,13 +9480,13 @@
 
       setupMobileDock();
 
-      lunaMic = new LunaMic({
+      lunaMic = createLunaMic({
         onLevel: (rms, peak, speaking) => {
           if (!alwaysListening) {
             setMicHearingVisual(false);
             return;
           }
-          setMicHearingVisual(speaking || peak >= 0.012 || rms >= 0.004);
+          setMicHearingVisual(speaking || peak >= 0.01 || rms >= 0.003);
         },
         onText: (text) => {
           if (!isValidUserTranscript(text)) {
@@ -9497,17 +9504,20 @@
             setSenseField("hear");
             setStatus(status === "hearing..." ? "hearing you..." : "listening", "hearing");
           } else if (status === "no-speech") {
-            showToast("Didn't catch that — try again.");
+            showToast("Didn't catch that — speak a bit louder or closer to the mic.");
+          } else if (status === "transcribe-error") {
+            showToast("Couldn't transcribe — check mic level or try Chrome/Edge.");
           } else if (status === "mic-retry") {
             showPetHearBanner();
           }
         },
         onError: async (msg) => {
+          if (msg) showToast(msg);
           if (!micPromptShown) {
             micPromptShown = true;
-            showToast(msg || "Tap 🎤 and Allow microphone access.");
+            if (!msg) showToast("Tap 🎤 and Allow microphone access.");
           }
-          if (!isMobile() && !isPetMode()) {
+          if (!isMobile() && !isPetMode() && !isPublicWebVisit()) {
             const ok = await serverHearFallback(14);
             if (ok) {
               alwaysListening = true;
@@ -9526,6 +9536,8 @@
           showPetHearBanner();
           if (isMobile()) {
             showLunaCaption("Tap 🎤 in the bar below — then Allow microphone.");
+          } else {
+            showLunaCaption("Click 🎤 — Allow mic — then speak normally.");
           }
         },
       });

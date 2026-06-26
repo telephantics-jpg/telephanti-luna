@@ -1,7 +1,298 @@
 /**
- * Luna microphone — continuous VAD + instant speech capture.
- * AnalyserNode watches RMS every ~40ms; records from first whisper upward.
+ * Luna microphone — continuous listen + speech-to-text.
+ * Desktop Chrome/Edge: Web Speech API (no server ffmpeg).
+ * Mobile / fallback: VAD + MediaRecorder + /api/transcribe-file (WAV upload).
  */
+
+function speechRecognitionCtor() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function isMobileUa() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
+export function shouldUseWebSpeech() {
+  if (!speechRecognitionCtor()) return false;
+  if (isMobileUa()) return false;
+  return true;
+}
+
+export function createLunaMic(opts) {
+  if (shouldUseWebSpeech()) return new LunaWebSpeechMic(opts);
+  return new LunaMic(opts);
+}
+
+export class LunaWebSpeechMic {
+  constructor(opts) {
+    this.onText = opts.onText;
+    this.onStatus = opts.onStatus || (() => {});
+    this.onError = opts.onError || (() => {});
+    this.onLevel = opts.onLevel || (() => {});
+    this.enabled = false;
+    this.paused = false;
+    this.busy = false;
+    this.mode = "webspeech";
+    this.unlocked = false;
+    this.stream = null;
+    this.recognition = null;
+    this.restartTimer = null;
+    this.monitorTimer = null;
+    this.audioCtx = null;
+    this.analyser = null;
+    this.source = null;
+    this.timeData = null;
+    this._starting = false;
+    this._lastFinalAt = 0;
+  }
+
+  resetForRetry() {
+    this._stopRecognition();
+    this._stopLevelMonitor();
+    if (this.stream) {
+      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream = null;
+    }
+    this.unlocked = false;
+    this.enabled = false;
+  }
+
+  applySensitivity() {
+    /* Web Speech API handles VAD internally */
+  }
+
+  setBusy(busy) {
+    this.busy = !!busy;
+    if (this.busy) this._stopRecognition();
+    else if (this.enabled && !this.paused) this._startRecognition();
+  }
+
+  setPaused(paused) {
+    this.paused = !!paused;
+    if (this.paused) this._stopRecognition();
+    else if (this.enabled && !this.busy) this._startRecognition();
+  }
+
+  async unlock() {
+    const SR = speechRecognitionCtor();
+    if (!SR) {
+      this.onError("Speech recognition not supported — use Chrome or Edge.");
+      return false;
+    }
+    try {
+      if (!this.stream?.active && navigator.mediaDevices?.getUserMedia) {
+        const constraints = [
+          { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } },
+          { audio: true },
+        ];
+        let lastErr = null;
+        for (const audio of constraints) {
+          try {
+            this.stream = await navigator.mediaDevices.getUserMedia(audio);
+            break;
+          } catch (err) {
+            lastErr = err;
+            if (this.stream) {
+              this.stream.getTracks().forEach((t) => t.stop());
+              this.stream = null;
+            }
+          }
+        }
+        if (!this.stream?.active) throw lastErr || new Error("Microphone blocked");
+        await this._ensureAnalyser();
+        this._startLevelMonitor();
+      }
+      this._buildRecognition(SR);
+      this.unlocked = true;
+      this.mode = "webspeech";
+      return true;
+    } catch (err) {
+      console.warn("LunaWebSpeechMic unlock:", err);
+      this.onError("Allow microphone access — click 🎤 then Allow in the popup.");
+      return false;
+    }
+  }
+
+  _buildRecognition(SR) {
+    if (this.recognition) return;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = (navigator.language || "en-US").replace("_", "-");
+    rec.maxAlternatives = 1;
+
+    rec.onresult = (event) => {
+      let interim = "";
+      let finalText = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const chunk = (result[0]?.transcript || "").trim();
+        if (!chunk) continue;
+        if (result.isFinal) finalText += (finalText ? " " : "") + chunk;
+        else interim = chunk;
+      }
+      if (interim) this.onLevel(0.045, 0.07, true);
+      if (finalText.length >= 2) {
+        const now = Date.now();
+        if (now - this._lastFinalAt < 400) return;
+        this._lastFinalAt = now;
+        this.onStatus("hearing...");
+        this.onText(finalText);
+      }
+    };
+
+    rec.onerror = (event) => {
+      const code = event.error || "";
+      if (code === "no-speech" || code === "aborted") return;
+      if (code === "not-allowed" || code === "service-not-allowed") {
+        this.unlocked = false;
+        this.onError("Microphone blocked — click 🎤 and Allow access.");
+        return;
+      }
+      if (code === "network") {
+        this.onError("Speech network error — check your connection.");
+        return;
+      }
+      console.warn("LunaWebSpeechMic:", code);
+    };
+
+    rec.onend = () => {
+      this._starting = false;
+      if (this.enabled && !this.paused && !this.busy) {
+        clearTimeout(this.restartTimer);
+        this.restartTimer = setTimeout(() => this._startRecognition(), 120);
+      }
+    };
+
+    rec.onstart = () => {
+      this._starting = false;
+      this.onStatus("listening");
+    };
+
+    this.recognition = rec;
+  }
+
+  async _ensureAnalyser() {
+    if (this.analyser && this.audioCtx?.state === "running") return;
+    if (this.audioCtx?.state === "suspended") {
+      await this.audioCtx.resume();
+      return;
+    }
+    this._teardownAnalyser();
+    this.audioCtx = new AudioContext({ latencyHint: "interactive" });
+    this.source = this.audioCtx.createMediaStreamSource(this.stream);
+    this.analyser = this.audioCtx.createAnalyser();
+    this.analyser.fftSize = 1024;
+    this.analyser.smoothingTimeConstant = 0.1;
+    this.source.connect(this.analyser);
+    this.timeData = new Float32Array(this.analyser.fftSize);
+    if (this.audioCtx.state === "suspended") await this.audioCtx.resume();
+  }
+
+  _teardownAnalyser() {
+    clearInterval(this.monitorTimer);
+    this.monitorTimer = null;
+    try { this.source?.disconnect(); } catch { /* ignore */ }
+    this.source = null;
+    this.analyser = null;
+    this.timeData = null;
+    if (this.audioCtx) {
+      this.audioCtx.close().catch(() => {});
+      this.audioCtx = null;
+    }
+  }
+
+  _sampleLevels() {
+    if (!this.analyser || !this.timeData) return { rms: 0, peak: 0 };
+    this.analyser.getFloatTimeDomainData(this.timeData);
+    let peak = 0;
+    let sumSq = 0;
+    const len = this.timeData.length;
+    for (let i = 0; i < len; i++) {
+      const a = Math.abs(this.timeData[i]);
+      if (a > peak) peak = a;
+      sumSq += this.timeData[i] * this.timeData[i];
+    }
+    return { rms: Math.sqrt(sumSq / len), peak };
+  }
+
+  _startLevelMonitor() {
+    clearInterval(this.monitorTimer);
+    this.monitorTimer = setInterval(() => {
+      if (!this.enabled || this.paused || this.busy) return;
+      const { rms, peak } = this._sampleLevels();
+      const speaking = peak >= 0.008 || rms >= 0.003;
+      this.onLevel(rms, peak, speaking);
+    }, 40);
+  }
+
+  _stopLevelMonitor() {
+    clearInterval(this.monitorTimer);
+    this.monitorTimer = null;
+    this._teardownAnalyser();
+  }
+
+  _startRecognition() {
+    if (!this.recognition || this._starting || this.paused || this.busy || !this.enabled) return;
+    this._starting = true;
+    try {
+      this.recognition.start();
+      this.onStatus("listening");
+    } catch (err) {
+      this._starting = false;
+      if (String(err?.message || err).includes("already started")) return;
+      console.warn("LunaWebSpeechMic start:", err);
+    }
+  }
+
+  _stopRecognition() {
+    clearTimeout(this.restartTimer);
+    this.restartTimer = null;
+    this._starting = false;
+    if (!this.recognition) return;
+    try {
+      this.recognition.stop();
+    } catch { /* ignore */ }
+  }
+
+  async setEnabled(on) {
+    this.enabled = !!on;
+    if (!this.enabled) {
+      this._stopRecognition();
+      this._stopLevelMonitor();
+      if (this.stream) {
+        this.stream.getTracks().forEach((t) => t.stop());
+        this.stream = null;
+      }
+      this.onStatus("mic off");
+      return;
+    }
+    if (!this.unlocked) {
+      const ok = await this.unlock();
+      if (!ok) {
+        this.enabled = false;
+        return;
+      }
+    }
+    if (!this.busy && !this.paused) {
+      this._startLevelMonitor();
+      this._startRecognition();
+    }
+  }
+
+  stop() {
+    this.enabled = false;
+    this._stopRecognition();
+    this._stopLevelMonitor();
+    if (this.stream) {
+      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream = null;
+    }
+    this.unlocked = false;
+    this.onStatus("mic off");
+  }
+}
+
 export class LunaMic {
   constructor(opts) {
     this.onText = opts.onText;
@@ -166,7 +457,7 @@ export class LunaMic {
     else if (this.enabled && !this.busy) this._startMonitor();
   }
 
-  applySensitivity(sensitivity = 52) {
+  applySensitivity(sensitivity = 52, { desktop = false } = {}) {
     const s = Math.max(0, Math.min(100, Number(sensitivity) || 52));
     const gain = 0.55 + s / 100;
     this.minSpeechRms = 0.0052 / gain;
@@ -174,6 +465,12 @@ export class LunaMic {
     this.silenceHoldMs = 190 + Math.round(s * 1.35);
     this.minRecordMs = 140 + Math.round(s * 0.7);
     this.maxRecordMs = 12000 + Math.round(s * 35);
+    if (desktop) {
+      this.minSpeechRms *= 0.62;
+      this.minSpeechPeak *= 0.62;
+      this.silenceHoldMs += 140;
+      this.minRecordMs = Math.max(120, this.minRecordMs - 30);
+    }
   }
 
   async setEnabled(on) {
@@ -282,12 +579,12 @@ export class LunaMic {
         this.recorder = null;
         chunks = [];
 
-        if (!blob.size || blob.size < 280 || this.busy || this.paused) {
+        if (!blob.size || blob.size < 200 || this.busy || this.paused) {
           if (this.enabled && !this.paused && !this.busy) this.onStatus("listening");
           return;
         }
 
-        if (hadSpeechDuringRecord || blob.size > 900) {
+        if (hadSpeechDuringRecord || blob.size > 700) {
           this.onStatus("hearing...");
           await this._transcribeBlob(blob);
         } else {
@@ -393,33 +690,32 @@ export class LunaMic {
   }
 
   async _prepareUploadBlob(blob) {
-    const preferWav = this._isIOS() || blob.type.includes("mp4") || !blob.type.includes("webm");
-    if (!preferWav) return { blob, name: "luna.webm" };
     try {
       return { blob: await this._blobToWav(blob), name: "luna.wav" };
     } catch (err) {
       console.warn("LunaMic wav convert:", err);
-      return { blob, name: blob.type.includes("mp4") ? "luna.mp4" : "luna.webm" };
+      const name = blob.type.includes("mp4") ? "luna.mp4" : "luna.webm";
+      return { blob, name };
     }
   }
 
   async _transcribeBlob(blob) {
     try {
-      let { blob: upload, name } = await this._prepareUploadBlob(blob);
+      const { blob: upload, name } = await this._prepareUploadBlob(blob);
       const form = new FormData();
       form.append("file", upload, name);
-      let res = await fetch("/api/transcribe-file", { method: "POST", body: form });
-      let data = await res.json().catch(() => ({}));
-      if (!res.ok && name !== "luna.wav") {
-        const wavPack = await this._prepareUploadBlob(blob);
-        if (wavPack.name === "luna.wav") {
-          const form2 = new FormData();
-          form2.append("file", wavPack.blob, wavPack.name);
-          res = await fetch("/api/transcribe-file", { method: "POST", body: form2 });
-          data = await res.json().catch(() => ({}));
+      const res = await fetch("/api/transcribe-file", { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = data.detail || `Transcribe failed (${res.status})`;
+        if (String(detail).toLowerCase().includes("ffmpeg")) {
+          this.onError("Voice server missing ffmpeg — refresh and try again.");
+        } else {
+          this.onError(detail);
         }
+        this.onStatus("transcribe-error");
+        return;
       }
-      if (!res.ok) throw new Error(data.detail || "Transcribe failed");
       const text = (data.text || "").trim();
       if (text.length >= 2) {
         this.onText(text);
@@ -428,7 +724,8 @@ export class LunaMic {
       }
     } catch (err) {
       console.warn("LunaMic:", err);
-      this.onStatus("no-speech");
+      this.onError(err.message || "Could not reach speech service.");
+      this.onStatus("transcribe-error");
     }
   }
 }

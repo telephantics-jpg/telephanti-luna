@@ -2887,8 +2887,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=82";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=82";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=83";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=83";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3271,7 +3271,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=82",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=83",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3821,26 +3821,13 @@
       webCloudBooted = true;
       if (isSensualMode()) applyWebCloudDefaults();
       else applyAssistantWebDefaults();
-      const voicePref = localStorage.getItem("luna-voice-user-on");
-      if (voicePref === "0") {
-        muted = true;
-        settings.autoSpeak = false;
-      } else if (voicePref === "1" || isSensualMode()) {
-        settings.autoSpeak = true;
-        muted = false;
-      } else {
-        muted = true;
-        settings.autoSpeak = false;
-      }
+      applyVoicePrefFromStorage();
       settings.touchSense = true;
       settings.alwaysListen = settings.alwaysListen !== false;
       const touchOpt = document.getElementById("opt-touch-sense");
-      const speakOpt = document.getElementById("opt-speak");
       const listenOpt = document.getElementById("opt-listen");
       if (touchOpt) touchOpt.checked = true;
-      if (speakOpt) speakOpt.checked = settings.autoSpeak;
       if (listenOpt) listenOpt.checked = settings.alwaysListen;
-      muteBtn.textContent = settings.autoSpeak && !muted ? "🔊" : "🔇";
       updateWebSensualUi();
       startTouchSense();
       setupWebAvatarClicks();
@@ -3880,9 +3867,14 @@
       if (window.__lunaAudioUnlockBound) return;
       window.__lunaAudioUnlockBound = true;
       const unlock = async () => {
-        await unlockVoice();
-        if (isPublicWebVisit()) {
+        const voiceOk = await enableLunaVoice();
+        if (isPublicWebVisit() && !isPetMode()) {
           await livePortrait?.ensurePlaying?.().catch(() => {});
+          if (!voiceWelcomed && voiceOk) {
+            voiceWelcomed = true;
+            speakText("Hi — I'm Luna. Talk to me anytime.", "happy");
+          }
+        } else if (isPublicWebVisit()) {
           await ensureWebHear();
         }
       };
@@ -4682,6 +4674,41 @@
       }
     }
 
+    function applyVoicePrefFromStorage() {
+      const voicePref = localStorage.getItem("luna-voice-user-on");
+      if (voicePref === "0") {
+        muted = true;
+        settings.autoSpeak = false;
+      } else {
+        muted = false;
+        settings.autoSpeak = true;
+        if (voicePref !== "1") {
+          try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
+        }
+      }
+      const speakOpt = document.getElementById("opt-speak");
+      if (speakOpt) speakOpt.checked = settings.autoSpeak;
+      if (muteBtn) muteBtn.textContent = settings.autoSpeak && !muted ? "🔊" : "🔇";
+    }
+
+    function isVoiceExplicitlyOff() {
+      return localStorage.getItem("luna-voice-user-on") === "0";
+    }
+
+    async function enableLunaVoice() {
+      if (isVoiceExplicitlyOff()) return false;
+      muted = false;
+      settings.autoSpeak = true;
+      try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
+      const speakOpt = document.getElementById("opt-speak");
+      if (speakOpt) speakOpt.checked = true;
+      if (muteBtn) muteBtn.textContent = "🔊";
+      saveSettings();
+      const ok = await unlockVoice();
+      livePortrait?.setSpeaking?.(false);
+      return ok;
+    }
+
     async function unlockVoice() {
       if (head) head.start();
       try {
@@ -4706,16 +4733,7 @@
     }
 
     async function ensureSensualVoice() {
-      muted = false;
-      settings.autoSpeak = true;
-      localStorage.setItem("luna-voice-user-on", "1");
-      const speakOpt = document.getElementById("opt-speak");
-      if (speakOpt) speakOpt.checked = true;
-      if (muteBtn) muteBtn.textContent = "🔊";
-      saveSettings();
-      const ok = await unlockVoice();
-      livePortrait?.setSpeaking?.(false);
-      return ok;
+      return enableLunaVoice();
     }
 
     async function prepareSensualAction(label = "glow") {
@@ -4723,9 +4741,9 @@
         showToast("Assistant mode on — tap 🧊 to turn glow & peak back on.");
         return false;
       }
-      const ok = await ensureSensualVoice();
+      const ok = await enableLunaVoice();
       if (!ok) {
-        showToast("Tap 🔊 once to allow sound, then try " + label + " again.");
+        showToast("Voice is off — tap 🔊 to hear Luna, then try " + label + " again.");
       }
       return ok;
     }
@@ -6025,6 +6043,7 @@
         }
       } catch { /* ignore */ }
       loadSensualModePref();
+      applyVoicePrefFromStorage();
       if (settings.agentMode === undefined) settings.agentMode = true;
       if (settings.chillMode === undefined) settings.chillMode = true;
       if (isPublicWebVisit()) settings.chillMode = !isSensualMode();
@@ -6854,6 +6873,9 @@
       rememberLunaLine(text);
       showLunaCaption(text);
       updateRapport(rapportDelta);
+      if (isPublicWebVisit() && !isPetMode() && !isVoiceExplicitlyOff()) {
+        await enableLunaVoice().catch(() => {});
+      }
       if (!muted && settings.autoSpeak) await speakText(text, data.mood);
     }
 
@@ -8400,6 +8422,7 @@
       document.getElementById("bliss-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
         e.preventDefault();
+        await enableLunaVoice();
         if (webSensualBlocked()) {
           showToast("Assistant mode on — tap 🧊 for glow & peak.");
           return;
@@ -8410,6 +8433,7 @@
       document.getElementById("dream-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
         e.preventDefault();
+        await enableLunaVoice();
         if (webSensualBlocked()) {
           showToast("Assistant mode on — tap 🧊 for glow & peak.");
           return;
@@ -8505,8 +8529,9 @@
         setTimeout(() => ensureWebHear().catch(() => {}), 800);
         if (!sessionStorage.getItem("luna-web-audio-hint")) {
           sessionStorage.setItem("luna-web-audio-hint", "1");
+          applyVoicePrefFromStorage();
           const lipHint = lipsyncAvailable ? " Lip-sync when she talks." : "";
-          showToast(`Tap anywhere once, then 🎤 to talk & 📷 so she can see you.${lipHint}`);
+          showToast(`Voice is on — tap once anywhere to hear me, then 🎤 to talk.${lipHint}`);
         }
         return;
       }
@@ -8684,8 +8709,14 @@
     }
 
     function speakText(text, moodOverride) {
-      if (muted || !settings.autoSpeak || !text.trim()) return Promise.resolve();
-      const run = speakQueue.then(() => _speakTextImpl(text, moodOverride));
+      if (!text.trim()) return Promise.resolve();
+      const run = speakQueue.then(async () => {
+        if (!isVoiceExplicitlyOff() && (muted || !settings.autoSpeak)) {
+          await enableLunaVoice();
+        }
+        if (muted || !settings.autoSpeak) return;
+        await _speakTextImpl(text, moodOverride);
+      });
       speakQueue = run.catch(() => {});
       return run;
     }
@@ -8730,7 +8761,10 @@
         }
         if (isPetMode() && petBubbleMode) appendPetBubble("system", "Tap 🔊 on the toolbar if you don't hear me.");
         else if (isPetMode()) showPetSpeech("Tap 🔊 on the toolbar if you don't hear me yet.");
-        else showToast("Tap 🔊 once so you can hear Luna speak.");
+        else {
+          await enableLunaVoice();
+          showToast("Allow sound in your browser if Luna is still quiet.");
+        }
       } finally {
         await endLunaSpeech();
       }
@@ -8740,6 +8774,7 @@
       e.preventDefault();
       const text = input.value.trim();
       if (!text || busy) return;
+      await enableLunaVoice().catch(() => {});
 
       if (/^(moan|mmm|groan)\b/i.test(text) || /moan for me/i.test(text)) {
         input.value = "";
@@ -8896,8 +8931,11 @@
         }
         updateRapport(8);
         const speakLine = (action?.text || full || "").trim();
-        if (settings.autoSpeak && !muted && speakLine) {
-          await speakText(speakLine, action?.mood || streamMood);
+        if (speakLine) {
+          await enableLunaVoice().catch(() => {});
+          if (settings.autoSpeak && !muted) {
+            await speakText(speakLine, action?.mood || streamMood);
+          }
         }
       } catch (err) {
         bubble.textContent = "Error: " + err.message;
@@ -8920,24 +8958,23 @@
     }, 4000);
 
     muteBtn.addEventListener("click", async () => {
-      const currentlyOn = !muted && settings.autoSpeak;
-      const nextOn = !currentlyOn;
-      muted = !nextOn;
-      settings.autoSpeak = nextOn;
-      document.getElementById("opt-speak").checked = nextOn;
-      muteBtn.textContent = nextOn ? "🔊" : "🔇";
-      if (nextOn) localStorage.setItem("luna-voice-user-on", "1");
-      else localStorage.setItem("luna-voice-user-on", "0");
-      saveSettings();
-      if (head) head.setMood(nextOn ? "happy" : "neutral");
-      if (nextOn) {
-        await unlockVoice();
+      const currentlyOn = !isVoiceExplicitlyOff();
+      if (currentlyOn) {
+        try { localStorage.setItem("luna-voice-user-on", "0"); } catch { /* ignore */ }
+        muted = true;
+        settings.autoSpeak = false;
+        document.getElementById("opt-speak").checked = false;
+        muteBtn.textContent = "🔇";
+        saveSettings();
+        if (head) head.setMood("neutral");
+        showLunaCaption("Voice off — tap 🔊 when you want me to speak again…");
+      } else {
+        await enableLunaVoice();
+        if (head) head.setMood("happy");
         if (!voiceWelcomed) {
           voiceWelcomed = true;
-          speakText("I'm right here — I can hear you.", "happy");
+          speakText("I'm right here — talk to me anytime.", "happy");
         }
-      } else {
-        showLunaCaption("Voice off — tap 🔊 when you want me again…");
       }
     });
 

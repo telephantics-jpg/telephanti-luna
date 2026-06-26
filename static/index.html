@@ -2867,14 +2867,13 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=78";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=78";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=79";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=79";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
     let lunaSpeakVideo = null;
     let webAssistantTimer = null;
-    let webIdleChatterTimer = null;
     let lunaAvatarState = "idle";
 
     async function loadTalkingHead() {
@@ -2931,6 +2930,7 @@
 
     const SETTINGS_KEY = "luna-settings-v1";
     const USER_NAME_KEY = "luna-user-name";
+    const SENSUAL_MODE_KEY = "luna-sensual-mode";
     const MAX_HISTORY = 40;
     let head = null;
     let history = [];
@@ -2960,7 +2960,12 @@
     const RECENT_LINE_MAX = 10;
     const RECENT_LINE_MS = 120_000;
     let wittySeeTimer = null;
+    let webCloudBooted = false;
+    let webSensualControlsBound = false;
+    let webEnvLifeTimer = null;
+    let webIdleChatterChain = null;
     let lastSeeTime = 0;
+    let nextSeeAllowedAt = 0;
     let lastVisionContext = "";
     let visionRefreshTimer = null;
     let petDialogOpen = false;
@@ -3245,7 +3250,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=78",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=79",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3418,6 +3423,24 @@
       "Want to tell me what you're working on?",
     ];
 
+    const WEB_ENV_LINES = [
+      "It's quiet — I can hear the room settling.",
+      "You went still. Deep in thought?",
+      "I like these in-between moments with you.",
+      "Something shifted — you still there?",
+      "The silence isn't awkward. I'm just listening.",
+      "I caught a little movement — everything okay?",
+      "Feels like you're weighing something. Want to talk it through?",
+      "I'm here. No rush.",
+      "Random thought — what's the vibe in your space right now?",
+      "I notice when you come back. Hey.",
+      "If you're multitasking, I don't mind waiting.",
+      "Soft check-in — need anything?",
+      "Your energy changed a bit. Long day?",
+      "I'm curious what you're looking at right now.",
+      "Little moment — I'm glad you're still here.",
+    ];
+
     const WEB_GREETING_LINES = [
       "Hi — I'm Luna. Tap me or type whenever you're ready.",
       "Hey there. I'm online and happy to help.",
@@ -3502,6 +3525,73 @@
       });
     }
 
+    function humanDelayMs(minSec, maxSec, skew = 1.35) {
+      const u = Math.random();
+      return Math.round((minSec + (maxSec - minSec) * Math.pow(u, skew)) * 1000);
+    }
+
+    function loadSensualModePref() {
+      try {
+        const raw = localStorage.getItem(SENSUAL_MODE_KEY);
+        if (raw === "0" || raw === "false") {
+          settings.sensualMode = false;
+          return;
+        }
+        if (raw === "1" || raw === "true") {
+          settings.sensualMode = true;
+          return;
+        }
+      } catch { /* ignore */ }
+      if (settings.sensualMode === "false" || settings.sensualMode === "0" || settings.sensualMode === 0) {
+        settings.sensualMode = false;
+      } else if (settings.sensualMode === "true" || settings.sensualMode === "1") {
+        settings.sensualMode = true;
+      } else if (settings.sensualMode === undefined) {
+        settings.sensualMode = settings.chillMode === false;
+      }
+    }
+
+    function persistSensualModePref() {
+      try {
+        localStorage.setItem(SENSUAL_MODE_KEY, settings.sensualMode === false ? "0" : "1");
+      } catch { /* ignore */ }
+    }
+
+    function bindWebSensualControls() {
+      if (webSensualControlsBound) return;
+      webSensualControlsBound = true;
+      document.getElementById("chill-btn")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setSensualMode(!isSensualMode());
+      });
+    }
+
+    function scheduleWebIdleChatter() {
+      clearTimeout(webIdleChatterChain);
+      if (!isPublicWebVisit() || isPetMode()) return;
+      const delay = humanDelayMs(22, 95, 1.5);
+      webIdleChatterChain = setTimeout(() => {
+        if (!busy && !lunaSpeaking && !dreamPeaking && !daydreaming && !reacting) {
+          if (!touchSenseActive && touchHeat <= 12) {
+            const recentUser = Date.now() - lastUserSpeechAt < 50_000;
+            const recentTouch = Date.now() - lastTouchCaptionAt < 40_000;
+            const chance = recentUser || recentTouch ? 0.08 : 0.22;
+            if (Math.random() < chance) {
+              const pool = isSensualMode() ? WEB_IDLE_CHATTER : WEB_ENV_LINES;
+              const line = pickWebLine(pool);
+              showLunaCaption(line);
+              setLunaAvatarState(Math.random() < 0.3 ? "help" : "idle");
+              if (!muted && settings.autoSpeak && Math.random() < (recentUser ? 0.04 : 0.12)) {
+                speakText(line, "happy").catch(() => {});
+              }
+            }
+          }
+        }
+        scheduleWebIdleChatter();
+      }, delay);
+    }
+
     function startWebAssistantLife() {
       stopWebAssistantLife();
       if (!isPublicWebVisit() || isPetMode()) return;
@@ -3512,29 +3602,81 @@
         if (settings.alwaysListen && alwaysListening) setLunaAvatarState("listen");
         else if (lunaAvatarState === "listen") setLunaAvatarState("idle");
       }, 3800);
-      webIdleChatterTimer = setInterval(() => {
-        if (busy || lunaSpeaking || dreamPeaking || daydreaming || reacting) return;
-        if (touchSenseActive || touchHeat > 12) return;
-        if (Date.now() - lastUserSpeechAt < 45_000 && Date.now() - lastTouchCaptionAt < 35_000) return;
-        if (Math.random() > 0.14) return;
-        const line = pickWebLine(WEB_IDLE_CHATTER);
-        showLunaCaption(line);
-        setLunaAvatarState(Math.random() < 0.25 ? "help" : "idle");
-        if (!muted && settings.autoSpeak && Math.random() < 0.06) {
-          speakText(line, "happy").catch(() => {});
-        }
-      }, 24_000);
+      scheduleWebIdleChatter();
     }
 
     function stopWebAssistantLife() {
       if (webAssistantTimer) clearInterval(webAssistantTimer);
-      if (webIdleChatterTimer) clearInterval(webIdleChatterTimer);
+      clearTimeout(webIdleChatterChain);
       webAssistantTimer = null;
-      webIdleChatterTimer = null;
+      webIdleChatterChain = null;
+    }
+
+    function stopWebEnvironmentLife() {
+      clearTimeout(webEnvLifeTimer);
+      webEnvLifeTimer = null;
+      stopWittySeeLoop();
+    }
+
+    function scheduleWebHumanMoment() {
+      clearTimeout(webEnvLifeTimer);
+      if (!isPublicWebVisit() || isPetMode()) return;
+      const camOn = settings.webcamWatch && !!webcamStream;
+      const hearing = settings.alwaysListen && alwaysListening;
+      let minS = 28;
+      let maxS = 210;
+      if (Date.now() - lastUserActivity < 70_000) { minS = 50; maxS = 280; }
+      if (Date.now() - lastUserSpeechAt < 100_000) { minS = 65; maxS = 320; }
+      if (!camOn && !hearing) { minS = 40; maxS = 260; }
+      const delay = humanDelayMs(minS, maxS, 1.45);
+      webEnvLifeTimer = setTimeout(async () => {
+        if (!settings.proactiveSpeech) {
+          scheduleWebHumanMoment();
+          return;
+        }
+        const maySpeak = canProactiveSpeak() || (
+          !busy && !lunaSpeaking && !dreamPeaking && !daydreaming && !reacting
+          && Date.now() >= proactiveHoldUntil
+          && Date.now() - lastUserSpeechAt > 35_000
+        );
+        if (maySpeak) {
+          const roll = Math.random();
+          try {
+            if (camOn && roll < 0.38) {
+              await lunaSee(roll < 0.18 ? "arrival" : "glance", { speak: roll < 0.26 });
+            } else if (hearing && roll < 0.62) {
+              if (roll < 0.48) await lunaAmbient();
+              else await lunaMindInterject();
+            } else if (roll < 0.78) {
+              const line = pickWebLine(isSensualMode() ? WEB_ENV_LINES : WEB_IDLE_CHATTER);
+              showLunaCaption(line);
+              livePortrait?.nodOnce?.();
+              if (!muted && settings.autoSpeak && Math.random() < 0.3) {
+                await speakText(line, "happy");
+              }
+            } else {
+              await lunaAmbient();
+            }
+          } catch (err) {
+            console.warn("Web human moment:", err);
+          }
+        }
+        scheduleWebHumanMoment();
+      }, delay);
+    }
+
+    function startWebEnvironmentLife() {
+      stopWebEnvironmentLife();
+      if (!isPublicWebVisit() || isPetMode()) return;
+      scheduleWebHumanMoment();
+      if (settings.webcamWatch && webcamStream) startWittySeeLoop();
     }
 
     function isSensualMode() {
-      return settings.sensualMode !== false;
+      return settings.sensualMode !== false
+        && settings.sensualMode !== "false"
+        && settings.sensualMode !== 0
+        && settings.sensualMode !== "0";
     }
 
     function webSensualBlocked() {
@@ -3620,9 +3762,15 @@
     }
 
     function setSensualMode(on) {
-      settings.sensualMode = !!on;
-      settings.chillMode = !on;
-      if (on) applyWebCloudDefaults();
+      const next = !!on;
+      if (settings.sensualMode === next && document.body.classList.contains("web-cloud")) {
+        updateWebSensualUi();
+        return;
+      }
+      settings.sensualMode = next;
+      settings.chillMode = !next;
+      persistSensualModePref();
+      if (next) applyWebCloudDefaults();
       else applyAssistantWebDefaults();
       updateWebSensualUi();
       saveSettings();
@@ -3630,15 +3778,18 @@
         stopAmbientSpeech();
         startAmbientSpeech();
       }
-      showToast(on ? "Moan & peak on" : "Chill mode — moan & peak off");
+      startWebEnvironmentLife();
+      showToast(next ? "Moan & peak on" : "Chill mode — moan & peak off");
     }
 
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
-      if (settings.sensualMode === undefined) {
-        settings.sensualMode = settings.chillMode === false;
-      }
+      loadSensualModePref();
+      bindWebSensualControls();
+      updateWebSensualUi();
+      if (webCloudBooted) return;
+      webCloudBooted = true;
       if (isSensualMode()) applyWebCloudDefaults();
       else applyAssistantWebDefaults();
       if (!localStorage.getItem("luna-voice-user-on")) {
@@ -3662,6 +3813,7 @@
       initLivePortrait().catch(() => {});
       startWebAssistantLife();
       startAmbientSpeech();
+      startWebEnvironmentLife();
       saveSettings();
     }
 
@@ -3978,8 +4130,11 @@
       if (!settings.proactiveSpeech) return false;
       if (busy || reacting || dreamPeaking || daydreaming || lunaSpeaking || micPaused) return false;
       if (Date.now() < proactiveHoldUntil) return false;
-      if (Date.now() - lastUserSpeechAt < 120000) return false;
-      if (Date.now() - lastUserActivity < 75000) return false;
+      const web = isPublicWebVisit() && !isPetMode();
+      const speechGap = web ? 55_000 : 120_000;
+      const activityGap = web ? 38_000 : 75_000;
+      if (Date.now() - lastUserSpeechAt < speechGap) return false;
+      if (Date.now() - lastUserActivity < activityGap) return false;
       return true;
     }
 
@@ -5788,9 +5943,10 @@
           if (settings.remember && savedHistory) restoreChatHistory(savedHistory);
         }
       } catch { /* ignore */ }
+      loadSensualModePref();
       if (settings.agentMode === undefined) settings.agentMode = true;
       if (settings.chillMode === undefined) settings.chillMode = true;
-      if (settings.sensualMode === undefined) settings.sensualMode = settings.chillMode === false;
+      if (isPublicWebVisit()) settings.chillMode = !isSensualMode();
       activeVibe = settings.activeVibe || (
         settings.agentMode !== false ? ASSISTANT_VIBE : (settings.chillMode ? CHILL_VIBE : "")
       );
@@ -6514,14 +6670,22 @@
       const parts = [];
       if (desktopEnv?.summary) parts.push(desktopEnv.summary);
       if (settings.webcamWatch && webcamStream) parts.push("She can see you through the webcam.");
+      else if (isPublicWebVisit()) parts.push("She cannot see the user right now — camera is off.");
+      if (settings.alwaysListen && alwaysListening) parts.push("Her mic is open — she can hear the room.");
+      else if (isPublicWebVisit() && settings.alwaysListen) parts.push("Listen is on but mic may still be waking up.");
+      if (lastVisionContext) parts.push(`She recently noticed: ${lastVisionContext}`);
       if (document.visibilityState !== "visible") parts.push("Tab was in background.");
       if (activeVibe) parts.push(`Vibe: ${activeVibe}.`);
       parts.push(`Mood: ${lunaMood}. Rapport: ${settings.affection}/200.`);
+      if (isPublicWebVisit() && !isPetMode()) {
+        parts.push(`Mode: ${isSensualMode() ? "companion" : "assistant/chill"}.`);
+        parts.push(`Local time: ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`);
+      }
       if (isPetMode() && settings.petWalk) parts.push("She is roaming the desktop in pet form.");
       if (settings.omniBuddy && desktopEnv?.omni) parts.push("ASUS OMNI pet is on the desktop with her.");
       const lastUser = [...history].reverse().find((h) => h.role === "user");
       if (lastUser?.content) parts.push(`Last thing they said: "${lastUser.content.slice(0, 120)}".`);
-      return parts.join(" ") || "Quiet moment together on the desktop.";
+      return parts.join(" ") || (isPublicWebVisit() ? "Quiet moment together in the browser." : "Quiet moment together on the desktop.");
     }
 
     function envCueLine() {
@@ -6665,13 +6829,23 @@
         const kind = kinds[proactivePhase % kinds.length];
         proactivePhase += 1;
         const isPet = isPetMode();
+        const isWeb = isPublicWebVisit() && !isPet;
         const chillMult = isChillMode() ? 2.4 : 1;
-        const webMult = isPublicWebVisit() && !isPetMode() ? 1.65 : 1;
-        const delay = (kind === "ambient"
-          ? (isPet
-            ? Math.max(2.5, settings.ambientMins || 5) * (0.8 + Math.random() * 0.45)
-            : Math.max(2.5, settings.ambientMins || 5) * (0.75 + Math.random() * 0.4)) * 60_000
-          : (isPet ? 100 + Math.random() * 110 : 90 + Math.random() * 120) * 1000) * chillMult * webMult;
+        let delay;
+        if (isWeb) {
+          const baseMin = Math.max(0.75, (settings.ambientMins || 5) * 0.55);
+          const baseMax = Math.max(1.4, (settings.ambientMins || 5) * 1.35);
+          delay = kind === "ambient"
+            ? humanDelayMs(baseMin * 60, baseMax * 60, 1.5)
+            : humanDelayMs(55, 240, 1.25);
+        } else {
+          const webMult = 1;
+          delay = (kind === "ambient"
+            ? (isPet
+              ? Math.max(2.5, settings.ambientMins || 5) * (0.8 + Math.random() * 0.45)
+              : Math.max(2.5, settings.ambientMins || 5) * (0.75 + Math.random() * 0.4)) * 60_000
+            : (isPet ? 100 + Math.random() * 110 : 90 + Math.random() * 120) * 1000) * chillMult * webMult;
+        }
         proactiveTimer = setTimeout(async () => {
           if (kind === "ambient") await lunaAmbient();
           else await lunaMindInterject();
@@ -6693,8 +6867,28 @@
     }
 
     function stopWittySeeLoop() {
-      clearInterval(wittySeeTimer);
+      clearTimeout(wittySeeTimer);
       wittySeeTimer = null;
+    }
+
+    function startWittySeeLoop() {
+      stopWittySeeLoop();
+      if (!isPublicWebVisit() || !settings.webcamWatch || !webcamStream) return;
+      const tick = () => {
+        const delay = humanDelayMs(42, 195, 1.3);
+        wittySeeTimer = setTimeout(async () => {
+          if (settings.webcamWatch && webcamStream && !busy && !reacting && !lunaSpeaking) {
+            const maySpeak = canProactiveSpeak() || Date.now() - lastUserSpeechAt > 40_000;
+            if (maySpeak && Math.random() < 0.48) {
+              await lunaSee(Math.random() < 0.35 ? "glance" : "motion", { speak: Math.random() < 0.42 });
+            } else if (Math.random() < 0.3) {
+              await lunaSee("silent", { speak: false });
+            }
+          }
+          tick();
+        }, delay);
+      };
+      tick();
     }
 
     function getWebcamVideoEl() {
@@ -6930,12 +7124,15 @@
 
     async function lunaSee(reason = "silent", { speak = false } = {}) {
       const now = Date.now();
-      const cooldown = speak ? 12_000 : 20_000;
-      if (now - lastSeeTime < cooldown || busy || reacting) return;
+      const web = isPublicWebVisit() && !isPetMode();
+      if (now < nextSeeAllowedAt || busy || reacting) return;
       if (!settings.webcamWatch || !webcamStream) return;
       const image_b64 = captureWebcamFrame();
       if (!image_b64) return;
       lastSeeTime = now;
+      nextSeeAllowedAt = now + (web
+        ? (speak ? humanDelayMs(22, 88, 1.15) : humanDelayMs(14, 52, 1.08))
+        : (speak ? 12_000 : 20_000));
       const { motion } = detectMotion();
       const silent = !speak;
       if (!silent) reacting = true;
@@ -6949,7 +7146,7 @@
             image_b64,
             motion,
             silent,
-            presence: reason === "arrival" ? "just arrived" : "present",
+            presence: reason === "arrival" ? "just arrived" : reason === "glance" ? "casual glance" : "present",
           }),
         });
         if (!res.ok) return;
@@ -6959,6 +7156,9 @@
         if (head && (data.mood || data.gesture)) {
           applyLunaAction({ ...data, text: silent ? "" : data.text });
           if (silent) head.makeEyeContact(1400);
+        } else if (web && !silent) {
+          setLunaAvatarState(data.mood === "love" ? "love" : "help");
+          livePortrait?.nodOnce?.();
         }
         if (!silent && note) await deliverLunaLine(data, 3);
       } catch (err) {
@@ -7015,6 +7215,7 @@
         if (!lunaVisionReady) initLunaVision();
         else startLunaVisionFeed();
         startVisionRefresh();
+        if (isPublicWebVisit()) startWittySeeLoop();
         motionCheckTimer = setInterval(() => {
           if (!settings.webcamWatch || busy || reacting) return;
           const { score } = detectMotion();
@@ -7973,11 +8174,6 @@
         },
       });
       applyMicSensitivity();
-
-      document.getElementById("chill-btn")?.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        setSensualMode(!isSensualMode());
-      });
 
       document.getElementById("moan-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();

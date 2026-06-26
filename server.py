@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "78"
+LUNA_BUILD = "79"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2617,7 +2617,10 @@ async def ambient(request: AmbientRequest):
     prompt = (
         f"UNPROMPTED moment — Luna speaks on her own. No user typed anything. "
         f"Time: {time_of_day}. Context: {ctx} "
-        "One natural sentence (max 18 words). Sound like a real person checking in — warm, curious, maybe playful. "
+        "One natural sentence (max 18 words). Sound like a real person in the room — not a bot on a timer. "
+        "If she can see or hear, react to THAT like a human would: a glance, a shift in posture, background noise, "
+        "comfortable silence, or something she actually noticed. Warm, curious, maybe playful. "
+        "Vary pacing — sometimes soft, sometimes direct. "
         "NOT prophecy, NOT quantum/science talk, NOT commenting on their apps or news tabs, NOT a mind-read interruption. "
         "Fresh angle only."
         f"{recent_block} "
@@ -2761,7 +2764,8 @@ async def see(request: SeeRequest):
         )
     else:
         text_prompt += (
-            "ONE natural spoken sentence to the user — only about what is visibly true. "
+            "ONE natural spoken sentence to the user — only about what is visibly true, "
+            "like a friend glancing over and saying something relevant. "
             "Never invent movement. Never say webcam or camera. "
         )
     text_prompt += " Output JSON only using Luna schema."
@@ -2806,12 +2810,13 @@ async def interject(request: InterjectRequest):
             prior_assistant = " Do NOT repeat or paraphrase: " + " | ".join(p[:80] for p in prior) + "."
     prompt = (
         "UNPROMPTED INTERRUPTION — Luna speaks without being asked. "
-        "Read recent chat and the moment. "
+        "Read recent chat and the moment like a person who has been sitting with them. "
         f"Context: {ctx}\n{recent}\n"
-        "One natural sentence (max 18 words) — a guess, a question, or a playful observation about them. "
+        "One natural sentence (max 18 words) — a guess, a question, or a casual observation about them or the room. "
+        "If vision or hearing context exists, weave in one concrete detail she could plausibly notice. "
         "Sound human, not mystical. No quantum, arcane, or news-commentary voice."
         f"{prior_assistant} "
-        "Flirty if it fits the vibe. Pick gesture/mood that matches."
+        "Flirty only if companion mode fits the vibe. Pick gesture/mood that matches."
     )
     fallbacks = [
         "You're quiet — plotting something, or just tired?",

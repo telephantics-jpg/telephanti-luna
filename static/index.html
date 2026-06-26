@@ -93,6 +93,9 @@
       border-left: 1px solid var(--border);
       background: var(--panel);
       min-height: 0;
+      height: 100%;
+      max-height: 100%;
+      overflow: hidden;
     }
     .banner {
       display: none;
@@ -115,12 +118,23 @@
     .banner.visible { display: block; }
     .banner a { color: var(--accent); }
     .messages {
-      flex: 1;
+      flex: 1 1 0;
+      min-height: 0;
       overflow-y: auto;
-      padding: 0.75rem;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      scroll-padding-bottom: 0.85rem;
+      padding: 0.75rem 0.75rem 0.5rem;
       display: flex;
       flex-direction: column;
       gap: 0.55rem;
+    }
+    .chat-scroll-anchor {
+      flex-shrink: 0;
+      height: 0.25rem;
+      width: 100%;
+      pointer-events: none;
     }
     .msg {
       max-width: 92%;
@@ -132,11 +146,16 @@
     .msg.user { align-self: flex-end; background: #1e2640; }
     .msg.assistant { align-self: flex-start; background: #1a2030; border: 1px solid var(--border); }
     .msg.system { align-self: center; color: var(--muted); font-size: 0.78rem; text-align: center; background: rgba(201,168,124,0.08); border: 1px dashed rgba(201,168,124,0.25); }
+    .chat-compose {
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(18, 22, 34, 0.98), var(--panel));
+    }
     .input-row {
       display: flex;
       gap: 0.45rem;
-      padding: 0.65rem 0.75rem calc(0.65rem + var(--safe-b));
-      border-top: 1px solid var(--border);
+      padding: 0.55rem 0.75rem calc(0.55rem + var(--safe-b));
+      border-top: none;
     }
     #input {
       flex: 1;
@@ -405,9 +424,15 @@
       box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
     }
     .quick-prompts {
-      display: flex; gap: 0.35rem; flex-wrap: wrap;
-      padding: 0.5rem 0.75rem 0; max-height: 4.5rem; overflow-y: auto;
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      padding: 0.45rem 0.75rem 0;
+      max-height: 4.25rem;
+      overflow-y: auto;
     }
+    .quick-prompts:empty { display: none; padding: 0; }
     .quick-prompts button {
       border: 1px solid var(--border); background: #1a2030; color: var(--muted);
       border-radius: 999px; padding: 0.3rem 0.65rem; font-size: 0.72rem;
@@ -648,8 +673,10 @@
     .status-pill.err { color: #fca5a5; border-color: rgba(248,113,113,0.35); }
     .mobile-tabs {
       display: none;
+      flex-shrink: 0;
       border-top: 1px solid var(--border);
       padding-bottom: var(--safe-b);
+      background: rgba(14, 17, 28, 0.98);
     }
     .mobile-tabs button {
       flex: 1;
@@ -668,6 +695,10 @@
       .main.show-avatar .chat { display: none; }
       .chat { border-left: none; }
       .mobile-tabs { display: flex; }
+      .input-row { padding-bottom: 0.5rem; }
+      .main.show-chat .chat-compose {
+        padding-bottom: 0.15rem;
+      }
       body.web-cloud .interact-bar { display: none; }
       body.web-cloud .rapport-bar,
       body.web-cloud .mood-badge { display: none; }
@@ -2876,12 +2907,15 @@
       </div>
       <div class="messages" id="messages">
         <div class="msg system">I'm Luna — your female AI assistant. Tap 🎤 so I can hear you, or type below.</div>
+        <div class="chat-scroll-anchor" id="chat-scroll-anchor" aria-hidden="true"></div>
       </div>
-      <div class="quick-prompts" id="quick-prompts"></div>
-      <form class="input-row" id="form">
-        <input id="input" placeholder="Talk to Luna — or tap 🎤 to speak..." autocomplete="off" maxlength="2000" />
-        <button type="submit" id="send">Send</button>
-      </form>
+      <div class="chat-compose">
+        <div class="quick-prompts" id="quick-prompts"></div>
+        <form class="input-row" id="form">
+          <input id="input" placeholder="Talk to Luna — or tap 🎤 to speak..." autocomplete="off" maxlength="2000" />
+          <button type="submit" id="send">Send</button>
+        </form>
+      </div>
     </section>
   </div>
 
@@ -3123,8 +3157,8 @@
 
   <script type="module">
     import { LunaMic } from "/static/luna-mic.mjs";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=93";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=93";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=94";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=94";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3512,7 +3546,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=93",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=94",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -5857,12 +5891,61 @@
     let ttsPrefetch = null;
     const ttsPrefetchMap = new Map();
 
+    function ensureChatScrollAnchor() {
+      let anchor = document.getElementById("chat-scroll-anchor");
+      if (!anchor && messagesEl) {
+        anchor = document.createElement("div");
+        anchor.id = "chat-scroll-anchor";
+        anchor.className = "chat-scroll-anchor";
+        anchor.setAttribute("aria-hidden", "true");
+        messagesEl.appendChild(anchor);
+      }
+      return anchor;
+    }
+
+    function scrollChatToEnd(smooth = false) {
+      if (!messagesEl) return;
+      ensureChatScrollAnchor();
+      const behavior = smooth ? "smooth" : "instant";
+      const run = () => {
+        const anchor = document.getElementById("chat-scroll-anchor");
+        if (anchor) anchor.scrollIntoView({ block: "end", behavior });
+        else messagesEl.scrollTop = messagesEl.scrollHeight;
+      };
+      run();
+      requestAnimationFrame(run);
+    }
+
+    let chatViewportBound = false;
+    function bindChatViewportFix() {
+      if (chatViewportBound) return;
+      chatViewportBound = true;
+      const chat = document.querySelector(".chat");
+      const apply = () => {
+        if (!chat || !mainEl?.classList.contains("show-chat")) {
+          if (chat) chat.style.paddingBottom = "";
+          return;
+        }
+        const vv = window.visualViewport;
+        if (!vv) return;
+        const gap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        chat.style.paddingBottom = gap > 36 ? `${gap}px` : "";
+        scrollChatToEnd();
+      };
+      window.visualViewport?.addEventListener("resize", apply, { passive: true });
+      window.visualViewport?.addEventListener("scroll", apply, { passive: true });
+      input?.addEventListener("focus", () => setTimeout(() => { apply(); scrollChatToEnd(); }, 120));
+      input?.addEventListener("blur", () => { if (chat) chat.style.paddingBottom = ""; });
+    }
+
     function addMsg(role, text, opts = {}) {
       const el = document.createElement("div");
       el.className = "msg " + role + (opts.heard ? " heard" : "");
       el.textContent = text;
-      messagesEl.appendChild(el);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+      const anchor = ensureChatScrollAnchor();
+      if (anchor) messagesEl.insertBefore(el, anchor);
+      else messagesEl.appendChild(el);
+      scrollChatToEnd();
       if (isPetMode() && petBubbleMode) appendPetBubble(role, text);
       else if (isPetMode() && petDialogOpen) appendPetDialogMsg(role, text);
       return el;
@@ -6075,6 +6158,7 @@
       if (tabs && getComputedStyle(tabs).display !== "none") chrome += tabs.getBoundingClientRect().height;
       if (banner?.classList.contains("visible")) chrome += banner.getBoundingClientRect().height;
       document.documentElement.style.setProperty("--chrome-v", `${chrome + parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-t")) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-b"))}px`);
+      if (mainEl?.classList.contains("show-chat")) scrollChatToEnd();
     }
 
     function bindResponsiveChrome() {
@@ -6683,9 +6767,11 @@
       const sys = messagesEl.querySelector(".msg.system");
       messagesEl.innerHTML = "";
       if (sys) messagesEl.appendChild(sys);
+      ensureChatScrollAnchor();
       for (const turn of history) {
         if (turn.role === "user" || turn.role === "assistant") addMsg(turn.role, turn.content);
       }
+      scrollChatToEnd();
     }
 
     function loadSettings() {
@@ -7104,6 +7190,8 @@
         const sys = messagesEl.querySelector(".msg.system");
         messagesEl.innerHTML = "";
         if (sys) messagesEl.appendChild(sys);
+        ensureChatScrollAnchor();
+        scrollChatToEnd();
         saveSettings();
         showToast("Chat history cleared");
       });
@@ -9741,7 +9829,11 @@
         document.querySelectorAll(".mobile-tabs button").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         mainEl.className = "main show-" + btn.dataset.view;
-        if (btn.dataset.view === "chat") input.focus();
+        if (btn.dataset.view === "chat") {
+          updateResponsiveChrome();
+          scrollChatToEnd();
+          setTimeout(() => input.focus(), 60);
+        }
       });
     });
 
@@ -9866,6 +9958,9 @@
           lanBanner.classList.add("visible");
         }
         setupPhoneClient();
+        bindChatViewportFix();
+        ensureChatScrollAnchor();
+        scrollChatToEnd();
       } catch {
         setupBanner.classList.add("visible");
         setupBanner.textContent = "Server offline — double-click Luna Companion on Desktop.";

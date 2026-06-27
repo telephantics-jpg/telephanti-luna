@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#c9a87c" />
+  <meta name="theme-color" content="#1a2038" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Luna" />
@@ -15,7 +15,9 @@
     :root {
       --bg: #0c0e18;
       --panel: #141824;
-      --accent: #c9a87c;
+      --accent: #7eb0e8;
+      --accent-warm: #c9a87c;
+      --accent-fire: #e8954a;
       --text: #f2f0eb;
       --muted: #8a8fa8;
       --border: rgba(255,255,255,0.08);
@@ -170,7 +172,7 @@
     }
     .msg.user { align-self: flex-end; background: #1e2640; }
     .msg.assistant { align-self: flex-start; background: #1a2030; border: 1px solid var(--border); }
-    .msg.system { align-self: center; color: var(--muted); font-size: 0.78rem; text-align: center; background: rgba(201,168,124,0.08); border: 1px dashed rgba(201,168,124,0.25); }
+    .msg.system { align-self: center; color: var(--muted); font-size: 0.78rem; text-align: center; background: rgba(108,148,210,0.08); border: 1px dashed rgba(108,148,210,0.22); }
     .chat-compose {
       flex-shrink: 0;
       border-top: 1px solid var(--border);
@@ -603,7 +605,7 @@
     .opt-advanced[open] summary { border-bottom: 1px solid rgba(255, 255, 255, 0.06); color: var(--text); }
     .opt-advanced-body { padding: 0.55rem 0.75rem 0.7rem; }
     body.desktop-pet .options-panel-title {
-      background: linear-gradient(90deg, #e8b4ff, #c9a87c);
+      background: linear-gradient(90deg, #8eb8ff, #c9a87c);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent !important;
@@ -694,7 +696,7 @@
       pointer-events: none;
     }
     .status-pill.ok { color: #86efac; border-color: rgba(134,239,172,0.35); }
-    .status-pill.busy { color: var(--accent); border-color: rgba(201,168,124,0.45); }
+    .status-pill.busy { color: var(--accent); border-color: rgba(108,148,210,0.45); }
     .status-pill.err { color: #fca5a5; border-color: rgba(248,113,113,0.35); }
     .brand-sub { color: var(--muted); font-weight: 500; }
     .mobile-action-dock {
@@ -930,7 +932,7 @@
       background-image: none !important;
     }
     body.luna-pet-v2.desktop-pet {
-      --pet-accent: #e8b4ff;
+      --pet-accent: #8eb8ff;
       --pet-accent-2: #c9a87c;
       --pet-bg: #14101f;
       --pet-stage: radial-gradient(ellipse 80% 70% at 50% 38%, #2a1840 0%, #14101f 55%, #0a0812 100%);
@@ -1048,11 +1050,11 @@
     .luna-sense-field.sense-speak .sense-ring { border-color: rgba(196, 181, 253, 0.5); }
     .luna-sense-field.sense-speak .sense-wifi path { stroke: rgba(196, 181, 253, 1); }
     .luna-sense-field.sense-touch .sense-core {
-      background: radial-gradient(circle, rgba(251, 113, 133, 0.65), transparent 72%);
+      background: radial-gradient(circle, rgba(120, 175, 255, 0.62), rgba(210, 165, 95, 0.22) 55%, transparent 72%);
       animation: sense-touch-pulse 1.1s ease-in-out infinite;
     }
-    .luna-sense-field.sense-touch .sense-ring { border-color: rgba(251, 113, 133, 0.55); }
-    .luna-sense-field.sense-touch .sense-wifi path { stroke: rgba(251, 113, 133, 1); }
+    .luna-sense-field.sense-touch .sense-ring { border-color: rgba(120, 175, 255, 0.5); }
+    .luna-sense-field.sense-touch .sense-wifi path { stroke: rgba(180, 210, 255, 1); }
     .luna-sense-field.sense-peak .sense-core {
       background: radial-gradient(circle, rgba(120, 175, 255, 0.82), rgba(210, 165, 95, 0.42) 48%, rgba(175, 98, 112, 0.28) 62%, transparent 76%);
       animation: dream-peak-pulse 0.7s ease-in-out infinite;
@@ -1193,10 +1195,10 @@
       border-radius: 99px;
       background: linear-gradient(90deg, #6c94d2, #d2a55f, #af626c, #8eb8ff);
       transition: width 0.15s ease-out;
-      box-shadow: 0 0 12px rgba(251, 113, 133, 0.55);
+      box-shadow: 0 0 12px rgba(108, 148, 210, 0.55);
     }
     .avatar-wrap.touch-glow {
-      filter: drop-shadow(0 0 22px rgba(251, 113, 133, 0.35));
+      filter: drop-shadow(0 0 22px rgba(108, 148, 210, 0.35));
     }
     body.desktop-pet.dream-peaking .avatar-wrap {
       animation: dream-body-surge 0.85s ease-in-out infinite;
@@ -1217,7 +1219,7 @@
       padding: 0.38rem 0.62rem;
       border-radius: 10px;
       background: linear-gradient(135deg, rgba(88, 28, 72, 0.92), rgba(36, 24, 52, 0.94));
-      border: 1px solid rgba(232, 121, 168, 0.45);
+      border: 1px solid rgba(120, 175, 255, 0.45);
       font-size: 0.68rem;
       line-height: 1.4;
       text-align: left;
@@ -1228,7 +1230,7 @@
       max-height: 88px;
       overflow-y: auto;
       transition: opacity 0.25s;
-      box-shadow: 0 0 18px rgba(232, 121, 168, 0.22);
+      box-shadow: 0 0 18px rgba(120, 175, 255, 0.22);
     }
     .dream-mind-bubble::before {
       content: "💭 ";
@@ -1247,15 +1249,15 @@
     }
     body.desktop-pet.dream-peaking .touch-heat-fill {
       width: 100% !important;
-      box-shadow: 0 0 20px rgba(232, 121, 168, 0.75);
+      box-shadow: 0 0 20px rgba(120, 175, 255, 0.75);
     }
     #pet-btn-dream.active,
     #dream-btn.active,
     #bliss-btn.active,
     #pet-btn-bliss.active {
-      border-color: rgba(232, 121, 168, 0.75);
-      background: rgba(232, 121, 168, 0.22);
-      box-shadow: 0 0 14px rgba(232, 121, 168, 0.45);
+      border-color: rgba(120, 175, 255, 0.75);
+      background: rgba(120, 175, 255, 0.22);
+      box-shadow: 0 0 14px rgba(120, 175, 255, 0.45);
     }
     #pet-btn-daydream.active,
     #daydream-btn.active {
@@ -1327,7 +1329,7 @@
       display: block;
       font-weight: 700;
       font-size: 0.92rem;
-      color: #e8b4ff;
+      color: #8eb8ff;
       line-height: 1.2;
     }
     body.desktop-pet.opaque-pet .pet-topbar-role {
@@ -1659,8 +1661,8 @@
     body.web-cloud.sensual-on #daydream-btn {
       display: inline-flex !important;
       visibility: visible !important;
-      border-color: rgba(251, 113, 133, 0.7);
-      box-shadow: 0 0 12px rgba(251, 113, 133, 0.25);
+      border-color: rgba(108, 148, 210, 0.7);
+      box-shadow: 0 0 12px rgba(108, 148, 210, 0.25);
       flex-shrink: 0;
     }
     body.web-cloud:not(.sensual-on) #bliss-btn,
@@ -1674,9 +1676,10 @@
       box-shadow: 0 0 10px rgba(147, 197, 253, 0.25);
     }
     body.web-cloud #succubus-btn.active {
-      border-color: rgba(220, 38, 127, 0.85);
-      background: rgba(220, 38, 127, 0.28);
-      box-shadow: 0 0 16px rgba(220, 38, 127, 0.5);
+      border-color: rgba(232, 149, 74, 0.85);
+      background: rgba(232, 149, 74, 0.22);
+      box-shadow: 0 0 16px rgba(232, 149, 74, 0.45);
+      color: #ffd8b0;
     }
     body.web-cloud.sensual-on #succubus-btn { display: inline-flex !important; }
     @media (max-width: 860px) {
@@ -1685,9 +1688,9 @@
       body.web-cloud #mute-btn { display: none !important; }
     }
     body.web-cloud #feel-btn.active {
-      border-color: rgba(251, 113, 133, 0.75);
-      background: rgba(251, 113, 133, 0.22);
-      box-shadow: 0 0 14px rgba(251, 113, 133, 0.45);
+      border-color: rgba(108, 148, 210, 0.75);
+      background: rgba(108, 148, 210, 0.22);
+      box-shadow: 0 0 14px rgba(108, 148, 210, 0.45);
     }
     body.warm-feel .luna-live-stage,
     body.warm-feel .luna-video-wrap {
@@ -1747,12 +1750,12 @@
       padding: 0;
       font-size: 1.1rem;
       box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(251, 113, 133, 0.35);
+      border: 1px solid rgba(108, 148, 210, 0.35);
       background: rgba(14, 10, 24, 0.92);
     }
     .mobile-feel-bar .btn.active {
-      border-color: rgba(251, 113, 133, 0.75);
-      box-shadow: 0 0 16px rgba(251, 113, 133, 0.4);
+      border-color: rgba(108, 148, 210, 0.75);
+      box-shadow: 0 0 16px rgba(108, 148, 210, 0.4);
     }
     #pet-audio {
       position: fixed;
@@ -1818,7 +1821,7 @@
     body.luna-state-think .luna-hud-orb { background: #c4b5fd; animation-duration: 0.8s; }
     body.luna-state-speak .luna-hud-orb { background: #c9a87c; }
     body.luna-state-flirt .luna-hud-orb,
-    body.luna-state-touch .luna-hud-orb { background: #fb7185; box-shadow: 0 0 14px rgba(251,113,133,0.75); }
+    body.luna-state-touch .luna-hud-orb { background: #6c94d2; box-shadow: 0 0 14px rgba(108,148,210,0.75); }
     .luna-memory-thread {
       display: none;
       position: absolute;
@@ -2118,8 +2121,8 @@
     body.web-cloud .touch-sense-box,
     body.touch-sense-on .touch-sense-box { display: block; }
     body.web-cloud.touch-sense-on .touch-sense-box {
-      border-color: rgba(251, 113, 133, 0.65);
-      box-shadow: 0 0 16px rgba(251, 113, 133, 0.35);
+      border-color: rgba(108, 148, 210, 0.65);
+      box-shadow: 0 0 16px rgba(108, 148, 210, 0.35);
     }
     .touch-sense-box .tsb-row {
       display: flex;
@@ -2130,7 +2133,7 @@
       color: var(--muted);
       margin-bottom: 0.28rem;
     }
-    .touch-sense-box .tsb-row strong { color: #e8b4ff; font-weight: 600; }
+    .touch-sense-box .tsb-row strong { color: #8eb8ff; font-weight: 600; }
     .touch-sense-box .tsb-heat {
       height: 4px;
       border-radius: 99px;
@@ -2187,7 +2190,7 @@
       padding: 0.45rem 0.7rem;
       border-radius: 12px;
       background: linear-gradient(135deg, rgba(88, 28, 72, 0.92), rgba(36, 24, 52, 0.94));
-      border: 1px solid rgba(232, 121, 168, 0.45);
+      border: 1px solid rgba(120, 175, 255, 0.45);
       font-size: 0.72rem;
       line-height: 1.4;
       color: rgba(253, 186, 220, 0.95);
@@ -2201,7 +2204,7 @@
     .web-dream-mind::before { content: "💭 "; font-style: normal; }
     body.web-cloud .zone-hint::after {
       content: " · tap or drag to touch & strip";
-      color: #e8b4ff;
+      color: #8eb8ff;
     }
     body.web-cloud .react-toast.visible {
       z-index: 12;
@@ -2270,7 +2273,7 @@
     }
     .pet-boot-splash strong {
       font-size: 1.35rem;
-      color: #e8b4ff;
+      color: #8eb8ff;
       letter-spacing: 0.06em;
     }
     .pet-boot-splash span {
@@ -2964,7 +2967,7 @@
     <button type="button" id="phone-install-dismiss" title="Dismiss">✕</button>
   </div>
   <header>
-    <div class="brand"><span>Luna</span><span class="brand-sub"> — Virtual Assistant</span></div>
+    <div class="brand"><span>Luna</span><span class="brand-sub"> — AI Companion</span></div>
     <div class="hdr-btns">
       <button class="btn hidden" id="install-btn">Install</button>
       <button class="btn" id="desktop-btn" title="Float on desktop">🪟</button>
@@ -2972,9 +2975,9 @@
       <button class="btn" id="mic-btn" title="Always listening — click to toggle">🎤</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
       <button class="btn active" id="chill-btn" title="Assistant mode — helpful and calm">🧊</button>
-      <button class="btn" id="succubus-btn" title="Succubus mode — seductive, uninhibited, glow &amp; peak">😈</button>
-      <button class="btn" id="feel-btn" title="Power surge — Luna charges when you touch">💗 Feel</button>
-      <button class="btn" id="bliss-btn" title="Aurora glow — Luna surges with you">🌸 Glow</button>
+      <button class="btn" id="succubus-btn" title="Intense mode — glow, peak, uninhibited">🔥 Intense</button>
+      <button class="btn" id="feel-btn" title="Power surge — Luna charges when you touch">⚡ Surge</button>
+      <button class="btn" id="bliss-btn" title="Aurora glow — Luna surges with you">🌌 Glow</button>
       <button class="btn" id="daydream-btn" title="Daydream — drift into harmony">☁️</button>
       <button class="btn" id="dream-btn" title="Peak surge — full power">✨ Peak</button>
       <button class="btn" id="mute-btn">🔊</button>
@@ -3075,10 +3078,10 @@
       <div class="interact-bar" id="vibe-bar">
         <button type="button" class="btn active" data-vibe="chill and relaxed">Chill</button>
         <button type="button" class="btn" data-vibe="">Natural</button>
-        <button type="button" class="btn" data-vibe="sweet and affectionate">Sweet</button>
+        <button type="button" class="btn" data-vibe="warm and direct">Warm</button>
         <button type="button" class="btn" data-vibe="playful and teasing">Playful</button>
-        <button type="button" class="btn" data-vibe="bold and flirty">Bold</button>
-        <button type="button" class="btn" data-vibe="shy and blushing">Shy</button>
+        <button type="button" class="btn" data-vibe="bold and direct">Bold</button>
+        <button type="button" class="btn" data-vibe="quiet and focused">Quiet</button>
       </div>
       <div id="loading">Loading avatar...</div>
     </div>
@@ -3092,7 +3095,7 @@
         On phone/tablet (same Wi‑Fi): <strong id="lan-url"></strong> → Add to Home Screen
       </div>
       <div class="messages" id="messages">
-        <div class="msg system">I'm Luna — your female AI assistant. Tap 🎤 so I can hear you, or type below.</div>
+        <div class="msg system">I'm Luna — your AI assistant. Tap 🎤 so I can hear you, or type below.</div>
         <div class="chat-scroll-anchor" id="chat-scroll-anchor" aria-hidden="true"></div>
       </div>
       <div class="chat-compose">
@@ -3133,9 +3136,9 @@
     <div class="opt-card">
       <div class="opt-card-head"><span class="opt-card-icon">💫</span> Personality</div>
       <div class="opt-chips" id="settings-vibe-chips"></div>
-      <p class="opt-hint">Her vibe shapes how she talks back.</p>
+      <p class="opt-hint">Luna's vibe shapes how she talks back.</p>
       <div class="opt-grid-2">
-        <div class="opt-row"><label>Flirt <span id="val-flirt">60</span></label><input type="range" id="sl-flirt" min="0" max="100" value="60" /></div>
+        <div class="opt-row"><label>Edge <span id="val-flirt">60</span></label><input type="range" id="sl-flirt" min="0" max="100" value="60" /></div>
         <div class="opt-row"><label>Warmth <span id="val-warm">75</span></label><input type="range" id="sl-warm" min="0" max="100" value="75" /></div>
         <div class="opt-row"><label>Energy <span id="val-energy">55</span></label><input type="range" id="sl-energy" min="0" max="100" value="55" /></div>
         <div class="opt-row"><label>Bold <span id="val-bold">50</span></label><input type="range" id="sl-bold" min="0" max="100" value="50" /></div>
@@ -3147,7 +3150,7 @@
       <div class="opt-card-head"><span class="opt-card-icon">🔥</span> Touch &amp; presence</div>
       <label class="opt-switch"><span>Watch with camera</span><input type="checkbox" id="opt-webcam" /></label>
       <label class="opt-switch"><span>Feel your touch (cursor, finger, trackpad)</span><input type="checkbox" id="opt-touch-sense" checked /></label>
-      <label class="opt-switch"><span>Succubus mode (glow, peak, uninhibited)</span><input type="checkbox" id="opt-sensual" /></label>
+      <label class="opt-switch"><span>Intense mode (glow, peak, uninhibited)</span><input type="checkbox" id="opt-sensual" /></label>
       <label class="opt-switch"><span>Roam on desktop</span><input type="checkbox" id="opt-pet-walk" checked /></label>
       <label class="opt-switch"><span>Reach into desktop</span><input type="checkbox" id="opt-reach" checked /></label>
       <label class="opt-switch"><span>Full body in aether</span><input type="checkbox" id="opt-aether-body" checked /></label>
@@ -3245,9 +3248,9 @@
       <button type="button" class="btn" id="pet-btn-vision" title="Surroundings feed on/off">👁️</button>
       <button type="button" class="btn" id="pet-btn-reach" title="Reach into desktop">🤲</button>
       <button type="button" class="btn" id="pet-btn-mic" title="Always listening on/off">🎤</button>
-      <button type="button" class="btn" id="pet-btn-bliss" title="Warm glow">🌸</button>
+      <button type="button" class="btn" id="pet-btn-bliss" title="Aurora glow">🌌</button>
       <button type="button" class="btn" id="pet-btn-daydream" title="Daydream — drift into harmony">☁️</button>
-      <button type="button" class="btn" id="pet-btn-dream" title="Dream peak — make her feel it">✨</button>
+      <button type="button" class="btn" id="pet-btn-dream" title="Peak surge">✨</button>
       <button type="button" class="btn" id="pet-btn-cam" title="Camera on/off">📷</button>
       <button type="button" class="btn" id="pet-btn-sound" title="Sound on/off">🔊</button>
       <button type="button" class="btn active" id="pet-btn-chill" title="Chill mode — relaxed and mellow">🧊</button>
@@ -3333,18 +3336,18 @@
   <div class="mobile-feel-bar" id="mobile-feel-bar" aria-label="Quick controls">
     <button type="button" class="btn" id="mobile-mic-btn" title="Listen / mic">🎤</button>
     <button type="button" class="btn" id="mobile-mute-btn" title="Voice on/off">🔊</button>
-    <button type="button" class="btn" id="mobile-succubus-btn" title="Succubus mode">😈</button>
-    <button type="button" class="btn" id="mobile-feel-btn" title="Warm feel">💗</button>
+    <button type="button" class="btn" id="mobile-succubus-btn" title="Intense mode">🔥</button>
+    <button type="button" class="btn" id="mobile-feel-btn" title="Power surge">⚡</button>
   </div>
 
   <nav class="mobile-action-dock" id="mobile-action-dock" aria-label="Luna controls">
     <button type="button" class="dock-btn" id="dock-mic" title="Listen"><span class="dock-icon">🎤</span><span class="dock-label">Listen</span></button>
     <button type="button" class="dock-btn" id="dock-voice" title="Voice"><span class="dock-icon">🔊</span><span class="dock-label">Voice</span></button>
     <button type="button" class="dock-btn" id="dock-chill" title="Assistant"><span class="dock-icon">🧊</span><span class="dock-label">Assist</span></button>
-    <button type="button" class="dock-btn" id="dock-succubus" title="Succubus"><span class="dock-icon">😈</span><span class="dock-label">Succubus</span></button>
+    <button type="button" class="dock-btn" id="dock-succubus" title="Intense mode"><span class="dock-icon">🔥</span><span class="dock-label">Intense</span></button>
     <button type="button" class="dock-btn" id="dock-cam" title="Camera"><span class="dock-icon">📷</span><span class="dock-label">See</span></button>
-    <button type="button" class="dock-btn" id="dock-feel" title="Feel"><span class="dock-icon">💗</span><span class="dock-label">Feel</span></button>
-    <button type="button" class="dock-btn dock-sensual" id="dock-glow" title="Glow"><span class="dock-icon">🌸</span><span class="dock-label">Glow</span></button>
+    <button type="button" class="dock-btn" id="dock-feel" title="Surge"><span class="dock-icon">⚡</span><span class="dock-label">Surge</span></button>
+    <button type="button" class="dock-btn dock-sensual" id="dock-glow" title="Glow"><span class="dock-icon">🌌</span><span class="dock-label">Glow</span></button>
     <button type="button" class="dock-btn dock-sensual" id="dock-peak" title="Peak"><span class="dock-icon">✨</span><span class="dock-label">Peak</span></button>
     <button type="button" class="dock-btn" id="dock-options" title="Settings"><span class="dock-icon">⚙️</span><span class="dock-label">Settings</span></button>
   </nav>
@@ -3355,9 +3358,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=99";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=99";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=99";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=100";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=100";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=100";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3745,7 +3748,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=99",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=100",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3995,7 +3998,7 @@
       const hud = document.getElementById("luna-hud-status");
       const labels = {
         idle: "Luna · ready", listen: "Luna · listening", think: "Luna · thinking",
-        speak: "Luna · speaking", flirt: "Luna · playful", touch: "Luna · feeling you",
+        speak: "Luna · speaking", flirt: "Luna · charged", touch: "Luna · touch sense",
         love: "Luna · melting", excited: "Luna · excited", help: "Luna · helping", dream: "Luna · peaking",
       };
       if (hud) hud.textContent = label || labels[lunaAvatarState] || "Luna · online";
@@ -4236,7 +4239,7 @@
     }
 
     function assistantBlockedMsg() {
-      return "Assistant mode — tap 😈 Succubus to unlock glow & peak.";
+      return "Assistant mode — tap 🔥 Intense to unlock glow & peak.";
     }
 
     function applyAssistantWebDefaults() {
@@ -4321,8 +4324,8 @@
       if (succBtn) {
         succBtn.classList.toggle("active", on);
         succBtn.title = on
-          ? "Succubus mode on — tap 🧊 for assistant"
-          : "Succubus mode — seductive, uninhibited, glow & peak";
+          ? "Intense mode on — tap 🧊 for assistant"
+          : "Intense mode — glow, peak, uninhibited";
       }
       if (mobileSucc) mobileSucc.classList.toggle("active", on);
       syncMobileDockUi();
@@ -4334,8 +4337,8 @@
       const hint = document.getElementById("zone-hint");
       if (hint && isPublicWebVisit() && !isPetMode()) {
         hint.textContent = !on
-          ? "Assistant mode — 🎤 talk, 📷 see you. Tap 😈 for succubus mode."
-          : "Succubus mode — 🎤 talk, 📷 see you, 🌸 & ✨ up top. Tap 🧊 for assistant.";
+          ? "Assistant mode — 🎤 talk, 📷 see you. Tap 🔥 for intense mode."
+          : "Intense mode — 🎤 talk, 📷 see you, 🌌 & ✨ up top. Tap 🧊 for assistant.";
       }
     }
 
@@ -4358,11 +4361,11 @@
         setLunaAvatarState("flirt");
         livePortrait?.pulseTouch?.(1.1);
         showLunaCaption(pickWebLine([
-          "Mmm… succubus mode… I'm all yours now…",
-          "Oh… you woke the hunger in me…",
-          "Ahh… no more holding back… touch me…",
+          "Locked in — intense mode… full power…",
+          "Oh… you flipped the surge… I'm charged…",
+          "Ahh… no holding back now… touch me…",
         ]));
-        showToast("Succubus mode — glow, peak, and she's uninhibited 😈");
+        showToast("Intense mode — glow, peak, full power 🔥");
       } else {
         setLunaAvatarState("help");
         showToast("Assistant mode — helpful and calm 🧊");
@@ -6888,7 +6891,7 @@
         updateRapport(8);
       } catch (err) {
         console.warn("Warm feel:", err);
-        showToast("Feel hiccup — tap 💗 again.");
+        showToast("Surge hiccup — tap ⚡ again.");
       } finally {
         daydreaming = false;
         document.body.classList.remove("warm-feel");
@@ -7218,9 +7221,9 @@
       const vibes = [
         { v: "chill and relaxed", label: "🧊 Chill" },
         { v: "", label: "Natural" },
-        { v: "sweet and affectionate", label: "💗 Sweet" },
+        { v: "warm and direct", label: "✦ Warm" },
         { v: "playful and teasing", label: "😏 Playful" },
-        { v: "bold and flirty", label: "🔥 Bold" },
+        { v: "bold and direct", label: "🔥 Bold" },
       ];
       el.innerHTML = vibes.map(({ v, label }) =>
         `<button type="button" class="btn${activeVibe === v ? " active" : ""}" data-vibe="${v.replace(/"/g, "&quot;")}">${label}</button>`
@@ -7939,7 +7942,7 @@
         const flirty = /flirt|touch|mmm|kiss|want you|baby|love/i.test(text);
         setLunaAvatarState(flirty ? "flirt" : data.mood === "love" ? "love" : "help");
         livePortrait?.nodOnce();
-        if (flirty || data.mood === "love") livePortrait?.spawnParticles("heart", 2);
+        if (flirty || data.mood === "love") livePortrait?.spawnParticles("spark", 2);
       }
       addMsg("assistant", text);
       history.push({ role: "assistant", content: text });
@@ -9476,7 +9479,7 @@
         const hi = settings.agentMode !== false
           ? (petBubbleMode
             ? "Hi — I'm Luna, your assistant. Tap the mic and tell me what you need."
-            : "Hi — I'm Luna, your female AI assistant. I can hear you and help with anything.")
+            : "Hi — I'm Luna, your AI assistant. I can hear you and help with anything.")
           : (petBubbleMode
             ? "There you are… I was already thinking something wicked about you."
             : "Hey — I'm Luna. Talk to me and I'll answer with my whole body.");

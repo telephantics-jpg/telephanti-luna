@@ -3069,11 +3069,11 @@ def _vision_analyze(client: OpenAI, image_b64: str, text_prompt: str) -> str:
                 max_tokens=140,
                 timeout=28.0,
             )
-        choices = getattr(response, "choices", None) or []
-        if choices:
-            raw = choices[0].message.content or ""
-            if raw.strip():
-                return raw.strip()
+            choices = getattr(response, "choices", None) or []
+            if choices:
+                raw = choices[0].message.content or ""
+                if raw.strip():
+                    return raw.strip()
         except Exception as exc:
             errors.append(f"{model} chat: {exc}")
     detail = errors[-1] if errors else "vision unavailable"

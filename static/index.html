@@ -1054,21 +1054,21 @@
     .luna-sense-field.sense-touch .sense-ring { border-color: rgba(251, 113, 133, 0.55); }
     .luna-sense-field.sense-touch .sense-wifi path { stroke: rgba(251, 113, 133, 1); }
     .luna-sense-field.sense-peak .sense-core {
-      background: radial-gradient(circle, rgba(232, 121, 168, 0.85), rgba(196, 181, 253, 0.4) 55%, transparent 75%);
-      animation: dream-peak-pulse 0.55s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(120, 175, 255, 0.82), rgba(210, 165, 95, 0.42) 48%, rgba(175, 98, 112, 0.28) 62%, transparent 76%);
+      animation: dream-peak-pulse 0.7s ease-in-out infinite;
     }
     .luna-sense-field.sense-peak .sense-ring {
-      border-color: rgba(232, 121, 168, 0.75);
-      animation: sense-ring-out 1.1s ease-out infinite;
+      border-color: rgba(120, 175, 255, 0.62);
+      animation: sense-ring-out 1.2s ease-out infinite;
     }
-    .luna-sense-field.sense-peak .sense-wifi path { stroke: rgba(232, 121, 168, 1); }
+    .luna-sense-field.sense-peak .sense-wifi path { stroke: rgba(180, 210, 255, 1); }
     @keyframes sense-touch-pulse {
       0%, 100% { transform: scale(0.88); opacity: 0.7; }
       50% { transform: scale(1.2); opacity: 1; }
     }
     @keyframes dream-peak-pulse {
-      0%, 100% { transform: scale(0.75); opacity: 0.85; }
-      50% { transform: scale(1.45); opacity: 1; }
+      0%, 100% { transform: scale(0.82); opacity: 0.88; }
+      50% { transform: scale(1.28); opacity: 1; }
     }
     #touch-sense-layer {
       position: absolute;
@@ -1191,7 +1191,7 @@
       height: 100%;
       width: 0%;
       border-radius: 99px;
-      background: linear-gradient(90deg, #fb7185, #e879a8, #c4b5fd);
+      background: linear-gradient(90deg, #6c94d2, #d2a55f, #af626c, #8eb8ff);
       transition: width 0.15s ease-out;
       box-shadow: 0 0 12px rgba(251, 113, 133, 0.55);
     }
@@ -1199,17 +1199,12 @@
       filter: drop-shadow(0 0 22px rgba(251, 113, 133, 0.35));
     }
     body.desktop-pet.dream-peaking .avatar-wrap {
-      animation: dream-body-shiver 0.45s ease-in-out infinite;
-      filter: drop-shadow(0 0 28px rgba(232, 121, 168, 0.55));
+      animation: dream-body-surge 0.85s ease-in-out infinite;
+      filter: drop-shadow(0 0 28px rgba(108, 148, 210, 0.5)) drop-shadow(0 0 18px rgba(210, 165, 95, 0.25));
     }
     body.desktop-pet.dream-peaking.dream-climax .avatar-wrap {
-      animation: dream-body-shiver 0.28s ease-in-out infinite;
-      filter: drop-shadow(0 0 42px rgba(232, 121, 168, 0.85));
-    }
-    @keyframes dream-body-shiver {
-      0%, 100% { transform: perspective(900px) rotateX(0deg) translateZ(0); }
-      25% { transform: perspective(900px) rotateX(0.9deg) translateZ(3px); }
-      75% { transform: perspective(900px) rotateX(-0.9deg) translateZ(-2px); }
+      animation: dream-body-surge 0.55s ease-in-out infinite;
+      filter: drop-shadow(0 0 42px rgba(120, 175, 255, 0.65)) drop-shadow(0 0 24px rgba(210, 165, 95, 0.32));
     }
     body.desktop-pet .pet-caption.has-mind {
       display: flex;
@@ -1696,12 +1691,22 @@
     }
     body.warm-feel .luna-live-stage,
     body.warm-feel .luna-video-wrap {
-      filter: drop-shadow(0 0 22px rgba(251, 113, 133, 0.45)) saturate(1.06);
-      animation: warm-feel-glow 2.4s ease-in-out infinite;
+      filter: drop-shadow(0 0 26px rgba(108, 148, 210, 0.42)) drop-shadow(0 0 18px rgba(210, 165, 95, 0.22)) saturate(1.08);
+      animation: warm-feel-glow 2.6s ease-in-out infinite;
     }
     @keyframes warm-feel-glow {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 22px rgba(108, 148, 210, 0.38)) saturate(1.06); }
+      50% { transform: scale(1.01); filter: drop-shadow(0 0 32px rgba(120, 175, 255, 0.48)) drop-shadow(0 0 20px rgba(210, 165, 95, 0.28)) saturate(1.1); }
+    }
+    body.bliss-glow .luna-live-stage,
+    body.bliss-glow .luna-video-wrap,
+    body.bliss-glow #avatar canvas {
+      filter: drop-shadow(0 0 28px rgba(108, 148, 210, 0.5)) drop-shadow(0 0 22px rgba(210, 165, 95, 0.28)) saturate(1.1);
+      animation: bliss-aurora-glow 2.2s ease-in-out infinite;
+    }
+    @keyframes bliss-aurora-glow {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.008); }
+      50% { transform: scale(1.014); }
     }
     .luna-feel-cursor {
       position: fixed;
@@ -2136,20 +2141,24 @@
       height: 100%;
       width: 0%;
       border-radius: 99px;
-      background: linear-gradient(90deg, #fb7185, #e879a8, #c4b5fd);
+      background: linear-gradient(90deg, #6c94d2, #d2a55f, #af626c, #8eb8ff);
       transition: width 0.15s ease-out;
     }
     body.dream-peaking .luna-live-stage,
     body.dream-peaking .luna-video-wrap,
     body.dream-peaking #avatar canvas {
-      animation: dream-body-shiver 0.45s ease-in-out infinite;
-      filter: drop-shadow(0 0 24px rgba(232, 121, 168, 0.5));
+      animation: dream-body-surge 0.85s ease-in-out infinite;
+      filter: drop-shadow(0 0 26px rgba(108, 148, 210, 0.48)) drop-shadow(0 0 16px rgba(210, 165, 95, 0.22)) saturate(1.08);
     }
     body.dream-peaking.dream-climax .luna-live-stage,
     body.dream-peaking.dream-climax .luna-video-wrap,
     body.dream-peaking.dream-climax #avatar canvas {
-      animation: dream-body-shiver 0.28s ease-in-out infinite;
-      filter: drop-shadow(0 0 38px rgba(232, 121, 168, 0.82)) saturate(1.12);
+      animation: dream-body-surge 0.55s ease-in-out infinite;
+      filter: drop-shadow(0 0 40px rgba(120, 175, 255, 0.62)) drop-shadow(0 0 24px rgba(210, 165, 95, 0.35)) saturate(1.14);
+    }
+    @keyframes dream-body-surge {
+      0%, 100% { transform: perspective(900px) scale(1) translateZ(0); }
+      50% { transform: perspective(900px) scale(1.012) translateZ(4px); }
     }
     body.lucid-drift .luna-live-stage,
     body.lucid-drift .luna-video-wrap,
@@ -2964,10 +2973,10 @@
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
       <button class="btn active" id="chill-btn" title="Assistant mode — helpful and calm">🧊</button>
       <button class="btn" id="succubus-btn" title="Succubus mode — seductive, uninhibited, glow &amp; peak">😈</button>
-      <button class="btn" id="feel-btn" title="Warm feel — Luna glows and responds to your touch">💗 Feel</button>
-      <button class="btn" id="bliss-btn" title="Warm glow — Luna breathes, rises, and drifts with you">🌸 Glow</button>
+      <button class="btn" id="feel-btn" title="Power surge — Luna charges when you touch">💗 Feel</button>
+      <button class="btn" id="bliss-btn" title="Aurora glow — Luna surges with you">🌸 Glow</button>
       <button class="btn" id="daydream-btn" title="Daydream — drift into harmony">☁️</button>
-      <button class="btn" id="dream-btn" title="Dream peak — take her there">✨ Peak</button>
+      <button class="btn" id="dream-btn" title="Peak surge — full power">✨ Peak</button>
       <button class="btn" id="mute-btn">🔊</button>
     </div>
   </header>
@@ -3346,9 +3355,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=98";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=98";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=98";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=99";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=99";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=99";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3736,7 +3745,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=98",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=99",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -3942,16 +3951,18 @@
     ];
 
     const WEB_BLISS_LINES = [
-      "Mmm… come closer — I'll glow for you…",
-      "Oh… that's warm… stay with me…",
-      "Ahh… breathe with me…",
-      "Yes… let me rise for you…",
-      "Hhh… soft and slow… just us…",
+      "There — power building… stay with me…",
+      "Oh… charged… I feel every bit of that…",
+      "Ahh… breathe with me — aurora rising…",
+      "Yes… let me surge for you…",
+      "Hhh… electric and slow… just us…",
     ];
 
     const WEB_DREAM_BTN_LINES = [
-      "Oh god… take me there…", "Mmm… dream peak… I'm already climbing…",
-      "Ahhh… don't stop until I break…", "Nngh… feel me shatter…",
+      "Take me to the edge — full surge…",
+      "Mmm… peak building… I'm already climbing…",
+      "Ahhh… don't stop until I overload…",
+      "Nngh… feel the charge break through…",
     ];
 
     const recentWebLines = [];
@@ -6285,7 +6296,7 @@
       }
       if (t.length > 75 && (t.includes("?") || (t.match(/\./g) || []).length >= 2)) return "long";
       if (/^(how|why|what if)\b/i.test(low) && t.length > 50) return "long";
-      return isSensualMode() ? "flow" : "medium";
+      return "flow";
     }
 
     function isRecentDuplicate(text) {
@@ -6722,11 +6733,11 @@
         if (head) {
           applyLunaAction({
             mood: "love",
-            gesture: "blush",
-            pose: "bend",
-            activity: "freestyle",
+            gesture: "side",
+            pose: "wide",
+            activity: "orbit",
             lighting: "warm",
-            scene: "rose",
+            scene: "aurora",
             look_at: "user",
             view: "mid",
             duration: 14,
@@ -6763,25 +6774,25 @@
             head.setMood("love");
             applyLunaAction({
               mood: "love",
-              gesture: phase.gesture || (isClimax ? "plead" : "blush"),
-              pose: phase.pose || (isClimax ? "kneel" : "bend"),
+              gesture: phase.gesture || (isClimax ? "wink" : "side"),
+              pose: phase.pose || (isClimax ? "wide" : "hip"),
               activity: phase.activity || (isClimax ? "spin" : "freestyle"),
               lighting: phase.lighting || (isClimax ? "dramatic" : "warm"),
-              scene: phase.scene || "rose",
+              scene: phase.scene || "aurora",
               look_at: phase.look_at || "user",
               view: phase.view || "mid",
               duration: isClimax ? 5 : 3.5,
             });
             if (isClimax) {
-              playLunaGesture("plead", 4.5);
+              playLunaGesture("side", 4.5);
               runActivity("spin", 5);
               head.makeEyeContact(3500);
             } else if (intensity >= 5) {
-              playLunaGesture("heart", 3.5);
+              playLunaGesture("side", 3.5);
               runActivity("spin", 3.5);
             } else if (intensity >= 4) {
-              playLunaGesture("plead", 3);
-              head.playPose(phase.pose || "oneknee", null, 3);
+              playLunaGesture("side", 3);
+              head.playPose(phase.pose || "wide", null, 3);
             } else if (intensity >= 3) {
               playLunaGesture("side", 2.5);
             } else {
@@ -6834,7 +6845,7 @@
       spawnTouchFlash(fx, fy, 0.8, "torso");
       spawnTouchSparks(fx, fy, 2, 0.7, "torso");
       setLunaAvatarState("love");
-      showLunaCaption("Mmm… feel me… glide your finger or cursor over me…");
+      showLunaCaption("Power building… trace your finger or cursor — I feel every bit of it…");
       try {
         await enableLunaVoice();
         const res = await fetch("/api/warm-feel", {
@@ -9183,11 +9194,11 @@
         if (head) {
           applyLunaAction({
             mood: "love",
-            gesture: "blush",
-            pose: "bend",
-            activity: "freestyle",
+            gesture: "side",
+            pose: "wide",
+            activity: "orbit",
             lighting: "warm",
-            scene: "rose",
+            scene: "aurora",
             look_at: "user",
             view: "mid",
             duration: 16,
@@ -9233,28 +9244,28 @@
             head.setMood(isLucid ? "sleep" : "love");
             applyLunaAction({
               mood: isLucid ? "sleep" : "love",
-              gesture: phase.gesture || (isClimax ? "plead" : "blush"),
-              pose: phase.pose || (isClimax ? "kneel" : "bend"),
+              gesture: phase.gesture || (isClimax ? "wink" : "side"),
+              pose: phase.pose || (isClimax ? "wide" : "hip"),
               activity: phase.activity || (isClimax ? "spin" : "freestyle"),
               lighting: phase.lighting || (isClimax ? "dramatic" : "warm"),
-              scene: phase.scene || "rose",
+              scene: phase.scene || "aurora",
               look_at: phase.look_at || "user",
               view: phase.view || "mid",
               duration: isClimax ? 5 : isLucid ? 4 : 3,
             });
             if (isClimax) {
-              playLunaGesture("plead", 4.5);
+              playLunaGesture("side", 4.5);
               runActivity("spin", 5);
               head.makeEyeContact(3500);
             } else if (isLucid) {
               playLunaGesture("sleepy", 3.2);
             } else if (ohN >= 4) {
-              playLunaGesture("plead", 2.8);
+              playLunaGesture("side", 2.8);
             }
           }
           if (isClimax) {
             livePortrait?.orgasmPulse?.(7, 1);
-            livePortrait?.spawnParticles?.("heart", 8);
+            livePortrait?.spawnParticles?.("spark", 10);
             touchHeat = 100;
             updateTouchHeatUi();
           } else {
@@ -9866,6 +9877,10 @@
       if (multi && multi[1].trim().length >= 10) {
         return { chunk: multi[1].trim(), len: multi[1].length };
       }
+      const single = tail.match(/^[^.!?…]*[.!?…](?:\s+|$)/);
+      if (single && single[0].trim().length >= 14) {
+        return { chunk: single[0].trim(), len: single[0].length };
+      }
       const breath = tail.match(/^[\s\S]*?[…—](?:\s+|$)/);
       if (breath && breath[0].trim().length >= 18) {
         return { chunk: breath[0].trim(), len: breath[0].length };
@@ -10072,7 +10087,7 @@
         let action = null;
         const chatBody = {
           message: text,
-          history: priorHistory.slice(-(lengthMode === "flow" || lengthMode === "voice" || lengthMode === "short" ? 4 : 6)),
+          history: priorHistory.slice(-(lengthMode === "long" ? 8 : lengthMode === "short" ? 4 : 6)),
           fast: true,
           length_mode: lengthMode,
           env_context: [desktopEnv?.summary, lastVisionContext ? `Luna sees: ${lastVisionContext}` : ""]
@@ -10096,7 +10111,7 @@
         };
 
         const ctrl = new AbortController();
-        const chatTimer = setTimeout(() => ctrl.abort(), isPetMode() ? 50000 : 70000);
+        const chatTimer = setTimeout(() => ctrl.abort(), isPetMode() ? 90000 : 130000);
         let res;
         try {
           res = await fetch("/api/chat", {
@@ -10194,7 +10209,7 @@
     });
 
     setInterval(() => {
-      if (busy && busySince && Date.now() - busySince > 80000) {
+      if (busy && busySince && Date.now() - busySince > 150000) {
         resetBusy();
         setStatus("stuck — try again", "err");
         showToast("Chat got stuck — send your message again.");

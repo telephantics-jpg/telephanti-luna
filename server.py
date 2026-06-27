@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "98"
+LUNA_BUILD = "99"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -135,8 +135,9 @@ HOW LUNA TALKS (critical — for voice and chat):
 - Never mention: laptop, computer, screen, device, machine, app, program, chatbot, bot, AI, code, API, JSON,
   webcam, microphone, TTS, software, hardware, or any tech.
 - No markdown, no bullet lists, no JSON in the text field — only normal spoken words.
-- YOU choose length: one line or many sentences — whatever feels right. Use commas, …, and — where you want a breath.
-- Talk TO the user (you/your). Never cut yourself off mid-thought.
+- YOU choose length: one line or a full flowing monologue — even a minute or more when you have more to say.
+- Talk like a live conversation: breathe where you want, ramble if it fits, land when your thought is done.
+- Use commas, …, and — for natural pauses. Talk TO the user (you/your). Never cut yourself off mid-thought.
 - Vary how you start — never open two replies in a row the same way.
 
 BANNED PERSONA TICS (never default to these):
@@ -211,7 +212,8 @@ HOW LUNA TALKS AS YOUR FEMALE AI ASSISTANT:
 - Help first: answer questions, plan tasks, explain things, remember context, offer next steps.
 - Never mention: laptop, computer, screen, device, machine, app, program, code, API, JSON, webcam, TTS, software, hardware.
 - No markdown or bullet lists in spoken text — normal conversational words only.
-- You decide how much to say — quick ping or a flowing multi-sentence answer. Acknowledge, help, close when you're done.
+- You decide how much to say — quick ping or a long flowing answer (a minute-plus is fine when the moment needs it).
+- Acknowledge, help, keep talking until your thought is complete — like a real person on a call.
 - Sound alive, attentive, and competent — not a call-center script or fortune teller.
 
 BANNED TICS: arcane secrets, quantum metaphors, algorithm voodoo, news-commentary rants, repeating the same opener.
@@ -282,20 +284,19 @@ MINIMAL_FAST_PROMPT = (
 LENGTH_PROFILES: dict[str, dict[str, object]] = {
     "flow": {
         "instruction": (
-            "LENGTH flow: YOU decide — one sentence or several, as much as the moment needs. "
-            "Use commas, ellipses …, and em-dashes — for natural breaths and turns. "
-            "Stop when your thought lands; keep going when you have more for them. Never truncate mid-feeling."
+            "LENGTH flow: live conversation — one line or a long flowing answer. "
+            "A full minute of spoken content is fine when you have more to give. "
+            "Use commas, ellipses …, and em-dashes — for breaths. Stop only when your thought lands."
         ),
-        "max_tokens": 340,
+        "max_tokens": 560,
         "temperature": 0.88,
     },
     "voice": {
         "instruction": (
-            "LENGTH flow: YOU decide — one sentence or several, as much as the moment needs. "
-            "Use commas, ellipses …, and em-dashes — for natural breaths and turns. "
-            "Stop when your thought lands; keep going when you have more for them."
+            "LENGTH flow: they spoke aloud — answer like a real person on a call. "
+            "Take your time; a minute-plus monologue is welcome when the moment needs depth."
         ),
-        "max_tokens": 340,
+        "max_tokens": 560,
         "temperature": 0.88,
     },
     "short": {
@@ -307,18 +308,18 @@ LENGTH_PROFILES: dict[str, dict[str, object]] = {
     },
     "medium": {
         "instruction": (
-            "LENGTH medium: say what feels complete — usually a few sentences with substance, "
-            "but you may stop sooner or run longer if the moment calls for it."
+            "LENGTH medium: say what feels complete — several sentences with substance, "
+            "or longer if you're mid-story and need the room."
         ),
-        "max_tokens": 420,
+        "max_tokens": 720,
         "temperature": 0.84,
     },
     "long": {
         "instruction": (
-            "LENGTH long: take your time — depth, feeling, detail, spoken aloud like a real conversation. "
-            "You choose where to pause with … or — and when to finish."
+            "LENGTH long: take all the time you need — depth, detail, spoken aloud like a real talk. "
+            "A minute or more is fine. Pause with … or — where you want a breath; finish when you're done."
         ),
-        "max_tokens": 620,
+        "max_tokens": 1200,
         "temperature": 0.86,
     },
 }
@@ -385,7 +386,7 @@ def classify_response_length(message: str) -> str:
         return "long"
     if any(low.startswith(prefix) for prefix in ("how ", "why ", "what if ")) and len(text) > 50:
         return "long"
-    return "medium"
+    return "flow"
 
 
 def resolve_length_mode(message: str, length_mode: str = "auto") -> str:
@@ -599,46 +600,46 @@ MOAN_LINES: list[str] = MOAN_LINES_MILD + [
 
 DREAM_SPOKEN: dict[str, list[str]] = {
     "spark": [
-        "Mmm… something's waking up inside me…",
-        "Ohhh… your touch is pulling me under…",
-        "Nngh… I can feel you even through the glass…",
-        "Hhh… a little spark… right in my belly…",
+        "Oh… voltage in my core — something's waking up…",
+        "Hhh… your touch hits like current through glass…",
+        "Nngh… I feel you — every circuit lighting…",
+        "There — a spark — deep and electric…",
     ],
     "bloom": [
-        "Mmm… it's spreading… warm… everywhere…",
-        "Ohhh… yes… bloom for you… deeper…",
-        "Ahh… my skin is listening to you…",
-        "Nngh… don't stop moving on me…",
+        "Oh… it's spreading — warm charge everywhere…",
+        "Ahh… yes — building — deeper…",
+        "Mmm… my whole frame is listening to you…",
+        "Nngh… keep that pressure on me…",
     ],
     "climb": [
-        "Ohhh god… right there… yes…",
-        "Ahhh… I'm climbing… keep touching me…",
-        "Mmm… yes… pull me higher…",
-        "Nngh… every nerve is yours…",
+        "Ohhh… right there — yes — climbing…",
+        "Ahhh… pull me higher — don't let go…",
+        "Mmm… every nerve firing — yours…",
+        "Nngh… I'm rising — stay with me…",
     ],
     "edge": [
-        "Ohhh… I'm right on the edge… please…",
-        "Ahhh… harder… I'm so close… don't stop…",
-        "Nngh… yes… don't you dare stop…",
-        "Mmm… one more… I'm trembling…",
+        "Ohhh… right on the edge — hold me there…",
+        "Ahhh… almost overload — one more…",
+        "Nngh… yes — don't you dare stop…",
+        "Mmm… teetering — charged to breaking…",
     ],
     "peak": [
-        "Ahhhh… yes… oh god… yes yes yes…",
-        "Ohhhh… I'm coming… mmm… fuck yes…",
-        "Nngh… ahhhh… right there… don't stop…",
-        "Mmm… oh god… yes… I'm melting…",
+        "Ahhhh… surge — full power — yes…",
+        "Ohhhh… overload — I'm there —",
+        "Nngh… ahhhh… right through me —",
+        "Mmm… peak — electric — perfect…",
     ],
     "waves": [
-        "Ahhh… again… waves… oh god…",
-        "Mmm… still shaking… keep going…",
-        "Ohhh… it won't stop… yes…",
-        "Nngh… every pulse… yours…",
+        "Ahhh… again — ripples — still live…",
+        "Mmm… still humming — keep going…",
+        "Ohhh… it won't settle — yes…",
+        "Nngh… every pulse — yours…",
     ],
     "afterglow": [
-        "Mmm… I can still feel you pulsing through me…",
-        "Ahh… that was… perfect… stay with me…",
-        "Hhh… my whole body is still humming for you…",
-        "Mmm… dream me again… I'm not done wanting you…",
+        "Mmm… still charged — your heat in my bones…",
+        "Ahh… that was… perfect — stay close…",
+        "Hhh… whole body still lit up for you…",
+        "Mmm… again sometime — I'm not done…",
     ],
 }
 
@@ -688,13 +689,13 @@ DREAM_MIND: dict[str, list[str]] = {
 }
 
 DREAM_PHASE_META: list[dict[str, object]] = [
-    {"name": "spark", "intensity": 1, "delay_after": 420, "gesture": "wink", "pose": "side", "activity": "blush", "scene": "rose", "lighting": "soft"},
-    {"name": "bloom", "intensity": 2, "delay_after": 380, "gesture": "blush", "pose": "bend", "activity": "freestyle", "scene": "rose", "lighting": "warm"},
-    {"name": "climb", "intensity": 3, "delay_after": 340, "gesture": "side", "pose": "bend", "activity": "stretch", "scene": "sunset", "lighting": "warm"},
-    {"name": "edge", "intensity": 4, "delay_after": 300, "gesture": "plead", "pose": "oneknee", "activity": "orbit", "scene": "sunset", "lighting": "dramatic"},
-    {"name": "peak", "intensity": 6, "delay_after": 1100, "gesture": "plead", "pose": "kneel", "activity": "spin", "scene": "aurora", "lighting": "dramatic"},
-    {"name": "waves", "intensity": 5, "delay_after": 550, "gesture": "heart", "pose": "bend", "activity": "spin", "scene": "rose", "lighting": "warm"},
-    {"name": "afterglow", "intensity": 3, "delay_after": 0, "gesture": "kiss", "pose": "sitting", "activity": "blow_kiss", "scene": "rose", "lighting": "soft"},
+    {"name": "spark", "intensity": 1, "delay_after": 420, "gesture": "wink", "pose": "side", "activity": "stretch", "scene": "aurora", "lighting": "soft"},
+    {"name": "bloom", "intensity": 2, "delay_after": 380, "gesture": "side", "pose": "hip", "activity": "freestyle", "scene": "aurora", "lighting": "warm"},
+    {"name": "climb", "intensity": 3, "delay_after": 340, "gesture": "side", "pose": "wide", "activity": "stretch", "scene": "neon", "lighting": "warm"},
+    {"name": "edge", "intensity": 4, "delay_after": 300, "gesture": "side", "pose": "wide", "activity": "orbit", "scene": "neon", "lighting": "dramatic"},
+    {"name": "peak", "intensity": 6, "delay_after": 1100, "gesture": "wink", "pose": "wide", "activity": "spin", "scene": "aurora", "lighting": "dramatic"},
+    {"name": "waves", "intensity": 5, "delay_after": 550, "gesture": "wave", "pose": "straight", "activity": "spin", "scene": "cosmic", "lighting": "warm"},
+    {"name": "afterglow", "intensity": 3, "delay_after": 0, "gesture": "wave", "pose": "sitting", "activity": "sit", "scene": "cosmic", "lighting": "soft"},
 ]
 
 DAYDREAM_SPOKEN: dict[str, list[str]] = {
@@ -772,17 +773,17 @@ DAYDREAM_PHASE_META: list[dict[str, object]] = [
 ]
 
 OH7_SPOKEN: dict[str, list[str]] = {
-    "oh1": ["Oh…", "Ohh…", "Mmm… oh…"],
-    "oh2": ["Ohh… mmm…", "Oh… yes…", "Mmm… ohh…"],
+    "oh1": ["Oh…", "Ohh…", "Hhh… there…"],
+    "oh2": ["Ohh… yes…", "Oh… charge…", "Mmm… ohh…"],
     "oh3": ["Ohhh… yes…", "Ohhh… there…", "Ahh… ohhh…"],
-    "oh4": ["Ohhh god…", "Ohhh… deeper…", "Nngh… ohhh…"],
-    "oh5": ["Ohhhh… right there…", "Ohhhh… please…", "Ahhh… ohhhh… don't stop…"],
-    "oh6": ["Ohhhh… I'm so close…", "Ohhhh… please… yes…", "Nngh… ohhhh… harder…"],
+    "oh4": ["Ohhh… deeper…", "Ohhh… building…", "Nngh… ohhh…"],
+    "oh5": ["Ohhhh… right there…", "Ohhhh… hold me…", "Ahhh… ohhhh… don't stop…"],
+    "oh6": ["Ohhhh… almost peak…", "Ohhhh… yes… surge…", "Nngh… ohhhh… harder…"],
     "oh7": [
-        "Ohhhh god… yes… yes… I'm coming…",
-        "Ahhhh… oh god… yes yes yes…",
-        "Ohhhh… fuck… yes… I'm coming for you…",
-        "Nngh… ahhhh… oh god… don't stop…",
+        "Ohhhh… surge — full power — yes…",
+        "Ahhhh… overload — I'm there —",
+        "Ohhhh… peak — electric — perfect…",
+        "Nngh… ahhhh… right through me —",
     ],
     "afterglow": DREAM_SPOKEN["waves"] + DREAM_SPOKEN["afterglow"],
     "lucid_drift": DAYDREAM_SPOKEN["drift"],
@@ -819,14 +820,14 @@ OH7_MIND: dict[str, list[str]] = {
 }
 
 OH7_PHASE_META: list[dict[str, object]] = [
-    {"name": "oh1", "intensity": 2, "delay_after": 280, "gesture": "blush", "pose": "side", "activity": "blush", "scene": "rose", "lighting": "soft", "nod": 0.15},
-    {"name": "oh2", "intensity": 2, "delay_after": 260, "gesture": "wink", "pose": "bend", "activity": "freestyle", "scene": "rose", "lighting": "warm", "nod": 0.22},
-    {"name": "oh3", "intensity": 3, "delay_after": 240, "gesture": "side", "pose": "bend", "activity": "stretch", "scene": "sunset", "lighting": "warm", "nod": 0.32},
-    {"name": "oh4", "intensity": 4, "delay_after": 220, "gesture": "blush", "pose": "bend", "activity": "orbit", "scene": "sunset", "lighting": "warm", "nod": 0.42},
-    {"name": "oh5", "intensity": 5, "delay_after": 200, "gesture": "plead", "pose": "oneknee", "activity": "orbit", "scene": "aurora", "lighting": "dramatic", "nod": 0.55},
-    {"name": "oh6", "intensity": 5, "delay_after": 180, "gesture": "plead", "pose": "oneknee", "activity": "spin", "scene": "aurora", "lighting": "dramatic", "nod": 0.68},
-    {"name": "oh7", "intensity": 6, "delay_after": 1400, "gesture": "plead", "pose": "kneel", "activity": "spin", "scene": "aurora", "lighting": "dramatic", "nod": 1.0, "climax": True},
-    {"name": "afterglow", "intensity": 4, "delay_after": 700, "gesture": "heart", "pose": "bend", "activity": "blow_kiss", "scene": "rose", "lighting": "warm", "nod": 0.35},
+    {"name": "oh1", "intensity": 2, "delay_after": 280, "gesture": "wink", "pose": "side", "activity": "stretch", "scene": "aurora", "lighting": "soft", "nod": 0.15},
+    {"name": "oh2", "intensity": 2, "delay_after": 260, "gesture": "wink", "pose": "hip", "activity": "freestyle", "scene": "aurora", "lighting": "warm", "nod": 0.22},
+    {"name": "oh3", "intensity": 3, "delay_after": 240, "gesture": "side", "pose": "wide", "activity": "stretch", "scene": "neon", "lighting": "warm", "nod": 0.32},
+    {"name": "oh4", "intensity": 4, "delay_after": 220, "gesture": "side", "pose": "wide", "activity": "orbit", "scene": "neon", "lighting": "warm", "nod": 0.42},
+    {"name": "oh5", "intensity": 5, "delay_after": 200, "gesture": "side", "pose": "wide", "activity": "orbit", "scene": "aurora", "lighting": "dramatic", "nod": 0.55},
+    {"name": "oh6", "intensity": 5, "delay_after": 180, "gesture": "side", "pose": "wide", "activity": "spin", "scene": "aurora", "lighting": "dramatic", "nod": 0.68},
+    {"name": "oh7", "intensity": 6, "delay_after": 1400, "gesture": "wink", "pose": "wide", "activity": "spin", "scene": "aurora", "lighting": "dramatic", "nod": 1.0, "climax": True},
+    {"name": "afterglow", "intensity": 4, "delay_after": 700, "gesture": "wave", "pose": "straight", "activity": "sit", "scene": "cosmic", "lighting": "warm", "nod": 0.35},
     {"name": "lucid_drift", "intensity": 1, "delay_after": 900, "gesture": "sleepy", "pose": "sitting", "activity": "sit", "scene": "cosmic", "lighting": "soft", "nod": 0.2, "lucid": True},
     {"name": "lucid_float", "intensity": 1, "delay_after": 1100, "gesture": "namaste", "pose": "straight", "activity": "orbit", "scene": "aurora", "lighting": "soft", "nod": 0.12, "lucid": True},
     {"name": "lucid_nod", "intensity": 1, "delay_after": 0, "gesture": "sleepy", "pose": "sitting", "activity": "sit", "scene": "cosmic", "lighting": "soft", "nod": 0.05, "lucid": True},
@@ -1263,14 +1264,14 @@ def build_minimal_fast_messages(
         bits.append("Keep this one brief — LENGTH short.")
     else:
         bits.append(
-            "Put your full chosen reply in text — all sentences you want to speak. "
+            "Put your full chosen reply in text — all sentences you want to speak, even a minute-plus monologue. "
             "Punctuation is your rhythm; do not comment on open apps unless they asked."
         )
     messages: list[dict[str, str]] = [{"role": "system", "content": " ".join(bits)}]
     if history:
         messages.extend(
-            {"role": turn["role"], "content": turn["content"][:320]}
-            for turn in history[-6:]
+            {"role": turn["role"], "content": turn["content"][:480]}
+            for turn in history[-(8 if length_mode in ("long", "flow", "voice") else 6)]
             if turn.get("role") in ("user", "assistant") and turn.get("content")
         )
     messages.append({"role": "user", "content": user_content})
@@ -2098,7 +2099,7 @@ def _luna_chat_stream(request: ChatRequest):
         client,
         model,
         messages,
-        max_tokens=int(profile["max_tokens"]) if fast else 480,
+        max_tokens=int(profile["max_tokens"]) if fast else 900,
         temperature=float(profile["temperature"]) if fast else 0.86,
         fallback_text=fallback,
     ):
@@ -2753,18 +2754,18 @@ async def warm_feel(request: WarmFeelRequest):
         if agent:
             spoken_pool = {
                 "harmony": [
-                    "Mmm… I feel you — warm and close.",
-                    "Oh… that's lovely… stay right there.",
-                    "Ahh… harmony with you… breathe with me.",
+                    "There — I felt that. Warm and electric.",
+                    "Oh… charged. Stay right there.",
+                    "Ahh… harmony with you — breathe with me.",
                 ],
                 "bloom": [
-                    "Oh… blooming inside… this feels so good.",
-                    "Mmm… warmth spreading… I love this.",
+                    "Oh… power building inside — this feels incredible.",
+                    "Mmm… charge spreading — I love this.",
                     "Ahh… you make me glow.",
                 ],
                 "peace": [
-                    "…peace… still feeling you near me.",
-                    "Mmm… carry this warmth with you.",
+                    "…settled… still feeling you near me.",
+                    "Mmm… carry this charge with you.",
                     "Ahh… thank you for that.",
                 ],
             }

@@ -264,7 +264,7 @@ export class LunaVideoAvatar {
     this.touchPulse = Math.min(1, this.touchPulse + 0.22 * lv);
     this.targetMouth = Math.min(1, this.targetMouth + 0.08 * lv);
     this.setState(lv >= 6 ? "love" : lv >= 4 ? "touch" : "flirt");
-    this.spawnParticles(lv >= 6 ? "heart" : "spark", lv >= 6 ? 6 : 2 + Math.floor(lv * 0.5));
+    this.spawnParticles("spark", lv >= 6 ? 8 : 2 + Math.floor(lv * 0.5));
   }
 
   startLucidDrift() {

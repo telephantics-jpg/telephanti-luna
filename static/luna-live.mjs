@@ -145,7 +145,7 @@ export class LiveLunaPortrait {
     this.nod = Math.max(this.nod, this.orgasmNod);
     this.targetBlush = Math.min(1, this.targetBlush + 0.12 * lv);
     this.targetMouth = Math.min(1, this.targetMouth + 0.1 * lv);
-    this.spawnParticles(lv >= 6 ? "heart" : "spark", lv >= 6 ? 5 : 2 + Math.floor(lv * 0.5));
+    this.spawnParticles("spark", lv >= 6 ? 7 : 2 + Math.floor(lv * 0.5));
   }
 
   startLucidDrift() {

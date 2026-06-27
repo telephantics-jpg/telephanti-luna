@@ -3378,9 +3378,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=101";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=101";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=101";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=102";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=102";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=102";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3769,7 +3769,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=101",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=102",
           });
           await livePortrait.load();
           livePortrait.observeResize();

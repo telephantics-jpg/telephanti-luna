@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "101"
+LUNA_BUILD = "102"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -1277,7 +1277,7 @@ def build_minimal_fast_messages(
     if history:
         messages.extend(
             {"role": turn["role"], "content": turn["content"][:480]}
-            for turn in history[-(8 if length_mode in ("long", "flow", "voice") else 6)]
+            for turn in history[-(8 if length_mode in ("long", "flow", "voice") else 6):]
             if turn.get("role") in ("user", "assistant") and turn.get("content")
         )
     messages.append({"role": "user", "content": user_content})

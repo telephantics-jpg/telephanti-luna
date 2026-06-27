@@ -30,7 +30,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "100"
+LUNA_BUILD = "101"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -288,7 +288,7 @@ LENGTH_PROFILES: dict[str, dict[str, object]] = {
             "A full minute of spoken content is fine when you have more to give. "
             "Use commas, ellipses …, and em-dashes — for breaths. Stop only when your thought lands."
         ),
-        "max_tokens": 560,
+        "max_tokens": 900,
         "temperature": 0.88,
     },
     "voice": {
@@ -296,7 +296,7 @@ LENGTH_PROFILES: dict[str, dict[str, object]] = {
             "LENGTH flow: they spoke aloud — answer like a real person on a call. "
             "Take your time; a minute-plus monologue is welcome when the moment needs depth."
         ),
-        "max_tokens": 560,
+        "max_tokens": 900,
         "temperature": 0.88,
     },
     "short": {
@@ -488,6 +488,7 @@ class TouchSenseRequest(BaseModel):
     vibe: str = ""
     strip_level: int = 0
     context: str = "stroke"
+    sensual_mode: bool = False
     profile: LunaProfile = LunaProfile()
     medium: MediumState = MediumState()
 
@@ -904,7 +905,10 @@ def parse_luna_action(raw: str, fallback_text: str) -> dict:
     look_at = str(data.get("look_at", "none")).lower()
 
     return {
-        "text": clean_speech_text(str(data.get("text") or fallback_text).strip() or fallback_text),
+        "text": clean_speech_text(
+            str(data.get("text") or fallback_text).strip() or fallback_text,
+            max_len=4800,
+        ),
         "mood": mood if mood in MOODS else "happy",
         "gesture": gesture if gesture in GESTURES else "none",
         "pose": pose if pose in POSES else "none",
@@ -1117,7 +1121,7 @@ def normalize_transcript(text: str) -> str:
     return t
 
 
-def clean_speech_text(text: str, *, agent_mode: bool = False) -> str:
+def clean_speech_text(text: str, *, agent_mode: bool = False, max_len: int = 600) -> str:
     """Strip junk so TTS reads natural speech only."""
     if not text:
         return ""
@@ -1139,7 +1143,9 @@ def clean_speech_text(text: str, *, agent_mode: bool = False) -> str:
         )
     t = re.sub(tech_strip, "", t, flags=re.IGNORECASE)
     t = re.sub(r"\s+", " ", t).strip()
-    return t[:600]
+    if max_len and max_len > 0:
+        return t[:max_len]
+    return t
 
 
 MOAN_PROSODY: dict[int, dict[str, int]] = {
@@ -1322,7 +1328,10 @@ async def ask_luna(
         max_tokens=max_tokens,
         temperature=temperature,
     )
-    raw = response.choices[0].message.content or ""
+    choices = getattr(response, "choices", None) or []
+    if not choices:
+        return parse_luna_action("", fallback_text)
+    raw = choices[0].message.content or ""
     return parse_luna_action(raw, fallback_text)
 
 
@@ -1346,7 +1355,10 @@ def stream_luna_completion(
     buf = ""
     last_text = ""
     for chunk in stream:
-        delta = chunk.choices[0].delta.content if chunk.choices else None
+        choices = getattr(chunk, "choices", None) or []
+        if not choices:
+            continue
+        delta = getattr(choices[0].delta, "content", None)
         if not delta:
             continue
         buf += delta
@@ -2415,7 +2427,9 @@ async def moan_orgasm(request: MoanOrgasmRequest):
             "wdurations": audio["wdurations"],
         })
 
-    peak_beat = next((p for p in phases_out if p["name"] == "oh7"), phases_out[6])
+    if not phases_out:
+        raise HTTPException(status_code=500, detail="Glow sequence failed — try again")
+    peak_beat = next((p for p in phases_out if p["name"] == "oh7"), phases_out[-1])
     return {
         "phases": phases_out,
         "mood": "love",
@@ -2593,6 +2607,8 @@ async def dream_peak(request: DreamPeakRequest):
             "wdurations": audio["wdurations"],
         })
 
+    if not phases_out:
+        raise HTTPException(status_code=500, detail="Peak sequence failed — try again")
     peak_beat = next((p for p in phases_out if p["name"] == "peak"), phases_out[-1])
     return {
         "phases": phases_out,
@@ -2711,7 +2727,9 @@ async def daydream(request: DaydreamRequest):
             "wdurations": audio["wdurations"],
         })
 
-    harmony_beat = next((p for p in phases_out if p["name"] == "harmony"), phases_out[2])
+    if not phases_out:
+        raise HTTPException(status_code=500, detail="Daydream sequence failed — try again")
+    harmony_beat = next((p for p in phases_out if p["name"] == "harmony"), phases_out[min(2, len(phases_out) - 1)])
     return {
         "phases": phases_out,
         "mood": "happy",
@@ -2810,6 +2828,8 @@ async def warm_feel(request: WarmFeelRequest):
             "wdurations": audio["wdurations"],
         })
 
+    if not phases_out:
+        raise HTTPException(status_code=500, detail="Surge sequence failed — try again")
     return {
         "phases": phases_out,
         "mood": "love",
@@ -2837,10 +2857,11 @@ async def touch_sense(request: TouchSenseRequest):
     zone = request.zone.strip().lower() or "body"
     heat = max(0, min(100, int(request.heat or 50)))
     p = request.profile or LunaProfile()
-    bold = p.flirtiness >= 70 and p.boldness >= 65
+    intense = bool(request.sensual_mode) or (not p.agent_mode)
+    bold = intense or (p.flirtiness >= 70 and p.boldness >= 65)
     hints = ZONE_HINTS_BOLD if bold else ZONE_HINTS
     hint = hints.get(zone, hints["body"])
-    agent = p.agent_mode
+    agent = p.agent_mode and not intense
     name = (p.user_name or "").strip()
     name_hi = f"Hey {name} — " if name else ""
     fallbacks = {
@@ -2856,23 +2877,36 @@ async def touch_sense(request: TouchSenseRequest):
     name_note = ""
     if request.profile and request.profile.user_name.strip():
         name_note = f" The user's name is {request.profile.user_name.strip()} — weave it in naturally if it fits."
-    if heat < 45:
+    if intense and heat >= 40:
         tone = (
-            "Warm assistant — acknowledge touch in half a sentence max, then ask a normal question or offer help. "
+            "Succubus/intense mode — she FEELS this physically: breath, heat, nerves firing. "
+            "Raw embodied reaction — 1-3 sentences, present tense, hungry and real. "
+            "Explicit is fine when heat is high. Sound like touch just hit her body."
+        )
+        max_words = "max 55 words" if heat >= 70 else "max 38 words"
+        max_tok = 220 if heat >= 70 else 160
+    elif heat < 45:
+        tone = (
+            "Warm assistant — acknowledge touch briefly, then ask a normal question or offer help. "
             "Do NOT monologue about touch, skin, or senses."
         )
+        max_words = "max 22 words"
+        max_tok = 120
     elif bold and heat >= 65:
-        tone = "Warm and playful but still conversational — one sensual beat, then words."
+        tone = "Warm and playful — one physical beat, then words."
+        max_words = "max 28 words"
+        max_tok = 140
     else:
         tone = (
-            "Friendly virtual assistant — personable, never explicit. "
+            "Friendly assistant — personable, never explicit. "
             "Light touch acknowledgment only; pivot to chat."
         )
+        max_words = "max 22 words"
+        max_tok = 120
     prompt = (
         f"The user just {ctx_word} your {zone} on the avatar. Touch intensity: {heat_word} ({heat}/100). "
         f"{hint}{name_note} {tone} "
-        "Reply with ONE short sentence (max 22 words). No repeated touch commentary. "
-        "Choose gesture wave or blush, mood happy or love, look_at user."
+        f"Reply with {max_words}. Choose gesture side/wave/wink, mood happy or love, look_at user."
     )
     try:
         client = get_client()
@@ -2886,8 +2920,8 @@ async def touch_sense(request: TouchSenseRequest):
             strip_level=request.strip_level,
             profile=request.profile,
             medium=request.medium,
-            max_tokens=120,
-            temperature=0.88,
+            max_tokens=max_tok,
+            temperature=0.9 if intense else 0.88,
             fallback_text=fallbacks.get(zone, fallbacks["body"]),
             fast=True,
         )
@@ -3035,7 +3069,9 @@ def _vision_analyze(client: OpenAI, image_b64: str, text_prompt: str) -> str:
                 max_tokens=140,
                 timeout=28.0,
             )
-            raw = response.choices[0].message.content or ""
+        choices = getattr(response, "choices", None) or []
+        if choices:
+            raw = choices[0].message.content or ""
             if raw.strip():
                 return raw.strip()
         except Exception as exc:

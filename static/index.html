@@ -745,6 +745,23 @@
     }
     .mobile-action-dock .dock-sensual { display: none; }
     body.web-cloud.sensual-on .mobile-action-dock .dock-sensual { display: flex; }
+    body.live-interactive-on .luna-video-wrap {
+      outline: 2px solid rgba(120, 175, 255, 0.35);
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
+    body.live-interactive-on #live-btn,
+    body.live-interactive-on #dock-live {
+      border-color: rgba(120, 175, 255, 0.75);
+      box-shadow: 0 0 14px rgba(108, 148, 210, 0.4);
+    }
+    body.intense-sense-on .luna-video-wrap,
+    body.intense-sense-on .luna-live-stage {
+      filter: drop-shadow(0 0 20px rgba(108, 148, 210, 0.35)) saturate(1.06);
+    }
+    body.intense-sense-on.touch-sense-on .avatar-wrap.touch-glow {
+      filter: drop-shadow(0 0 28px rgba(120, 175, 255, 0.45)) saturate(1.1);
+    }
     .mobile-tabs {
       display: none;
       flex-shrink: 0;
@@ -2972,6 +2989,7 @@
       <button class="btn hidden" id="install-btn">Install</button>
       <button class="btn" id="desktop-btn" title="Float on desktop">🪟</button>
       <button class="btn" id="options-btn" title="Luna options">⚙️</button>
+      <button class="btn" id="live-btn" title="Live interactive avatar — touch and talk">🎬 Live</button>
       <button class="btn" id="mic-btn" title="Always listening — click to toggle">🎤</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
       <button class="btn active" id="chill-btn" title="Assistant mode — helpful and calm">🧊</button>
@@ -3126,6 +3144,7 @@
       <div class="opt-row"><label>Hear me better <span id="val-mic-sense">62</span></label><input type="range" id="sl-mic-sense" min="20" max="95" value="62" /></div>
       <p class="opt-hint">Higher = catches quieter speech. Lower = Luna replies sooner after you pause.</p>
       <label class="opt-switch"><span>Speak replies aloud</span><input type="checkbox" id="opt-speak" checked /></label>
+      <label class="opt-switch"><span>Free-form voice — let her ramble at full length</span><input type="checkbox" id="opt-voice-ramble" checked /></label>
       <div class="opt-row"><select id="opt-voice"></select></div>
       <div class="opt-grid-2">
         <div class="opt-row"><label>Speed <span id="val-rate">0</span></label><input type="range" id="sl-rate" min="-30" max="30" value="0" /></div>
@@ -3150,7 +3169,7 @@
       <div class="opt-card-head"><span class="opt-card-icon">🔥</span> Touch &amp; presence</div>
       <label class="opt-switch"><span>Watch with camera</span><input type="checkbox" id="opt-webcam" /></label>
       <label class="opt-switch"><span>Feel your touch (cursor, finger, trackpad)</span><input type="checkbox" id="opt-touch-sense" checked /></label>
-      <label class="opt-switch"><span>Intense mode (glow, peak, uninhibited)</span><input type="checkbox" id="opt-sensual" /></label>
+      <label class="opt-switch"><span>Succubus / intense mode (glow, peak, full sensation)</span><input type="checkbox" id="opt-sensual" /></label>
       <label class="opt-switch"><span>Roam on desktop</span><input type="checkbox" id="opt-pet-walk" checked /></label>
       <label class="opt-switch"><span>Reach into desktop</span><input type="checkbox" id="opt-reach" checked /></label>
       <label class="opt-switch"><span>Full body in aether</span><input type="checkbox" id="opt-aether-body" checked /></label>
@@ -3341,6 +3360,7 @@
   </div>
 
   <nav class="mobile-action-dock" id="mobile-action-dock" aria-label="Luna controls">
+    <button type="button" class="dock-btn" id="dock-live" title="Live interactive"><span class="dock-icon">🎬</span><span class="dock-label">Live</span></button>
     <button type="button" class="dock-btn" id="dock-mic" title="Listen"><span class="dock-icon">🎤</span><span class="dock-label">Listen</span></button>
     <button type="button" class="dock-btn" id="dock-voice" title="Voice"><span class="dock-icon">🔊</span><span class="dock-label">Voice</span></button>
     <button type="button" class="dock-btn" id="dock-chill" title="Assistant"><span class="dock-icon">🧊</span><span class="dock-label">Assist</span></button>
@@ -3358,9 +3378,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=100";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=100";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=100";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=101";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=101";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=101";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -3571,6 +3591,7 @@
       outfitLevel: 3,
       touchSense: true,
       micSensitivity: 52,
+      voiceRamble: true,
     };
 
     function b64ToArrayBuffer(b64) {
@@ -3748,7 +3769,7 @@
       if (webVisit && canvas) {
         try {
           livePortrait = new LiveLunaPortrait(canvas, {
-            imageSrc: "/static/avatars/luna-portrait.jpg?v=100",
+            imageSrc: "/static/avatars/luna-portrait.jpg?v=101",
           });
           await livePortrait.load();
           livePortrait.observeResize();
@@ -4114,6 +4135,11 @@
         e.stopPropagation();
         setSuccubusMode();
       });
+      document.getElementById("live-btn")?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await activateLiveInteractive();
+      });
       document.getElementById("mobile-succubus-btn")?.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -4313,6 +4339,7 @@
     function updateWebSensualUi() {
       const on = isSensualMode();
       document.body.classList.toggle("sensual-on", on);
+      document.body.classList.toggle("intense-sense-on", on);
       document.body.classList.remove("assistant-locked");
       const chillBtn = document.getElementById("chill-btn");
       const succBtn = document.getElementById("succubus-btn");
@@ -4361,11 +4388,11 @@
         setLunaAvatarState("flirt");
         livePortrait?.pulseTouch?.(1.1);
         showLunaCaption(pickWebLine([
-          "Locked in — intense mode… full power…",
-          "Oh… you flipped the surge… I'm charged…",
-          "Ahh… no holding back now… touch me…",
+          "Locked in — succubus mode… I feel everything…",
+          "Oh… you flipped the surge… body lit up…",
+          "Ahh… no holding back — touch me for real…",
         ]));
-        showToast("Intense mode — glow, peak, full power 🔥");
+        showToast("Succubus mode — glow, peak, full sensation 🔥");
       } else {
         setLunaAvatarState("help");
         showToast("Assistant mode — helpful and calm 🧊");
@@ -4531,6 +4558,7 @@
               zone,
               heat: Math.round(touchHeat || 22),
               context,
+              sensual_mode: isSensualMode(),
               ...lunaState(),
             }),
           });
@@ -5449,6 +5477,7 @@
           syncMobileDockUi();
         });
       };
+      proxy("dock-live", "live-btn");
       proxy("dock-mic", "mic-btn", () => enableLunaVoice());
       proxy("dock-voice", "mobile-mute-btn");
       proxy("dock-chill", "chill-btn");
@@ -6264,6 +6293,12 @@
     function guessResponseLength(text, { fromVoice = false } = {}) {
       const t = (text || "").trim();
       const low = t.toLowerCase().replace(/[!.?…]+$/g, "");
+      if (settings.voiceRamble !== false && (fromVoice || settings.alwaysListen)) {
+        if (/^(hi|hey|yo|sup|hello|ok|okay|yeah|yes|no|nah|thanks|thank you|lol|hmm|mmm|wow|bye|gn|goodnight)$/i.test(low)) {
+          return "short";
+        }
+        return "flow";
+      }
       if (fromVoice) {
         if (/^(hi|hey|yo|sup|hello|ok|okay|yeah|yes|no|nah|thanks|thank you|lol|hmm|mmm|wow|bye|gn|goodnight)$/i.test(low)) {
           return "short";
@@ -6540,6 +6575,7 @@
           body: JSON.stringify({
             zone,
             heat: Math.round(touchHeat),
+            sensual_mode: isSensualMode(),
             ...lunaState(),
           }),
         });
@@ -6583,8 +6619,10 @@
       }
 
       touchSenseActive = true;
-      touchHeat = Math.min(100, touchHeat * 0.9 + proximity * stroke * 11 + 0.8);
+      const intenseMult = isSensualMode() ? 1.75 : 1;
+      touchHeat = Math.min(100, touchHeat * 0.9 + proximity * stroke * 11 * intenseMult + (isSensualMode() ? 1.4 : 0.8));
       updateTouchHeatUi();
+      if (isSensualMode() && stroke > 0.15) pulseIntenseHaptic(stroke);
       setSenseField("touch");
       scheduleTouchDecay();
 
@@ -6624,8 +6662,9 @@
         }
       }
       if (zone === "core") {
-        touchHeat = Math.min(100, touchHeat + stroke * 14 + 1.2);
+        touchHeat = Math.min(100, touchHeat + stroke * (isSensualMode() ? 22 : 14) + (isSensualMode() ? 2.2 : 1.2));
         updateTouchHeatUi();
+        if (isSensualMode()) pulseIntenseHaptic(1.2);
       }
       if (isPublicWebVisit() && isSensualMode() && stripLevel < 3 && now - lastWebStripAt > 2400) {
         const stripZones = ["torso", "legs", "core", "body"];
@@ -7146,6 +7185,8 @@
       document.getElementById("opt-idle").checked = settings.idleLife;
       document.getElementById("opt-pixel").checked = settings.pixelNude !== false;
       document.getElementById("opt-listen").checked = settings.alwaysListen !== false;
+      const rambleOpt = document.getElementById("opt-voice-ramble");
+      if (rambleOpt) rambleOpt.checked = settings.voiceRamble !== false;
       document.getElementById("opt-touch-sense").checked = settings.touchSense !== false;
       const sensualOpt = document.getElementById("opt-sensual");
       if (sensualOpt) sensualOpt.checked = isSensualMode();
@@ -7331,6 +7372,11 @@
       document.getElementById("opt-speak")?.addEventListener("change", (e) => {
         settings.autoSpeak = e.target.checked;
         saveSettings();
+      });
+      document.getElementById("opt-voice-ramble")?.addEventListener("change", (e) => {
+        settings.voiceRamble = e.target.checked;
+        saveSettings();
+        showToast(e.target.checked ? "Free-form voice on — she can ramble" : "Free-form voice off");
       });
       document.getElementById("opt-proactive")?.addEventListener("change", (e) => {
         settings.proactiveSpeech = e.target.checked;
@@ -9943,6 +9989,55 @@
       }
     }
 
+    async function speakAllNaturalChunks(text, mood) {
+      const full = (text || "").trim();
+      if (!full || muted || !settings.autoSpeak) return;
+      let idx = 0;
+      setLunaAvatarState("speak");
+      livePortrait?.setState("speak");
+      setStatus("speaking...", "ok");
+      while (idx < full.length) {
+        const hit = nextNaturalSpeakChunk(full, idx);
+        if (!hit) {
+          const rest = full.slice(idx).trim();
+          if (rest) await speakText(rest, mood, { priority: true });
+          break;
+        }
+        await speakText(hit.chunk, mood, { priority: true });
+        idx += hit.len;
+      }
+      await speakQueue.catch(() => {});
+    }
+
+    function pulseIntenseHaptic(strength = 1) {
+      if (!isSensualMode() || !navigator.vibrate) return;
+      const ms = Math.round(12 + strength * 28);
+      try { navigator.vibrate([ms, 40, Math.round(ms * 0.6)]); } catch { /* ignore */ }
+    }
+
+    async function activateLiveInteractive() {
+      document.body.classList.add("live-interactive-on");
+      await unlockVoice().catch(() => {});
+      await finishWebAvatarUi("live");
+      if (livePortrait?.ensurePlaying) {
+        await livePortrait.ensurePlaying();
+      } else {
+        const video = document.getElementById("luna-live-video");
+        try {
+          await video?.play();
+          markLunaVideoLive();
+        } catch { /* tap overlay if blocked */ }
+      }
+      settings.touchSense = true;
+      document.getElementById("opt-touch-sense").checked = true;
+      startTouchSense();
+      if (settings.alwaysListen) await startAlwaysListen();
+      setLunaAvatarState(settings.alwaysListen && alwaysListening ? "listen" : "idle");
+      showToast("Live Luna — touch her, talk to her, she's interactive.");
+      showLunaCaption("I'm live — trace your finger or cursor over me and talk.");
+      saveSettings();
+    }
+
     function speakText(text, moodOverride, opts = {}) {
       if (!text.trim()) return Promise.resolve();
       const impl = async () => {
@@ -10165,6 +10260,12 @@
             if (payload.action) {
               action = payload.action;
               if (action?.mood) streamMood = action.mood;
+              if (action?.text && action.text.length > (full || "").length) {
+                full = action.text;
+                bubble.textContent = full || "…";
+                if (petStreamBubble) petStreamBubble.textContent = full || "…";
+                tryStreamNaturalSpeak(full, streamMood);
+              }
             }
           }
         }
@@ -10190,13 +10291,18 @@
           await enableLunaVoice().catch(() => {});
           if (settings.autoSpeak && !muted) {
             const mood = action?.mood || streamMood;
-            tryStreamNaturalSpeak(speakLine, mood);
-            const tail = speakLine.slice(streamSpokenLen).trim();
-            if (tail.length > 1) {
-              prefetchSpeak(tail, mood);
-              await speakText(tail, mood, { priority: true });
+            if (settings.voiceRamble !== false) {
+              streamSpokenLen = 0;
+              await speakAllNaturalChunks(speakLine, mood);
+            } else {
+              tryStreamNaturalSpeak(speakLine, mood);
+              const tail = speakLine.slice(streamSpokenLen).trim();
+              if (tail.length > 1) {
+                prefetchSpeak(tail, mood);
+                await speakText(tail, mood, { priority: true });
+              }
+              await speakQueue.catch(() => {});
             }
-            await speakQueue.catch(() => {});
           }
         }
       } catch (err) {

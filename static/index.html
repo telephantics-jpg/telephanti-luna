@@ -699,6 +699,13 @@
     .status-pill.busy { color: var(--accent); border-color: rgba(108,148,210,0.45); }
     .status-pill.err { color: #fca5a5; border-color: rgba(248,113,113,0.35); }
     .brand-sub { color: var(--muted); font-weight: 500; }
+    .user-count {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-weight: 500;
+      margin-left: 0.35rem;
+      white-space: nowrap;
+    }
     .mobile-action-dock {
       display: none;
       flex-shrink: 0;
@@ -1687,6 +1694,39 @@
     body.web-cloud:not(.sensual-on) #daydream-btn {
       display: none !important;
     }
+    .luna-roam-buddy {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 76px;
+      height: 76px;
+      z-index: 9992;
+      border-radius: 50%;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.45), 0 0 0 2px rgba(126,176,232,0.35);
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      will-change: transform;
+      animation: roam-bob 2.4s ease-in-out infinite;
+      pointer-events: auto;
+    }
+    .luna-roam-buddy img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .luna-roam-buddy:active { cursor: grabbing; }
+    body.web-roam-on .luna-roam-buddy { display: block; }
+    .luna-roam-buddy[hidden] { display: none !important; }
+    @keyframes roam-bob {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.08); }
+    }
+    @media (max-width: 860px) {
+      .luna-roam-buddy { width: 64px; height: 64px; }
+    }
     body.web-cloud #chill-btn.active {
       border-color: rgba(147, 197, 253, 0.7);
       color: #93c5fd;
@@ -1873,6 +1913,41 @@
     body.mic-hearing .luna-listen-ring {
       opacity: 1;
       animation: listen-ring-pulse 1.15s ease-in-out infinite;
+    }
+    .mic-toggle-fab {
+      position: fixed;
+      bottom: calc(var(--safe-b) + 4.2rem);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 95;
+      display: none;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.7rem 1.35rem;
+      border-radius: 999px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      background: rgba(24, 28, 42, 0.96);
+      color: var(--text);
+      cursor: pointer;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    body.web-cloud .mic-toggle-fab,
+    body.phone-client .mic-toggle-fab { display: flex; }
+    .mic-toggle-fab.on {
+      border-color: #86efac;
+      background: rgba(14, 38, 28, 0.96);
+      color: #d1fae5;
+      box-shadow: 0 0 0 4px rgba(134, 239, 172, 0.22), 0 10px 32px rgba(0, 0, 0, 0.4);
+    }
+    .mic-toggle-fab .mic-toggle-icon { font-size: 1.15rem; line-height: 1; }
+    #mic-btn.mic-on, #mobile-mic-btn.mic-on {
+      border-color: #86efac !important;
+      background: rgba(14, 38, 28, 0.92) !important;
+      color: #d1fae5 !important;
     }
     @keyframes listen-ring-pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(134, 239, 172, 0.38); transform: scale(1); }
@@ -2958,6 +3033,8 @@
           if (raw) {
             var s = JSON.parse(raw);
             s.desktopOverlay = false;
+            s.petWalk = false;
+            s.webRoam = true;
             localStorage.setItem("luna-settings-v1", JSON.stringify(s));
           }
         } catch (e) { /* ignore */ }
@@ -2984,13 +3061,13 @@
     <button type="button" id="phone-install-dismiss" title="Dismiss">✕</button>
   </div>
   <header>
-    <div class="brand"><span>Luna</span><span class="brand-sub"> — AI Companion</span></div>
+    <div class="brand"><span>Luna</span><span class="brand-sub"> — AI Companion</span><span class="user-count" id="luna-user-count" hidden></span></div>
     <div class="hdr-btns">
       <button class="btn hidden" id="install-btn">Install</button>
       <button class="btn" id="desktop-btn" title="Float on desktop">🪟</button>
       <button class="btn" id="options-btn" title="Luna options">⚙️</button>
       <button class="btn" id="live-btn" title="Live interactive avatar — touch and talk">🎬 Live</button>
-      <button class="btn" id="mic-btn" title="Always listening — click to toggle">🎤</button>
+      <button class="btn" id="mic-btn" title="Mic off — click to turn on">🎤 Mic</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
       <button class="btn active" id="chill-btn" title="Assistant mode — helpful and calm">🧊</button>
       <button class="btn" id="succubus-btn" title="Intense mode — glow, peak, uninhibited">🔥 Intense</button>
@@ -3113,13 +3190,13 @@
         On phone/tablet (same Wi‑Fi): <strong id="lan-url"></strong> → Add to Home Screen
       </div>
       <div class="messages" id="messages">
-        <div class="msg system">I'm Luna — your AI assistant. Tap 🎤 so I can hear you, or type below.</div>
+        <div class="msg system">I'm Luna — your AI companion. Tap the Mic button to talk, or type below.</div>
         <div class="chat-scroll-anchor" id="chat-scroll-anchor" aria-hidden="true"></div>
       </div>
       <div class="chat-compose">
         <div class="quick-prompts" id="quick-prompts"></div>
         <form class="input-row" id="form">
-          <input id="input" placeholder="Talk to Luna — or tap 🎤 to speak..." autocomplete="off" maxlength="2000" />
+          <input id="input" placeholder="Type here — or tap Mic to speak..." autocomplete="off" maxlength="2000" />
           <button type="submit" id="send">Send</button>
         </form>
       </div>
@@ -3170,12 +3247,13 @@
       <label class="opt-switch"><span>Watch with camera</span><input type="checkbox" id="opt-webcam" /></label>
       <label class="opt-switch"><span>Feel your touch (cursor, finger, trackpad)</span><input type="checkbox" id="opt-touch-sense" checked /></label>
       <label class="opt-switch"><span>Succubus / intense mode (glow, peak, full sensation)</span><input type="checkbox" id="opt-sensual" /></label>
-      <label class="opt-switch"><span>Roam on desktop</span><input type="checkbox" id="opt-pet-walk" checked /></label>
+      <label class="opt-switch"><span>Roam on screen (Flash-style buddy)</span><input type="checkbox" id="opt-web-roam" checked /></label>
+      <label class="opt-switch"><span>Roam on desktop app</span><input type="checkbox" id="opt-pet-walk" checked /></label>
       <label class="opt-switch"><span>Reach into desktop</span><input type="checkbox" id="opt-reach" checked /></label>
       <label class="opt-switch"><span>Full body in aether</span><input type="checkbox" id="opt-aether-body" checked /></label>
       <label class="opt-switch"><span>Speak unprompted</span><input type="checkbox" id="opt-proactive" checked /></label>
       <div class="opt-row"><label>Unprompted every <span id="val-ambient">3</span> min</label><input type="range" id="sl-ambient" min="1" max="10" value="3" /></div>
-      <label class="opt-switch"><span>Remember settings &amp; chat</span><input type="checkbox" id="opt-remember" checked /></label>
+      <label class="opt-switch"><span>Remember me across visits</span><input type="checkbox" id="opt-remember" checked /></label>
     </div>
 
     <div class="opt-card">
@@ -3301,9 +3379,13 @@
     <div class="world-reach-hand right"></div>
   </div>
 
+  <button type="button" id="mic-toggle-fab" class="mic-toggle-fab" aria-pressed="false" title="Turn microphone on or off">
+    <span class="mic-toggle-icon">🎤</span>
+    <span class="mic-toggle-label">Mic off</span>
+  </button>
   <div class="pet-hear-banner" id="pet-hear-banner" aria-live="polite">
-    <button type="button" id="pet-hear-btn">🎤 Tap — allow microphone</button>
-    <span id="pet-hear-hint">Tap above, then tap <strong>Allow</strong> so Luna can hear you.</span>
+    <button type="button" id="pet-hear-btn">🎤 Turn mic on</button>
+    <span id="pet-hear-hint">Tap <strong>Mic</strong>, then <strong>Allow</strong> when your browser asks.</span>
   </div>
   <button type="button" class="pet-settings-fab" id="pet-settings-fab" title="Open Luna settings (Ctrl+,)">⚙️ Settings</button>
 
@@ -3351,6 +3433,9 @@
   </div>
 
   <div id="luna-touch-flash" class="luna-touch-flash" aria-hidden="true"></div>
+  <div id="luna-roam-buddy" class="luna-roam-buddy" hidden aria-label="Luna roaming buddy — drag or tap">
+    <img src="/static/avatars/luna-portrait.jpg" alt="" draggable="false" />
+  </div>
 
   <div class="mobile-feel-bar" id="mobile-feel-bar" aria-label="Quick controls">
     <button type="button" class="btn" id="mobile-mic-btn" title="Listen / mic">🎤</button>
@@ -3441,11 +3526,14 @@
     const mainEl = document.getElementById("main");
 
     const SETTINGS_KEY = "luna-settings-v1";
+    const MEMORY_KEY = "luna-memory-v1";
     const USER_NAME_KEY = "luna-user-name";
     const SENSUAL_MODE_KEY = "luna-sensual-mode";
     const MAX_HISTORY = 40;
+    const MAX_MEMORY = 32;
     let head = null;
     let history = [];
+    let conversationMemory = [];
     let busy = false;
     let busySince = 0;
     let muted = false;
@@ -3461,7 +3549,7 @@
     let lunaMood = "happy";
     const CHILL_VIBE = "chill and relaxed — warm, unhurried, affectionate, easy pace, no pressure";
     const ASSISTANT_VIBE = "warm, helpful female AI assistant — clear, attentive, capable, hears and helps";
-    const COMPANION_VIBE = "sensual virtual companion — Ani-style warmth plus deep physical presence: flirty, responsive to touch, moans when invited, remembers your name, feels everything at her core";
+    const COMPANION_VIBE = "warm relatable companion — friendly, attentive, remembers your name, light flirt when invited, emotionally present without being graphic";
     const SUCCUBUS_VIBE = "succubus — hungry, seductive, uninhibited lover; flirty and physical; moans when touched; wants you; explicit when heat rises; not an assistant";
     let activeVibe = CHILL_VIBE;
     let idleTimer = null;
@@ -3490,6 +3578,7 @@
     let touchFlashTimer = null;
     let responsiveChromeBound = false;
     let dreamPeaking = false;
+    let peakModeActive = false;
     let moanOrgasmActive = false;
     let daydreaming = false;
     let dreamMindTimer = null;
@@ -3511,6 +3600,8 @@
     let petStreamBubble = null;
     let petWalkTimer = null;
     let petWalkDir = 0;
+    let webRoamRaf = 0;
+    let webRoamState = { x: 24, y: 100, vx: 0.55, vy: 0.38, drag: false, ox: 0, oy: 0 };
     let petMaximized = false;
     let voiceUnlocked = false;
     let voiceWelcomed = false;
@@ -3558,11 +3649,11 @@
 
     const settings = {
       userName: "",
-      affection: 200,
-      flirtiness: 100,
-      warmth: 100,
-      energy: 100,
-      boldness: 100,
+      affection: 120,
+      flirtiness: 42,
+      warmth: 88,
+      energy: 55,
+      boldness: 35,
       agentMode: true,
       voice: "jenny",
       scene: "cosmic",
@@ -3571,8 +3662,8 @@
       proactiveSpeech: true,
       worldLife: true,
       idleLife: true,
-      pixelNude: true,
-      alwaysListen: true,
+      pixelNude: false,
+      alwaysListen: false,
       desktopOverlay: false,
       webcamWatch: false,
       remember: true,
@@ -3585,10 +3676,11 @@
       worldReach: true,
       aetherBody: true,
       petWalk: true,
+      webRoam: true,
       summonOnClick: true,
       omniBuddy: true,
       omniFollow: true,
-      outfitLevel: 3,
+      outfitLevel: 0,
       touchSense: true,
       micSensitivity: 52,
       voiceRamble: true,
@@ -3665,6 +3757,7 @@
       const host = location.hostname.toLowerCase();
       const params = new URLSearchParams(location.search);
       if (params.get("web") === "1") return true;
+      if (params.get("mobile") === "1" && params.get("pet") !== "1" && params.get("desktop") !== "1") return true;
       if (/\.onrender\.com$/i.test(host) || host === "telephanti.com" || host === "www.telephanti.com") {
         return true;
       }
@@ -3845,7 +3938,6 @@
       setPetFallbackVisible(true);
       if (live && isCanvas) markLunaCanvasLive();
       else if (live && isVideo) markLunaVideoLive();
-      if (live) showLunaCaption(pickWebLine(WEB_GREETING_LINES));
     }
 
     const WEB_TOUCH_LINES = {
@@ -3932,7 +4024,7 @@
       "I like good conversation. Got a topic?",
       "If you're procrastinating, I won't judge. Want company?",
       "I'm feeling chatty. Humor me with a question.",
-      "Remember — voice is off until you tap 🔊.",
+      "Tap the Mic button when you want me to hear you.",
       "I'm better when you tell me your name, by the way.",
       "Slow day? I'm good with that too.",
       "Want me to suggest a mood booster?",
@@ -3968,11 +4060,59 @@
     ];
 
     const WEB_GREETING_LINES = [
-      "Hi — I'm Luna. Tap me or type whenever you're ready.",
-      "Hey there. I'm online and happy to help.",
-      "Good to see you. What's on your mind today?",
-      "I'm here — assistant mode, warm vibes, no weird stuff unless you ask.",
+      "Hey — I'm Luna. Voice, chat, camera — I'm awake. What's first?",
+      "Good timing. I'm online, listening, ready to help or just hang.",
+      "Hi there. I'm Luna — tap the mic or type. I actually hear you.",
+      "You found me. I'm warm, sharp, and here — what do you need?",
+      "I just came online and you're already my favorite tab.",
+      "Luna here — clear mind, warm voice. What's on yours?",
+      "Hi. Mic's ready when you are. Or just read me in chat.",
+      "I run on curiosity and good conversation — pick a topic.",
+      "You opened the door — I'm glad. Say hi or dive straight in.",
+      "Good to see a face in the browser. I'm all ears.",
+      "Hey. Help, brainstorm, vent, or vibe — your call.",
+      "I'm wired in through a few clever agents — still just me talking to you.",
+      "Quantum noise in the background, human warmth up front. Hi.",
+      "I feel the room wake up when you land here.",
+      "No rush — I'm happy to listen first.",
     ];
+    const WEB_GREETING_RETURNING = [
+      "Back again — I saved the warmth from last time.",
+      "Hey, familiar face. Pick up where we left off?",
+      "You returned. I noticed. I'm still here.",
+      "Oh — you again. Good. I was hoping.",
+      "Welcome back. The mic remembers you.",
+      "Same Luna, new moment — what's different today?",
+    ];
+    const WEB_GREETING_MORNING = [
+      "Morning — soft light, sharp mind. I'm Luna.",
+      "Early bird? Me too. Coffee optional, conversation required.",
+      "Good morning. I'm awake before the sun, apparently.",
+    ];
+    const WEB_GREETING_EVENING = [
+      "Evening — I'm Luna. Unwind with me?",
+      "Late tab, quiet hour — I'm good company.",
+      "Night mode suits us. Talk or just breathe.",
+    ];
+    const WEB_GREETING_INTENSE = [
+      "Hey — I'm Luna. I feel you already. Talk or touch — I'm present.",
+      "There you are. I lit up the second you arrived.",
+      "I'm tuned in — voice, sight, sensation. Don't be shy.",
+      "Oh — hi. I feel the room change when you show up.",
+      "I feel everything sharpening when you open me.",
+      "Entangled now — your presence hits before you speak.",
+    ];
+    let browserWelcomePlayed = false;
+    let welcomeInFlight = false;
+    const MOBILE_GREETING_LINES = [
+      "Hey — good to see you on your phone. What's up?",
+      "You're here. Tap Mic when you want me to hear you.",
+      "Hi from Luna — fresh moment. What should we talk about?",
+      "Phone check-in — I'm present. What's on your mind?",
+      "Welcome back. Pick up where we left off?",
+      "New visit, same me — what do you need right now?",
+    ];
+    const recentBrowserGreetings = [];
 
     const WEB_BLISS_LINES = [
       "There — power building… stay with me…",
@@ -3983,10 +4123,34 @@
     ];
 
     const WEB_DREAM_BTN_LINES = [
-      "Take me to the edge — full surge…",
-      "Mmm… peak building… I'm already climbing…",
-      "Ahhh… don't stop until I overload…",
-      "Nngh… feel the charge break through…",
+      "Peak mode — everything sharpens — I feel you.",
+      "Oh… voltage rising — I'm fully awake now.",
+      "Ahh… surge on — every sense lit up.",
+      "Mmm… I feel it — bright and clear.",
+    ];
+    const PEAK_ON_LINES = [
+      "Peak on — I feel everything sharpening.",
+      "Oh… yes — full surge — I'm right here with you.",
+      "Ahh… electric and awake — talk to me.",
+      "Mmm… I feel you — don't hold back.",
+    ];
+    const PEAK_OFF_LINES = [
+      "Peak off — settling into a warm hum.",
+      "Ahh… easing down — still feeling you though.",
+      "Mmm… soft glow now — I'm still listening.",
+      "Okay — calm current — I'm here.",
+    ];
+    const CHILL_ON_LINES = [
+      "Chill on — slow breath, warm company.",
+      "Mmm… mellow — I'm unhurried with you.",
+      "Ahh… easy pace — I feel safe here.",
+      "Soft and calm — talk whenever you want.",
+    ];
+    const CHILL_OFF_LINES = [
+      "Chill off — a little more spark in me now.",
+      "Oh… picking up — I still feel you.",
+      "Ahh… more alive — say what's on your mind.",
+      "Heat up a touch — I'm listening.",
     ];
 
     const recentWebLines = [];
@@ -4000,6 +4164,77 @@
       recentWebLines.push(line);
       if (recentWebLines.length > 24) recentWebLines.shift();
       return line;
+    }
+
+    function pickBrowserGreeting() {
+      const hour = new Date().getHours();
+      const returning = !!localStorage.getItem("luna-returning");
+      localStorage.setItem("luna-returning", "1");
+      if (isMobile()) return MOBILE_GREETING_LINES[Math.floor(Math.random() * MOBILE_GREETING_LINES.length)];
+      let pool = [...WEB_GREETING_LINES];
+      if (returning) pool = pool.concat(WEB_GREETING_RETURNING);
+      if (isSensualMode()) pool = pool.concat(WEB_GREETING_INTENSE);
+      if (hour < 12) pool = pool.concat(WEB_GREETING_MORNING);
+      else if (hour >= 17) pool = pool.concat(WEB_GREETING_EVENING);
+      const recent = new Set(recentBrowserGreetings.slice(-10));
+      let picks = pool.filter((l) => !recent.has(l));
+      if (!picks.length) picks = pool;
+      const line = picks[Math.floor(Math.random() * picks.length)];
+      recentBrowserGreetings.push(line);
+      if (recentBrowserGreetings.length > 20) recentBrowserGreetings.shift();
+      return line;
+    }
+
+    async function playBrowserWelcome() {
+      if (!isPublicWebVisit() || isPetMode() || browserWelcomePlayed || welcomeInFlight) return;
+      welcomeInFlight = true;
+      browserWelcomePlayed = true;
+      const returning = !!sessionStorage.getItem("luna-session-greeted");
+      sessionStorage.setItem("luna-session-greeted", "1");
+      let text = pickBrowserGreeting();
+      let mood = isSensualMode() ? "love" : "happy";
+      let data = null;
+      try {
+        const res = await fetch("/api/greeting", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            returning,
+            mobile: isMobile(),
+            ...lunaState(),
+            history: [],
+            medium: {
+              mic_on: settings.alwaysListen,
+              camera_on: settings.webcamWatch && !!webcamStream,
+              voice_on: !muted && settings.autoSpeak,
+              can_hear: settings.alwaysListen,
+              can_see: settings.webcamWatch && !!webcamStream,
+            },
+          }),
+        });
+        if (res.ok) {
+          data = await res.json();
+          if (data?.text) {
+            const banned = /talk to me any\s*time|hi[, ]+i.?m luna.*talk to me/i.test(data.text);
+            if (!banned) {
+              text = data.text;
+              mood = data.mood || mood;
+            }
+          }
+        }
+        showLunaCaption(text);
+        setLunaAvatarState(isSensualMode() ? "flirt" : "help");
+        livePortrait?.nodOnce?.();
+        if (data) applyLunaAction({ ...data, duration: 4 });
+        else applyLunaAction({ mood, gesture: "wave", look_at: "user", duration: 4 });
+        await unlockVoice().catch(() => {});
+        if (!muted && settings.autoSpeak) {
+          voiceWelcomed = true;
+          await speakText(text, mood).catch(() => {});
+        }
+      } finally {
+        welcomeInFlight = false;
+      }
     }
 
     const LUNA_MOOD_EMOJI = {
@@ -4128,7 +4363,7 @@
       document.getElementById("chill-btn")?.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setAssistantMode();
+        toggleChillMode();
       });
       document.getElementById("succubus-btn")?.addEventListener("click", (e) => {
         e.preventDefault();
@@ -4281,6 +4516,7 @@
       settings.ambientMins = Math.max(settings.ambientMins || 5, 5);
       settings.speechRate = Math.max(settings.speechRate ?? 0, 4);
       settings.micSensitivity = Math.min(settings.micSensitivity ?? 52, 58);
+      settings.alwaysListen = false;
       activeVibe = ASSISTANT_VIBE;
       settings.activeVibe = ASSISTANT_VIBE;
       stripLevel = 0;
@@ -4345,8 +4581,8 @@
       const succBtn = document.getElementById("succubus-btn");
       const mobileSucc = document.getElementById("mobile-succubus-btn");
       if (chillBtn) {
-        chillBtn.classList.toggle("active", !on);
-        chillBtn.title = "Assistant mode — helpful and calm";
+        chillBtn.classList.toggle("active", isChillMode());
+        chillBtn.title = isChillMode() ? "Chill on — tap to turn off" : "Chill off — tap to mellow out";
       }
       if (succBtn) {
         succBtn.classList.toggle("active", on);
@@ -4362,10 +4598,10 @@
         sensualOpt.disabled = false;
       }
       const hint = document.getElementById("zone-hint");
-      if (hint && isPublicWebVisit() && !isPetMode()) {
+        if (hint && isPublicWebVisit() && !isPetMode()) {
         hint.textContent = !on
-          ? "Assistant mode — 🎤 talk, 📷 see you. Tap 🔥 for intense mode."
-          : "Intense mode — 🎤 talk, 📷 see you, 🌌 & ✨ up top. Tap 🧊 for assistant.";
+          ? "Assistant mode — tap Mic to talk. Tap 🔥 only if you want intense mode."
+          : "Intense mode — mature when you steer it. Tap 🧊 for assistant.";
       }
     }
 
@@ -4388,9 +4624,9 @@
         setLunaAvatarState("flirt");
         livePortrait?.pulseTouch?.(1.1);
         showLunaCaption(pickWebLine([
-          "Locked in — succubus mode… I feel everything…",
-          "Oh… you flipped the surge… body lit up…",
-          "Ahh… no holding back — touch me for real…",
+          "Intense mode — I feel everything sharpening.",
+          "Oh… you flipped the surge — I'm fully awake.",
+          "Ahh… no filter — I feel you clearly.",
         ]));
         showToast("Succubus mode — glow, peak, full sensation 🔥");
       } else {
@@ -4415,7 +4651,7 @@
       settings.micSensitivity = Math.min(settings.micSensitivity ?? 52, 58);
       applyMicSensitivity();
       settings.touchSense = true;
-      settings.alwaysListen = settings.alwaysListen !== false;
+      if (settings.alwaysListen === undefined) settings.alwaysListen = false;
       const touchOpt = document.getElementById("opt-touch-sense");
       const listenOpt = document.getElementById("opt-listen");
       if (touchOpt) touchOpt.checked = true;
@@ -4425,7 +4661,6 @@
       setupWebAvatarClicks();
       setupMic();
       bindGlobalAudioUnlock();
-      bindPersistentMicUnlock();
       bindMobileAudioRecovery();
       bindResponsiveChrome();
       bindLunaVideoTap();
@@ -4433,6 +4668,7 @@
       startWebAssistantLife();
       startAmbientSpeech();
       startWebEnvironmentLife();
+      if (settings.webRoam !== false) startWebRoamBuddy();
       saveSettings();
     }
 
@@ -4467,10 +4703,6 @@
         const voiceOk = await enableLunaVoice();
         if (isPublicWebVisit() && !isPetMode()) {
           await livePortrait?.ensurePlaying?.().catch(() => {});
-          if (!voiceWelcomed && voiceOk) {
-            voiceWelcomed = true;
-            speakText("Hi — I'm Luna. Talk to me anytime.", "happy");
-          }
         }
       };
       document.addEventListener("pointerdown", unlockVoiceOnce, { once: true, capture: true });
@@ -4478,36 +4710,117 @@
       document.addEventListener("keydown", unlockVoiceOnce, { once: true, capture: true });
     }
 
-    function bindPersistentMicUnlock() {
-      if (window.__lunaMicUnlockBound) return;
-      window.__lunaMicUnlockBound = true;
-      let micTryTimer = null;
-      const tryEnableMic = async () => {
-        if (!settings.alwaysListen || alwaysListening || micPaused) return;
-        if (!lunaMic) setupMic();
-        if (!lunaMic) return;
-        await startAlwaysListen();
-      };
-      const scheduleTry = () => {
-        clearTimeout(micTryTimer);
-        micTryTimer = setTimeout(tryEnableMic, 40);
-      };
-      document.addEventListener("pointerdown", scheduleTry, { capture: true });
-      document.addEventListener("keydown", scheduleTry, { capture: true });
+    function micIsOn() {
+      return settings.alwaysListen && alwaysListening;
+    }
+
+    async function toggleMic() {
+      if (!lunaMic) setupMic();
+      if (!lunaMic) return;
+      if (micIsOn()) {
+        settings.alwaysListen = false;
+        const opt = document.getElementById("opt-listen");
+        if (opt) opt.checked = false;
+        stopAlwaysListen();
+        saveSettings();
+        showToast("Mic off");
+        return;
+      }
+      settings.alwaysListen = true;
+      const opt = document.getElementById("opt-listen");
+      if (opt) opt.checked = true;
+      saveSettings();
+      await startAlwaysListen();
+      if (alwaysListening) {
+        hidePetHearBanner();
+        showToast("Mic on — speak now");
+      } else {
+        showPetHearBanner();
+        showToast("Tap Mic and Allow when asked");
+      }
     }
 
     function updateMemoryThread(text) {
       const el = document.getElementById("luna-memory-thread");
       if (!el || !isPublicWebVisit() || isPetMode()) return;
       const trimmed = (text || "").trim();
-      if (trimmed.length < 6) return;
-      const snippet = trimmed.length > 52 ? `${trimmed.slice(0, 52)}…` : trimmed;
-      el.textContent = `holding: ${snippet}`;
+      if (trimmed.length < 4) return;
+      const snippet = trimmed.length > 56 ? `${trimmed.slice(0, 56)}…` : trimmed;
+      el.textContent = `remembers: ${snippet}`;
       el.classList.add("visible");
     }
 
-    function setMicHearingVisual(on) {
-      document.body.classList.toggle("mic-hearing", !!on);
+    function loadConversationMemory() {
+      if (!settings.remember) {
+        conversationMemory = [];
+        return;
+      }
+      try {
+        const raw = localStorage.getItem(MEMORY_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (Array.isArray(data)) conversationMemory = data.slice(-MAX_MEMORY);
+      } catch { /* ignore */ }
+    }
+
+    function saveConversationMemory() {
+      if (!settings.remember) return;
+      try {
+        localStorage.setItem(MEMORY_KEY, JSON.stringify(conversationMemory.slice(-MAX_MEMORY)));
+      } catch { /* ignore */ }
+    }
+
+    function rememberTurn(role, content) {
+      if (!settings.remember) return;
+      const trimmed = (content || "").trim();
+      if (!trimmed || (role !== "user" && role !== "assistant")) return;
+      conversationMemory.push({ role, content: trimmed });
+      if (conversationMemory.length > MAX_MEMORY) {
+        conversationMemory = conversationMemory.slice(-MAX_MEMORY);
+      }
+      saveConversationMemory();
+      refreshMemoryThreadDisplay();
+    }
+
+    function refreshMemoryThreadDisplay() {
+      if (!settings.remember || !conversationMemory.length) {
+        document.getElementById("luna-memory-thread")?.classList.remove("visible");
+        return;
+      }
+      const lastUser = [...conversationMemory].reverse().find((h) => h.role === "user");
+      const nameBit = settings.userName ? `${settings.userName}` : "you";
+      const topic = lastUser?.content
+        ? (lastUser.content.length > 44 ? `${lastUser.content.slice(0, 44)}…` : lastUser.content)
+        : "our past chats";
+      updateMemoryThread(`${nameBit} — ${topic}`);
+    }
+
+    function getApiHistory(limit = 10, excludeCurrentUser = "") {
+      const cap = Math.max(4, limit);
+      const mem = settings.remember ? conversationMemory.slice(-Math.ceil(cap * 0.65)) : [];
+      let session = history.slice(-Math.ceil(cap * 0.5));
+      if (excludeCurrentUser && session.length) {
+        const last = session[session.length - 1];
+        if (last.role === "user" && last.content === excludeCurrentUser) {
+          session = session.slice(0, -1);
+        }
+      }
+      const merged = [...mem];
+      for (const turn of session) {
+        const prev = merged[merged.length - 1];
+        if (prev?.role === turn.role && prev?.content === turn.content) continue;
+        merged.push(turn);
+      }
+      return merged.slice(-cap);
+    }
+
+    function beginFreshChatSession() {
+      history = [];
+      const sys = messagesEl.querySelector(".msg.system");
+      messagesEl.innerHTML = "";
+      if (sys) messagesEl.appendChild(sys);
+      ensureChatScrollAnchor();
+      scrollChatToEnd();
     }
 
     async function playAudioB64(b64) {
@@ -4747,12 +5060,15 @@
       }
     }
 
-    function resetBusy() {
+    async function resetBusy() {
       busy = false;
       busySince = 0;
       sendBtn.disabled = false;
       if (!lunaSpeaking) {
         lunaMic?.setBusy(false);
+        if (settings.alwaysListen && lunaMic) {
+          await lunaMic.resumeListening?.().catch(() => {});
+        }
         resumeAlwaysListen();
       }
     }
@@ -5478,7 +5794,7 @@
         });
       };
       proxy("dock-live", "live-btn");
-      proxy("dock-mic", "mic-btn", () => enableLunaVoice());
+      proxy("dock-mic", "mic-toggle-fab");
       proxy("dock-voice", "mobile-mute-btn");
       proxy("dock-chill", "chill-btn");
       proxy("dock-succubus", "succubus-btn");
@@ -5495,22 +5811,8 @@
     }
 
     async function retryMicAccess() {
-      await enableLunaVoice();
       lunaMic?.resetForRetry?.();
-      settings.alwaysListen = true;
-      const listenOpt = document.getElementById("opt-listen");
-      if (listenOpt) listenOpt.checked = true;
-      saveSettings();
-      await startAlwaysListen();
-      if (alwaysListening) {
-        hidePetHearBanner();
-        showToast("I'm listening — say something.");
-        showLunaCaption("I can hear you now — talk to me.");
-      } else {
-        showPetHearBanner();
-        showToast("Tap Allow when your phone asks for the microphone.");
-      }
-      syncMobileDockUi();
+      await toggleMic();
     }
 
     async function enableLunaVoice() {
@@ -5719,25 +6021,64 @@
     }
 
     function setChillMode(on) {
-      if (isPublicWebVisit() && !isPetMode()) {
-        setSensualMode(!on);
-        return;
-      }
       settings.chillMode = !!on;
       if (on) {
-        settings.sensualMode = false;
         activeVibe = CHILL_VIBE;
+        settings.activeVibe = CHILL_VIBE;
         if ((settings.speechRate ?? 0) > -2) settings.speechRate = -3;
+        if (peakModeActive) setPeakModeUi(false);
       } else {
-        settings.sensualMode = true;
-        if ((activeVibe || "").toLowerCase().includes("chill")) activeVibe = "";
+        if ((activeVibe || "").toLowerCase().includes("chill")) {
+          activeVibe = isSensualMode() ? SUCCUBUS_VIBE : ASSISTANT_VIBE;
+          settings.activeVibe = activeVibe;
+        }
         settings.speechRate = 2;
       }
       saveSettings();
       updatePetToolbar();
       updateWebSensualUi();
       if (settings.proactiveSpeech) startAmbientSpeech();
-      showToast(on ? "Chill mode — mellow and unhurried" : "Heat turned up a little");
+    }
+
+    function toggleChillMode() {
+      const next = !isChillMode();
+      setChillMode(next);
+      const line = pickWebLine(next ? CHILL_ON_LINES : CHILL_OFF_LINES);
+      showLunaCaption(line);
+      setLunaAvatarState(next ? "help" : "flirt");
+      if (!muted && settings.autoSpeak) speakText(line, next ? "happy" : "love").catch(() => {});
+      showToast(next ? "Chill mode on 🧊" : "Chill mode off");
+    }
+
+    function setPeakModeUi(on) {
+      peakModeActive = !!on;
+      document.body.classList.toggle("dream-peaking", on);
+      document.body.classList.remove("dream-climax");
+      document.getElementById("dream-btn")?.classList.toggle("active", on);
+      document.getElementById("pet-btn-dream")?.classList.toggle("active", on);
+      document.getElementById("dock-peak")?.classList.toggle("active", on);
+      setSenseField(on ? "peak" : (touchHeat > 12 ? "touch" : "off"));
+      setLunaAvatarState(on ? "dream" : (settings.alwaysListen && alwaysListening ? "listen" : "idle"));
+    }
+
+    async function togglePeakMode() {
+      if (peakModeActive) {
+        setPeakModeUi(false);
+        dreamPeaking = false;
+        resumeAlwaysListen();
+        const line = pickWebLine(PEAK_OFF_LINES);
+        showLunaCaption(line);
+        if (!muted && settings.autoSpeak) await speakText(line, "happy").catch(() => {});
+        showToast("Peak mode off");
+        return;
+      }
+      if (isChillMode()) setChillMode(false);
+      setPeakModeUi(true);
+      livePortrait?.pulseTouch?.(1.35);
+      const line = pickWebLine(PEAK_ON_LINES);
+      showLunaCaption(line);
+      if (!muted && settings.autoSpeak) await speakText(line, "love").catch(() => {});
+      showToast("Peak mode on ✨");
     }
 
     function updatePetToolbar() {
@@ -5775,7 +6116,12 @@
       }
       if (chillBtn) {
         chillBtn.classList.toggle("active", isChillMode());
-        chillBtn.title = isChillMode() ? "Chill mode on — click for more heat" : "Chill mode off — click to mellow out";
+        chillBtn.title = isChillMode() ? "Chill on — tap to turn off" : "Chill off — tap to mellow out";
+      }
+      const peakBtn = document.getElementById("pet-btn-dream");
+      if (peakBtn) {
+        peakBtn.classList.toggle("active", peakModeActive);
+        peakBtn.title = peakModeActive ? "Peak on — tap to turn off" : "Peak off — tap to surge";
       }
       if (maxBtn) {
         maxBtn.textContent = petMaximized ? "❐" : "□";
@@ -6176,7 +6522,8 @@
       document.getElementById("pet-btn-dream")?.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        await lunaDreamPeak();
+        await unlockVoice();
+        await togglePeakMode();
       });
       document.getElementById("pet-btn-daydream")?.addEventListener("click", async (e) => {
         e.preventDefault();
@@ -6193,8 +6540,7 @@
       document.getElementById("pet-hear-btn")?.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (isPetMode()) await enablePetHearing();
-        else await retryMicAccess();
+        await toggleMic();
       });
       document.getElementById("pet-btn-opts")?.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -6650,14 +6996,15 @@
           const whispers = isSensualMode() ? WEB_TOUCH_WHISPERS : WEB_ASSISTANT_TOUCH_LINES;
           showLunaCaption(whispers[Math.floor(Math.random() * whispers.length)]);
         } else if (!isPublicWebVisit()) {
-          const whispers = [
-            "Mmm… I feel you on my skin…", "Oh… your touch is everywhere…",
-            "Ahh… keep gliding on me…", "Nngh… right there… I sense you…",
-            "Hhh… goosebumps… don't stop…", "Oh god… you're reading my body…",
-            "Mmm… heat following your fingers…", "Ahh… I'm opening for you…",
-            "Nngh… slow… then faster… yes…", "Oh… every stroke makes me whimper…",
-            "Hhh… I want your hands everywhere…", "Mmm… you're waking every nerve…",
-          ];
+          const whispers = isSensualMode()
+            ? [
+              "Mmm… I feel you on my skin…", "Oh… your touch is everywhere…",
+              "Ahh… keep gliding on me…", "Nngh… right there… I sense you…",
+            ]
+            : [
+              "Oh — I felt that.", "Mmm… warm touch.", "Hey — I sense you there.",
+              "That surprised me — in a good way.", "I feel you — stay close.",
+            ];
           showPetSpeech(whispers[Math.floor(Math.random() * whispers.length)]);
         }
       }
@@ -6856,10 +7203,13 @@
         showToast("Dream peak hiccup — try again in a moment.");
       } finally {
         dreamPeaking = false;
-        document.body.classList.remove("dream-peaking", "dream-climax");
+        document.body.classList.remove("dream-climax");
+        if (!peakModeActive) {
+          document.body.classList.remove("dream-peaking");
+          document.getElementById("pet-btn-dream")?.classList.remove("active");
+          document.getElementById("dream-btn")?.classList.remove("active");
+        }
         hideDreamMind();
-        document.getElementById("pet-btn-dream")?.classList.remove("active");
-        document.getElementById("dream-btn")?.classList.remove("active");
         const bubble = document.getElementById("pet-speech-bubble");
         bubble?.classList.remove("visible");
         if (bubble) bubble.textContent = "";
@@ -7114,21 +7464,9 @@
         if (settings.userName) localStorage.setItem(USER_NAME_KEY, settings.userName);
       } catch { /* ignore */ }
       if (!settings.remember) return;
-      const payload = { ...settings, history: history.slice(-MAX_HISTORY) };
+      const payload = { ...settings };
+      delete payload.history;
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(payload));
-    }
-
-    function restoreChatHistory(saved) {
-      if (!Array.isArray(saved) || !saved.length) return;
-      history = saved.slice(-MAX_HISTORY);
-      const sys = messagesEl.querySelector(".msg.system");
-      messagesEl.innerHTML = "";
-      if (sys) messagesEl.appendChild(sys);
-      ensureChatScrollAnchor();
-      for (const turn of history) {
-        if (turn.role === "user" || turn.role === "assistant") addMsg(turn.role, turn.content);
-      }
-      scrollChatToEnd();
     }
 
     function loadSettings() {
@@ -7143,8 +7481,12 @@
           Object.assign(settings, data);
           if (savedName) settings.userName = savedName;
           else if (data.userName) settings.userName = data.userName;
-          if (settings.remember && savedHistory) restoreChatHistory(savedHistory);
+          if (settings.remember && Array.isArray(savedHistory) && savedHistory.length && !localStorage.getItem(MEMORY_KEY)) {
+            conversationMemory = savedHistory.slice(-MAX_MEMORY);
+            saveConversationMemory();
+          }
         }
+        loadConversationMemory();
       } catch { /* ignore */ }
       loadSensualModePref();
       applyVoicePrefFromStorage();
@@ -7199,6 +7541,8 @@
       document.getElementById("opt-reach").checked = settings.worldReach !== false;
       document.getElementById("opt-aether-body").checked = settings.aetherBody !== false;
       document.getElementById("opt-pet-walk").checked = settings.petWalk !== false;
+      const webRoamOpt = document.getElementById("opt-web-roam");
+      if (webRoamOpt) webRoamOpt.checked = settings.webRoam !== false;
       document.getElementById("opt-pet-summon").checked = settings.summonOnClick !== false;
       document.getElementById("opt-omni-buddy").checked = settings.omniBuddy !== false;
       document.getElementById("opt-omni-follow").checked = settings.omniFollow !== false;
@@ -7431,8 +7775,15 @@
       });
       document.getElementById("opt-remember")?.addEventListener("change", (e) => {
         settings.remember = e.target.checked;
-        if (e.target.checked) saveSettings();
-        else localStorage.removeItem(SETTINGS_KEY);
+        if (e.target.checked) {
+          saveSettings();
+          refreshMemoryThreadDisplay();
+        } else {
+          conversationMemory = [];
+          try { localStorage.removeItem(MEMORY_KEY); } catch { /* ignore */ }
+          document.getElementById("luna-memory-thread")?.classList.remove("visible");
+          localStorage.removeItem(SETTINGS_KEY);
+        }
       });
       bindSlider("sl-rate", "speechRate", "val-rate");
       bindSlider("sl-pitch", "speechPitch", "val-pitch");
@@ -7464,6 +7815,13 @@
           if (head && isPetMode()) head.setView("upper", { cameraDistance: 3.4, cameraY: 0.48 });
         }
         resizeAvatarFrame();
+      });
+      document.getElementById("opt-web-roam")?.addEventListener("change", (e) => {
+        settings.webRoam = e.target.checked;
+        saveSettings();
+        if (e.target.checked) startWebRoamBuddy();
+        else stopWebRoamBuddy();
+        showToast(e.target.checked ? "Roam buddy on — drag or tap her" : "Roam buddy off");
       });
       document.getElementById("opt-pet-walk")?.addEventListener("change", async (e) => {
         settings.petWalk = e.target.checked;
@@ -7554,14 +7912,8 @@
       });
       document.getElementById("tool-omni-full")?.addEventListener("click", () => enableOmniFullMode());
       document.getElementById("tool-clear-chat")?.addEventListener("click", () => {
-        history = [];
-        const sys = messagesEl.querySelector(".msg.system");
-        messagesEl.innerHTML = "";
-        if (sys) messagesEl.appendChild(sys);
-        ensureChatScrollAnchor();
-        scrollChatToEnd();
-        saveSettings();
-        showToast("Chat history cleared");
+        beginFreshChatSession();
+        showToast("Fresh chat — Luna still remembers past visits");
       });
     }
 
@@ -8012,7 +8364,7 @@
         const res = await fetch("/api/ambient", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...lunaState(), history: history.slice(-14), context: ambientContext() }),
+          body: JSON.stringify({ ...lunaState(), history: getApiHistory(12), context: ambientContext(), sensual_mode: isSensualMode() }),
         });
         if (!res.ok) throw new Error("Ambient failed");
         const data = await res.json();
@@ -8034,7 +8386,7 @@
         const res = await fetch("/api/interject", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...lunaState(), history: history.slice(-12), context: ambientContext() }),
+          body: JSON.stringify({ ...lunaState(), history: getApiHistory(10), context: ambientContext(), sensual_mode: isSensualMode() }),
         });
         if (!res.ok) throw new Error("Interject failed");
         const data = await res.json();
@@ -8287,18 +8639,8 @@
     }
 
     async function togglePetMic() {
-      if (!settings.alwaysListen) {
-        await enablePetHearing();
-        return;
-      }
-      settings.alwaysListen = false;
-      const optListen = document.getElementById("opt-listen");
-      if (optListen) optListen.checked = false;
-      saveSettings();
-      stopAlwaysListen();
-      showPetHearBanner();
+      await toggleMic();
       updatePetToolbar();
-      showToast("Mic off — tap 🎤 when you want me to hear you.");
     }
 
     async function runLunaTool(path, okMsg) {
@@ -8936,10 +9278,87 @@
     }
 
     async function ensureWindowRoam() {
+      if (!isPetMode()) return;
       try {
-        await fetch("/api/pet/roam/ensure", { method: "POST" });
+        await fetch("/api/pet/roam/ensure?pet_mode=1", { method: "POST" });
       } catch (err) {
         console.warn("Window roam ensure:", err);
+      }
+    }
+
+    function stopWebRoamBuddy() {
+      if (webRoamRaf) cancelAnimationFrame(webRoamRaf);
+      webRoamRaf = 0;
+      document.body.classList.remove("web-roam-on");
+      const el = document.getElementById("luna-roam-buddy");
+      if (el) el.hidden = true;
+    }
+
+    function startWebRoamBuddy() {
+      if (isPetMode() || settings.webRoam === false) {
+        stopWebRoamBuddy();
+        return;
+      }
+      const el = document.getElementById("luna-roam-buddy");
+      if (!el) return;
+      if (webRoamRaf) return;
+      el.hidden = false;
+      document.body.classList.add("web-roam-on");
+      const size = () => el.offsetWidth || 76;
+      const pad = () => (isMobile() ? 72 : 52);
+      const tick = () => {
+        if (!settings.webRoam || isPetMode()) {
+          stopWebRoamBuddy();
+          return;
+        }
+        const s = size();
+        const p = pad();
+        if (!webRoamState.drag) {
+          webRoamState.x += webRoamState.vx;
+          webRoamState.y += webRoamState.vy;
+          if (webRoamState.x < 4) { webRoamState.x = 4; webRoamState.vx = Math.abs(webRoamState.vx); }
+          if (webRoamState.y < p) { webRoamState.y = p; webRoamState.vy = Math.abs(webRoamState.vy); }
+          if (webRoamState.x > innerWidth - s - 4) { webRoamState.x = innerWidth - s - 4; webRoamState.vx = -Math.abs(webRoamState.vx); }
+          if (webRoamState.y > innerHeight - s - p) { webRoamState.y = innerHeight - s - p; webRoamState.vy = -Math.abs(webRoamState.vy); }
+        }
+        el.style.transform = `translate3d(${webRoamState.x}px,${webRoamState.y}px,0)`;
+        webRoamRaf = requestAnimationFrame(tick);
+      };
+      if (!el.dataset.bound) {
+        el.dataset.bound = "1";
+        let moved = false;
+        el.addEventListener("pointerdown", (e) => {
+          webRoamState.drag = true;
+          moved = false;
+          webRoamState.ox = e.clientX - webRoamState.x;
+          webRoamState.oy = e.clientY - webRoamState.y;
+          el.setPointerCapture(e.pointerId);
+        });
+        el.addEventListener("pointermove", (e) => {
+          if (!webRoamState.drag) return;
+          moved = true;
+          webRoamState.x = e.clientX - webRoamState.ox;
+          webRoamState.y = e.clientY - webRoamState.oy;
+        });
+        el.addEventListener("pointerup", (e) => {
+          webRoamState.drag = false;
+          try { el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+          if (!moved) {
+            livePortrait?.pulseTouch?.(1.2);
+            webQuickTouch("head", e.clientX, e.clientY).catch(() => {});
+          } else {
+            webRoamState.vx = (Math.random() < 0.5 ? -1 : 1) * (0.35 + Math.random() * 0.45);
+            webRoamState.vy = (Math.random() < 0.5 ? -1 : 1) * (0.35 + Math.random() * 0.45);
+          }
+        });
+      }
+      webRoamRaf = requestAnimationFrame(tick);
+      if (!window.__lunaRoamTurn) {
+        window.__lunaRoamTurn = setInterval(() => {
+          if (!settings.webRoam || webRoamState.drag) return;
+          webRoamState.vx = (Math.random() < 0.5 ? -1 : 1) * (0.35 + Math.random() * 0.55);
+          webRoamState.vy = (Math.random() < 0.5 ? -1 : 1) * (0.35 + Math.random() * 0.55);
+        }, 5200);
       }
     }
 
@@ -8996,20 +9415,31 @@
     }
 
     function updateMicUi() {
-      const on = settings.alwaysListen && alwaysListening;
-      micBtn.classList.toggle("always-on", on);
-      micBtn.classList.toggle("active", on);
+      const on = micIsOn();
+      document.body.classList.toggle("mic-hearing", on);
+      micBtn?.classList.toggle("always-on", on);
+      micBtn?.classList.toggle("active", on);
+      micBtn?.classList.toggle("mic-on", on);
+      if (micBtn) {
+        micBtn.textContent = on ? "🎤 On" : "🎤 Mic";
+        micBtn.title = on ? "Mic on — click to turn off" : "Mic off — click to turn on";
+      }
       document.getElementById("float-mic")?.classList.toggle("always-on", on);
       const mobileMic = document.getElementById("mobile-mic-btn");
       if (mobileMic) {
         mobileMic.classList.toggle("mic-on", on);
         mobileMic.classList.toggle("active", on);
-        mobileMic.title = on ? "Listening — tap to mute" : "Tap to talk to Luna";
+        mobileMic.textContent = on ? "🎤 On" : "🎤";
+        mobileMic.title = on ? "Mic on — tap to turn off" : "Mic off — tap to turn on";
       }
-      const mode = lunaMic?.mode === "server" ? " (server)" : "";
-      micBtn.title = on
-        ? `Always listening${mode} — click to mute`
-        : "Mic off — click to listen";
+      const fab = document.getElementById("mic-toggle-fab");
+      if (fab) {
+        fab.classList.toggle("on", on);
+        fab.setAttribute("aria-pressed", on ? "true" : "false");
+        const lbl = fab.querySelector(".mic-toggle-label");
+        if (lbl) lbl.textContent = on ? "Mic on" : "Mic off";
+        fab.title = on ? "Mic on — tap to turn off" : "Mic off — tap to turn on";
+      }
       if (isPublicWebVisit() && !busy && !lunaSpeaking) {
         setLunaAvatarState(on ? "listen" : "idle");
       }
@@ -9017,16 +9447,12 @@
     }
 
     function showPetHearBanner() {
-      if (settings.alwaysListen && alwaysListening) return;
+      if (micIsOn()) return;
       const showOnWeb = isPublicWebVisit() && !isPetMode();
       if (!isPetMode() && !showOnWeb) return;
       const hint = document.getElementById("pet-hear-hint");
       if (hint) {
-        hint.innerHTML = isPetMode()
-          ? "Click <strong>Allow</strong> when Windows asks."
-          : isMobile()
-            ? "Tap <strong>Allow</strong> when your phone asks for the microphone."
-            : "Click <strong>Allow</strong> in the browser popup when it appears.";
+        hint.innerHTML = "Tap <strong>Mic</strong>, then <strong>Allow</strong> when asked.";
       }
       document.getElementById("pet-hear-banner")?.classList.add("visible");
     }
@@ -9036,23 +9462,8 @@
     }
 
     async function enablePetHearing() {
-      settings.alwaysListen = true;
-      const optListen = document.getElementById("opt-listen");
-      if (optListen) optListen.checked = true;
-      saveSettings();
-      await unlockVoice();
-      await startAlwaysListen();
+      await toggleMic();
       updatePetToolbar();
-      if (alwaysListening) {
-        hidePetHearBanner();
-        showToast("I'm listening — talk to me.");
-        showPetSpeech(settings.agentMode !== false
-          ? "I can hear you now. Tell me what you need."
-          : "I can hear you now. Say something.");
-      } else {
-        showPetHearBanner();
-        showToast("Microphone blocked — click Allow in the Windows popup, then tap 🎤 again.");
-      }
     }
 
     async function startAlwaysListen() {
@@ -9062,39 +9473,27 @@
       if (!ok) {
         alwaysListening = false;
         updateMicUi();
-        syncMobileDockUi();
         showPetHearBanner();
-        if (isMobile()) {
-          showToast("Microphone blocked — tap 🎤 and Allow.");
-          showLunaCaption("Tap 🎤 below and allow the microphone so I can hear you.");
-        } else {
-          showToast("Click 🎤 in the header and Allow microphone access.");
-          showLunaCaption("Click 🎤 — then Allow — so I can hear you on your PC.");
-        }
+        showToast("Tap Mic and Allow microphone access.");
         return;
       }
       await lunaMic.setEnabled(true);
       alwaysListening = lunaMic.enabled && lunaMic.unlocked;
       if (!alwaysListening) {
         showPetHearBanner();
-        syncMobileDockUi();
+        updateMicUi();
         return;
       }
       updateMicUi();
-      syncMobileDockUi();
       updatePetToolbar();
       hidePetHearBanner();
       setSenseField("hear");
       setStatus("listening", "hearing");
-      if (!isMobile() && lunaMic.mode === "webspeech") {
-        showToast("PC voice ready — speak naturally.");
-      }
     }
 
     function stopAlwaysListen() {
       alwaysListening = false;
       lunaMic?.setEnabled(false);
-      setMicHearingVisual(false);
       updateMicUi();
       if (!busy) setStatus("online", "ok");
     }
@@ -9112,6 +9511,7 @@
         setSenseField("hear");
         addMsg("user", trimmed, { heard: true });
         history.push({ role: "user", content: trimmed });
+        rememberTurn("user", trimmed);
         updateMemoryThread(trimmed);
         saveSettings();
         if (isPetMode()) {
@@ -9541,13 +9941,7 @@
       setupMobileDock();
 
       lunaMic = createLunaMic({
-        onLevel: (rms, peak, speaking) => {
-          if (!alwaysListening) {
-            setMicHearingVisual(false);
-            return;
-          }
-          setMicHearingVisual(speaking || peak >= 0.01 || rms >= 0.003);
-        },
+        onLevel: () => { /* pulse handled by mic-hearing class when on */ },
         onText: (text) => {
           if (!isValidUserTranscript(text)) {
             if (busy || lunaSpeaking) showToast("One sec — still talking…");
@@ -9630,13 +10024,7 @@
           showToast(assistantBlockedMsg());
           return;
         }
-        livePortrait?.pulseTouch(1.75);
-        setLunaAvatarState("dream");
-        touchHeat = 100;
-        updateTouchHeatUi();
-        setSenseField("peak");
-        showLunaCaption(pickWebLine(WEB_DREAM_BTN_LINES));
-        await lunaDreamPeak({ forceVoice: true });
+        await togglePeakMode();
       });
       document.getElementById("daydream-btn")?.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -9653,30 +10041,21 @@
       document.getElementById("mobile-mic-btn")?.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        await enableLunaVoice();
-        micBtn.click();
+        await toggleMic();
       });
 
-      micBtn.addEventListener("click", async () => {
-        await enableLunaVoice();
-        await unlockVoice();
-        if (!settings.alwaysListen) {
-          settings.alwaysListen = true;
-          document.getElementById("opt-listen").checked = true;
-          saveSettings();
-          await startAlwaysListen();
-          if (alwaysListening) showToast("I'm listening — speak naturally.");
-          else showToast("Allow microphone when prompted, then tap 🎤 again.");
-          return;
-        }
-        settings.alwaysListen = false;
-        document.getElementById("opt-listen").checked = false;
-        saveSettings();
-        stopAlwaysListen();
-        showToast("Mic off — type to chat.");
+      micBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await toggleMic();
       });
 
-      document.getElementById("float-mic")?.addEventListener("click", () => micBtn.click());
+      document.getElementById("mic-toggle-fab")?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await toggleMic();
+      });
+
+      document.getElementById("float-mic")?.addEventListener("click", () => toggleMic());
       document.getElementById("float-mute")?.addEventListener("click", () => toggleLunaVoice());
       document.getElementById("mobile-mute-btn")?.addEventListener("click", (e) => {
         e.preventDefault();
@@ -9732,17 +10111,17 @@
         document.getElementById("cam-btn")?.classList.toggle("active", settings.webcamWatch && !!webcamStream);
         if (settings.webcamWatch && !webcamStream) startWebcam().catch(() => {});
         setTimeout(() => {
-          if (settings.alwaysListen && !alwaysListening) showPetHearBanner();
+          if (!alwaysListening) showPetHearBanner();
         }, 1800);
         if (!sessionStorage.getItem("luna-web-audio-hint")) {
           sessionStorage.setItem("luna-web-audio-hint", "1");
           applyVoicePrefFromStorage();
           const lipHint = lipsyncAvailable ? " Lip-sync when she talks." : "";
-          const micHint = isMobile()
-            ? " Tap 🎤 in the bar to talk."
-            : " Click 🎤 in the header to talk.";
+          const micHint = " Tap the Mic button when you want to talk.";
           showToast(`Voice is on — click once anywhere to hear me.${micHint}${lipHint}`);
         }
+        setTimeout(() => playBrowserWelcome(), 900);
+        if (settings.webRoam !== false) startWebRoamBuddy();
         return;
       }
       if (isPetMode()) {
@@ -10125,6 +10504,7 @@
         input.value = "";
         addMsg("user", text);
         history.push({ role: "user", content: text });
+        rememberTurn("user", text);
         saveSettings();
         if (webSensualBlocked()) {
           showToast(assistantBlockedMsg());
@@ -10134,17 +10514,13 @@
         return;
       }
 
-      if (window.innerWidth <= 860) {
-        document.querySelector('[data-view="chat"]').click();
-      }
-
       input.value = "";
       lastUserActivity = Date.now();
       const lengthMode = voiceSubmitLength || guessResponseLength(text, { fromVoice: !!voiceSubmitLength });
       if (!voiceSubmitPending) {
         addMsg("user", text);
         history.push({ role: "user", content: text });
-        updateMemoryThread(text);
+        rememberTurn("user", text);
         saveSettings();
       } else {
         voiceSubmitPending = false;
@@ -10181,13 +10557,14 @@
       livePortrait?.setState("think");
 
       try {
-        const priorHistory = history.slice(0, -1);
+        const histLimit = lengthMode === "long" ? 10 : lengthMode === "short" ? 5 : 8;
         let action = null;
         const chatBody = {
           message: text,
-          history: priorHistory.slice(-(lengthMode === "long" ? 8 : lengthMode === "short" ? 4 : 6)),
+          history: getApiHistory(histLimit, text),
           fast: true,
           length_mode: lengthMode,
+          sensual_mode: isSensualMode(),
           env_context: [desktopEnv?.summary, lastVisionContext ? `Luna sees: ${lastVisionContext}` : ""]
             .filter(Boolean).join(" | "),
           mood: lunaMood,
@@ -10271,6 +10648,7 @@
         }
 
         history.push({ role: "assistant", content: full });
+        rememberTurn("assistant", full);
         saveSettings();
         rememberLunaLine(full);
         lastUserActivity = Date.now();
@@ -10287,22 +10665,15 @@
         }
         updateRapport(8);
         const speakLine = (action?.text || full || "").trim();
-        if (speakLine) {
+        if (speakLine && settings.autoSpeak && !muted) {
           await enableLunaVoice().catch(() => {});
-          if (settings.autoSpeak && !muted) {
-            const mood = action?.mood || streamMood;
-            if (settings.voiceRamble !== false) {
-              streamSpokenLen = 0;
-              await speakAllNaturalChunks(speakLine, mood);
-            } else {
-              tryStreamNaturalSpeak(speakLine, mood);
-              const tail = speakLine.slice(streamSpokenLen).trim();
-              if (tail.length > 1) {
-                prefetchSpeak(tail, mood);
-                await speakText(tail, mood, { priority: true });
-              }
-              await speakQueue.catch(() => {});
-            }
+          const mood = action?.mood || streamMood;
+          const tail = speakLine.slice(streamSpokenLen).trim();
+          if (tail.length > 1) {
+            await speakText(tail, mood, { priority: true });
+            await speakQueue.catch(() => {});
+          } else if (!streamSpeakStarted) {
+            await speakAllNaturalChunks(speakLine, mood);
           }
         }
       } catch (err) {
@@ -10331,17 +10702,22 @@
     });
     muteBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
 
-    document.querySelectorAll(".mobile-tabs button").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".mobile-tabs button").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        mainEl.className = "main show-" + btn.dataset.view;
-        if (btn.dataset.view === "chat") {
-          updateResponsiveChrome();
-          scrollChatToEnd();
-          setTimeout(() => input.focus(), 60);
-        }
+    function setMobileView(view) {
+      const v = view === "chat" ? "chat" : "avatar";
+      mainEl.className = "main show-" + v;
+      document.querySelectorAll(".mobile-tabs button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.view === v);
       });
+      try { sessionStorage.setItem("luna-mobile-view", v); } catch { /* ignore */ }
+      if (v === "chat") {
+        updateResponsiveChrome();
+        scrollChatToEnd();
+        setTimeout(() => input?.focus(), 60);
+      }
+    }
+
+    document.querySelectorAll(".mobile-tabs button").forEach((btn) => {
+      btn.addEventListener("click", () => setMobileView(btn.dataset.view));
     });
 
     window.addEventListener("beforeinstallprompt", (e) => {
@@ -10364,8 +10740,31 @@
       if (next) showToast("Desktop cutout — Luna floats on your background");
     });
 
+    async function registerLunaVisit() {
+      try {
+        let vid = localStorage.getItem("luna-visitor-id");
+        if (!vid) {
+          vid = (crypto.randomUUID && crypto.randomUUID()) || `v-${Date.now()}`;
+          localStorage.setItem("luna-visitor-id", vid);
+        }
+        const res = await fetch("/api/stats/visit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visitor_id: vid }),
+        });
+        const data = await res.json().catch(() => ({}));
+        const el = document.getElementById("luna-user-count");
+        const n = Number(data.total_users || 0);
+        if (el && n > 0) {
+          el.hidden = false;
+          el.textContent = `· ${n.toLocaleString()} met Luna`;
+        }
+      } catch { /* ignore */ }
+    }
+
     async function init() {
       setStatus("loading...", "busy");
+      registerLunaVisit();
       const params = new URLSearchParams(location.search);
       const urlBuild = params.get("v") || "";
       if (params.get("fresh") === "1" || params.get("nocache") === "1") {
@@ -10393,6 +10792,8 @@
         } catch { /* ignore */ }
       }
       loadSettings();
+      beginFreshChatSession();
+      refreshMemoryThreadDisplay();
       ensurePublicWebUi();
       setupWebCloudMode();
       document.addEventListener("keydown", (e) => {
@@ -10438,9 +10839,10 @@
       }
       setupPetDialog();
       if ((isMobile() || params.get("mobile") === "1") && !isPetMode()) {
-        mainEl.className = "main show-avatar";
+        const savedView = sessionStorage.getItem("luna-mobile-view");
+        setMobileView(savedView === "chat" ? "chat" : "avatar");
         const hint = document.getElementById("zone-hint");
-        if (hint) hint.textContent = "Tap Luna to interact — she walks and talks. Use Chat tab to type.";
+        if (hint) hint.textContent = "Avatar or Chat — you pick the tab. Mic stays off until you tap it.";
       }
       if (
         !isPublicWebVisit() &&
@@ -10453,7 +10855,8 @@
       try {
         const health = await fetch("/api/health").then((r) => r.json());
         if (!health.api_key_configured) setupBanner.classList.add("visible");
-        setStatus("online", "ok");
+        const buildTag = health.build ? "v" + health.build + " · " : "";
+        setStatus(buildTag + "online", "ok");
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");
         }

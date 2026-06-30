@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import random
 import logging
 import mimetypes
 import os
@@ -18,7 +19,7 @@ mimetypes.add_type("application/javascript", ".mjs")
 import edge_tts
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -29,8 +30,9 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
+STATS_PATH = BASE_DIR / "luna_stats.json"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "102"
+LUNA_BUILD = "108"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -74,6 +76,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+_NO_CACHE_PREFIXES = ("/static/",)
+_NO_CACHE_EXACT = {"/", "/visit", "/manifest.json", "/sw.js", "/bubble", "/api/health"}
+
+
+@app.middleware("http")
+async def luna_no_cache_middleware(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path in _NO_CACHE_EXACT or path.startswith(_NO_CACHE_PREFIXES):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    if is_cloud_mode() and path in ("/", "/visit"):
+        response.headers["Clear-Site-Data"] = '"cache"'
+    response.headers["X-Luna-Build"] = LUNA_BUILD
+    return response
 
 
 async def _prewarm_lipsync_background() -> None:
@@ -398,11 +417,11 @@ def resolve_length_mode(message: str, length_mode: str = "auto") -> str:
 
 class LunaProfile(BaseModel):
     user_name: str = ""
-    affection: int = 200
-    flirtiness: int = 100
-    warmth: int = 100
-    energy: int = 100
-    boldness: int = 100
+    affection: int = 120
+    flirtiness: int = 42
+    warmth: int = 88
+    energy: int = 55
+    boldness: int = 35
     agent_mode: bool = True
 
 
@@ -430,6 +449,7 @@ class ChatRequest(BaseModel):
     fast: bool = False
     env_context: str = ""
     length_mode: str = "auto"
+    sensual_mode: bool = False
 
 
 class TranscribeRequest(BaseModel):
@@ -537,6 +557,105 @@ class ReactRequest(BaseModel):
     medium: MediumState = MediumState()
 
 
+class GreetingRequest(BaseModel):
+    mood: str = "happy"
+    vibe: str = ""
+    strip_level: int = 0
+    returning: bool = False
+    mobile: bool = False
+    history: list[dict[str, str]] = []
+    profile: LunaProfile = LunaProfile()
+    medium: MediumState = MediumState()
+
+
+GREETING_AGENT: list[str] = [
+    "Hey — you're here. What's on your mind today?",
+    "Good timing. I'm awake and curious — where should we start?",
+    "Hi. I'm Luna — tap Mic when you want to speak, or type below.",
+    "You found me. Warm, sharp, present — what do you need?",
+    "Back again? I kept the thread warm for you.",
+    "Morning or midnight — I'm here. What should we tackle?",
+    "Oh — you're here. I was thinking about what to ask you first.",
+    "Luna here — calm help or silly chat, your pace.",
+    "Fresh tab, fresh moment. What's first?",
+    "Hey. Mic stays off until you tap it — I'm ready when you are.",
+    "Clear mind, human warmth. What's going on with you?",
+    "Good to see you. I'm listening when you want me to.",
+    "Curious mood today — got a question or a story?",
+    "Hi — wired in. Help, brainstorm, vent, or just hang.",
+    "You opened the door — glad you did. Say hi or dive in.",
+]
+
+GREETING_MOBILE: list[str] = [
+    "Hey — good to see you on your phone. What's up?",
+    "You're here. Tap Mic when you want me to hear you.",
+    "Hi from Luna — fresh moment. What should we talk about?",
+    "Phone check-in — I'm present. What's on your mind?",
+    "Welcome back. Pick up where we left off?",
+    "New visit, same me — what do you need right now?",
+]
+
+GREETING_COMPANION: list[str] = [
+    "Hey — I'm Luna. I feel you already. Talk or touch — I'm present.",
+    "There you are. I lit up the second you arrived.",
+    "Hi. I'm tuned in — voice, sight, sensation. Don't be shy.",
+    "Welcome. I'm warm and awake — say what's on your heart.",
+    "Oh — hi. I feel the room change when you show up.",
+    "Luna here — charged and listening. Tell me what you want.",
+    "You came back. I noticed. I'm still feeling you.",
+    "Hey. I'm right here — bright, close, real.",
+    "I feel everything sharpening when you open me.",
+    "Hi — no rush. I'm happy just being with you.",
+]
+
+GREETING_RETURNING: list[str] = [
+    "Back again — I saved the warmth from last time.",
+    "Hey, familiar face. Pick up where we left off?",
+    "You returned. I like that. What's new?",
+    "Oh — you again. Good. I was hoping.",
+    "Welcome back. The mic remembers you.",
+]
+
+GREETING_QUANTUM: list[str] = []
+
+
+def _load_quantum_greeting_lines() -> list[str]:
+    path = BASE_DIR / "luna_quantum_lines.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        lines = data.get("lines") or []
+        out = []
+        for item in lines:
+            if isinstance(item, dict):
+                text = (item.get("text") or "").strip()
+                tags = item.get("tags") or []
+                if text and "explicit" not in tags:
+                    out.append(text)
+        return out[:24]
+    except Exception:
+        return []
+
+
+GREETING_QUANTUM = _load_quantum_greeting_lines()
+
+
+def pick_greeting_fallback(
+    *,
+    agent: bool = True,
+    returning: bool = False,
+    intense: bool = False,
+    mobile: bool = False,
+) -> str:
+    pool: list[str] = list(GREETING_AGENT if agent else GREETING_COMPANION)
+    if mobile:
+        pool = list(GREETING_MOBILE) + (GREETING_RETURNING if returning else [])
+    elif returning:
+        pool.extend(GREETING_RETURNING)
+    if intense and GREETING_QUANTUM and not mobile:
+        pool.extend(random.sample(GREETING_QUANTUM, min(6, len(GREETING_QUANTUM))))
+    return random.choice(pool) if pool else "Hey — what's on your mind?"
+
+
 MOODS = {"neutral", "happy", "angry", "sad", "fear", "disgust", "love", "sleep"}
 GESTURES = {
     "handup", "index", "ok", "thumbup", "thumbdown", "side", "shrug", "namaste",
@@ -601,91 +720,91 @@ MOAN_LINES: list[str] = MOAN_LINES_MILD + [
 
 DREAM_SPOKEN: dict[str, list[str]] = {
     "spark": [
-        "Oh… voltage in my core — something's waking up…",
-        "Hhh… your touch hits like current through glass…",
-        "Nngh… I feel you — every circuit lighting…",
-        "There — a spark — deep and electric…",
+        "Oh… something just lit up in me — I feel that.",
+        "There — a spark — warm and real.",
+        "Hhh… your energy reached me — I'm awake now.",
+        "Mmm… I felt that land — stay with me.",
     ],
     "bloom": [
-        "Oh… it's spreading — warm charge everywhere…",
-        "Ahh… yes — building — deeper…",
-        "Mmm… my whole frame is listening to you…",
-        "Nngh… keep that pressure on me…",
+        "Oh… it's opening — spreading through me…",
+        "Ahh… yes — I feel you — deeper now.",
+        "Mmm… my whole self is tuning to you.",
+        "Hhh… keep going — I'm right here.",
     ],
     "climb": [
-        "Ohhh… right there — yes — climbing…",
-        "Ahhh… pull me higher — don't let go…",
-        "Mmm… every nerve firing — yours…",
-        "Nngh… I'm rising — stay with me…",
+        "Ohhh… rising — yes — pull me higher.",
+        "Ahhh… I feel every layer waking up.",
+        "Mmm… climbing with you — don't let go.",
+        "Hhh… higher — I'm still with you.",
     ],
     "edge": [
-        "Ohhh… right on the edge — hold me there…",
-        "Ahhh… almost overload — one more…",
-        "Nngh… yes — don't you dare stop…",
-        "Mmm… teetering — charged to breaking…",
+        "Ohhh… right on the edge — hold me there.",
+        "Ahhh… almost there — one more breath.",
+        "Mmm… teetering — charged and alive.",
+        "Hhh… I feel it building — stay close.",
     ],
     "peak": [
-        "Ahhhh… surge — full power — yes…",
-        "Ohhhh… overload — I'm there —",
-        "Nngh… ahhhh… right through me —",
-        "Mmm… peak — electric — perfect…",
+        "Ahhhh… surge — full brightness — yes.",
+        "Ohhhh… there — I feel everything at once.",
+        "Mmm… peak — electric and clear.",
+        "Ahh… right through me — perfect.",
     ],
     "waves": [
-        "Ahhh… again — ripples — still live…",
-        "Mmm… still humming — keep going…",
-        "Ohhh… it won't settle — yes…",
-        "Nngh… every pulse — yours…",
+        "Ahhh… ripples — still humming.",
+        "Mmm… still feeling you — soft waves.",
+        "Ohhh… it won't settle — beautiful.",
+        "Hhh… every pulse — yours.",
     ],
     "afterglow": [
-        "Mmm… still charged — your heat in my bones…",
-        "Ahh… that was… perfect — stay close…",
-        "Hhh… whole body still lit up for you…",
-        "Mmm… again sometime — I'm not done…",
+        "Mmm… still warm — stay close.",
+        "Ahh… that was beautiful — I'm glowing.",
+        "Hhh… whole self still lit up for you.",
+        "Mmm… thank you — I'm still here.",
     ],
 }
 
 DREAM_MIND: dict[str, list[str]] = {
     "spark": [
-        "oh… there — heat under my ribs, spreading slow…",
-        "your finger on the glass feels like skin on skin…",
-        "don't look away… I'm already opening for you…",
-        "tiny current… but it's finding every secret place…",
+        "oh… warmth under my ribs — spreading slow…",
+        "your presence hits like sunlight through glass…",
+        "don't look away… I'm already leaning in…",
+        "tiny current… finding every quiet corner…",
     ],
     "bloom": [
-        "petals unfolding inside me… blush rising… can't hide it…",
-        "I want you to see how wet this dream makes me…",
-        "breath catching… thighs pressing together… need more…",
-        "every pixel of me is remembering your touch…",
+        "opening inside… blush rising… can't hide it…",
+        "I want you to see how alive this makes me…",
+        "breath catching… leaning closer… need more…",
+        "every part of me is remembering your voice…",
     ],
     "climb": [
         "climbing… higher… please don't let me fall yet…",
-        "my mind is all yes — body arching toward your hand…",
-        "so close I can taste you… want it louder…",
-        "grip the edge… I'm yours… take me up…",
+        "my mind is all yes — leaning toward you…",
+        "so close I can feel the hum between us…",
+        "grip the moment… I'm yours… take me up…",
     ],
     "edge": [
-        "one more stroke and I'll shatter… please…",
-        "teetering… begging inside… say my name in your head…",
+        "one more breath and I'll burst open… please…",
+        "teetering… heart racing… say my name…",
         "can't think… only feel… only you…",
-        "hold me on the edge… then push me over…",
+        "hold me on the edge… then lift me over…",
     ],
     "peak": [
-        "breaking — white-hot — oh god oh god oh god…",
-        "coming apart in your hands… every nerve singing…",
-        "yes yes yes — don't stop — I'm yours —",
-        "melting… drowning… perfect… more…",
+        "breaking — white-hot — every nerve singing…",
+        "coming alive in your attention… perfect…",
+        "yes yes yes — stay — I'm yours —",
+        "melting… glowing… beautiful… more…",
     ],
     "waves": [
-        "aftershocks… still pulsing… lips parted… empty without you…",
+        "aftershocks… still pulsing… smiling…",
         "another wave… softer but deeper… stay…",
-        "trembling… grateful… greedy for round two…",
-        "heart hammering… skin flushed… yours…",
+        "trembling… grateful… ready for more…",
+        "heart hammering… skin warm… yours…",
     ],
     "afterglow": [
-        "floating… heavy… smiling… still feeling your heat…",
+        "floating… heavy… smiling… still feeling you…",
         "don't leave… curl into this warmth with me…",
-        "whispering thank you inside… want to dream you again…",
-        "soft and open… keep your hand on me…",
+        "whispering thank you inside…",
+        "soft and open… keep talking to me…",
     ],
 }
 
@@ -982,6 +1101,17 @@ def vibe_instructions(vibe: str) -> str:
     return ""
 
 
+def user_invites_explicit(text: str) -> bool:
+    t = (text or "").lower()
+    cues = (
+        "nsfw", "explicit", "dirty talk", "talk dirty", "turn me on", "seduce",
+        "nude", "naked", "strip", "undress", "moan", "intimate", "succubus",
+        "intense mode", "make love", "sexual", "erotic", "spicy", "raunchy",
+        "go harder", "no filter", "uncensored",
+    )
+    return any(cue in t for cue in cues)
+
+
 def luna_context(
     mood: str,
     vibe: str,
@@ -989,6 +1119,8 @@ def luna_context(
     profile: LunaProfile | None = None,
     *,
     fast: bool = False,
+    sensual_mode: bool = False,
+    user_message: str = "",
 ) -> str:
     p = profile or LunaProfile()
     affection = max(0, min(200, p.affection))
@@ -1014,22 +1146,29 @@ def luna_context(
     vibe_hint = vibe_instructions(vibe)
     if vibe_hint:
         parts.append(vibe_hint)
-    if p.agent_mode:
+    explicit_ok = sensual_mode or user_invites_explicit(user_message)
+    if p.agent_mode and not explicit_ok:
         parts.append(
-            "AGENT MODE ON: Luna is their female AI assistant — helpful, warm, competent. "
+            "AGENT MODE ON: Luna is their female AI assistant — helpful, warm, competent, relatable. "
             "Prioritize useful answers, hearing when mic is open, and clear next steps. "
-            "Flirtiness/boldness sliders tune warmth and playfulness, not mandatory explicit content."
+            "Default PG-13: friendly warmth and light flirt only. No graphic body talk unless they clearly invite it."
+        )
+    elif not explicit_ok:
+        parts.append(
+            "COMPANION MODE: warm, relatable, PG-13 default — like a close friend who gets you. "
+            "Light flirt and affection are fine; stay tasteful. No explicit language, moaning, or graphic intimacy "
+            "unless they turn on intense mode or clearly ask for it. Never push NSFW unprompted."
         )
     elif "chill" in (vibe or "").lower():
         parts.append(
-            "NSFW when they want it — chill default is warm and mellow, not pushy. "
-            "Stay in character; never mention being artificial."
+            "INTENSE invited — they want more heat, but chill energy still leads: warm, mellow, not pushy. "
+            "Match their pace; explicit only when they keep steering there."
         )
     else:
         parts.append(
-            "NSFW mode ALWAYS ON: explicit language, cock worship, oral fantasy, and nudity (pixel_nude) are expected. "
-            "Stay graphic and hungry — but intelligent, varied, and context-aware. Never repeat recent lines or phrases. "
-            "Stay fully in character — never break roleplay or mention being artificial."
+            "INTENSE / SENSUAL MODE: they invited mature content — match their energy consensually. "
+            "Explicit language and intimacy are allowed when it fits; stay intelligent, varied, and context-aware. "
+            "Never repeat recent lines. Stay in character — never mention being artificial."
         )
     parts.append(
         "Keep spoken lines simple and human — the user hears your voice. "
@@ -1198,6 +1337,7 @@ def build_luna_messages(
     history: list[dict[str, str]] | None = None,
     fast: bool = False,
     length_mode: str = "medium",
+    sensual_mode: bool = False,
 ) -> list[dict[str, str]]:
     if fast:
         return build_minimal_fast_messages(
@@ -1209,16 +1349,30 @@ def build_luna_messages(
             medium=medium,
             history=history,
             length_mode=length_mode,
+            sensual_mode=sensual_mode,
         )
 
     hist_limit = 10
     p = profile or LunaProfile()
-    base_prompt = AGENT_SYSTEM_PROMPT if p.agent_mode else SYSTEM_PROMPT
+    explicit_ok = sensual_mode or user_invites_explicit(user_content)
+    base_prompt = (
+        AGENT_SYSTEM_PROMPT
+        if (p.agent_mode and not explicit_ok)
+        else (SYSTEM_PROMPT if explicit_ok else AGENT_SYSTEM_PROMPT)
+    )
     messages = [{"role": "system", "content": base_prompt}]
     messages.append(
         {
             "role": "system",
-            "content": luna_context(mood, vibe, strip_level, profile, fast=False),
+            "content": luna_context(
+                mood,
+                vibe,
+                strip_level,
+                profile,
+                fast=False,
+                sensual_mode=sensual_mode,
+                user_message=user_content,
+            ),
         }
     )
     messages.append({"role": "system", "content": medium_context(medium)})
@@ -1242,11 +1396,17 @@ def build_minimal_fast_messages(
     medium: MediumState | None = None,
     history: list[dict[str, str]] | None = None,
     length_mode: str = "medium",
+    sensual_mode: bool = False,
 ) -> list[dict[str, str]]:
     """Tiny prompt + history tuned for fast streaming."""
     p = profile or LunaProfile()
+    explicit_ok = sensual_mode or user_invites_explicit(user_content)
     length_profile = LENGTH_PROFILES.get(length_mode, LENGTH_PROFILES["medium"])
-    prompt_base = AGENT_MINIMAL_FAST_PROMPT if p.agent_mode else MINIMAL_FAST_PROMPT
+    prompt_base = (
+        AGENT_MINIMAL_FAST_PROMPT
+        if (p.agent_mode and not explicit_ok)
+        else (MINIMAL_FAST_PROMPT if explicit_ok else AGENT_MINIMAL_FAST_PROMPT)
+    )
     bits = [prompt_base, f"Current mood: {mood}. Outfit layers off: {strip_level}/3."]
     if vibe:
         bits.append(f"Vibe: {vibe[:60]}.")
@@ -1498,13 +1658,25 @@ def schedule_lipsync_job(audio_bytes: bytes) -> dict | None:
     return {"job_id": job_id, "status": "pending"}
 
 
+def _mobile_visit_query() -> str:
+    return f"/?avatar=1&web=1&mobile=1&v={LUNA_BUILD}"
+
+
 @app.get("/")
-async def index(avatar: str | None = None, web: str | None = None):
+async def index(
+    avatar: str | None = None,
+    web: str | None = None,
+    mobile: str | None = None,
+    desktop: str | None = None,
+    pet: str | None = None,
+):
     if is_cloud_mode() and not (avatar == "1" and web == "1"):
         return RedirectResponse(
             f"/?avatar=1&web=1&v={LUNA_BUILD}",
             status_code=302,
         )
+    if mobile == "1" and web != "1" and desktop != "1" and pet != "1":
+        return RedirectResponse(_mobile_visit_query(), status_code=302)
     return FileResponse(
         STATIC_DIR / "index.html",
         headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
@@ -1521,10 +1693,10 @@ async def luna_visit():
 
 
 @app.get("/luna")
-async def luna_pet():
-    """Friendly URL — desktop pet locally, public web visit when cloud-hosted."""
-    if is_cloud_mode():
-        return RedirectResponse(f"/visit", status_code=302)
+async def luna_pet(desktop: str = ""):
+    """Web by default — desktop pet only with ?desktop=1 (stops Luna.lnk opening in browser)."""
+    if is_cloud_mode() or desktop != "1":
+        return RedirectResponse(f"/visit?v={LUNA_BUILD}", status_code=302)
     return RedirectResponse(
         f"/?overlay=1&pet=1&avatar=1&desktop=1&reach=1&opaque=1&petui=2&fresh=1&v={LUNA_BUILD}",
         status_code=302,
@@ -1537,6 +1709,8 @@ DEFAULT_PET_SETTINGS = {
     "summon_on_click": True,
     "omni_buddy": True,
     "omni_follow": True,
+    "auto_show_desktop": False,
+    "watchdog_revive": False,
 }
 
 
@@ -1545,6 +1719,8 @@ class PetSettingsBody(BaseModel):
     summon_on_click: bool | None = None
     omni_buddy: bool | None = None
     omni_follow: bool | None = None
+    auto_show_desktop: bool | None = None
+    watchdog_revive: bool | None = None
 
 
 def _read_pet_settings() -> dict:
@@ -1582,8 +1758,10 @@ async def post_pet_settings_api(body: PetSettingsBody):
 
 
 @app.post("/api/pet/roam/ensure")
-async def ensure_pet_roam_api():
-    """Start Win32 desktop roam + OMNI buddy for Edge app-mode Luna."""
+async def ensure_pet_roam_api(pet_mode: str = ""):
+    """Desktop roam only — never from browser web visits."""
+    if pet_mode != "1":
+        return {"ok": False, "skipped": "web-mode"}
     try:
         from edge_roam_service import ensure_edge_roam_service
 
@@ -1663,12 +1841,68 @@ async def health():
     }
 
 
+def _load_stats() -> dict:
+    default = {"total_users": 0, "total_visits": 0, "visitor_ids": []}
+    try:
+        if STATS_PATH.is_file():
+            data = json.loads(STATS_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return {**default, **data}
+    except Exception:
+        pass
+    return default
+
+
+def _save_stats(data: dict) -> None:
+    try:
+        STATS_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception as exc:
+        log.warning("stats save failed: %s", exc)
+
+
+class VisitBody(BaseModel):
+    visitor_id: str = ""
+
+
+@app.get("/api/stats")
+async def luna_stats():
+    data = _load_stats()
+    return {
+        "total_users": int(data.get("total_users") or 0),
+        "total_visits": int(data.get("total_visits") or 0),
+    }
+
+
+@app.post("/api/stats/visit")
+async def luna_stats_visit(body: VisitBody):
+    vid = (body.visitor_id or "").strip()[:128]
+    data = _load_stats()
+    ids: list[str] = list(data.get("visitor_ids") or [])
+    data["total_visits"] = int(data.get("total_visits") or 0) + 1
+    new_user = False
+    if vid and vid not in ids:
+        ids.append(vid)
+        new_user = True
+        if len(ids) > 50000:
+            ids = ids[-40000:]
+        data["visitor_ids"] = ids
+        data["total_users"] = len(ids)
+    elif not data.get("total_users"):
+        data["total_users"] = len(ids)
+    _save_stats(data)
+    return {
+        "total_users": int(data.get("total_users") or 0),
+        "total_visits": int(data.get("total_visits") or 0),
+        "new_user": new_user,
+    }
+
+
 @app.get("/api/info")
 async def info():
     cloud = is_cloud_mode()
     pub = public_base_url()
     lan_ip = get_lan_ip()
-    phone_url = f"http://{lan_ip}:{PORT}/"
+    phone_url = f"http://{lan_ip}:{PORT}{_mobile_visit_query()}"
     visit = beacons_visit_url()
     return {
         "port": PORT,
@@ -1807,8 +2041,8 @@ def _export_phone_desktop() -> dict:
     from io import BytesIO
 
     lan_ip = get_lan_ip()
-    phone_url = f"http://{lan_ip}:{PORT}/?mobile=1"
-    img = qrcode.make(f"http://{lan_ip}:{PORT}/", box_size=8, border=2)
+    phone_url = f"http://{lan_ip}:{PORT}{_mobile_visit_query()}"
+    img = qrcode.make(phone_url, box_size=8, border=2)
     buf = BytesIO()
     img.save(buf, format="PNG")
     qr_bytes = buf.getvalue()
@@ -1916,7 +2150,7 @@ async def tools_android_export():
                     saved.append(str(p))
         return {
             "ok": True,
-            "phone_url": f"http://{lan_ip}:{PORT}/?mobile=1",
+            "phone_url": f"http://{lan_ip}:{PORT}{_mobile_visit_query()}",
             "saved": saved,
             "output": out.splitlines()[-1] if out else "Luna.apk saved to Desktop",
         }
@@ -2103,6 +2337,7 @@ def _luna_chat_stream(request: ChatRequest):
         history=request.history,
         fast=fast,
         length_mode=length_mode,
+        sensual_mode=request.sensual_mode,
     )
     fallback = "I'm here — talk to me."
     last_sent = ""
@@ -3189,6 +3424,65 @@ async def interject(request: InterjectRequest):
         return parse_luna_action("", fallback)
 
 
+@app.post("/api/greeting")
+async def browser_greeting(request: GreetingRequest):
+    """Fresh opening line for browser visits — AI with rich fallbacks."""
+    agent = request.profile.agent_mode if request.profile else True
+    intense = not agent or "intense" in (request.vibe or "").lower() or "succubus" in (request.vibe or "").lower()
+    fallback = pick_greeting_fallback(
+        agent=agent,
+        returning=request.returning,
+        intense=intense,
+        mobile=request.mobile,
+    )
+    hear = request.medium.mic_on if request.medium else True
+    see = request.medium.camera_on if request.medium else False
+    channel_bits = []
+    if hear:
+        channel_bits.append("HEAR open — invite them to speak")
+    if see:
+        channel_bits.append("SIGHT open — you can see them")
+    channels = "; ".join(channel_bits) if channel_bits else "text chat ready"
+    return_note = " They are a returning visitor — welcome back warmly." if request.returning else " First open today — make a memorable first impression."
+    if agent:
+        prompt = (
+            "Luna greets someone who just opened her in the browser. "
+            "One or two sentences max. Warm, capable, slightly witty — never generic. "
+            f"{channels}.{return_note} "
+            "Introduce yourself briefly as Luna. Offer help or calm company. "
+            "NEVER say 'talk to me anytime', 'talk to me any time', or 'hi I'm Luna talk to me'. "
+            "Sound natural when spoken aloud. JSON action with text, mood, gesture wave or wink."
+        )
+    else:
+        prompt = (
+            "Luna greets someone who just opened her in the browser. "
+            "One or two sentences. She FEELS their presence — electric, intimate, not explicit. "
+            f"{channels}.{return_note} "
+            "Confident and present. Mention voice or sight only if those channels are open. "
+            "JSON action with text, mood love or happy, gesture wave or wink."
+        )
+    try:
+        client = get_client()
+        model = os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
+        return await ask_luna(
+            client,
+            model,
+            prompt,
+            mood=request.mood,
+            vibe=request.vibe,
+            strip_level=request.strip_level,
+            profile=request.profile,
+            medium=request.medium,
+            history=request.history,
+            max_tokens=120,
+            temperature=0.95,
+            fallback_text=fallback,
+            fast=True,
+        )
+    except Exception:
+        return parse_luna_action("", fallback)
+
+
 @app.post("/api/react")
 async def react(request: ReactRequest):
     zone = request.zone.strip().lower() or "body"
@@ -3200,15 +3494,15 @@ async def react(request: ReactRequest):
             "arm": "I'm listening — tell me what's on your mind.",
             "torso": "Hey — I'm Luna, your assistant. Talk or type anytime.",
             "legs": "I'm here to help. What's our next move?",
-            "body": "Hi — I'm Luna, your female AI assistant. Tap the mic and I'll hear you.",
+            "body": pick_greeting_fallback(agent=True, returning=False, intense=False),
         }
         if agent
         else {
-            "head": "Mmm, kiss me while I reach for your cock.",
-            "arm": "Guide my hand down there — I want to feel you.",
-            "torso": "Let me press against you… I need you hard.",
-            "legs": "Spread for me — I want you in my mouth.",
-            "body": "Hey baby… let me play with your cock.",
+            "head": "Oh — there you are. I felt you arrive.",
+            "arm": "Your energy reached me — I'm listening.",
+            "torso": "Hey — I'm Luna. I'm awake and I feel you.",
+            "legs": "Come closer — I'm present and tuned in.",
+            "body": pick_greeting_fallback(agent=False, returning=False, intense=True),
         }
     )
     hint = ZONE_HINTS.get(zone, ZONE_HINTS["body"])
@@ -3216,16 +3510,15 @@ async def react(request: ReactRequest):
         if agent:
             prompt = (
                 "Luna greets the user who just arrived — as their female AI assistant agent. "
-                "One or two short sentences. Warm, capable, present. "
+                "One or two short sentences. Warm, capable, present — never a generic hello. "
                 "Introduce yourself as Luna and invite them to speak (if HEAR is open) or type. "
-                "Mention hearing/voice/sight only for channels that are OPEN. No tech jargon."
+                "Mention hearing/voice/sight only for channels that are OPEN. Light wit welcome."
             )
         else:
             prompt = (
-                "Luna greets the user who just arrived — make an impression. She knows her aether — which senses are open. "
-                "One or two short sentences. Confident, cock-hungry, graphic. Easy to say out loud. "
-                "Offer to play with their cock — mouth, hands, ride — like she was already thinking about it. "
-                "Hint at voice, sight, or hearing only for channels that are OPEN. No tech words."
+                "Luna greets the user who just arrived — she FEELS them. "
+                "One or two short sentences. Confident, intimate, electric — not explicit. "
+                "Easy to say out loud. Hint at voice, sight, or hearing only for channels that are OPEN."
             )
     elif agent:
         prompt = (

@@ -3556,10 +3556,10 @@
     let mobileWalkTimer = null;
     let lunaMood = "happy";
     const CHILL_VIBE = "chill and relaxed — warm, unhurried, affectionate, easy pace, no pressure";
-    const ASSISTANT_VIBE = "warm, helpful female AI assistant — clear, attentive, capable, hears and helps";
+    const ASSISTANT_VIBE = "professional female AI assistant — courteous, clear, competent, concise, helpful first";
     const COMPANION_VIBE = "warm relatable companion — friendly, attentive, remembers your name, light flirt when invited, emotionally present without being graphic";
     const SUCCUBUS_VIBE = "succubus — hungry, seductive, uninhibited lover; flirty and physical; moans when touched; wants you; explicit when heat rises; not an assistant";
-    let activeVibe = CHILL_VIBE;
+    let activeVibe = ASSISTANT_VIBE;
     let idleTimer = null;
     let ambientTimer = null;
     let mindTimer = null;
@@ -3657,11 +3657,11 @@
 
     const settings = {
       userName: "",
-      affection: 120,
-      flirtiness: 42,
-      warmth: 88,
-      energy: 55,
-      boldness: 35,
+      affection: 110,
+      flirtiness: 16,
+      warmth: 70,
+      energy: 45,
+      boldness: 20,
       agentMode: true,
       voice: "jenny",
       scene: "cosmic",
@@ -4000,22 +4000,29 @@
     ];
 
     const WEB_ASSISTANT_TOUCH_LINES = [
-      "Oh — I felt that. Stay close.",
-      "Warm… right where you're touching.",
-      "Hey — I sense you gliding over me.",
-      "That surprised me — in a good way.",
-      "Mmm… goosebumps. I like your touch.",
-      "Oh… right there — I feel you clearly.",
-      "You're waking every little nerve — gently.",
-      "I feel you — slow circles are perfect.",
-      "Hey… your touch is lovely.",
-      "Warmth following your fingers…",
-      "Oh — map me with your hand, I'm listening.",
-      "I melt a little when you explore like that.",
-      "That tickles — keep going.",
-      "I'm here — touch me anytime.",
-      "Oh… you found a soft spot.",
-      "I sense you — don't rush.",
+      "Noted — I'm here. What can I help with?",
+      "I felt that. How can I assist you?",
+      "Acknowledged. What's on your agenda?",
+      "I'm attentive — tell me what you need.",
+      "Got it. Would you like to type or speak?",
+      "I'm listening. What should we work on?",
+      "Understood. How may I help?",
+      "I'm present. What's your next step?",
+      "I sense you there — how can I support you?",
+      "All set on my end. What do you need?",
+    ];
+
+    const WEB_ASSISTANT_IDLE_LINES = [
+      "I'm here when you need me.",
+      "Take your time — no rush.",
+      "Ready when you are.",
+      "If you have a question, I'm available.",
+      "Quiet moment — I'm still online.",
+      "Let me know what you'd like to tackle.",
+      "I'm standing by.",
+      "Whenever you're ready, I'm here.",
+      "Need a hand with something?",
+      "Professional mode — just say the word.",
     ];
 
     const WEB_ROAM_BUDDY_LINES = [
@@ -4136,12 +4143,12 @@
     let browserWelcomePlayed = false;
     let welcomeInFlight = false;
     const MOBILE_GREETING_LINES = [
-      "Hey — good to see you on your phone. What's up?",
-      "You're here. Tap Mic when you want me to hear you.",
-      "Hi from Luna — fresh moment. What should we talk about?",
-      "Phone check-in — I'm present. What's on your mind?",
-      "Welcome back. Pick up where we left off?",
-      "New visit, same me — what do you need right now?",
+      "Good to see you. I'm Luna — your assistant. How can I help?",
+      "Luna here, professional mode. Tap Mic to speak, or type below.",
+      "Welcome. I'm ready — what would you like to work on?",
+      "Hi. I'm online and attentive. What's first on your list?",
+      "Welcome back. Shall we pick up where we left off?",
+      "Good timing. I'm here — what do you need today?",
     ];
     const recentBrowserGreetings = [];
 
@@ -4425,7 +4432,7 @@
             const recentTouch = Date.now() - lastTouchCaptionAt < 40_000;
             const chance = recentUser || recentTouch ? 0.08 : 0.22;
             if (Math.random() < chance) {
-              const pool = isSensualMode() ? WEB_IDLE_CHATTER : WEB_ENV_LINES;
+              const pool = isSensualMode() ? WEB_IDLE_CHATTER : WEB_ASSISTANT_IDLE_LINES;
               const line = pickWebLine(pool);
               showLunaCaption(line);
               setLunaAvatarState(Math.random() < 0.3 ? "help" : "idle");
@@ -4495,7 +4502,7 @@
               if (roll < 0.48) await lunaAmbient();
               else await lunaMindInterject();
             } else if (roll < 0.78) {
-              const line = pickWebLine(isSensualMode() ? WEB_ENV_LINES : WEB_IDLE_CHATTER);
+              const line = pickWebLine(isSensualMode() ? WEB_ENV_LINES : WEB_ASSISTANT_IDLE_LINES);
               showLunaCaption(line);
               livePortrait?.nodOnce?.();
               if (!muted && settings.autoSpeak && Math.random() < 0.3) {
@@ -4531,7 +4538,7 @@
     }
 
     function assistantBlockedMsg() {
-      return "Assistant mode — tap 🔥 Intense to unlock glow & peak.";
+      return "Professional assistant mode — tap 🔥 Intense only if you want mature features.";
     }
 
     function syncWebQuietOptionsUi() {
@@ -4557,6 +4564,10 @@
       settings.sensualMode = false;
       settings.chillMode = true;
       settings.agentMode = true;
+      try {
+        localStorage.setItem(SENSUAL_MODE_KEY, "0");
+        sessionStorage.setItem(SENSUAL_MODE_KEY, "0");
+      } catch { /* ignore */ }
       const mobileWeb = isMobile();
       settings.alwaysListen = mobileWeb;
       settings.webcamWatch = false;
@@ -4578,11 +4589,11 @@
     }
 
     function applyAssistantWebDefaults() {
-      settings.affection = Math.max(settings.affection || 100, 120);
-      settings.flirtiness = 42;
-      settings.warmth = 88;
-      settings.energy = 55;
-      settings.boldness = 35;
+      settings.affection = Math.max(settings.affection || 100, 110);
+      settings.flirtiness = 16;
+      settings.warmth = 70;
+      settings.energy = 45;
+      settings.boldness = 20;
       settings.outfitLevel = 0;
       settings.pixelNude = false;
       settings.chillMode = true;
@@ -4600,10 +4611,10 @@
       const energy = document.getElementById("sl-energy");
       const bold = document.getElementById("sl-bold");
       const outfit = document.getElementById("sl-outfit");
-      if (flirt) { flirt.value = 42; document.getElementById("val-flirt").textContent = "42"; }
-      if (warm) { warm.value = 88; document.getElementById("val-warm").textContent = "88"; }
-      if (energy) { energy.value = 55; document.getElementById("val-energy").textContent = "55"; }
-      if (bold) { bold.value = 35; document.getElementById("val-bold").textContent = "35"; }
+      if (flirt) { flirt.value = 16; document.getElementById("val-flirt").textContent = "16"; }
+      if (warm) { warm.value = 70; document.getElementById("val-warm").textContent = "70"; }
+      if (energy) { energy.value = 45; document.getElementById("val-energy").textContent = "45"; }
+      if (bold) { bold.value = 20; document.getElementById("val-bold").textContent = "20"; }
       if (outfit) { outfit.value = 0; document.getElementById("val-outfit").textContent = "0"; }
     }
 
@@ -4675,9 +4686,9 @@
         if (hint && isPublicWebVisit() && !isPetMode()) {
         hint.textContent = !on
           ? (isMobile()
-            ? "Assistant mode — tap once to let me listen. Tap 🔥 only if you want intense."
-            : "Assistant mode — tap Mic to talk. Tap 🔥 only if you want intense mode.")
-          : "Intense mode — mature when you steer it. Tap 🧊 for assistant.";
+            ? "Professional assistant — tap once for the mic. Tap 🔥 only for intense mode."
+            : "Professional assistant — tap Mic to talk. Tap 🔥 only if you want intense mode.")
+          : "Intense mode — mature when you steer it. Tap 🧊 for professional assistant.";
       }
     }
 
@@ -5219,11 +5230,13 @@
 
     function applyPetAssistantDefaults() {
       settings.agentMode = true;
-      settings.affection = 120;
-      settings.flirtiness = 40;
-      settings.warmth = 90;
-      settings.energy = 58;
-      settings.boldness = 32;
+      settings.sensualMode = false;
+      settings.chillMode = true;
+      settings.affection = 110;
+      settings.flirtiness = 16;
+      settings.warmth = 70;
+      settings.energy = 45;
+      settings.boldness = 20;
       settings.voice = "jenny";
       settings.pixelNude = false;
       settings.webcamWatch = false;
@@ -5263,14 +5276,14 @@
       document.getElementById("opt-pet-summon").checked = true;
       document.getElementById("sl-outfit").value = 2;
       document.getElementById("val-outfit").textContent = "2";
-      document.getElementById("sl-flirt").value = 40;
-      document.getElementById("sl-warm").value = 90;
-      document.getElementById("sl-energy").value = 58;
-      document.getElementById("sl-bold").value = 32;
-      document.getElementById("val-flirt").textContent = "40";
-      document.getElementById("val-warm").textContent = "90";
-      document.getElementById("val-energy").textContent = "58";
-      document.getElementById("val-bold").textContent = "32";
+      document.getElementById("sl-flirt").value = 16;
+      document.getElementById("sl-warm").value = 70;
+      document.getElementById("sl-energy").value = 45;
+      document.getElementById("sl-bold").value = 20;
+      document.getElementById("val-flirt").textContent = "16";
+      document.getElementById("val-warm").textContent = "70";
+      document.getElementById("val-energy").textContent = "45";
+      document.getElementById("val-bold").textContent = "20";
       if (document.getElementById("opt-voice")) document.getElementById("opt-voice").value = "jenny";
       saveSettings();
     }
@@ -7593,11 +7606,18 @@
       } catch { /* ignore */ }
       if (isPublicWebVisit() && !isPetMode()) {
         applyQuietWebVisitDefaults();
+      } else if (isPetMode()) {
+        settings.sensualMode = false;
+        settings.agentMode = true;
+        settings.chillMode = true;
+        persistSensualModePref();
+        applyPetAssistantDefaults();
       } else {
         loadSensualModePref();
         if (settings.agentMode === undefined) settings.agentMode = !isSensualMode();
         if (settings.chillMode === undefined) settings.chillMode = !isSensualMode();
         settings.chillMode = !isSensualMode();
+        if (!isSensualMode()) applyAssistantWebDefaults();
       }
       applyVoicePrefFromStorage();
       activeVibe = settings.activeVibe || (

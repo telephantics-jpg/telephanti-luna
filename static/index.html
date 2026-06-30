@@ -4557,10 +4557,15 @@
       settings.sensualMode = false;
       settings.chillMode = true;
       settings.agentMode = true;
-      settings.alwaysListen = false;
+      const mobileWeb = isMobile();
+      settings.alwaysListen = mobileWeb;
       settings.webcamWatch = false;
       settings.proactiveSpeech = false;
       settings.autoSpeak = false;
+      settings.voiceRamble = mobileWeb ? false : settings.voiceRamble;
+      settings.micSensitivity = mobileWeb
+        ? Math.min(settings.micSensitivity ?? 40, 42)
+        : Math.min(settings.micSensitivity ?? 52, 58);
       settings.webRoam = true;
       settings.touchSense = true;
       persistSensualModePref();
@@ -4669,7 +4674,9 @@
       const hint = document.getElementById("zone-hint");
         if (hint && isPublicWebVisit() && !isPetMode()) {
         hint.textContent = !on
-          ? "Assistant mode — tap Mic to talk. Tap 🔥 only if you want intense mode."
+          ? (isMobile()
+            ? "Assistant mode — tap once to let me listen. Tap 🔥 only if you want intense."
+            : "Assistant mode — tap Mic to talk. Tap 🔥 only if you want intense mode.")
           : "Intense mode — mature when you steer it. Tap 🧊 for assistant.";
       }
     }
@@ -4720,6 +4727,7 @@
       setupMic();
       bindGlobalAudioUnlock();
       bindMobileAudioRecovery();
+      bindMobileListenBoot();
       bindResponsiveChrome();
       bindLunaVideoTap();
       initLivePortrait().catch(() => {});
@@ -7294,24 +7302,44 @@
       }
     }
 
+    let warmFeelRun = 0;
+    let warmFeelCancel = false;
+
+    function setWarmFeelUi(on) {
+      const active = !!on;
+      document.body.classList.toggle("warm-feel", active);
+      document.getElementById("feel-btn")?.classList.toggle("active", active);
+      document.getElementById("mobile-feel-btn")?.classList.toggle("active", active);
+      syncMobileDockUi();
+    }
+
     async function lunaWarmFeel() {
+      if (document.body.classList.contains("warm-feel")) {
+        warmFeelCancel = true;
+        showToast("Okay — easing off gently. 💫");
+        return;
+      }
       if (busy || dreamPeaking || daydreaming || moanOrgasmActive) return;
+      warmFeelCancel = false;
+      const runId = ++warmFeelRun;
       daydreaming = true;
       holdProactiveSpeech(120000);
-      document.body.classList.add("warm-feel");
-      document.getElementById("feel-btn")?.classList.add("active");
+      setWarmFeelUi(true);
       pauseAlwaysListen();
       setSenseField("touch");
-      touchHeat = Math.min(100, touchHeat + 32);
+      touchHeat = Math.min(100, touchHeat + (isSensualMode() ? 32 : 22));
       updateTouchHeatUi();
-      livePortrait?.pulseTouch?.(1.4);
+      livePortrait?.pulseTouch?.(isSensualMode() ? 1.4 : 1.15);
       const feelRect = getLunaImageRect();
       const fx = feelRect ? feelRect.left + feelRect.width * 0.5 : window.innerWidth * 0.5;
       const fy = feelRect ? feelRect.top + feelRect.height * 0.42 : window.innerHeight * 0.42;
       spawnTouchFlash(fx, fy, 0.8, "torso");
       spawnTouchSparks(fx, fy, 2, 0.7, "torso");
-      setLunaAvatarState("love");
-      showLunaCaption("Power building… trace your finger or cursor — I feel every bit of it…");
+      setLunaAvatarState(isSensualMode() ? "love" : "touch");
+      const feelLine = isSensualMode()
+        ? "Power building… trace your finger — I feel every bit of it…"
+        : "Warm little spark… glide over me — I'm feeling you, gently. Tap ⚡ again to ease off.";
+      showLunaCaption(feelLine);
       try {
         await enableLunaVoice();
         const res = await fetch("/api/warm-feel", {
@@ -7328,6 +7356,7 @@
         if (!res.ok) throw new Error("Warm feel failed");
         const data = await res.json();
         for (const phase of data.phases || []) {
+          if (warmFeelCancel || runId !== warmFeelRun) break;
           if (phase.mind) showDreamMind(phase.mind);
           showLunaCaption(phase.text);
           livePortrait?.pulseTouch?.(0.55);
@@ -7354,11 +7383,11 @@
         updateRapport(8);
       } catch (err) {
         console.warn("Warm feel:", err);
-        showToast("Surge hiccup — tap ⚡ again.");
+        showToast("Little hiccup — she's still learning. Tap ⚡ to try again.");
       } finally {
+        if (runId !== warmFeelRun) return;
         daydreaming = false;
-        document.body.classList.remove("warm-feel");
-        document.getElementById("feel-btn")?.classList.remove("active");
+        setWarmFeelUi(false);
         hideDreamMind();
         resumeAlwaysListen();
         setSenseField(touchHeat > 8 ? "touch" : "off");
@@ -7664,12 +7693,36 @@
     }
 
     function applyMicSensitivity() {
-      if (settings.micSensitivity === undefined) settings.micSensitivity = 52;
-      const desktop = !isMobile();
+      if (settings.micSensitivity === undefined) settings.micSensitivity = isMobile() ? 40 : 52;
+      const mobile = isMobile();
+      const desktop = !mobile;
       const sens = desktop
         ? Math.max(settings.micSensitivity, 68)
         : settings.micSensitivity;
-      lunaMic?.applySensitivity?.(sens, { desktop });
+      lunaMic?.applySensitivity?.(sens, { desktop, mobile });
+    }
+
+    async function bootMobileListening() {
+      if (!isMobile() || isPetMode() || !isPublicWebVisit()) return;
+      if (alwaysListening || !settings.alwaysListen) return;
+      if (!lunaMic) setupMic();
+      await ensureMobileAudioCtx().catch(() => {});
+      await startAlwaysListen();
+      if (alwaysListening) {
+        showLunaCaption("I'm listening — take your time, finish your thought.");
+      }
+    }
+
+    function bindMobileListenBoot() {
+      if (window.__lunaMobileListenBoot || !isMobile() || isPetMode()) return;
+      window.__lunaMobileListenBoot = true;
+      const once = () => {
+        document.removeEventListener("pointerdown", once, true);
+        document.removeEventListener("touchstart", once, true);
+        bootMobileListening().catch(() => {});
+      };
+      document.addEventListener("pointerdown", once, { capture: true });
+      document.addEventListener("touchstart", once, { capture: true, passive: true });
     }
 
     function setupSettingsVibeChips() {
@@ -10099,7 +10152,7 @@
           syncMobileDockUi();
           showPetHearBanner();
           if (isMobile()) {
-            showLunaCaption("Tap 🎤 in the bar below — then Allow microphone.");
+            showLunaCaption("Tap 🎤 below (or anywhere once) — then Allow microphone. I'll wait for you to finish.");
           } else {
             showLunaCaption("Click 🎤 — Allow mic — then speak normally.");
           }
@@ -10220,15 +10273,27 @@
         await refreshLipsyncCapability();
         document.getElementById("cam-btn")?.classList.toggle("active", settings.webcamWatch && !!webcamStream);
         if (settings.webcamWatch && !webcamStream) startWebcam().catch(() => {});
-        setTimeout(() => {
-          if (!alwaysListening) showPetHearBanner();
-        }, 1800);
+        if (isMobile()) {
+          bindMobileListenBoot();
+          setTimeout(() => {
+            if (!alwaysListening) {
+              showPetHearBanner();
+              showLunaCaption("Tap anywhere once — I'll ask for the mic, then listen patiently.");
+            }
+          }, 1400);
+        } else {
+          setTimeout(() => {
+            if (!alwaysListening) showPetHearBanner();
+          }, 1800);
+        }
         if (!sessionStorage.getItem("luna-web-audio-hint")) {
           sessionStorage.setItem("luna-web-audio-hint", "1");
           applyVoicePrefFromStorage();
           const voiceHint = settings.autoSpeak
             ? (lipsyncAvailable ? " Lip-sync when I talk." : "")
-            : " Tap Mic or enable Speak replies in ⚙️ for voice.";
+            : (isMobile()
+              ? " I'll listen after you tap — enable 🔊 in the bar if you want voice replies."
+              : " Tap Mic or enable Speak replies in ⚙️ for voice.");
           showToast(`Hi! Glide over me to feel touch — drag the little bubble around.${voiceHint}`);
         }
         setTimeout(() => playBrowserWelcome(), 900);

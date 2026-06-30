@@ -64,7 +64,24 @@ export class LunaWebSpeechMic {
   setBusy(busy) {
     this.busy = !!busy;
     if (this.busy) this._stopRecognition();
-    else if (this.enabled && !this.paused) this._startRecognition();
+    else if (this.enabled && !this.paused) {
+      this._startLevelMonitor();
+      this._startRecognition();
+    }
+  }
+
+  async resumeListening() {
+    if (!this.enabled || this.paused || this.busy) return;
+    if (this.audioCtx?.state === "suspended") {
+      try { await this.audioCtx.resume(); } catch { /* ignore */ }
+    }
+    if (!this.unlocked) {
+      const ok = await this.unlock();
+      if (!ok) return;
+    }
+    this._startLevelMonitor();
+    this._startRecognition();
+    this.onStatus("listening");
   }
 
   setPaused(paused) {
@@ -322,6 +339,7 @@ export class LunaMic {
     this.minRecordMs = 180;
     this.monitorIntervalMs = 36;
     this.warmupMs = 60;
+    this.earlySpeechHoldMul = 1.45;
   }
 
   _isIOS() {
@@ -449,6 +467,20 @@ export class LunaMic {
   setBusy(busy) {
     this.busy = !!busy;
     if (this.busy) this._stopRecording();
+    else if (this.enabled && !this.paused) this.resumeListening();
+  }
+
+  async resumeListening() {
+    if (!this.enabled || this.paused || this.busy) return;
+    if (this.audioCtx?.state === "suspended") {
+      try { await this.audioCtx.resume(); } catch { /* ignore */ }
+    }
+    if (!this.stream?.active) {
+      const ok = await this.unlock();
+      if (!ok) return;
+    }
+    if (!this.monitorTimer) await this._startMonitor();
+    this.onStatus("listening");
   }
 
   setPaused(paused) {
@@ -457,7 +489,7 @@ export class LunaMic {
     else if (this.enabled && !this.busy) this._startMonitor();
   }
 
-  applySensitivity(sensitivity = 52, { desktop = false } = {}) {
+  applySensitivity(sensitivity = 52, { desktop = false, mobile = false } = {}) {
     const s = Math.max(0, Math.min(100, Number(sensitivity) || 52));
     const gain = 0.55 + s / 100;
     this.minSpeechRms = 0.0052 / gain;
@@ -465,11 +497,21 @@ export class LunaMic {
     this.silenceHoldMs = 190 + Math.round(s * 1.35);
     this.minRecordMs = 140 + Math.round(s * 0.7);
     this.maxRecordMs = 12000 + Math.round(s * 35);
+    this.earlySpeechHoldMul = 1.45;
     if (desktop) {
       this.minSpeechRms *= 0.62;
       this.minSpeechPeak *= 0.62;
       this.silenceHoldMs += 140;
       this.minRecordMs = Math.max(120, this.minRecordMs - 30);
+    }
+    if (mobile) {
+      this.minSpeechRms *= 0.82;
+      this.minSpeechPeak *= 0.82;
+      this.silenceHoldMs = 520 + Math.round(s * 2.4);
+      this.minRecordMs = 260 + Math.round(s * 1.2);
+      this.maxRecordMs = 18000 + Math.round(s * 40);
+      this.earlySpeechHoldMul = 2.05;
+      this.warmupMs = 120;
     }
   }
 
@@ -634,15 +676,17 @@ export class LunaMic {
         if (!recording) beginRecord();
         clearTimeout(this.stopTimer);
         const elapsed = recording ? now - recordStarted : 0;
-        const hold = elapsed < 2200
-          ? Math.round(this.silenceHoldMs * 1.45)
+        const earlyMul = this.earlySpeechHoldMul || 1.45;
+        const hold = elapsed < 2800
+          ? Math.round(this.silenceHoldMs * earlyMul)
           : this.silenceHoldMs;
         this.stopTimer = setTimeout(endRecord, hold);
       } else if (recording) {
         const silentFor = now - lastSpeechAt;
         const elapsed = now - recordStarted;
-        const hold = elapsed < 2200
-          ? Math.round(this.silenceHoldMs * 1.45)
+        const earlyMul = this.earlySpeechHoldMul || 1.45;
+        const hold = elapsed < 2800
+          ? Math.round(this.silenceHoldMs * earlyMul)
           : this.silenceHoldMs;
         if (silentFor >= hold) endRecord();
       }
@@ -722,10 +766,16 @@ export class LunaMic {
       } else {
         this.onStatus("no-speech");
       }
+      if (this.enabled && !this.paused && !this.busy) {
+        setTimeout(() => this.resumeListening(), 80);
+      }
     } catch (err) {
       console.warn("LunaMic:", err);
       this.onError(err.message || "Could not reach speech service.");
       this.onStatus("transcribe-error");
+      if (this.enabled && !this.paused && !this.busy) {
+        setTimeout(() => this.resumeListening(), 200);
+      }
     }
   }
 }

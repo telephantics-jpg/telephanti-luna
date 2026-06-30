@@ -2,7 +2,7 @@
   "name": "Luna Companion",
   "short_name": "Luna",
   "description": "3D AI companion with voice — talk to Luna on your phone",
-  "start_url": "/visit?v=109",
+  "start_url": "/visit?v=110",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0c0e18",

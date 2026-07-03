@@ -4387,9 +4387,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=142";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=142";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=142";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=143";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=143";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=143";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -5837,7 +5837,7 @@
       settings.proactiveSpeech = false;
       settings.autoSpeak = localStorage.getItem("luna-voice-user-on") === "1";
       muted = !settings.autoSpeak;
-      settings.speakStyle = "full";
+      settings.speakStyle = settings.speakStyle === "full" ? "full" : "curated";
       const mobileWeb = isMobile();
       settings.voiceRamble = true;
       settings.micSensitivity = mobileWeb
@@ -6552,50 +6552,103 @@
       return !!(ok || voiceUnlocked);
     }
 
-    async function speakFluidReply(userText, speakLine, mood) {
-      const full = polishLunaLine((speakLine || "").trim());
-      if (!full || !voiceIsOn()) return;
-      const unlocked = await unlockVoiceForPlayback();
-      if (!unlocked && !voiceUnlocked) {
-        showToast("Tap 🔊 Voice first, then allow sound if your browser asks.");
-        return;
+    function splitSpeakSentences(text) {
+      const full = (text || "").trim();
+      if (!full) return [];
+      const parts = full.match(/[^.!?…]+[.!?…]+|[^.!?…]+$/g) || [full];
+      return parts.map((s) => s.trim()).filter((s) => s.length >= 6);
+    }
+
+    function scoreSpeakSentence(sentence, idx, total) {
+      let score = 0;
+      const low = sentence.toLowerCase();
+      if (idx === 0) score += 3;
+      if (idx === total - 1 && total > 1) score += 2;
+      if (/\byou\b/i.test(sentence)) score += 2;
+      if (/\?/.test(sentence)) score += 1.5;
+      if (/(because|so |here'?s|listen|truth|mean|feel|want|need|remember|actually|honestly)/i.test(low)) score += 1;
+      if (/(i hear you|loud and clear|i'?m listening|ready for whatever|receiving every word)/i.test(low)) score -= 2.5;
+      if (sentence.length < 18) score -= 1;
+      if (sentence.length > 100) score += 0.5;
+      return score;
+    }
+
+    function pickSpeakSentences(fullText, { minSentences = 2, maxSentences = 4, maxChars = 600 } = {}) {
+      const sentences = splitSpeakSentences(fullText);
+      if (!sentences.length) return (fullText || "").trim().slice(0, maxChars);
+      if (sentences.length <= maxSentences) {
+        let joined = sentences.join(" ");
+        if (joined.length <= maxChars) return joined;
+        joined = sentences.slice(0, Math.max(minSentences, 1)).join(" ");
+        return joined.slice(0, maxChars).trim();
       }
+      const scored = sentences.map((s, i) => ({ s, i, score: scoreSpeakSentence(s, i, sentences.length) }));
+      const picked = new Set([0]);
+      scored.sort((a, b) => b.score - a.score);
+      for (const item of scored) {
+        if (picked.size >= maxSentences) break;
+        picked.add(item.i);
+      }
+      for (let i = 0; i < sentences.length && picked.size < minSentences; i += 1) {
+        picked.add(i);
+      }
+      const ordered = [...picked].sort((a, b) => a - b).map((i) => sentences[i]);
+      let out = ordered.join(" ").trim();
+      while (out.length > maxChars && ordered.length > minSentences) {
+        ordered.pop();
+        out = ordered.join(" ").trim();
+      }
+      if (out.length > maxChars) out = out.slice(0, maxChars).trim();
+      return out;
+    }
+
+    function resolveSpeakPlan(userText, fullText, { fromVoice = false, lengthMode = "flow" } = {}) {
       const low = (userText || "").toLowerCase();
-      flushSpeakQueue();
-      streamSpokenLen = 0;
-      streamSpeakStarted = false;
-      curatedChunksSpoken = 0;
-      if (/read (it )?all|say (it )?all|read (the )?whole|entire (thing|answer|response)|full version|out loud all/i.test(low)) {
-        await speakText(full, mood, { cancelPrevious: true, allowRepeat: true });
-        await speakQueue.catch(() => {});
-        return;
+      const len = (fullText || "").length;
+      if (/read (it )?all|say (it )?all|read (the )?whole|entire|full version|out loud all|read everything|read the article|read the full/i.test(low)) {
+        return { mode: "full", maxChunks: SPEAK_ARTICLE_MAX_CHUNKS, maxChars: SPEAK_ARTICLE_MAX_CHARS, minSentences: 1, maxSentences: 99 };
       }
       if (/short version|just the gist|tl;?dr|summary only|brief version|keep it short|headline only/i.test(low)) {
-        const short = pickCuratedSpeakText(full) || full.slice(0, FLUID_SPEAK_MAX_CHARS);
-        if (short) await speakText(short, mood, { cancelPrevious: true, allowRepeat: true });
-        await speakQueue.catch(() => {});
-        return;
+        return { mode: "minimal", maxChunks: 2, maxChars: 200, minSentences: 1, maxSentences: 1 };
       }
-      const ramble = settings.voiceRamble !== false;
-      const maxChunks = ramble ? FLUID_SPEAK_MAX_CHUNKS : 3;
-      const maxTotal = ramble ? FLUID_SPEAK_MAX_CHARS : 360;
+      if (settings.speakStyle === "full" && settings.voiceRamble !== false && len > 200) {
+        return { mode: "full", maxChunks: 16, maxChars: 2800, minSentences: 2, maxSentences: 99 };
+      }
+      if (fromVoice) {
+        if (lengthMode === "long" || len > 1000) {
+          return { mode: "full", maxChunks: 20, maxChars: 3600, minSentences: 2, maxSentences: 99 };
+        }
+        if (lengthMode === "short" || len < 100) {
+          return { mode: "curated", maxChunks: 4, maxChars: 360, minSentences: 1, maxSentences: 2 };
+        }
+        return { mode: "curated", maxChunks: 10, maxChars: 1400, minSentences: 2, maxSentences: 6 };
+      }
+      if (lengthMode === "long" || len > 800) {
+        return { mode: "curated", maxChunks: 12, maxChars: 1600, minSentences: 2, maxSentences: 7 };
+      }
+      return { mode: "curated", maxChunks: 6, maxChars: 640, minSentences: 2, maxSentences: 4 };
+    }
+
+    async function speakSequentialChunks(text, mood, plan) {
+      const full = (text || "").trim();
+      if (!full) return;
       let idx = 0;
       let chunks = 0;
       let total = 0;
       setLunaAvatarState("speak");
       livePortrait?.setState("speak");
       setStatus("speaking...", "ok");
-      while (idx < full.length && chunks < maxChunks && total < maxTotal) {
+      while (idx < full.length && chunks < plan.maxChunks && total < plan.maxChars) {
         const hit = nextNaturalSpeakChunk(full, idx);
         if (!hit) {
           const rest = full.slice(idx).trim();
-          if (rest && (chunks === 0 || total + rest.length <= maxTotal + 80)) {
-            const tail = rest.slice(0, Math.max(40, maxTotal - total + 60)).trim();
-            if (tail) await speakText(tail, mood, { allowRepeat: true, keepQueue: true });
+          if (rest) {
+            const tail = rest.slice(0, Math.max(60, plan.maxChars - total)).trim();
+            if (tail) await speakText(tail, mood, { allowRepeat: true, keepQueue: chunks > 0 });
           }
           break;
         }
-        await speakText(hit.chunk, mood, { allowRepeat: true, keepQueue: true });
+        await speakText(hit.chunk, mood, { allowRepeat: true, keepQueue: chunks > 0 });
         await speakQueue.catch(() => {});
         const nextIdx = idx + hit.len;
         if (nextIdx <= idx) break;
@@ -6603,6 +6656,42 @@
         total += hit.len;
         chunks += 1;
       }
+    }
+
+    async function speakFluidReply(userText, speakLine, mood, opts = {}) {
+      const full = polishLunaLine((speakLine || "").trim());
+      if (!full || !voiceIsOn()) return;
+      const unlocked = await unlockVoiceForPlayback();
+      if (!unlocked && !voiceUnlocked) {
+        showToast("Tap 🔊 Voice first, then allow sound if your browser asks.");
+        return;
+      }
+      flushSpeakQueue();
+      streamSpokenLen = 0;
+      streamSpeakStarted = false;
+      curatedChunksSpoken = 0;
+      const plan = resolveSpeakPlan(userText, full, {
+        fromVoice: !!opts.fromVoice,
+        lengthMode: opts.lengthMode || "flow",
+      });
+      if (plan.mode === "full") {
+        await speakSequentialChunks(full, mood, plan);
+        await speakQueue.catch(() => {});
+        return;
+      }
+      if (plan.mode === "minimal") {
+        const short = pickSpeakSentences(full, plan);
+        if (short) await speakSequentialChunks(short, mood, { ...plan, maxChars: short.length + 40 });
+        await speakQueue.catch(() => {});
+        return;
+      }
+      let selection = pickSpeakSentences(full, plan);
+      if (!selection || selection.length < SPEAK_MIN_CHARS) {
+        selection = pickSpeakSentences(full, { ...plan, minSentences: 2, maxSentences: Math.max(2, plan.maxSentences) });
+      }
+      if (!selection) selection = full.slice(0, plan.maxChars);
+      await speakSequentialChunks(selection, mood, plan);
+      await speakQueue.catch(() => {});
     }
 
     function pickNameCall({ intense = false, touch = false, fallback = "" } = {}) {
@@ -8907,6 +8996,9 @@
     const CURATED_MAX_CHARS = 220;
     const FLUID_SPEAK_MAX_CHUNKS = 6;
     const FLUID_SPEAK_MAX_CHARS = 680;
+    const SPEAK_MIN_CHARS = 48;
+    const SPEAK_ARTICLE_MAX_CHUNKS = 28;
+    const SPEAK_ARTICLE_MAX_CHARS = 4800;
     let ttsPrefetch = null;
     const ttsPrefetchMap = new Map();
 
@@ -8919,26 +9011,14 @@
     }
 
     function pickCuratedSpeakText(fullText) {
-      const full = (fullText || "").trim();
-      if (!full) return "";
-      const multi = full.match(/^((?:[^.!?…]*[.!?…]\s*){2,})/);
-      if (multi && multi[1].trim().length >= 24) {
-        return multi[1].trim().slice(0, CURATED_MAX_CHARS);
-      }
-      const first = full.match(/^[^.!?…]+[.!?…]/);
-      if (first && first[0].trim().length >= 16) {
-        return first[0].trim().slice(0, CURATED_MAX_CHARS);
-      }
-      const hit = nextNaturalSpeakChunk(full, 0);
-      if (hit?.chunk && hit.chunk.trim().length >= 16) return hit.chunk.trim();
-      return full.slice(0, CURATED_MAX_CHARS).trim();
+      return pickSpeakSentences(fullText, { minSentences: 2, maxSentences: 4, maxChars: CURATED_MAX_CHARS });
     }
 
     function speakableLine(text) {
       const full = (text || "").trim();
       if (!full) return "";
       if (!isCuratedSpeak()) return full;
-      return pickCuratedSpeakText(full);
+      return pickCuratedSpeakText(full) || full.slice(0, CURATED_MAX_CHARS);
     }
 
     function parseLayeredTruth(note) {
@@ -14468,7 +14548,7 @@ return solve(step || 'breathe');`,
             await ensureVoiceForReply(text, { fromVoice: fromVoiceTurn });
             if (voiceIsOn()) {
               const mood = action?.mood || streamMood;
-              await speakFluidReply(text, speakLine, mood);
+              await speakFluidReply(text, speakLine, mood, { fromVoice: fromVoiceTurn, lengthMode });
             } else {
               showToast("Tap 🔊 Voice — I'll read my reply aloud.");
             }
@@ -14672,8 +14752,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "142") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 142. Open https://telephanti.com/visit?fresh=1&v=142");
+        if (health.build && health.build !== "143") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 143. Open https://telephanti.com/visit?fresh=1&v=143");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

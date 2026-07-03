@@ -381,7 +381,7 @@
       bottom: 0.45rem;
       left: 0.45rem;
       width: 148px;
-      z-index: 85;
+      z-index: 95;
       border-radius: 10px;
       overflow: hidden;
       border: 1px solid rgba(201, 168, 124, 0.45);
@@ -434,12 +434,21 @@
       -webkit-user-select: none;
     }
     .luna-see-header:active { cursor: grabbing; }
+    .luna-see-drag-hint {
+      opacity: 0.55;
+      font-size: 0.58rem;
+      letter-spacing: -0.08em;
+      margin-right: 0.12rem;
+      pointer-events: none;
+    }
+    .luna-see-box.see-box-dragging .luna-see-video-wrap,
+    .luna-see-box.see-box-dragging .luna-see-header { cursor: grabbing; }
     .luna-see-box.see-box-dragged {
       bottom: auto !important;
       right: auto !important;
     }
     .luna-see-box.see-box-dragging {
-      z-index: 120;
+      z-index: 130;
       box-shadow: 0 10px 34px rgba(0, 0, 0, 0.58);
       transition: none;
     }
@@ -454,6 +463,10 @@
       position: relative;
       aspect-ratio: 4 / 3;
       background: #0a0c14;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .luna-see-video-wrap canvas,
     .luna-see-video-wrap video {
@@ -481,6 +494,7 @@
       inset: 0;
     }
     .luna-see-box.camera-live {
+      z-index: 108;
       border-color: rgba(196, 181, 253, 0.5);
     }
     body.webcam-on .luna-see-box.camera-live {
@@ -1941,7 +1955,7 @@
       top: 0;
       width: 76px;
       height: 88px;
-      z-index: 9992;
+      z-index: 88;
       display: block;
       border-radius: 0;
       box-shadow: none;
@@ -2035,7 +2049,7 @@
     .luna-roam-buddy.mood-love .luna-walker-head { border-color: rgba(244, 114, 182, 0.7); }
     .luna-roam-buddy.mood-happy .luna-walker-head { border-color: rgba(134, 239, 172, 0.65); }
     .luna-roam-buddy.luna-roam-shadow {
-      z-index: 9993;
+      z-index: 87;
       filter: drop-shadow(0 0 14px rgba(167, 139, 250, 0.45));
     }
     .luna-roam-buddy.luna-roam-shadow .luna-walker-head {
@@ -2059,7 +2073,7 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      z-index: 9991;
+      z-index: 86;
       overflow: hidden;
     }
     .roam-collision-flash {
@@ -3523,6 +3537,7 @@
             s.desktopOverlay = false;
             s.petWalk = false;
             s.webRoam = true;
+            s.omniFollow = false;
             localStorage.setItem("luna-settings-v1", JSON.stringify(s));
           }
         } catch (e) { /* ignore */ }
@@ -3796,7 +3811,7 @@
         <label class="opt-switch"><span>Desktop cutout mode</span><input type="checkbox" id="opt-desktop" /></label>
         <label class="opt-switch"><span>Summon on desktop click</span><input type="checkbox" id="opt-pet-summon" checked /></label>
         <label class="opt-switch"><span>OMNI buddy (ASUS pet)</span><input type="checkbox" id="opt-omni-buddy" checked /></label>
-        <label class="opt-switch"><span>Follow OMNI on desktop</span><input type="checkbox" id="opt-omni-follow" checked /></label>
+        <label class="opt-switch"><span>Follow OMNI on desktop</span><input type="checkbox" id="opt-omni-follow" /></label>
         <div class="opt-tools" style="margin-top:0.5rem">
           <button type="button" class="btn" id="tool-desktop-icon">Create desktop icon</button>
           <button type="button" class="btn" id="tool-startup-on">Start with Windows</button>
@@ -3870,8 +3885,9 @@
   <audio id="pet-audio" preload="auto" playsinline webkit-playsinline x-webkit-airplay="allow"></audio>
   <video id="webcam-capture" muted playsinline autoplay aria-hidden="true" style="position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1"></video>
 
-  <div class="luna-see-box loading" id="luna-see-box" title="What Luna sees">
+  <div class="luna-see-box loading" id="luna-see-box" title="Drag Her space — header or video feed">
     <div class="luna-see-header">
+      <span class="luna-see-drag-hint" aria-hidden="true">⠿</span>
       <span id="luna-see-title">Luna sees</span>
       <div class="luna-see-tools" id="luna-see-tools" hidden>
         <button type="button" id="luna-cam-flip" title="Flip front/back camera">🔄</button>
@@ -3997,9 +4013,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=133";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=133";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=133";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=134";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=134";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=134";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -4243,7 +4259,7 @@
       webRoam: true,
       summonOnClick: true,
       omniBuddy: true,
-      omniFollow: true,
+      omniFollow: false,
       outfitLevel: 0,
       touchSense: true,
       micSensitivity: 52,
@@ -5431,6 +5447,7 @@
       settings.sensualMode = false;
       settings.chillMode = true;
       settings.agentMode = true;
+      settings.omniFollow = false;
       try {
         localStorage.setItem(SENSUAL_MODE_KEY, "0");
         sessionStorage.setItem(SENSUAL_MODE_KEY, "0");
@@ -7736,7 +7753,7 @@
         roam_desktop: settings.petWalk !== false,
         summon_on_click: settings.summonOnClick !== false,
         omni_buddy: settings.omniBuddy !== false,
-        omni_follow: settings.omniFollow !== false,
+        omni_follow: settings.omniFollow === true,
       };
       const viaApi = await petApiCall("update_pet_settings", patch);
       if (viaApi) return;
@@ -9557,7 +9574,7 @@
       if (webRoamOpt) webRoamOpt.checked = settings.webRoam !== false;
       document.getElementById("opt-pet-summon").checked = settings.summonOnClick !== false;
       document.getElementById("opt-omni-buddy").checked = settings.omniBuddy !== false;
-      document.getElementById("opt-omni-follow").checked = settings.omniFollow !== false;
+      document.getElementById("opt-omni-follow").checked = settings.omniFollow === true;
       document.getElementById("sl-outfit").value = settings.outfitLevel ?? 3;
       document.getElementById("val-outfit").textContent = settings.outfitLevel ?? 3;
       if (settings.voice) document.getElementById("opt-voice").value = settings.voice;
@@ -10743,6 +10760,7 @@
       }
       if (powerBtn) powerBtn.title = "Turn camera off";
       updateSeeBoxLabel();
+      applySeeBoxPosition();
     }
 
     function loadSeeBoxPosition() {
@@ -10792,12 +10810,18 @@
       window.__lunaSeeBoxDragBound = true;
       loadSeeBoxPosition();
       const box = document.getElementById("luna-see-box");
-      const header = box?.querySelector(".luna-see-header");
-      if (!box || !header) return;
-      header.title = "Drag to move Her space";
+      if (!box) return;
+      box.title = "Drag Her space — header or video feed";
 
-      header.addEventListener("pointerdown", (e) => {
-        if (e.target.closest("button")) return;
+      const canDragFrom = (target) => {
+        if (!target || !box.contains(target)) return false;
+        if (target.closest(".luna-see-tools button")) return false;
+        if (target.closest("#luna-see-off")) return false;
+        return !!(target.closest(".luna-see-header") || target.closest(".luna-see-video-wrap"));
+      };
+
+      const startDrag = (e) => {
+        if (!canDragFrom(e.target)) return;
         e.preventDefault();
         e.stopPropagation();
         const rect = box.getBoundingClientRect();
@@ -10808,27 +10832,30 @@
         seeBoxPos.drag = true;
         seeBoxPos.ox = e.clientX - seeBoxPos.x;
         seeBoxPos.oy = e.clientY - seeBoxPos.y;
-        header.setPointerCapture(e.pointerId);
+        box.setPointerCapture(e.pointerId);
         box.classList.add("see-box-dragging");
-      });
+      };
 
-      header.addEventListener("pointermove", (e) => {
+      const moveDrag = (e) => {
         if (!seeBoxPos.drag) return;
         const pos = clampSeeBoxPosition(e.clientX - seeBoxPos.ox, e.clientY - seeBoxPos.oy);
         seeBoxPos.x = pos.x;
         seeBoxPos.y = pos.y;
         applySeeBoxPosition();
-      });
+      };
 
       const endDrag = (e) => {
         if (!seeBoxPos.drag) return;
         seeBoxPos.drag = false;
         box.classList.remove("see-box-dragging");
-        try { header.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+        try { box.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
         saveSeeBoxPosition();
       };
-      header.addEventListener("pointerup", endDrag);
-      header.addEventListener("pointercancel", endDrag);
+
+      box.addEventListener("pointerdown", startDrag);
+      box.addEventListener("pointermove", moveDrag);
+      box.addEventListener("pointerup", endDrag);
+      box.addEventListener("pointercancel", endDrag);
 
       window.addEventListener("resize", () => {
         if (seeBoxPos.x == null || seeBoxPos.y == null) return;
@@ -11755,7 +11782,7 @@
         stopWebRoamBuddy();
         return;
       }
-      bindRoamOmniPointer();
+      if (settings.omniFollow) bindRoamOmniPointer();
       const buddies = roamBuddyDefs();
       if (!buddies.every(({ id }) => document.getElementById(id))) return;
       initRoamBuddyPositions();
@@ -11774,7 +11801,7 @@
         }
         const s = size();
         const p = pad();
-        const omniDesktop = !isMobile() && settings.omniFollow !== false;
+        const omniDesktop = !isMobile() && settings.omniFollow === true;
         for (const { id, state } of buddies) {
           const el = document.getElementById(id);
           if (!el) continue;
@@ -13673,8 +13700,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "133") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 133. Open https://telephanti.com/visit?fresh=1&v=133");
+        if (health.build && health.build !== "134") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 134. Open https://telephanti.com/visit?fresh=1&v=134");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

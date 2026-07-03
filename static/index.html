@@ -428,6 +428,20 @@
       color: var(--accent);
       border-bottom: 1px solid rgba(201, 168, 124, 0.2);
       background: rgba(0, 0, 0, 0.35);
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .luna-see-header:active { cursor: grabbing; }
+    .luna-see-box.see-box-dragged {
+      bottom: auto !important;
+      right: auto !important;
+    }
+    .luna-see-box.see-box-dragging {
+      z-index: 120;
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.58);
+      transition: none;
     }
     .luna-see-live {
       font-size: 0.58rem;
@@ -3983,9 +3997,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=132";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=132";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=132";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=133";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=133";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=133";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -4123,6 +4137,7 @@
     let petWalkTimer = null;
     let petWalkDir = 0;
     let webRoamRaf = 0;
+    let seeBoxPos = { x: null, y: null, drag: false, ox: 0, oy: 0 };
     let webRoamState = { x: 24, y: 100, vx: 0.55, vy: 0.38, drag: false, ox: 0, oy: 0 };
     let webRoamShadowState = { x: 140, y: 180, vx: -0.48, vy: 0.44, drag: false, ox: 0, oy: 0 };
     let roamOmniX = innerWidth * 0.5;
@@ -8266,6 +8281,7 @@
     }
 
     function setupPetDialog() {
+      bindSeeBoxDrag();
       document.getElementById("pet-bubble-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const petInput = document.getElementById("pet-bubble-input");
@@ -10729,6 +10745,101 @@
       updateSeeBoxLabel();
     }
 
+    function loadSeeBoxPosition() {
+      if (seeBoxPos.x != null) return;
+      try {
+        const raw = localStorage.getItem("luna-see-box-pos");
+        if (!raw) return;
+        const p = JSON.parse(raw);
+        if (Number.isFinite(p.x) && Number.isFinite(p.y)) {
+          seeBoxPos.x = p.x;
+          seeBoxPos.y = p.y;
+        }
+      } catch { /* ignore */ }
+    }
+
+    function saveSeeBoxPosition() {
+      if (seeBoxPos.x == null || seeBoxPos.y == null) return;
+      try {
+        localStorage.setItem("luna-see-box-pos", JSON.stringify({ x: seeBoxPos.x, y: seeBoxPos.y }));
+      } catch { /* ignore */ }
+    }
+
+    function clampSeeBoxPosition(x, y) {
+      const box = document.getElementById("luna-see-box");
+      const w = box?.offsetWidth || 148;
+      const h = box?.offsetHeight || 112;
+      const pad = isMobile() ? 8 : 6;
+      const topPad = isMobile() ? 52 : 8;
+      return {
+        x: Math.min(Math.max(pad, x), window.innerWidth - w - pad),
+        y: Math.min(Math.max(topPad, y), window.innerHeight - h - pad),
+      };
+    }
+
+    function applySeeBoxPosition() {
+      const box = document.getElementById("luna-see-box");
+      if (!box || seeBoxPos.x == null || seeBoxPos.y == null) return;
+      box.classList.add("see-box-dragged");
+      box.style.left = `${seeBoxPos.x}px`;
+      box.style.top = `${seeBoxPos.y}px`;
+      box.style.right = "auto";
+      box.style.bottom = "auto";
+    }
+
+    function bindSeeBoxDrag() {
+      if (window.__lunaSeeBoxDragBound) return;
+      window.__lunaSeeBoxDragBound = true;
+      loadSeeBoxPosition();
+      const box = document.getElementById("luna-see-box");
+      const header = box?.querySelector(".luna-see-header");
+      if (!box || !header) return;
+      header.title = "Drag to move Her space";
+
+      header.addEventListener("pointerdown", (e) => {
+        if (e.target.closest("button")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = box.getBoundingClientRect();
+        if (seeBoxPos.x == null || seeBoxPos.y == null) {
+          seeBoxPos.x = rect.left;
+          seeBoxPos.y = rect.top;
+        }
+        seeBoxPos.drag = true;
+        seeBoxPos.ox = e.clientX - seeBoxPos.x;
+        seeBoxPos.oy = e.clientY - seeBoxPos.y;
+        header.setPointerCapture(e.pointerId);
+        box.classList.add("see-box-dragging");
+      });
+
+      header.addEventListener("pointermove", (e) => {
+        if (!seeBoxPos.drag) return;
+        const pos = clampSeeBoxPosition(e.clientX - seeBoxPos.ox, e.clientY - seeBoxPos.oy);
+        seeBoxPos.x = pos.x;
+        seeBoxPos.y = pos.y;
+        applySeeBoxPosition();
+      });
+
+      const endDrag = (e) => {
+        if (!seeBoxPos.drag) return;
+        seeBoxPos.drag = false;
+        box.classList.remove("see-box-dragging");
+        try { header.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+        saveSeeBoxPosition();
+      };
+      header.addEventListener("pointerup", endDrag);
+      header.addEventListener("pointercancel", endDrag);
+
+      window.addEventListener("resize", () => {
+        if (seeBoxPos.x == null || seeBoxPos.y == null) return;
+        const pos = clampSeeBoxPosition(seeBoxPos.x, seeBoxPos.y);
+        seeBoxPos.x = pos.x;
+        seeBoxPos.y = pos.y;
+        applySeeBoxPosition();
+        saveSeeBoxPosition();
+      });
+    }
+
     function syncLunaSeeBox() {
       const box = document.getElementById("luna-see-box");
       if (!box) return;
@@ -10742,6 +10853,8 @@
         box.style.display = "none";
         return;
       }
+      box.style.display = "block";
+      applySeeBoxPosition();
       syncCamFeedUi();
       const ready = camOn || lunaVisionReady;
       box.classList.toggle("loading", camOn ? false : !lunaVisionReady);
@@ -10771,6 +10884,7 @@
     function bindCamFeedControls() {
       if (window.__lunaCamFeedBound) return;
       window.__lunaCamFeedBound = true;
+      bindSeeBoxDrag();
       document.getElementById("luna-cam-flip")?.addEventListener("click", (e) => {
         e.stopPropagation();
         flipCamera().catch(() => showToast("Couldn't flip camera"));
@@ -13559,8 +13673,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "132") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 132. Open https://telephanti.com/visit?fresh=1&v=132");
+        if (health.build && health.build !== "133") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 133. Open https://telephanti.com/visit?fresh=1&v=133");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

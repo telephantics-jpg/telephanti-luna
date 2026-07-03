@@ -32,7 +32,7 @@ BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 STATS_PATH = BASE_DIR / "luna_stats.json"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "140"
+LUNA_BUILD = "141"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -3971,6 +3971,80 @@ def _sanitize_ouija_board(text: str) -> str:
     return raw[:72]
 
 
+def parse_ouija_action(raw: str, fallback: dict) -> dict:
+    """Parse spirit-board JSON — separate from Luna's gesture/action schema."""
+    text = (raw or "").strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+    data = None
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            try:
+                data = json.loads(match.group())
+            except json.JSONDecodeError:
+                data = None
+    if not isinstance(data, dict):
+        return dict(fallback)
+    board = _sanitize_ouija_board(str(data.get("board") or ""))
+    reading = clean_speech_text(
+        str(data.get("reading") or data.get("text") or "").strip(),
+        max_len=320,
+    )
+    if not board and reading:
+        board = _sanitize_ouija_board(reading)
+    if not reading:
+        reading = clean_speech_text(str(data.get("text") or fallback.get("reading", "")), max_len=320)
+    if not board:
+        board = _sanitize_ouija_board(str(fallback.get("board") or "YES"))
+    if not reading:
+        reading = str(fallback.get("reading") or "The spirit is near.")
+    mood = str(data.get("mood", fallback.get("mood", "love"))).lower()
+    return {
+        "board": board,
+        "reading": reading,
+        "text": reading,
+        "mood": mood if mood in MOODS else fallback.get("mood", "love"),
+    }
+
+
+async def ask_ouija_spirit(
+    client: OpenAI,
+    model: str,
+    user_prompt: str,
+    *,
+    temperature: float = 0.93,
+    fallback: dict,
+) -> dict:
+    """Direct spirit-channel completion — bypasses Luna ACTION_SCHEMA bootstrap."""
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You channel Ouija spirit messages. Reply with ONLY valid JSON — no markdown. "
+                'Keys: board (uppercase A-Z 0-9 spaces, max 60 chars), reading (1-2 plain sentences), '
+                "text (same as reading), mood (happy|love|flirt|neutral). "
+                "board may use YES NO GOODBYE as whole words."
+            ),
+        },
+        {"role": "user", "content": user_prompt},
+    ]
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        max_tokens=200,
+        temperature=temperature,
+    )
+    choices = getattr(response, "choices", None) or []
+    if not choices:
+        return parse_ouija_action("", fallback)
+    raw = choices[0].message.content or ""
+    return parse_ouija_action(raw, fallback)
+
+
 @app.post("/api/ouija")
 async def ouija(request: OuijaRequest):
     """Spirit-board message — board spelling + plain reading."""
@@ -4005,6 +4079,9 @@ async def ouija(request: OuijaRequest):
     fallbacks = [
         {"board": "THE VEIL IS THIN TONIGHT", "reading": "The veil is thin tonight — something wants to be heard.", "text": "The veil is thin tonight — something wants to be heard.", "mood": "love"},
         {"board": "LISTEN WITH YOUR BREATH", "reading": "Listen with your breath. The answer is already moving toward you.", "text": "Listen with your breath. The answer is already moving toward you.", "mood": "happy"},
+        {"board": "SOMEONE IS WATCHING BACK", "reading": "Someone on the other side is watching back — and they recognize you.", "text": "Someone on the other side is watching back — and they recognize you.", "mood": "love"},
+        {"board": "NOT ALONE ANYMORE", "reading": "You are not alone anymore. The board chose to answer.", "text": "You are not alone anymore. The board chose to answer.", "mood": "happy"},
+        {"board": "FOLLOW THE WARM LIGHT", "reading": "Follow the warm light at the edge of the room — it leads somewhere real.", "text": "Follow the warm light at the edge of the room — it leads somewhere real.", "mood": "love"},
         {"board": "YES", "reading": "Yes — the channel is open.", "text": "Yes — the channel is open.", "mood": "happy"},
     ]
     import random
@@ -4013,34 +4090,13 @@ async def ouija(request: OuijaRequest):
     try:
         client = get_client()
         model = os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
-        action = await ask_luna(
+        return await ask_ouija_spirit(
             client,
             model,
             prompt,
-            mood=request.mood,
-            vibe=request.vibe,
-            strip_level=request.strip_level,
-            profile=request.profile,
-            medium=request.medium,
-            history=request.history,
-            max_tokens=140,
             temperature=0.93,
-            fallback_text=fallback["reading"],
-            fast=True,
+            fallback=fallback,
         )
-        board = _sanitize_ouija_board(str(action.get("board") or action.get("text") or fallback["board"]))
-        reading = clean_speech_text(str(action.get("reading") or action.get("text") or fallback["reading"]), max_len=320)
-        if not board:
-            board = _sanitize_ouija_board(fallback["board"])
-        if not reading:
-            reading = fallback["reading"]
-        mood = str(action.get("mood", "love")).lower()
-        return {
-            "board": board,
-            "reading": reading,
-            "text": reading,
-            "mood": mood if mood in MOODS else "love",
-        }
     except Exception:
         return {
             "board": _sanitize_ouija_board(fallback["board"]),

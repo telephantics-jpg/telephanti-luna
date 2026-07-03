@@ -4338,9 +4338,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=137";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=137";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=137";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=139";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=139";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=139";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -5785,18 +5785,9 @@
       settings.alwaysListen = false;
       settings.webcamWatch = false;
       settings.proactiveSpeech = false;
-      const voicePref = localStorage.getItem("luna-voice-user-on");
-      if (voicePref === "0") {
-        settings.autoSpeak = false;
-        muted = true;
-      } else {
-        settings.autoSpeak = true;
-        muted = false;
-        if (voicePref !== "1") {
-          try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
-        }
-      }
-      settings.speakStyle = "curated";
+      settings.autoSpeak = localStorage.getItem("luna-voice-user-on") === "1";
+      muted = !settings.autoSpeak;
+      settings.speakStyle = settings.voiceRamble !== false ? "full" : "curated";
       const mobileWeb = isMobile();
       settings.voiceRamble = true;
       settings.micSensitivity = mobileWeb
@@ -6037,16 +6028,15 @@
     function bindGlobalAudioUnlock() {
       if (window.__lunaAudioUnlockBound) return;
       window.__lunaAudioUnlockBound = true;
-      const unlockVoiceOnce = async () => {
-        await ensureMobileAudioCtx().catch(() => {});
-        const voiceOk = await enableLunaVoice();
+      const unlockAudioOnce = async () => {
+        await unlockAudioContextsOnly();
         if (isPublicWebVisit() && !isPetMode()) {
           await livePortrait?.ensurePlaying?.().catch(() => {});
         }
       };
-      document.addEventListener("pointerdown", unlockVoiceOnce, { once: true, capture: true });
-      document.addEventListener("touchstart", unlockVoiceOnce, { once: true, capture: true });
-      document.addEventListener("keydown", unlockVoiceOnce, { once: true, capture: true });
+      document.addEventListener("pointerdown", unlockAudioOnce, { once: true, capture: true });
+      document.addEventListener("touchstart", unlockAudioOnce, { once: true, capture: true });
+      document.addEventListener("keydown", unlockAudioOnce, { once: true, capture: true });
     }
 
     function micIsOn() {
@@ -6476,45 +6466,67 @@
       return out.replace(/\s{2,}/g, " ").trim();
     }
 
-    function resolveSpeakPlan(userText, assistantText) {
-      const full = polishLunaLine((assistantText || "").trim());
-      if (!full) return { text: "", mode: "none" };
-      const low = (userText || "").toLowerCase();
-      if (/read (it )?all|say (it )?all|read (the )?whole|entire (thing|answer|response)|full version|out loud all/i.test(low)) {
-        return { text: full, mode: "full" };
-      }
-      if (/short version|just the gist|tl;?dr|summary only|brief version|keep it short|headline only/i.test(low)) {
-        return { text: pickCuratedSpeakText(full) || full.slice(0, CURATED_MAX_CHARS), mode: "curated" };
-      }
-      const webVisit = isPublicWebVisit() && !isPetMode();
-      const wantPartial = webVisit || isCuratedSpeak() || settings.lucidMind !== false;
-      if (wantPartial && full.length > 72) {
-        const chunk = pickCuratedSpeakText(full);
-        if (chunk && chunk.length >= 8) {
-          return { text: chunk, mode: webVisit ? "web-partial" : "curated" };
-        }
-      }
-      if (full.length <= 72) {
-        return { text: full, mode: "short" };
-      }
-      return { text: speakableLine(full) || pickCuratedSpeakText(full) || full.slice(0, CURATED_MAX_CHARS), mode: settings.speakStyle || "curated" };
-    }
-
-    async function ensureChatVoiceReply() {
-      if (isVoiceExplicitlyOff()) return false;
-      muted = false;
-      settings.autoSpeak = true;
-      try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
-      const speakOpt = document.getElementById("opt-speak");
-      if (speakOpt) speakOpt.checked = true;
-      syncVoiceButtons();
-      saveSettings();
-      await enableLunaVoice().catch(() => {});
-      await unlockVoice().catch(() => {});
+    async function unlockVoiceForPlayback() {
+      if (!voiceIsOn()) return false;
+      const ok = await unlockVoice().catch(() => false);
       if (isPublicWebVisit() && !isPetMode()) {
         await livePortrait?.ensurePlaying?.().catch(() => {});
+        await resumePortraitAudioCtx?.().catch(() => {});
       }
-      return voiceIsOn();
+      return !!(ok || voiceUnlocked);
+    }
+
+    async function speakFluidReply(userText, speakLine, mood) {
+      const full = polishLunaLine((speakLine || "").trim());
+      if (!full || !voiceIsOn()) return;
+      const unlocked = await unlockVoiceForPlayback();
+      if (!unlocked && !voiceUnlocked) {
+        showToast("Tap 🔊 Voice first, then allow sound if your browser asks.");
+        return;
+      }
+      const low = (userText || "").toLowerCase();
+      flushSpeakQueue();
+      streamSpokenLen = 0;
+      streamSpeakStarted = false;
+      curatedChunksSpoken = 0;
+      if (/read (it )?all|say (it )?all|read (the )?whole|entire (thing|answer|response)|full version|out loud all/i.test(low)) {
+        await speakText(full, mood, { cancelPrevious: true, allowRepeat: true });
+        await speakQueue.catch(() => {});
+        return;
+      }
+      if (/short version|just the gist|tl;?dr|summary only|brief version|keep it short|headline only/i.test(low)) {
+        const short = pickCuratedSpeakText(full) || full.slice(0, FLUID_SPEAK_MAX_CHARS);
+        if (short) await speakText(short, mood, { cancelPrevious: true, allowRepeat: true });
+        await speakQueue.catch(() => {});
+        return;
+      }
+      const ramble = settings.voiceRamble !== false;
+      const maxChunks = ramble ? FLUID_SPEAK_MAX_CHUNKS : 3;
+      const maxTotal = ramble ? FLUID_SPEAK_MAX_CHARS : 360;
+      let idx = 0;
+      let chunks = 0;
+      let total = 0;
+      setLunaAvatarState("speak");
+      livePortrait?.setState("speak");
+      setStatus("speaking...", "ok");
+      while (idx < full.length && chunks < maxChunks && total < maxTotal) {
+        const hit = nextNaturalSpeakChunk(full, idx);
+        if (!hit) {
+          const rest = full.slice(idx).trim();
+          if (rest && (chunks === 0 || total + rest.length <= maxTotal + 80)) {
+            const tail = rest.slice(0, Math.max(40, maxTotal - total + 60)).trim();
+            if (tail) await speakText(tail, mood, { allowRepeat: true });
+          }
+          break;
+        }
+        await speakText(hit.chunk, mood, { allowRepeat: true });
+        await speakQueue.catch(() => {});
+        const nextIdx = idx + hit.len;
+        if (nextIdx <= idx) break;
+        idx = nextIdx;
+        total += hit.len;
+        chunks += 1;
+      }
     }
 
     function pickNameCall({ intense = false, touch = false, fallback = "" } = {}) {
@@ -7744,16 +7756,8 @@
       const voicePref = localStorage.getItem("luna-voice-user-on");
       const quietWeb = isPublicWebVisit() && !isPetMode();
       if (quietWeb) {
-        if (voicePref === "0") {
-          muted = true;
-          settings.autoSpeak = false;
-        } else {
-          muted = false;
-          settings.autoSpeak = true;
-          if (voicePref !== "1") {
-            try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
-          }
-        }
+        settings.autoSpeak = voicePref === "1";
+        muted = !settings.autoSpeak;
       } else if (voicePref === "0") {
         muted = true;
         settings.autoSpeak = false;
@@ -8044,9 +8048,6 @@
     }
 
     async function enableLunaVoice() {
-      if (isVoiceExplicitlyOff()) {
-        try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
-      }
       muted = false;
       settings.autoSpeak = true;
       try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
@@ -8082,7 +8083,7 @@
       }
     }
 
-    async function unlockVoice() {
+    async function unlockAudioContextsOnly() {
       if (head) head.start();
       try {
         if (head?.audioCtx) {
@@ -8097,13 +8098,18 @@
         const primed = await primePetHtmlAudio();
         await livePortrait?.resumeAudio?.();
         await lunaSpeakVideo?.resumeAudio?.();
-        voiceUnlocked = primed || (mobileAudioCtx && mobileAudioCtx.state === "running") || !!mobileAudioCtx;
-        if (primed || voiceUnlocked) warmVoice();
+        voiceUnlocked = voiceUnlocked || primed || (mobileAudioCtx && mobileAudioCtx.state === "running") || !!mobileAudioCtx;
         return voiceUnlocked || primed;
       } catch (err) {
-        console.warn("Voice unlock:", err);
+        console.warn("Audio unlock:", err);
         return false;
       }
+    }
+
+    async function unlockVoice() {
+      const ok = await unlockAudioContextsOnly();
+      if (ok) warmVoice();
+      return ok;
     }
 
     async function ensureSensualVoice() {
@@ -8820,7 +8826,9 @@
     let streamSpeakStarted = false;
     let curatedChunksSpoken = 0;
     const CURATED_MAX_CHUNKS = 2;
-    const CURATED_MAX_CHARS = 150;
+    const CURATED_MAX_CHARS = 220;
+    const FLUID_SPEAK_MAX_CHUNKS = 6;
+    const FLUID_SPEAK_MAX_CHARS = 680;
     let ttsPrefetch = null;
     const ttsPrefetchMap = new Map();
 
@@ -11225,8 +11233,8 @@
       rememberLunaLine(text);
       showLunaCaption(text);
       updateRapport(rapportDelta);
-      if (voiceIsOn() && isPublicWebVisit() && !isPetMode()) {
-        await enableLunaVoice().catch(() => {});
+      if (voiceIsOn()) {
+        await unlockVoiceForPlayback().catch(() => {});
       }
       if (voiceIsOn() && !lunaSpeaking && !welcomeInFlight && !singleVoiceMode()) {
         await speakText(speakableLine(text), data.mood);
@@ -13952,8 +13960,8 @@
         }
         if (isPetMode() && petBubbleMode) appendPetBubble("system", "Tap 🔊 on the toolbar if you don't hear me.");
         else if (isPetMode()) showPetSpeech("Tap 🔊 on the toolbar if you don't hear me yet.");
-        else {
-          await enableLunaVoice();
+        else if (voiceIsOn()) {
+          await unlockVoiceForPlayback();
           showToast("Allow sound in your browser if Luna is still quiet.");
         }
       } finally {
@@ -14071,7 +14079,7 @@ return solve(step || 'breathe');`,
         return;
       }
       if (lunaSpeaking) await interruptLunaSpeech(false);
-      await enableLunaVoice().catch(() => {});
+      if (voiceIsOn()) await unlockVoiceForPlayback();
 
       const egg = tryEasterEgg(text);
       if (egg) {
@@ -14131,7 +14139,7 @@ return solve(step || 'breathe');`,
         pauseAlwaysListen();
       }
       sendBtn.disabled = true;
-      enableLunaVoice().catch(() => {});
+      if (voiceIsOn()) unlockVoiceForPlayback().catch(() => {});
       if (head) {
         head.setMood("neutral");
         playLunaGesture("think", 2.5);
@@ -14275,22 +14283,9 @@ return solve(step || 'breathe');`,
         }
         updateRapport(8);
         const speakLine = polishLunaLine((action?.text || full || "").trim());
-        const voiceReady = speakLine && await ensureChatVoiceReply();
-        if (voiceReady) {
+        if (speakLine && voiceIsOn()) {
           const mood = action?.mood || streamMood;
-          flushSpeakQueue();
-          streamSpokenLen = 0;
-          streamSpeakStarted = false;
-          curatedChunksSpoken = 0;
-          const plan = resolveSpeakPlan(text, speakLine);
-          const toSpeak = (plan.text || pickCuratedSpeakText(speakLine) || speakLine.slice(0, CURATED_MAX_CHARS)).trim();
-          if (toSpeak) {
-            if (settings.lucidMind !== false && plan.mode !== "full" && speakLine.length > toSpeak.length + 24) {
-              showDreamMind(toSpeak);
-            }
-            await speakText(toSpeak, mood, { cancelPrevious: true, allowRepeat: true, priority: true });
-            await speakQueue.catch(() => {});
-          }
+          await speakFluidReply(text, speakLine, mood);
           resumeListeningAfterTurn().catch(() => {});
         } else if (settings.alwaysListen) {
           resumeListeningAfterTurn().catch(() => {});
@@ -14305,7 +14300,6 @@ return solve(step || 'breathe');`,
         }
       } finally {
         resetBusy();
-        if (settings.autoSpeak && !muted && voiceIsOn()) enableLunaVoice().catch(() => {});
         resumeListeningAfterTurn().catch(() => {});
         if (statusPill.classList.contains("err") === false) {
           setStatus(settings.alwaysListen ? "listening" : "online", settings.alwaysListen ? "hearing" : "ok");
@@ -14488,8 +14482,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "137") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 137. Open https://telephanti.com/visit?fresh=1&v=137");
+        if (health.build && health.build !== "139") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 139. Open https://telephanti.com/visit?fresh=1&v=139");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

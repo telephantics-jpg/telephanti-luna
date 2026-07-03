@@ -32,7 +32,7 @@ BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 STATS_PATH = BASE_DIR / "luna_stats.json"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "134"
+LUNA_BUILD = "135"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -506,6 +506,7 @@ class ChatRequest(BaseModel):
     env_context: str = ""
     length_mode: str = "auto"
     sensual_mode: bool = False
+    avoid_recent: list[str] = []
 
 
 class TranscribeRequest(BaseModel):
@@ -587,6 +588,19 @@ class InterjectRequest(BaseModel):
     history: list[dict[str, str]] = []
     context: str = ""
     medium: MediumState = MediumState()
+
+
+class OuijaRequest(BaseModel):
+    question: str = ""
+    mood: str = "happy"
+    vibe: str = ""
+    strip_level: int = 0
+    profile: LunaProfile = LunaProfile()
+    history: list[dict[str, str]] = []
+    context: str = ""
+    medium: MediumState = MediumState()
+    sensual_mode: bool = False
+    avoid_recent: list[str] = []
 
 
 class MindFlashRequest(BaseModel):
@@ -1657,6 +1671,7 @@ def build_luna_messages(
     fast: bool = False,
     length_mode: str = "medium",
     sensual_mode: bool = False,
+    avoid_recent: list[str] | None = None,
 ) -> list[dict[str, str]]:
     if fast:
         return build_minimal_fast_messages(
@@ -1669,6 +1684,7 @@ def build_luna_messages(
             history=history,
             length_mode=length_mode,
             sensual_mode=sensual_mode,
+            avoid_recent=avoid_recent,
         )
 
     hist_limit = 10
@@ -1716,6 +1732,7 @@ def build_minimal_fast_messages(
     history: list[dict[str, str]] | None = None,
     length_mode: str = "medium",
     sensual_mode: bool = False,
+    avoid_recent: list[str] | None = None,
 ) -> list[dict[str, str]]:
     """Tiny prompt + history tuned for fast streaming."""
     p = profile or LunaProfile()
@@ -1763,6 +1780,13 @@ def build_minimal_fast_messages(
     if getattr(p, "lucid_mind", True) and medium and medium.can_hear:
         bits.append(
             "They just spoke — voice-to-thought: react the instant you understand; inner beat then answer."
+        )
+    avoid = [a.strip() for a in (avoid_recent or []) if (a or "").strip()][-10:]
+    if avoid:
+        bits.append(
+            "NEVER repeat or closely paraphrase these recent Luna lines: "
+            + " | ".join(a[:96] for a in avoid[-8:])
+            + "."
         )
     messages: list[dict[str, str]] = [{"role": "system", "content": " ".join(bits)}]
     if history:
@@ -2751,6 +2775,7 @@ async def _luna_chat_stream(request: ChatRequest):
         fast=fast,
         length_mode=length_mode,
         sensual_mode=request.sensual_mode,
+        avoid_recent=request.avoid_recent,
     )
     fallback = "I'm here — talk to me."
     last_sent = ""
@@ -3922,6 +3947,91 @@ async def mind_flash(request: MindFlashRequest):
     if action.get("text"):
         action["text"] = polish_name_placeholders(action["text"], name)
     return action
+
+
+def _sanitize_ouija_board(text: str) -> str:
+    raw = re.sub(r"[^A-Z0-9\s]", "", (text or "").upper())
+    raw = re.sub(r"\s+", " ", raw).strip()
+    return raw[:72]
+
+
+@app.post("/api/ouija")
+async def ouija(request: OuijaRequest):
+    """Spirit-board message — board spelling + plain reading."""
+    ctx = request.context.strip() or "The room is quiet."
+    question = (request.question or "").strip()
+    avoid = [a.strip() for a in (request.avoid_recent or []) if (a or "").strip()][-10:]
+    avoid_note = ""
+    if avoid:
+        avoid_note = " NEVER repeat or echo: " + " | ".join(a[:80] for a in avoid[-6:]) + "."
+    recent = ""
+    if request.history:
+        lines = []
+        for turn in request.history[-5:]:
+            role = turn.get("role", "")
+            content = (turn.get("content") or "").strip()
+            if content and role in ("user", "assistant"):
+                lines.append(f"{role}: {content[:100]}")
+        if lines:
+            recent = "Recent chat:\n" + "\n".join(lines) + "\n"
+    qbit = f'The seeker asks: "{question}"\n' if question else "No question — open channel; the spirit speaks first.\n"
+    prompt = (
+        "INTERDIMENSIONAL OUIJA CHANNEL — Luna channels a spirit message through a physical board. "
+        f"Context: {ctx}\n{recent}{qbit}"
+        "Return JSON only with keys: board, reading, text, mood. "
+        "board = uppercase A-Z 0-9 and spaces only, max 60 chars, spelled letter-by-letter on the board "
+        "(may use YES NO GOODBYE as whole words). "
+        "reading = 1-2 plain English sentences explaining what the spirit means. "
+        "text = same as reading (for voice). mood = happy|love|flirt|neutral. "
+        "Mystical, cinematic, specific — not generic oracle filler. Fresh imagery."
+        f"{avoid_note}"
+    )
+    fallbacks = [
+        {"board": "THE VEIL IS THIN TONIGHT", "reading": "The veil is thin tonight — something wants to be heard.", "text": "The veil is thin tonight — something wants to be heard.", "mood": "love"},
+        {"board": "LISTEN WITH YOUR BREATH", "reading": "Listen with your breath. The answer is already moving toward you.", "text": "Listen with your breath. The answer is already moving toward you.", "mood": "happy"},
+        {"board": "YES", "reading": "Yes — the channel is open.", "text": "Yes — the channel is open.", "mood": "happy"},
+    ]
+    import random
+
+    fallback = random.choice(fallbacks)
+    try:
+        client = get_client()
+        model = os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
+        action = await ask_luna(
+            client,
+            model,
+            prompt,
+            mood=request.mood,
+            vibe=request.vibe,
+            strip_level=request.strip_level,
+            profile=request.profile,
+            medium=request.medium,
+            history=request.history,
+            max_tokens=140,
+            temperature=0.93,
+            fallback_text=fallback["reading"],
+            fast=True,
+        )
+        board = _sanitize_ouija_board(str(action.get("board") or action.get("text") or fallback["board"]))
+        reading = clean_speech_text(str(action.get("reading") or action.get("text") or fallback["reading"]), max_len=320)
+        if not board:
+            board = _sanitize_ouija_board(fallback["board"])
+        if not reading:
+            reading = fallback["reading"]
+        mood = str(action.get("mood", "love")).lower()
+        return {
+            "board": board,
+            "reading": reading,
+            "text": reading,
+            "mood": mood if mood in MOODS else "love",
+        }
+    except Exception:
+        return {
+            "board": _sanitize_ouija_board(fallback["board"]),
+            "reading": fallback["reading"],
+            "text": fallback["reading"],
+            "mood": fallback["mood"],
+        }
 
 
 @app.post("/api/interject")

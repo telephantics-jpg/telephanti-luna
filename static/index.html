@@ -1019,6 +1019,206 @@
       cursor: pointer;
     }
     .mobile-tabs button.active { color: var(--accent); border-top: 2px solid var(--accent); margin-top: -1px; }
+    #luna-ouija-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 100030;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      padding: max(0.55rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.65rem, env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse at 50% 18%, rgba(88, 44, 120, 0.28), transparent 55%),
+        radial-gradient(ellipse at 50% 100%, rgba(8, 4, 16, 0.98), rgba(2, 1, 6, 0.99));
+      overflow: hidden;
+      touch-action: none;
+    }
+    body.ouija-open #luna-ouija-layer { display: flex; }
+    body.ouija-open { overflow: hidden; }
+    .ouija-cancel {
+      position: fixed;
+      top: max(0.55rem, env(safe-area-inset-top));
+      right: max(0.55rem, env(safe-area-inset-right));
+      z-index: 100040;
+      border: 1px solid rgba(244, 114, 182, 0.45);
+      background: rgba(12, 8, 22, 0.82);
+      color: #f9a8d4;
+      border-radius: 999px;
+      padding: 0.38rem 0.82rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    }
+    .ouija-cancel:active { transform: scale(0.96); }
+    .ouija-hud {
+      width: min(96vw, 720px);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem 0.75rem;
+      padding: 0 0.15rem;
+    }
+    .ouija-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #e9d5ff;
+    }
+    .ouija-status {
+      font-size: 0.68rem;
+      color: #c4b5fd;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(196, 181, 253, 0.35);
+      background: rgba(10, 8, 20, 0.55);
+    }
+    .ouija-status.mode-spelling { color: #fde68a; border-color: rgba(253, 230, 138, 0.45); }
+    .ouija-status.mode-reading { color: #86efac; border-color: rgba(134, 239, 172, 0.45); }
+    .ouija-status.mode-speaking { color: #f9a8d4; border-color: rgba(244, 114, 182, 0.45); }
+    .ouija-status.mode-contact { color: #93c5fd; border-color: rgba(147, 197, 253, 0.45); }
+    .ouija-board-wrap {
+      position: relative;
+      width: min(96vw, 720px);
+      max-height: min(62vh, 520px);
+      aspect-ratio: 1.05;
+    }
+    .ouija-board {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      padding: 0.55rem 0.45rem 0.7rem;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), transparent 18%),
+        linear-gradient(145deg, #2a1810 0%, #1a1008 45%, #120a06 100%);
+      border: 2px solid rgba(201, 168, 124, 0.55);
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.55), 0 12px 40px rgba(0,0,0,0.55);
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+      user-select: none;
+    }
+    .ouija-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.22rem;
+    }
+    .ouija-row.top { gap: 0.55rem; margin-bottom: 0.15rem; }
+    .ouija-letter {
+      min-width: 1.55rem;
+      height: 1.55rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #f5e6c8;
+      border-radius: 6px;
+      border: 1px solid rgba(201, 168, 124, 0.22);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.65);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, color 0.12s ease;
+    }
+    .ouija-letter.wide { min-width: 3.4rem; padding: 0 0.35rem; font-size: 0.62rem; }
+    .ouija-letter.wider { min-width: 5.2rem; padding: 0 0.45rem; font-size: 0.58rem; }
+    .ouija-letter.active {
+      color: #fff;
+      transform: scale(1.14);
+      border-color: rgba(244, 114, 182, 0.75);
+      box-shadow: 0 0 16px rgba(244, 114, 182, 0.55), 0 0 28px rgba(167, 139, 250, 0.35);
+      background: rgba(88, 28, 88, 0.45);
+    }
+    .ouija-planchette {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      left: 50%;
+      top: 50%;
+      margin: -27px 0 0 -27px;
+      pointer-events: none;
+      transition: left 0.38s cubic-bezier(0.34, 1.2, 0.48, 1), top 0.38s cubic-bezier(0.34, 1.2, 0.48, 1);
+      filter: drop-shadow(0 0 12px rgba(244, 114, 182, 0.55));
+      z-index: 4;
+    }
+    .ouija-planchette::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.95), rgba(220, 200, 255, 0.85) 55%, rgba(120, 80, 160, 0.9));
+      clip-path: polygon(50% 8%, 92% 88%, 8% 88%);
+      border: 1px solid rgba(255,255,255,0.65);
+    }
+    .ouija-planchette::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 42%;
+      width: 8px;
+      height: 8px;
+      margin: -4px 0 0 -4px;
+      border-radius: 50%;
+      background: #7c3aed;
+      box-shadow: 0 0 10px rgba(124, 58, 237, 0.9);
+    }
+    .ouija-readout {
+      width: min(96vw, 720px);
+      display: grid;
+      gap: 0.35rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 12px;
+      background: rgba(8, 6, 16, 0.72);
+      border: 1px solid rgba(167, 139, 250, 0.28);
+    }
+    .ouija-message {
+      min-height: 1.4rem;
+      font-size: 1.05rem;
+      line-height: 1.35;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #f5e6c8;
+      font-family: "Georgia", "Times New Roman", serif;
+      word-break: break-word;
+    }
+    .ouija-spoken {
+      font-size: 0.72rem;
+      color: #a78bfa;
+      line-height: 1.4;
+      font-style: italic;
+    }
+    .ouija-controls {
+      width: min(96vw, 720px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+    .ouija-controls input {
+      flex: 1 1 180px;
+      min-width: 0;
+      border-radius: 10px;
+      border: 1px solid rgba(167, 139, 250, 0.35);
+      background: rgba(8, 6, 16, 0.8);
+      color: var(--text);
+      padding: 0.5rem 0.65rem;
+      font-size: 0.82rem;
+    }
+    .ouija-controls .btn {
+      flex: 0 0 auto;
+      border-color: rgba(167, 139, 250, 0.45);
+      background: rgba(30, 18, 48, 0.85);
+      color: #e9d5ff;
+    }
+    #ouija-btn.active, #dock-ouija.active {
+      border-color: rgba(167, 139, 250, 0.65);
+      color: #e9d5ff;
+      box-shadow: 0 0 12px rgba(167, 139, 250, 0.35);
+    }
     @media (max-width: 860px) {
       :root { --stage-max-w: 360px; --stage-max-h: 540px; }
       body.web-cloud {
@@ -3577,6 +3777,7 @@
       <button class="btn" id="live-btn" title="Live interactive avatar — touch and talk">🎬 Live</button>
       <button class="btn" id="mic-btn" title="Mic off — click to turn on">🎤 Mic</button>
       <button class="btn" id="cam-btn" title="Let Luna see you — camera">📷</button>
+      <button class="btn" id="ouija-btn" title="Interdimensional Ouija board">🔮</button>
       <button class="btn active" id="chill-btn" title="Assistant mode — helpful and calm">🧊</button>
       <button class="btn" id="succubus-btn" title="Intense mode — glow, peak, uninhibited">🔥 Intense</button>
       <button class="btn" id="feel-btn" title="Power surge — Luna charges when you touch">⚡ Surge</button>
@@ -3781,6 +3982,13 @@
     </div>
 
     <div class="opt-card">
+      <div class="opt-card-head"><span class="opt-card-icon">🔮</span> Interdimensional</div>
+      <label class="opt-switch"><span>Digital Ouija board</span><input type="checkbox" id="opt-ouija" /></label>
+      <p class="opt-hint">Channel messages through a fullscreen spirit board — Luna spells what the veil whispers.</p>
+      <button type="button" class="btn" id="tool-open-ouija">Open Ouija board</button>
+    </div>
+
+    <div class="opt-card">
       <div class="opt-card-head"><span class="opt-card-icon">✨</span> Look &amp; scene</div>
       <div class="opt-chips" id="scene-chips"></div>
       <div class="opt-row"><label>Outfit <span id="val-outfit">3</span></label><input type="range" id="sl-outfit" min="0" max="3" step="1" value="3" /></div>
@@ -3965,6 +4173,27 @@
 
   <div id="luna-touch-flash" class="luna-touch-flash" aria-hidden="true"></div>
   <div id="luna-roam-fx" class="luna-roam-fx" aria-hidden="true"></div>
+  <div id="luna-ouija-layer" aria-hidden="true" role="dialog" aria-label="Digital Ouija board">
+    <button type="button" class="ouija-cancel" id="ouija-cancel" title="Close spirit board">✕ Close</button>
+    <div class="ouija-hud">
+      <span class="ouija-title">Interdimensional Channel</span>
+      <span class="ouija-status mode-contact" id="ouija-status">Awaiting contact</span>
+    </div>
+    <div class="ouija-board-wrap" id="ouija-board-wrap">
+      <div class="ouija-board" id="ouija-board" aria-label="Ouija letters"></div>
+      <div class="ouija-planchette" id="ouija-planchette" aria-hidden="true"></div>
+    </div>
+    <div class="ouija-readout">
+      <div class="ouija-message" id="ouija-message" aria-live="polite"></div>
+      <div class="ouija-spoken" id="ouija-spoken"></div>
+    </div>
+    <div class="ouija-controls">
+      <input type="text" id="ouija-question" maxlength="240" placeholder="Ask the veil a question…" enterkeyhint="send" />
+      <button type="button" class="btn" id="ouija-ask">Contact</button>
+      <button type="button" class="btn" id="ouija-speak" title="Luna speaks the message">Speak</button>
+    </div>
+  </div>
+
   <div id="luna-roam-buddy" class="luna-roam-buddy idle-bob facing-right" hidden aria-label="Luna roaming buddy — drag or tap">
     <div class="luna-walker" id="luna-walker">
       <div class="luna-walker-sprite">
@@ -4000,6 +4229,7 @@
     <button type="button" class="dock-btn" id="dock-chill" title="Assistant"><span class="dock-icon">🧊</span><span class="dock-label">Assist</span></button>
     <button type="button" class="dock-btn" id="dock-succubus" title="Intense mode"><span class="dock-icon">🔥</span><span class="dock-label">Intense</span></button>
     <button type="button" class="dock-btn" id="dock-cam" title="Camera"><span class="dock-icon">📷</span><span class="dock-label">See</span></button>
+    <button type="button" class="dock-btn" id="dock-ouija" title="Ouija board"><span class="dock-icon">🔮</span><span class="dock-label">Ouija</span></button>
     <button type="button" class="dock-btn" id="dock-dream" title="Daydream — drift & interpret dreams"><span class="dock-icon">☁️</span><span class="dock-label">Dream</span></button>
     <button type="button" class="dock-btn" id="dock-feel" title="Surge"><span class="dock-icon">⚡</span><span class="dock-label">Surge</span></button>
     <button type="button" class="dock-btn dock-sensual" id="dock-glow" title="Glow"><span class="dock-icon">🌌</span><span class="dock-label">Glow</span></button>
@@ -4013,9 +4243,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=134";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=134";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=134";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=135";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=135";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=135";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -4108,8 +4338,12 @@
     let proactiveTimer = null;
     let proactivePhase = 0;
     const recentLunaLines = [];
-    const RECENT_LINE_MAX = 10;
-    const RECENT_LINE_MS = 120_000;
+    const RECENT_LINE_MAX = 24;
+    const RECENT_LINE_MS = 300_000;
+    let ouijaOpen = false;
+    let ouijaSpellToken = 0;
+    let ouijaLastMessage = "";
+    let ouijaBoardBuilt = false;
     let wittySeeTimer = null;
     let webCloudBooted = false;
     let webSensualControlsBound = false;
@@ -4260,6 +4494,7 @@
       summonOnClick: true,
       omniBuddy: true,
       omniFollow: false,
+      ouijaBoard: false,
       outfitLevel: 0,
       touchSense: true,
       micSensitivity: 52,
@@ -5284,7 +5519,7 @@
           if (!touchSenseActive && touchHeat <= 12) {
             const recentUser = Date.now() - lastUserSpeechAt < 50_000;
             const recentTouch = Date.now() - lastTouchCaptionAt < 40_000;
-            const chance = recentUser || recentTouch ? 0.08 : 0.22;
+            const chance = recentUser || recentTouch ? 0.03 : 0.1;
             if (Math.random() < chance) {
               const pool = isSensualMode() ? WEB_IDLE_CHATTER : WEB_ASSISTANT_IDLE_LINES;
               const line = pickWebLine(pool);
@@ -7548,6 +7783,7 @@
       document.getElementById("dock-cam")?.classList.toggle("active", !!settings.webcamWatch && !!webcamStream);
       document.getElementById("dock-feel")?.classList.toggle("active", document.body.classList.contains("warm-feel"));
       document.getElementById("dock-dream")?.classList.toggle("active", daydreaming);
+      document.getElementById("dock-ouija")?.classList.toggle("active", ouijaOpen);
       document.getElementById("dock-live")?.classList.toggle("active", document.body.classList.contains("live-interactive-on"));
       document.getElementById("dock-peak")?.classList.toggle("active", peakModeActive || dreamPeaking);
       document.getElementById("dock-glow")?.classList.toggle("active", moanOrgasmActive || document.body.classList.contains("bliss-glow"));
@@ -7610,6 +7846,12 @@
         e.preventDefault();
         e.stopPropagation();
         await toggleWebCamera();
+        syncMobileDockUi();
+      });
+      document.getElementById("dock-ouija")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleOuijaBoard();
         syncMobileDockUi();
       });
       document.getElementById("dock-dream")?.addEventListener("click", async (e) => {
@@ -8299,6 +8541,7 @@
 
     function setupPetDialog() {
       bindSeeBoxDrag();
+      bindOuijaBoard();
       document.getElementById("pet-bubble-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const petInput = document.getElementById("pet-bubble-input");
@@ -8593,6 +8836,27 @@
       return (text || "").replace(/\s+/g, " ").trim().toLowerCase();
     }
 
+    function dedupWords(text) {
+      return normalizeLunaLine(text).replace(/[^\w\s]/g, " ").split(/\s+/).filter((w) => w.length > 2);
+    }
+
+    function lineOverlapRatio(a, b) {
+      const wa = new Set(dedupWords(a));
+      const wb = new Set(dedupWords(b));
+      if (!wa.size || !wb.size) return 0;
+      let inter = 0;
+      for (const w of wa) if (wb.has(w)) inter += 1;
+      return inter / Math.max(wa.size, wb.size);
+    }
+
+    function recentAvoidLines(limit = 10) {
+      const now = Date.now();
+      return recentLunaLines
+        .filter((entry) => now - entry.at <= RECENT_LINE_MS)
+        .slice(-limit)
+        .map((entry) => entry.raw || entry.norm);
+    }
+
     function guessResponseLength(text, { fromVoice = false } = {}) {
       const t = (text || "").trim();
       const low = t.toLowerCase().replace(/[!.?…]+$/g, "");
@@ -8661,19 +8925,29 @@
       while (recentLunaLines.length && now - recentLunaLines[0].at > RECENT_LINE_MS) {
         recentLunaLines.shift();
       }
-      return recentLunaLines.some((entry) => entry.norm === norm);
+      for (const entry of recentLunaLines) {
+        if (entry.norm === norm) return true;
+        if (lineOverlapRatio(entry.norm, norm) >= 0.68) return true;
+        if (norm.length > 18 && entry.norm.length > 18) {
+          const a = norm.slice(0, 32);
+          const b = entry.norm.slice(0, 32);
+          if (a.includes(b) || b.includes(a)) return true;
+        }
+      }
+      return false;
     }
 
     function rememberLunaLine(text) {
       const norm = normalizeLunaLine(text);
       if (!norm) return;
-      recentLunaLines.push({ norm, at: Date.now() });
+      recentLunaLines.push({ norm, raw: (text || "").trim(), at: Date.now() });
       if (recentLunaLines.length > RECENT_LINE_MAX) recentLunaLines.shift();
     }
 
     function showLunaCaption(text) {
       text = polishLunaLine(text);
       if (!text) return;
+      if (!ouijaOpen && isRecentDuplicate(text)) return;
       if (isPetMode() && !petBubbleMode) showPetSpeech(text);
       else if (!isPetMode()) {
         reactToast.textContent = text;
@@ -9575,6 +9849,9 @@
       document.getElementById("opt-pet-summon").checked = settings.summonOnClick !== false;
       document.getElementById("opt-omni-buddy").checked = settings.omniBuddy !== false;
       document.getElementById("opt-omni-follow").checked = settings.omniFollow === true;
+      const ouijaOpt = document.getElementById("opt-ouija");
+      if (ouijaOpt) ouijaOpt.checked = settings.ouijaBoard === true || ouijaOpen;
+      syncOuijaUi();
       document.getElementById("sl-outfit").value = settings.outfitLevel ?? 3;
       document.getElementById("val-outfit").textContent = settings.outfitLevel ?? 3;
       if (settings.voice) document.getElementById("opt-voice").value = settings.voice;
@@ -10424,6 +10701,277 @@
       depth4DAnim = requestAnimationFrame(tick);
     }
 
+    const OUIJA_ROWS = [
+      [{ t: "YES", cls: "wide" }, { t: "NO", cls: "wide" }],
+      "ABCDEFGHIJKLM".split(""),
+      "NOPQRSTUVWXYZ".split(""),
+      "0123456789".split(""),
+      [{ t: "GOODBYE", cls: "wider" }],
+    ];
+
+    function buildOuijaBoard() {
+      if (ouijaBoardBuilt) return;
+      const board = document.getElementById("ouija-board");
+      if (!board) return;
+      board.innerHTML = "";
+      for (const row of OUIJA_ROWS) {
+        const items = Array.isArray(row) && typeof row[0] === "string"
+          ? row.map((t) => ({ t }))
+          : row;
+        const rowEl = document.createElement("div");
+        rowEl.className = "ouija-row" + (items[0]?.t === "YES" ? " top" : "");
+        for (const item of items) {
+          const cell = document.createElement("span");
+          cell.className = "ouija-letter" + (item.cls ? ` ${item.cls}` : "");
+          cell.dataset.letter = item.t;
+          cell.textContent = item.t;
+          rowEl.appendChild(cell);
+        }
+        board.appendChild(rowEl);
+      }
+      ouijaBoardBuilt = true;
+    }
+
+    function setOuijaStatus(text, mode = "contact") {
+      const el = document.getElementById("ouija-status");
+      if (!el) return;
+      el.textContent = text;
+      el.className = "ouija-status mode-" + mode;
+    }
+
+    function syncOuijaUi() {
+      const on = ouijaOpen;
+      document.body.classList.toggle("ouija-open", on);
+      document.getElementById("luna-ouija-layer")?.setAttribute("aria-hidden", on ? "false" : "true");
+      document.getElementById("ouija-btn")?.classList.toggle("active", on);
+      document.getElementById("dock-ouija")?.classList.toggle("active", on);
+      const opt = document.getElementById("opt-ouija");
+      if (opt) opt.checked = settings.ouijaBoard || on;
+    }
+
+    function ouijaSleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function ouijaCellForToken(token) {
+      const board = document.getElementById("ouija-board");
+      if (!board) return null;
+      const key = String(token || "").toUpperCase();
+      if (!key) return null;
+      return board.querySelector(`.ouija-letter[data-letter="${key}"]`);
+    }
+
+    function moveOuijaPlanchette(cell) {
+      const wrap = document.getElementById("ouija-board-wrap");
+      const planchette = document.getElementById("ouija-planchette");
+      if (!wrap || !planchette || !cell) return;
+      const wRect = wrap.getBoundingClientRect();
+      const cRect = cell.getBoundingClientRect();
+      const x = cRect.left + cRect.width / 2 - wRect.left;
+      const y = cRect.top + cRect.height / 2 - wRect.top;
+      planchette.style.left = `${x}px`;
+      planchette.style.top = `${y}px`;
+      document.getElementById("ouija-board")?.querySelectorAll(".ouija-letter.active").forEach((el) => el.classList.remove("active"));
+      cell.classList.add("active");
+    }
+
+    function ouijaSpellUnits(message) {
+      const raw = String(message || "").toUpperCase();
+      const units = [];
+      let i = 0;
+      while (i < raw.length) {
+        if (raw[i] === " ") { units.push(" "); i += 1; continue; }
+        const slice = raw.slice(i);
+        if (slice.startsWith("GOODBYE")) { units.push("GOODBYE"); i += 7; continue; }
+        if (slice.startsWith("YES") && (i + 3 >= raw.length || raw[i + 3] === " ")) { units.push("YES"); i += 3; continue; }
+        if (slice.startsWith("NO") && (i + 2 >= raw.length || raw[i + 2] === " ")) { units.push("NO"); i += 2; continue; }
+        const ch = raw[i];
+        if (/[A-Z0-9]/.test(ch)) units.push(ch);
+        i += 1;
+      }
+      return units;
+    }
+
+    async function spellOuijaMessage(message, reading = "") {
+      const token = ++ouijaSpellToken;
+      const msgEl = document.getElementById("ouija-message");
+      const spokenEl = document.getElementById("ouija-spoken");
+      if (!msgEl) return;
+      msgEl.textContent = "";
+      if (spokenEl) spokenEl.textContent = reading ? `Reading: ${reading}` : "";
+      setOuijaStatus("Spelling through the veil…", "spelling");
+      const units = ouijaSpellUnits(message);
+      let built = "";
+      for (const unit of units) {
+        if (token !== ouijaSpellToken) return;
+        if (unit === " ") {
+          built += " ";
+          msgEl.textContent = built;
+          await ouijaSleep(280 + Math.random() * 220);
+          continue;
+        }
+        const cell = ouijaCellForToken(unit);
+        if (cell) {
+          moveOuijaPlanchette(cell);
+          try { navigator.vibrate?.(6); } catch { /* ignore */ }
+        }
+        await ouijaSleep(360 + Math.random() * 420);
+        if (unit.length === 1) built += unit;
+        else built += (built && !built.endsWith(" ") ? " " : "") + unit;
+        msgEl.textContent = built;
+      }
+      if (token !== ouijaSpellToken) return;
+      ouijaLastMessage = reading || message;
+      setOuijaStatus("Message received — reading", "reading");
+      if (spokenEl && reading) spokenEl.textContent = `Reading: ${reading}`;
+    }
+
+    async function fetchOuijaSpirit(question = "") {
+      setOuijaStatus("Contacting the other side…", "contact");
+      const res = await fetch("/api/ouija", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: (question || "").trim(),
+          ...lunaState(),
+          history: getApiHistory(8),
+          context: ambientContext(),
+          sensual_mode: isSensualMode(),
+          medium: {
+            ui_mode: isPetMode() ? "avatar" : "full",
+            voice_on: !muted && settings.autoSpeak,
+            camera_on: settings.webcamWatch,
+            mic_on: settings.alwaysListen,
+            proactive_on: settings.proactiveSpeech,
+            full_body: settings.aetherBody !== false,
+            can_write: true,
+            can_speak: true,
+            can_see: settings.webcamWatch && !!webcamStream,
+            can_hear: settings.alwaysListen && alwaysListening,
+          },
+          avoid_recent: recentAvoidLines(8),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Spirit contact failed");
+      }
+      return res.json();
+    }
+
+    async function startOuijaContact() {
+      if (!ouijaOpen || busy) return;
+      const q = document.getElementById("ouija-question")?.value?.trim() || "";
+      busy = true;
+      try {
+        const data = await fetchOuijaSpirit(q);
+        const boardMsg = (data.board || data.message || data.text || "").trim();
+        const reading = (data.reading || data.text || boardMsg).trim();
+        if (!boardMsg) throw new Error("Empty spirit reply");
+        await spellOuijaMessage(boardMsg, reading);
+        rememberLunaLine(reading);
+        if (data.mood) updateMoodBadge(data.mood);
+        if (!muted && settings.autoSpeak && reading) {
+          setOuijaStatus("Luna is speaking…", "speaking");
+          await speakText(reading, data.mood || "love", { allowRepeat: true });
+          setOuijaStatus("Spoken through Luna", "reading");
+        }
+      } catch (err) {
+        console.warn("Ouija:", err);
+        setOuijaStatus("Contact faded — try again", "contact");
+        showToast("The veil went quiet — ask again.");
+      } finally {
+        busy = false;
+      }
+    }
+
+    async function speakOuijaMessage() {
+      const reading = ouijaLastMessage || document.getElementById("ouija-spoken")?.textContent?.replace(/^Reading:\s*/i, "") || document.getElementById("ouija-message")?.textContent || "";
+      if (!reading.trim()) {
+        showToast("Nothing to speak yet — contact the board first.");
+        return;
+      }
+      setOuijaStatus("Luna is speaking…", "speaking");
+      await enableLunaVoice().catch(() => {});
+      await speakText(reading.trim(), "love", { allowRepeat: true });
+      setOuijaStatus("Spoken through Luna", "reading");
+    }
+
+    function openOuijaBoard() {
+      buildOuijaBoard();
+      ouijaOpen = true;
+      settings.ouijaBoard = true;
+      saveSettings();
+      syncOuijaUi();
+      holdProactiveSpeech(300_000);
+      stopAmbientSpeech();
+      setOuijaStatus("Place your fingers lightly — or ask a question.", "contact");
+      document.getElementById("ouija-message").textContent = "";
+      document.getElementById("ouija-spoken").textContent = "";
+      ouijaLastMessage = "";
+      setTimeout(() => {
+        if (ouijaOpen && !busy && !document.getElementById("ouija-message")?.textContent) {
+          startOuijaContact();
+        }
+      }, 1800);
+    }
+
+    function closeOuijaBoard() {
+      ouijaSpellToken += 1;
+      ouijaOpen = false;
+      settings.ouijaBoard = false;
+      saveSettings();
+      syncOuijaUi();
+      if (settings.proactiveSpeech) startAmbientSpeech();
+    }
+
+    function toggleOuijaBoard(force) {
+      if (force === true) { openOuijaBoard(); return; }
+      if (force === false) { closeOuijaBoard(); return; }
+      if (ouijaOpen) closeOuijaBoard();
+      else openOuijaBoard();
+    }
+
+    function bindOuijaBoard() {
+      if (window.__lunaOuijaBound) return;
+      window.__lunaOuijaBound = true;
+      buildOuijaBoard();
+      document.getElementById("ouija-cancel")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        closeOuijaBoard();
+      });
+      document.getElementById("ouija-ask")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        startOuijaContact();
+      });
+      document.getElementById("ouija-speak")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        speakOuijaMessage();
+      });
+      document.getElementById("ouija-question")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          startOuijaContact();
+        }
+      });
+      document.getElementById("ouija-btn")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleOuijaBoard();
+      });
+      document.getElementById("tool-open-ouija")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        toggleOptions(false);
+        openOuijaBoard();
+      });
+      document.getElementById("opt-ouija")?.addEventListener("change", (e) => {
+        settings.ouijaBoard = e.target.checked;
+        saveSettings();
+        if (e.target.checked) openOuijaBoard();
+        else closeOuijaBoard();
+      });
+    }
+
     async function deliverLunaLine(data, rapportDelta = 2) {
       if (!data?.text) return;
       const text = data.text.trim();
@@ -10912,6 +11460,7 @@
       if (window.__lunaCamFeedBound) return;
       window.__lunaCamFeedBound = true;
       bindSeeBoxDrag();
+      bindOuijaBoard();
       document.getElementById("luna-cam-flip")?.addEventListener("click", (e) => {
         e.stopPropagation();
         flipCamera().catch(() => showToast("Couldn't flip camera"));
@@ -13097,6 +13646,7 @@
     function speakText(text, moodOverride, opts = {}) {
       text = polishLunaLine(text);
       if (!text.trim()) return Promise.resolve();
+      if (!opts.allowRepeat && isRecentDuplicate(text)) return Promise.resolve();
       if (!voiceIsOn()) return Promise.resolve();
       if (singleVoiceMode() || opts.cancelPrevious || opts.priority) flushSpeakQueue();
       const impl = async () => {
@@ -13386,6 +13936,7 @@ return solve(step || 'breathe');`,
             lastVisionContext ? `Luna sees: ${lastVisionContext}` : "",
             dreamTopic ? "Dream topic — interpret symbols with warmth; lucid companion tone." : "",
           ].filter(Boolean).join(" | "),
+          avoid_recent: recentAvoidLines(10),
           mood: lunaMood,
           vibe: activeVibe,
           strip_level: stripLevel,
@@ -13700,8 +14251,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "134") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 134. Open https://telephanti.com/visit?fresh=1&v=134");
+        if (health.build && health.build !== "135") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 135. Open https://telephanti.com/visit?fresh=1&v=135");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

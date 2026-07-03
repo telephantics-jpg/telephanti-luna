@@ -1259,16 +1259,39 @@
     }
     .web-pc-dock .pc-dock-btn.pc-dock-sensual { display: none; }
     body.web-cloud.sensual-on .web-pc-dock .pc-dock-btn.pc-dock-sensual { display: inline-flex; }
+    .ouija-fab {
+      display: none;
+      position: fixed;
+      right: max(0.75rem, env(safe-area-inset-right));
+      bottom: max(5.25rem, calc(env(safe-area-inset-bottom) + 4.75rem));
+      z-index: 96;
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      border: 1px solid rgba(167, 139, 250, 0.55);
+      background: rgba(18, 10, 32, 0.92);
+      color: #e9d5ff;
+      font-size: 1.35rem;
+      cursor: pointer;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45), 0 0 16px rgba(167, 139, 250, 0.25);
+      align-items: center;
+      justify-content: center;
+    }
+    .ouija-fab.active {
+      border-color: rgba(244, 114, 182, 0.7);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), 0 0 22px rgba(244, 114, 182, 0.35);
+    }
     @media (min-width: 861px) {
-      body.web-cloud.web-desktop .web-pc-dock { display: flex; }
-      body.web-cloud.web-desktop .mobile-action-dock { display: none !important; }
-      body.web-cloud.web-desktop .luna-quick-chips { bottom: calc(4.2rem + var(--safe-b)); }
-      body.web-cloud.web-desktop .touch-sense-box { bottom: 1.1rem; }
-      body.web-cloud.web-desktop .interact-bar {
+      body.web-cloud .web-pc-dock { display: flex !important; }
+      body.web-cloud .mobile-action-dock { display: none !important; }
+      body.web-cloud .ouija-fab { display: flex; }
+      body.web-cloud .luna-quick-chips { bottom: calc(4.2rem + var(--safe-b)); }
+      body.web-cloud .touch-sense-box { bottom: 1.1rem; }
+      body.web-cloud .interact-bar {
         bottom: calc(4.35rem + var(--safe-b));
         display: flex;
       }
-      body.web-cloud.web-desktop .luna-layered-truths.visible {
+      body.web-cloud .luna-layered-truths.visible {
         display: block;
         bottom: calc(5.5rem + var(--safe-b));
       }
@@ -3946,6 +3969,7 @@
         <button type="button" class="btn" data-vibe="playful and teasing">Playful</button>
         <button type="button" class="btn" data-vibe="bold and direct">Bold</button>
         <button type="button" class="btn" data-vibe="quiet and focused">Quiet</button>
+        <button type="button" class="btn" id="interact-ouija" title="Digital Ouija board">🔮 Ouija</button>
       </div>
       <div id="loading">Loading avatar...</div>
     </div>
@@ -4276,6 +4300,8 @@
     <button type="button" class="btn" id="mobile-feel-btn" title="Power surge">⚡</button>
   </div>
 
+  <button type="button" class="ouija-fab" id="ouija-fab" title="Open Ouija board" aria-label="Ouija board">🔮</button>
+
   <nav class="web-pc-dock" id="web-pc-dock" aria-label="Desktop Luna controls">
     <button type="button" class="pc-dock-btn" id="pc-dock-live" title="Live interactive">🎬 Live</button>
     <button type="button" class="pc-dock-btn" id="pc-dock-mic" title="Microphone">🎤 Mic</button>
@@ -4312,9 +4338,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=136";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=136";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=136";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=137";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=137";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=137";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -5759,7 +5785,18 @@
       settings.alwaysListen = false;
       settings.webcamWatch = false;
       settings.proactiveSpeech = false;
-      settings.autoSpeak = false;
+      const voicePref = localStorage.getItem("luna-voice-user-on");
+      if (voicePref === "0") {
+        settings.autoSpeak = false;
+        muted = true;
+      } else {
+        settings.autoSpeak = true;
+        muted = false;
+        if (voicePref !== "1") {
+          try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
+        }
+      }
+      settings.speakStyle = "curated";
       const mobileWeb = isMobile();
       settings.voiceRamble = true;
       settings.micSensitivity = mobileWeb
@@ -5768,7 +5805,6 @@
       settings.webRoam = true;
       settings.touchSense = false;
       settings.lucidMind = true;
-      settings.speakStyle = settings.speakStyle || "curated";
       persistSensualModePref();
       applyAssistantWebDefaults();
       stopAmbientSpeech();
@@ -5940,9 +5976,10 @@
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
-      document.body.classList.toggle("web-desktop", !isMobile());
+      document.body.classList.toggle("web-desktop", window.innerWidth > 860);
       bindCamFeedControls();
       bindWebPcDock();
+      bindOuijaBoard();
       initLunaVision();
       bindWebSensualControls();
       updateWebSensualUi();
@@ -6447,17 +6484,37 @@
         return { text: full, mode: "full" };
       }
       if (/short version|just the gist|tl;?dr|summary only|brief version|keep it short|headline only/i.test(low)) {
-        return { text: pickCuratedSpeakText(full), mode: "curated" };
+        return { text: pickCuratedSpeakText(full) || full.slice(0, CURATED_MAX_CHARS), mode: "curated" };
       }
-      const lucidPartial = settings.lucidMind !== false && (
-        settings.speakStyle === "curated" ||
-        (/lucid|dream|channel|trip|vibe|interpret/i.test(low) && full.length > 100) ||
-        (isSensualMode() && full.length > 140 && Math.random() < 0.45)
-      );
-      if (lucidPartial) {
-        return { text: pickCuratedSpeakText(full), mode: "lucid-partial" };
+      const webVisit = isPublicWebVisit() && !isPetMode();
+      const wantPartial = webVisit || isCuratedSpeak() || settings.lucidMind !== false;
+      if (wantPartial && full.length > 72) {
+        const chunk = pickCuratedSpeakText(full);
+        if (chunk && chunk.length >= 8) {
+          return { text: chunk, mode: webVisit ? "web-partial" : "curated" };
+        }
       }
-      return { text: speakableLine(full), mode: settings.speakStyle || "full" };
+      if (full.length <= 72) {
+        return { text: full, mode: "short" };
+      }
+      return { text: speakableLine(full) || pickCuratedSpeakText(full) || full.slice(0, CURATED_MAX_CHARS), mode: settings.speakStyle || "curated" };
+    }
+
+    async function ensureChatVoiceReply() {
+      if (isVoiceExplicitlyOff()) return false;
+      muted = false;
+      settings.autoSpeak = true;
+      try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
+      const speakOpt = document.getElementById("opt-speak");
+      if (speakOpt) speakOpt.checked = true;
+      syncVoiceButtons();
+      saveSettings();
+      await enableLunaVoice().catch(() => {});
+      await unlockVoice().catch(() => {});
+      if (isPublicWebVisit() && !isPetMode()) {
+        await livePortrait?.ensurePlaying?.().catch(() => {});
+      }
+      return voiceIsOn();
     }
 
     function pickNameCall({ intense = false, touch = false, fallback = "" } = {}) {
@@ -7687,12 +7744,15 @@
       const voicePref = localStorage.getItem("luna-voice-user-on");
       const quietWeb = isPublicWebVisit() && !isPetMode();
       if (quietWeb) {
-        if (voicePref === "1") {
-          muted = false;
-          settings.autoSpeak = true;
-        } else {
+        if (voicePref === "0") {
           muted = true;
           settings.autoSpeak = false;
+        } else {
+          muted = false;
+          settings.autoSpeak = true;
+          if (voicePref !== "1") {
+            try { localStorage.setItem("luna-voice-user-on", "1"); } catch { /* ignore */ }
+          }
         }
       } else if (voicePref === "0") {
         muted = true;
@@ -9263,7 +9323,8 @@
       document.body.classList.toggle("portrait-layout", portrait);
       document.body.classList.toggle("landscape-layout", !portrait);
       if (isPublicWebVisit() && !isPetMode()) {
-        document.body.classList.toggle("web-desktop", !isMobile());
+        document.body.classList.toggle("web-desktop", window.innerWidth > 860);
+        syncWebPcDockUi();
       }
       updateResponsiveChrome();
       if (mainEl?.classList.contains("show-chat")) scrollChatToEnd();
@@ -10911,6 +10972,8 @@
       document.getElementById("ouija-btn")?.classList.toggle("active", on);
       document.getElementById("dock-ouija")?.classList.toggle("active", on);
       document.getElementById("pc-dock-ouija")?.classList.toggle("active", on);
+      document.getElementById("ouija-fab")?.classList.toggle("active", on);
+      document.getElementById("interact-ouija")?.classList.toggle("active", on);
       const opt = document.getElementById("opt-ouija");
       if (opt) opt.checked = settings.ouijaBoard || on;
     }
@@ -11120,11 +11183,14 @@
           startOuijaContact();
         }
       });
-      document.getElementById("ouija-btn")?.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      const openOuija = (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
         toggleOuijaBoard();
-      });
+      };
+      document.getElementById("ouija-btn")?.addEventListener("click", openOuija);
+      document.getElementById("ouija-fab")?.addEventListener("click", openOuija);
+      document.getElementById("interact-ouija")?.addEventListener("click", openOuija);
       document.getElementById("tool-open-ouija")?.addEventListener("click", (e) => {
         e.preventDefault();
         toggleOptions(false);
@@ -14209,19 +14275,20 @@ return solve(step || 'breathe');`,
         }
         updateRapport(8);
         const speakLine = polishLunaLine((action?.text || full || "").trim());
-        if (speakLine && settings.autoSpeak && !muted) {
-          await enableLunaVoice().catch(() => {});
+        const voiceReady = speakLine && await ensureChatVoiceReply();
+        if (voiceReady) {
           const mood = action?.mood || streamMood;
           flushSpeakQueue();
           streamSpokenLen = 0;
           streamSpeakStarted = false;
+          curatedChunksSpoken = 0;
           const plan = resolveSpeakPlan(text, speakLine);
-          if (plan.text) {
-            if (settings.lucidMind !== false && plan.mode === "lucid-partial") {
-              const mind = pickCuratedSpeakText(speakLine);
-              if (mind) showDreamMind(mind);
+          const toSpeak = (plan.text || pickCuratedSpeakText(speakLine) || speakLine.slice(0, CURATED_MAX_CHARS)).trim();
+          if (toSpeak) {
+            if (settings.lucidMind !== false && plan.mode !== "full" && speakLine.length > toSpeak.length + 24) {
+              showDreamMind(toSpeak);
             }
-            await speakText(plan.text, mood, { cancelPrevious: true, allowRepeat: true });
+            await speakText(toSpeak, mood, { cancelPrevious: true, allowRepeat: true, priority: true });
             await speakQueue.catch(() => {});
           }
           resumeListeningAfterTurn().catch(() => {});
@@ -14421,8 +14488,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "136") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 136. Open https://telephanti.com/visit?fresh=1&v=136");
+        if (health.build && health.build !== "137") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 137. Open https://telephanti.com/visit?fresh=1&v=137");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

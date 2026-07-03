@@ -4387,9 +4387,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=141";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=141";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=141";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=142";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=142";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=142";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -6194,6 +6194,32 @@
       return settings.autoSpeak && !muted && !isVoiceExplicitlyOff();
     }
 
+    function userWantsVoiceOut(text) {
+      const low = (text || "").toLowerCase();
+      return /don'?t hear|can'?t hear|cannot hear|not hearing|why aren'?t you speak|why won'?t you speak|why are you not speak|aren'?t you speaking|not speaking|say it out loud|use your voice|speak to me|talk out loud|need to hear you|make a sound|you'?re quiet|why so quiet|i need audio|turn on voice|enable voice|speak up/i.test(low);
+    }
+
+    function isVoiceHearMeComplaint(text) {
+      return userWantsVoiceOut(text);
+    }
+
+    function shouldSpeakChatReply(userText, { fromVoice = false } = {}) {
+      if (userWantsVoiceOut(userText)) return true;
+      if (fromVoice && (micIsOn() || settings.alwaysListen)) return true;
+      return voiceIsOn();
+    }
+
+    async function ensureVoiceForReply(userText, { fromVoice = false } = {}) {
+      if (!shouldSpeakChatReply(userText, { fromVoice })) return false;
+      if (voiceIsOn()) return unlockVoiceForPlayback();
+      const ok = await enableLunaVoice();
+      if (!ok && !voiceUnlocked) {
+        showToast("Tap 🔊 Voice and allow sound in your browser.");
+        return false;
+      }
+      return unlockVoiceForPlayback();
+    }
+
     function touchReactLocked() {
       return touchReactInFlight || avatarTapInFlight || Date.now() < touchReactLockUntil;
     }
@@ -7112,6 +7138,7 @@
     function isValidUserTranscript(text) {
       const trimmed = (text || "").trim();
       if (trimmed.length < 2) return false;
+      if (isVoiceHearMeComplaint(trimmed)) return true;
       if (dreamPeaking || daydreaming) return false;
       if (isRecentDuplicate(trimmed)) return false;
       const lower = normalizeLunaLine(trimmed).toLowerCase();
@@ -8871,6 +8898,7 @@
     }
 
     let voiceSubmitPending = false;
+    let voiceSubmitFromMic = false;
     let voiceSubmitLength = "";
     let streamSpokenLen = 0;
     let streamSpeakStarted = false;
@@ -12997,6 +13025,7 @@
       if (!trimmed) return;
       if (fromMic && (lunaSpeaking || busy) && !fromQueue) {
         await interruptActiveChat();
+        await sleepMs(30);
       }
       if (!fromQueue && busy) {
         if (fromMic) {
@@ -13012,7 +13041,11 @@
         lastUserActivity = Date.now();
         holdProactiveSpeech(60000);
         voiceSubmitPending = true;
+        voiceSubmitFromMic = true;
         voiceSubmitLength = resolveAdaptiveLength(trimmed, { fromVoice: true });
+        if (userWantsVoiceOut(trimmed)) {
+          ensureVoiceForReply(trimmed, { fromVoice: true }).catch(() => {});
+        }
         setSenseField("hear");
         flashVoiceMind(trimmed);
         addMsg("user", trimmed, { heard: true });
@@ -14241,7 +14274,8 @@ return solve(step || 'breathe');`,
         setTimeout(() => input?.focus(), 40);
       }
       lastUserActivity = Date.now();
-      const lengthMode = voiceSubmitLength || resolveAdaptiveLength(text, { fromVoice: !!voiceSubmitLength });
+      const fromVoiceTurn = voiceSubmitFromMic || !!voiceSubmitLength;
+      const lengthMode = voiceSubmitLength || resolveAdaptiveLength(text, { fromVoice: fromVoiceTurn });
       if (!voiceSubmitPending) {
         addMsg("user", text);
         history.push({ role: "user", content: text });
@@ -14250,6 +14284,9 @@ return solve(step || 'breathe');`,
       } else {
         voiceSubmitPending = false;
         voiceSubmitLength = "";
+      }
+      if (fromVoiceTurn || userWantsVoiceOut(text)) {
+        ensureVoiceForReply(text, { fromVoice: fromVoiceTurn }).catch(() => {});
       }
       flushSpeakQueue();
       streamSpokenLen = 0;
@@ -14389,44 +14426,69 @@ return solve(step || 'breathe');`,
         }
 
         full = polishLunaLine(full);
-        bubble.textContent = full || "…";
-        if (petStreamBubble) petStreamBubble.textContent = full || "…";
-        history.push({ role: "assistant", content: full });
-        rememberTurn("assistant", full);
-        saveSettings();
-        rememberLunaLine(full);
-        lastUserActivity = Date.now();
-        document.body.classList.remove("lucid-drift");
-        hideDreamMind();
-        if (action) {
-          applyLunaAction(action);
-          if (settings.worldReach && Math.random() < 0.35) reachIntoWorld(3 + Math.random());
+        if (!full.trim()) {
+          bubble.remove();
+          if (userWantsVoiceOut(text)) {
+            const last = history.filter((h) => h.role === "assistant").slice(-1)[0]?.content?.trim();
+            if (last) {
+              await ensureVoiceForReply(text, { fromVoice: fromVoiceTurn });
+              if (voiceIsOn()) {
+                await speakFluidReply(text, last, streamMood || "happy");
+                showLunaCaption("There — can you hear me now?");
+              }
+            } else {
+              showToast("Say it again — I'll speak this time.");
+            }
+          }
+        } else {
+          bubble.textContent = full;
+          if (petStreamBubble) petStreamBubble.textContent = full;
+          history.push({ role: "assistant", content: full });
+          rememberTurn("assistant", full);
+          saveSettings();
+          rememberLunaLine(full);
+          lastUserActivity = Date.now();
+          document.body.classList.remove("lucid-drift");
+          hideDreamMind();
+          if (action) {
+            applyLunaAction(action);
+            if (settings.worldReach && Math.random() < 0.35) reachIntoWorld(3 + Math.random());
+          }
+          if (isPublicWebVisit()) {
+            const mood = action?.mood || streamMood || "happy";
+            updateMoodBadge(mood);
+            const flirty = /flirt|touch|mmm|kiss|want you|baby/i.test(full);
+            setLunaAvatarState(flirty || mood === "love" ? "flirt" : "help");
+            livePortrait?.nodOnce();
+          }
+          updateRapport(8);
+          const speakLine = polishLunaLine((full || action?.text || "").trim());
+          const wantSpeak = speakLine && shouldSpeakChatReply(text, { fromVoice: fromVoiceTurn });
+          if (wantSpeak) {
+            await ensureVoiceForReply(text, { fromVoice: fromVoiceTurn });
+            if (voiceIsOn()) {
+              const mood = action?.mood || streamMood;
+              await speakFluidReply(text, speakLine, mood);
+            } else {
+              showToast("Tap 🔊 Voice — I'll read my reply aloud.");
+            }
+          }
         }
-        if (isPublicWebVisit()) {
-          const mood = action?.mood || streamMood || "happy";
-          updateMoodBadge(mood);
-          const flirty = /flirt|touch|mmm|kiss|want you|baby/i.test(full);
-          setLunaAvatarState(flirty || mood === "love" ? "flirt" : "help");
-          livePortrait?.nodOnce();
-        }
-        updateRapport(8);
-        const speakLine = polishLunaLine((full || action?.text || "").trim());
-        if (speakLine && voiceIsOn()) {
-          const mood = action?.mood || streamMood;
-          await speakFluidReply(text, speakLine, mood);
-          resumeListeningAfterTurn().catch(() => {});
-        } else if (settings.alwaysListen) {
+        if (settings.alwaysListen || fromVoiceTurn) {
           resumeListeningAfterTurn().catch(() => {});
         }
       } catch (err) {
         if (err?.name === "AbortError") {
-          bubble.textContent = bubble.textContent && bubble.textContent !== "…" ? bubble.textContent : "…";
+          if (!full?.trim() || bubble.textContent === "…") {
+            bubble.remove();
+          }
         } else {
           bubble.textContent = "Error: " + err.message;
           bubble.style.color = "#fca5a5";
           setStatus("error", "err");
         }
       } finally {
+        voiceSubmitFromMic = false;
         resetBusy();
         resumeListeningAfterTurn().catch(() => {});
         if (statusPill.classList.contains("err") === false) {
@@ -14610,8 +14672,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "141") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 141. Open https://telephanti.com/visit?fresh=1&v=141");
+        if (health.build && health.build !== "142") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 142. Open https://telephanti.com/visit?fresh=1&v=142");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

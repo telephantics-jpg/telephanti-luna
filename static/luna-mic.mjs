@@ -12,9 +12,19 @@ function isMobileUa() {
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }
 
+function isIOSUa() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function isSafariUa() {
+  const ua = navigator.userAgent || "";
+  return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox/i.test(ua);
+}
+
 export function shouldUseWebSpeech() {
+  // Safari (iOS + macOS) webkitSpeechRecognition stops after one phrase and won't restart reliably.
+  if (isIOSUa() || isSafariUa()) return false;
   if (!speechRecognitionCtor()) return false;
-  if (isMobileUa()) return false;
   return true;
 }
 
@@ -24,6 +34,10 @@ export function createLunaMic(opts) {
 }
 
 export class LunaWebSpeechMic {
+  get micStreamLive() {
+    return !!this.stream?.active;
+  }
+
   constructor(opts) {
     this.onText = opts.onText;
     this.onStatus = opts.onStatus || (() => {});
@@ -44,6 +58,18 @@ export class LunaWebSpeechMic {
     this.timeData = null;
     this._starting = false;
     this._lastFinalAt = 0;
+    this.duplexListen = false;
+  }
+
+  setDuplexListen(on) {
+    this.duplexListen = !!on;
+    if (this.duplexListen) {
+      this.busy = false;
+      if (this.enabled && !this.paused) {
+        this._startLevelMonitor();
+        this._startRecognition();
+      }
+    }
   }
 
   resetForRetry() {
@@ -63,6 +89,7 @@ export class LunaWebSpeechMic {
 
   setBusy(busy) {
     this.busy = !!busy;
+    if (this.busy && this.duplexListen) return;
     if (this.busy) this._stopRecognition();
     else if (this.enabled && !this.paused) {
       this._startLevelMonitor();
@@ -71,16 +98,35 @@ export class LunaWebSpeechMic {
   }
 
   async resumeListening() {
-    if (!this.enabled || this.paused || this.busy) return;
+    if (!this.enabled || this.paused || (this.busy && !this.duplexListen)) return;
     if (this.audioCtx?.state === "suspended") {
       try { await this.audioCtx.resume(); } catch { /* ignore */ }
     }
-    if (!this.unlocked) {
+    if (!this.stream?.active || !this.unlocked) {
       const ok = await this.unlock();
       if (!ok) return;
     }
     this._startLevelMonitor();
     this._startRecognition();
+    this.onStatus("listening");
+  }
+
+  async reacquireAfterPlayback() {
+    if (!this.enabled) return;
+    this._stopRecognition();
+    clearTimeout(this.restartTimer);
+    this.restartTimer = null;
+    if (!this.stream?.active || !this.unlocked) {
+      const ok = await this.unlock();
+      if (!ok) {
+        this.onStatus("mic-retry");
+        return;
+      }
+    }
+    if (!this.paused && (!this.busy || this.duplexListen)) {
+      this._startLevelMonitor();
+      this._startRecognition();
+    }
     this.onStatus("listening");
   }
 
@@ -151,7 +197,7 @@ export class LunaWebSpeechMic {
       if (interim) this.onLevel(0.045, 0.07, true);
       if (finalText.length >= 2) {
         const now = Date.now();
-        if (now - this._lastFinalAt < 400) return;
+        if (now - this._lastFinalAt < 120) return;
         this._lastFinalAt = now;
         this.onStatus("hearing...");
         this.onText(finalText);
@@ -175,9 +221,9 @@ export class LunaWebSpeechMic {
 
     rec.onend = () => {
       this._starting = false;
-      if (this.enabled && !this.paused && !this.busy) {
+      if (this.enabled && !this.paused && (!this.busy || this.duplexListen)) {
         clearTimeout(this.restartTimer);
-        this.restartTimer = setTimeout(() => this._startRecognition(), 120);
+        this.restartTimer = setTimeout(() => this._startRecognition(), 80);
       }
     };
 
@@ -193,7 +239,7 @@ export class LunaWebSpeechMic {
     if (this.analyser && this.audioCtx?.state === "running") return;
     if (this.audioCtx?.state === "suspended") {
       await this.audioCtx.resume();
-      return;
+      if (this.analyser) return;
     }
     this._teardownAnalyser();
     this.audioCtx = new AudioContext({ latencyHint: "interactive" });
@@ -311,6 +357,10 @@ export class LunaWebSpeechMic {
 }
 
 export class LunaMic {
+  get micStreamLive() {
+    return !!this.stream?.active;
+  }
+
   constructor(opts) {
     this.onText = opts.onText;
     this.onStatus = opts.onStatus || (() => {});
@@ -340,6 +390,18 @@ export class LunaMic {
     this.monitorIntervalMs = 36;
     this.warmupMs = 60;
     this.earlySpeechHoldMul = 1.45;
+    this.prefetchMul = 0.5;
+    this.duplexListen = false;
+  }
+
+  setDuplexListen(on) {
+    this.duplexListen = !!on;
+    if (this.duplexListen) {
+      this.busy = false;
+      if (this.enabled && !this.paused && !this.monitorTimer) {
+        this._startMonitor().catch(() => {});
+      }
+    }
   }
 
   _isIOS() {
@@ -347,12 +409,9 @@ export class LunaMic {
   }
 
   _pickMime() {
-    const candidates = [
-      "audio/webm;codecs=opus",
-      "audio/webm",
-      "audio/mp4",
-      "audio/aac",
-    ];
+    const candidates = this._isIOS()
+      ? ["audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm"]
+      : ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"];
     for (const mime of candidates) {
       if (MediaRecorder.isTypeSupported(mime)) return mime;
     }
@@ -438,7 +497,7 @@ export class LunaMic {
     if (this.analyser && this.audioCtx?.state === "running") return;
     if (this.audioCtx?.state === "suspended") {
       await this.audioCtx.resume();
-      return;
+      if (this.analyser) return;
     }
     this._teardownAnalyser();
     this.audioCtx = new AudioContext({ latencyHint: "interactive" });
@@ -466,20 +525,52 @@ export class LunaMic {
 
   setBusy(busy) {
     this.busy = !!busy;
+    if (this.busy && this.duplexListen) return;
     if (this.busy) this._stopRecording();
     else if (this.enabled && !this.paused) this.resumeListening();
   }
 
   async resumeListening() {
-    if (!this.enabled || this.paused || this.busy) return;
+    if (!this.enabled || this.paused || (this.busy && !this.duplexListen)) return;
     if (this.audioCtx?.state === "suspended") {
       try { await this.audioCtx.resume(); } catch { /* ignore */ }
     }
-    if (!this.stream?.active) {
+    if (!this.stream?.active || !this.analyser) {
       const ok = await this.unlock();
       if (!ok) return;
     }
     if (!this.monitorTimer) await this._startMonitor();
+    this.onStatus("listening");
+  }
+
+  async reacquireAfterPlayback() {
+    if (!this.enabled) return;
+    this._stopMonitor();
+    this._stopRecording();
+    if (this._isIOS()) {
+      this._teardownAnalyser();
+      if (this.stream) {
+        this.stream.getTracks().forEach((t) => t.stop());
+        this.stream = null;
+      }
+      this._trackEndedBound = false;
+      this.unlocked = false;
+      await new Promise((r) => setTimeout(r, 320));
+      const ok = await this.unlock();
+      if (!ok) {
+        this.onStatus("mic-retry");
+        return;
+      }
+    } else if (this.stream?.active) {
+      await this._ensureAnalyser();
+    } else {
+      const ok = await this.unlock();
+      if (!ok) {
+        this.onStatus("mic-retry");
+        return;
+      }
+    }
+    if (!this.paused && (!this.busy || this.duplexListen)) await this._startMonitor();
     this.onStatus("listening");
   }
 
@@ -494,24 +585,26 @@ export class LunaMic {
     const gain = 0.55 + s / 100;
     this.minSpeechRms = 0.0052 / gain;
     this.minSpeechPeak = 0.014 / gain;
-    this.silenceHoldMs = 190 + Math.round(s * 1.35);
+    this.silenceHoldMs = 140 + Math.round(s * 1.1);
     this.minRecordMs = 140 + Math.round(s * 0.7);
     this.maxRecordMs = 12000 + Math.round(s * 35);
     this.earlySpeechHoldMul = 1.45;
     if (desktop) {
       this.minSpeechRms *= 0.62;
       this.minSpeechPeak *= 0.62;
-      this.silenceHoldMs += 140;
+      this.silenceHoldMs += 90;
       this.minRecordMs = Math.max(120, this.minRecordMs - 30);
     }
     if (mobile) {
       this.minSpeechRms *= 0.82;
       this.minSpeechPeak *= 0.82;
-      this.silenceHoldMs = 520 + Math.round(s * 2.4);
-      this.minRecordMs = 260 + Math.round(s * 1.2);
+      this.silenceHoldMs = 560 + Math.round(s * 2.6);
+      this.minRecordMs = 220 + Math.round(s * 1.0);
       this.maxRecordMs = 18000 + Math.round(s * 40);
-      this.earlySpeechHoldMul = 2.05;
-      this.warmupMs = 120;
+      this.earlySpeechHoldMul = 2.15;
+      this.warmupMs = 0;
+      this.prefetchMul = 0.44;
+      this.monitorIntervalMs = 28;
     }
   }
 
@@ -577,7 +670,7 @@ export class LunaMic {
   }
 
   async _startMonitor() {
-    if (!this.enabled || this.paused || this.busy) return;
+    if (!this.enabled || this.paused || (this.busy && !this.duplexListen)) return;
     if (!this.unlocked || !this.stream?.active) {
       const ok = await this.unlock();
       if (!ok) return;
@@ -621,8 +714,12 @@ export class LunaMic {
         this.recorder = null;
         chunks = [];
 
-        if (!blob.size || blob.size < 200 || this.busy || this.paused) {
+        if (!blob.size || blob.size < 200 || this.paused) {
           if (this.enabled && !this.paused && !this.busy) this.onStatus("listening");
+          return;
+        }
+        if (this.busy && !this.duplexListen) {
+          if (this.enabled && !this.paused) this.onStatus("listening");
           return;
         }
 
@@ -636,7 +733,7 @@ export class LunaMic {
       };
 
       try {
-        this.recorder.start(80);
+        this.recorder.start(this._isIOS() ? 40 : 60);
       } catch {
         recording = false;
         this.recorder = null;
@@ -654,7 +751,7 @@ export class LunaMic {
     };
 
     this.monitorTimer = setInterval(() => {
-      if (!this.enabled || this.paused || this.busy) return;
+      if (!this.enabled || this.paused || (this.busy && !this.duplexListen)) return;
       if (!this.stream?.active) {
         this.onStatus("mic-retry");
         return;
@@ -667,9 +764,14 @@ export class LunaMic {
       const speaking =
         peak >= this.minSpeechPeak ||
         rms >= this.minSpeechRms;
+      const prefetchMul = this.prefetchMul || 0.5;
+      const prefetch =
+        peak >= this.minSpeechPeak * prefetchMul ||
+        rms >= this.minSpeechRms * prefetchMul;
 
-      this.onLevel(rms, peak, speaking);
+      this.onLevel(rms, peak, speaking || prefetch);
 
+      if (prefetch && !recording) beginRecord();
       if (speaking) {
         lastSpeechAt = now;
         hadSpeechDuringRecord = true;
@@ -734,11 +836,25 @@ export class LunaMic {
   }
 
   async _prepareUploadBlob(blob) {
+    const type = (blob.type || "").toLowerCase();
+    if (type.includes("mp4") || type.includes("aac") || type.includes("m4a")) {
+      const name = type.includes("mp4") || type.includes("m4a") ? "luna.mp4" : "luna.m4a";
+      return { blob, name };
+    }
+    if (this._isIOS()) {
+      try {
+        return { blob: await this._blobToWav(blob), name: "luna.wav" };
+      } catch (err) {
+        console.warn("LunaMic wav convert:", err);
+        const name = type.includes("webm") ? "luna.webm" : "luna.mp4";
+        return { blob, name };
+      }
+    }
     try {
       return { blob: await this._blobToWav(blob), name: "luna.wav" };
     } catch (err) {
       console.warn("LunaMic wav convert:", err);
-      const name = blob.type.includes("mp4") ? "luna.mp4" : "luna.webm";
+      const name = type.includes("mp4") ? "luna.mp4" : "luna.webm";
       return { blob, name };
     }
   }
@@ -766,16 +882,24 @@ export class LunaMic {
       } else {
         this.onStatus("no-speech");
       }
-      if (this.enabled && !this.paused && !this.busy) {
-        setTimeout(() => this.resumeListening(), 80);
-      }
+      await this._resumeAfterTranscribe();
     } catch (err) {
       console.warn("LunaMic:", err);
       this.onError(err.message || "Could not reach speech service.");
       this.onStatus("transcribe-error");
-      if (this.enabled && !this.paused && !this.busy) {
-        setTimeout(() => this.resumeListening(), 200);
-      }
+      await this._resumeAfterTranscribe();
+    }
+  }
+
+  async _resumeAfterTranscribe() {
+    if (!this.enabled || this.paused) return;
+    if (this._isIOS()) {
+      await new Promise((r) => setTimeout(r, 180));
+      await this.reacquireAfterPlayback();
+      return;
+    }
+    if (!this.busy || this.duplexListen) {
+      setTimeout(() => this.resumeListening(), 60);
     }
   }
 }

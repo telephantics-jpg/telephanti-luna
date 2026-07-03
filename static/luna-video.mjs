@@ -41,6 +41,7 @@ export class LunaVideoAvatar {
     this.canvas = overlayCanvas;
     this.ctx = overlayCanvas?.getContext("2d");
     this.state = "idle";
+    this._preSpeakState = "idle";
     this.mood = "happy";
     this.speaking = false;
     this.t = 0;
@@ -210,9 +211,9 @@ export class LunaVideoAvatar {
 
   setState(state = "idle") {
     const next = state || "idle";
-    const calm = ["idle", "listen", "help", "think", "dream"];
-    this.state = calm.includes(next) ? next : "idle";
-    this._setClip(this.state).catch(() => {});
+    this.state = next;
+    const clipKey = CLIPS[next] ? next : "idle";
+    this._setClip(clipKey).catch(() => {});
     if (["flirt", "touch", "love", "excited"].includes(next)) {
       this.spawnParticles("spark", 1 + Math.floor(Math.random() * 2));
     }
@@ -225,11 +226,13 @@ export class LunaVideoAvatar {
   setSpeaking(on) {
     this.speaking = !!on;
     if (on) {
+      if (this.state !== "speak") this._preSpeakState = this.state;
       this.setState("speak");
       this.nod = Math.max(this.nod, 0.5);
     } else if (this.state === "speak") {
-      this.setState("idle");
+      this.setState(this._preSpeakState || "idle");
       this.targetMouth = 0;
+      this.mouth = 0;
     }
   }
 

@@ -113,7 +113,10 @@ export class LiveLunaPortrait {
     this.speaking = !!on;
     if (on) this.setState("speak");
     else if (this.state === "speak") this.setState("idle");
-    if (!on) this.targetMouth = 0;
+    if (!on) {
+      this.targetMouth = 0;
+      this.mouth = 0;
+    }
   }
 
   setPointer(nx, ny) {

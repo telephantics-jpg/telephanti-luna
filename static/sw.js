@@ -1,4 +1,4 @@
-const CACHE = "luna-avatar-v13";
+const CACHE = "luna-avatar-v132";
 const ASSETS = ["/static/avatars/brunette.glb", "/static/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {

@@ -32,7 +32,7 @@ BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
 STATS_PATH = BASE_DIR / "luna_stats.json"
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "135"
+LUNA_BUILD = "136"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -439,6 +439,20 @@ _LONG_CUES = (
     "longer answer",
     "why do you",
     "what if",
+    "tell me more",
+    "go deeper",
+    "full story",
+    "deep dive",
+)
+
+_SHORT_CUES = (
+    "quick",
+    "brief",
+    "short version",
+    "tl;dr",
+    "in a nutshell",
+    "one sentence",
+    "just say",
 )
 
 
@@ -448,6 +462,8 @@ def classify_response_length(message: str) -> str:
     if not text:
         return "medium"
     low = text.lower().rstrip("!.?…")
+    if any(cue in low for cue in _SHORT_CUES):
+        return "short"
     if low in _SHORT_EXACT:
         return "short"
     if re.match(r"^(yes|no|ok|okay|yeah|nah|hey|hi|sup|thanks|thank you|lol|hmm|mmm)\b", low) and len(text) < 32:

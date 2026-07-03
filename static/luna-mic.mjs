@@ -113,6 +113,7 @@ export class LunaWebSpeechMic {
 
   async reacquireAfterPlayback() {
     if (!this.enabled) return;
+    this.busy = false;
     this._stopRecognition();
     clearTimeout(this.restartTimer);
     this.restartTimer = null;
@@ -122,6 +123,10 @@ export class LunaWebSpeechMic {
         this.onStatus("mic-retry");
         return;
       }
+    }
+    if (!this.recognition) {
+      const SR = speechRecognitionCtor();
+      if (SR) this._buildRecognition(SR);
     }
     if (!this.paused && (!this.busy || this.duplexListen)) {
       this._startLevelMonitor();
@@ -133,7 +138,7 @@ export class LunaWebSpeechMic {
   setPaused(paused) {
     this.paused = !!paused;
     if (this.paused) this._stopRecognition();
-    else if (this.enabled && !this.busy) this._startRecognition();
+    else if (this.enabled && (!this.busy || this.duplexListen)) this._startRecognition();
   }
 
   async unlock() {
@@ -282,7 +287,7 @@ export class LunaWebSpeechMic {
   _startLevelMonitor() {
     clearInterval(this.monitorTimer);
     this.monitorTimer = setInterval(() => {
-      if (!this.enabled || this.paused || this.busy) return;
+      if (!this.enabled || this.paused || (this.busy && !this.duplexListen)) return;
       const { rms, peak } = this._sampleLevels();
       const speaking = peak >= 0.008 || rms >= 0.003;
       this.onLevel(rms, peak, speaking);
@@ -296,7 +301,8 @@ export class LunaWebSpeechMic {
   }
 
   _startRecognition() {
-    if (!this.recognition || this._starting || this.paused || this.busy || !this.enabled) return;
+    if (!this.recognition || this._starting || this.paused || !this.enabled) return;
+    if (this.busy && !this.duplexListen) return;
     this._starting = true;
     try {
       this.recognition.start();

@@ -4338,9 +4338,9 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=139";
-    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=139";
-    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=139";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=140";
+    import { LiveLunaPortrait } from "/static/luna-live.mjs?v=140";
+    import { LunaVideoAvatar } from "/static/luna-video.mjs?v=140";
 
     let TalkingHeadClass = null;
     let livePortrait = null;
@@ -5787,7 +5787,7 @@
       settings.proactiveSpeech = false;
       settings.autoSpeak = localStorage.getItem("luna-voice-user-on") === "1";
       muted = !settings.autoSpeak;
-      settings.speakStyle = settings.voiceRamble !== false ? "full" : "curated";
+      settings.speakStyle = "full";
       const mobileWeb = isMobile();
       settings.voiceRamble = true;
       settings.micSensitivity = mobileWeb
@@ -6515,11 +6515,11 @@
           const rest = full.slice(idx).trim();
           if (rest && (chunks === 0 || total + rest.length <= maxTotal + 80)) {
             const tail = rest.slice(0, Math.max(40, maxTotal - total + 60)).trim();
-            if (tail) await speakText(tail, mood, { allowRepeat: true });
+            if (tail) await speakText(tail, mood, { allowRepeat: true, keepQueue: true });
           }
           break;
         }
-        await speakText(hit.chunk, mood, { allowRepeat: true });
+        await speakText(hit.chunk, mood, { allowRepeat: true, keepQueue: true });
         await speakQueue.catch(() => {});
         const nextIdx = idx + hit.len;
         if (nextIdx <= idx) break;
@@ -8843,10 +8843,16 @@
     function pickCuratedSpeakText(fullText) {
       const full = (fullText || "").trim();
       if (!full) return "";
+      const multi = full.match(/^((?:[^.!?…]*[.!?…]\s*){2,})/);
+      if (multi && multi[1].trim().length >= 24) {
+        return multi[1].trim().slice(0, CURATED_MAX_CHARS);
+      }
+      const first = full.match(/^[^.!?…]+[.!?…]/);
+      if (first && first[0].trim().length >= 16) {
+        return first[0].trim().slice(0, CURATED_MAX_CHARS);
+      }
       const hit = nextNaturalSpeakChunk(full, 0);
-      if (hit?.chunk) return hit.chunk.trim();
-      const first = full.match(/^[^.!?…]+[.!?…]?/);
-      if (first) return first[0].trim().slice(0, CURATED_MAX_CHARS);
+      if (hit?.chunk && hit.chunk.trim().length >= 16) return hit.chunk.trim();
       return full.slice(0, CURATED_MAX_CHARS).trim();
     }
 
@@ -13752,25 +13758,28 @@
     function nextNaturalSpeakChunk(text, fromIndex = 0) {
       const tail = (text || "").slice(fromIndex);
       if (!tail.trim()) return null;
-      const comma = tail.match(/^[^,]{5,}[,—]\s*/);
-      if (comma && comma[0].trim().length >= 8) {
-        return { chunk: comma[0].trim(), len: comma[0].length };
-      }
       const multi = tail.match(/^((?:[^.!?…]*[.!?…]\s*){2,})/);
-      if (multi && multi[1].trim().length >= 8) {
+      if (multi && multi[1].trim().length >= 24) {
         return { chunk: multi[1].trim(), len: multi[1].length };
       }
       const single = tail.match(/^[^.!?…]*[.!?…](?:\s+|$)/);
-      if (single && single[0].trim().length >= 10) {
+      if (single && single[0].trim().length >= 16) {
         return { chunk: single[0].trim(), len: single[0].length };
       }
+      const wordChunk = tail.match(/^\S+(?:\s+\S+){7,}(?:\s+|$)/);
+      if (wordChunk && wordChunk[0].trim().length >= 40) {
+        return { chunk: wordChunk[0].trim(), len: wordChunk[0].length };
+      }
+      const comma = tail.match(/^[^,]{24,}[,—]\s*/);
+      if (comma && comma[0].trim().length >= 32) {
+        return { chunk: comma[0].trim(), len: comma[0].length };
+      }
       const breath = tail.match(/^[\s\S]*?[…—](?:\s+|$)/);
-      if (breath && breath[0].trim().length >= 12) {
+      if (breath && breath[0].trim().length >= 24) {
         return { chunk: breath[0].trim(), len: breath[0].length };
       }
-      const wordChunk = tail.match(/^\S+(?:\s+\S+){5,}(?:\s+|$)/);
-      if (wordChunk && wordChunk[0].trim().length >= 28) {
-        return { chunk: wordChunk[0].trim(), len: wordChunk[0].length };
+      if (single && single[0].trim().length >= 10) {
+        return { chunk: single[0].trim(), len: single[0].length };
       }
       return null;
     }
@@ -13888,7 +13897,7 @@
       if (!text.trim()) return Promise.resolve();
       if (!opts.allowRepeat && isRecentDuplicate(text)) return Promise.resolve();
       if (!voiceIsOn()) return Promise.resolve();
-      if (singleVoiceMode() || opts.cancelPrevious || opts.priority) flushSpeakQueue();
+      if (!opts.keepQueue && (singleVoiceMode() || opts.cancelPrevious || opts.priority)) flushSpeakQueue();
       const impl = async () => {
         if (!voiceIsOn()) return;
         await _speakTextImpl(text, moodOverride);
@@ -14282,7 +14291,7 @@ return solve(step || 'breathe');`,
           livePortrait?.nodOnce();
         }
         updateRapport(8);
-        const speakLine = polishLunaLine((action?.text || full || "").trim());
+        const speakLine = polishLunaLine((full || action?.text || "").trim());
         if (speakLine && voiceIsOn()) {
           const mood = action?.mood || streamMood;
           await speakFluidReply(text, speakLine, mood);
@@ -14482,8 +14491,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "139") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 139. Open https://telephanti.com/visit?fresh=1&v=139");
+        if (health.build && health.build !== "140") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 140. Open https://telephanti.com/visit?fresh=1&v=140");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

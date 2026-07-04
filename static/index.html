@@ -4393,7 +4393,7 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=152";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=153";
     import { LiveLunaPortrait } from "/static/luna-live.mjs?v=143";
     import { LunaVideoAvatar } from "/static/luna-video.mjs?v=143";
 
@@ -4735,6 +4735,20 @@
 
     function isAndroid() {
       return /Android/i.test(navigator.userAgent);
+    }
+
+    function androidMicCamExclusive() {
+      return isAndroid() && isMobile() && isPublicWebVisit() && !isPetMode();
+    }
+
+    function releaseCameraForAndroidMic() {
+      if (!androidMicCamExclusive()) return;
+      if (!webcamStream && !settings.webcamWatch) return;
+      settings.webcamWatch = false;
+      stopWebcam();
+      saveSettings();
+      updateCamUi();
+      syncLunaSeeBox();
     }
 
     function shouldBypassHeadSpeech() {
@@ -5856,6 +5870,7 @@
       } catch { /* ignore */ }
       settings.alwaysListen = false;
       settings.webcamWatch = false;
+      if (isAndroid()) settings.showLunaVision = true;
       settings.proactiveSpeech = false;
       if (!quietModeActive) {
         settings.autoSpeak = true;
@@ -6090,12 +6105,24 @@
 
     async function toggleWebCamera() {
       await unlockVoice();
-      settings.webcamWatch = !settings.webcamWatch;
+      const turningOn = !settings.webcamWatch;
+      if (turningOn && androidMicCamExclusive() && (micIsOn() || settings.alwaysListen)) {
+        settings.alwaysListen = false;
+        const listenOpt = document.getElementById("opt-listen");
+        if (listenOpt) listenOpt.checked = false;
+        stopAlwaysListen();
+        saveSettings();
+        syncMobileDockUi();
+        showToast("Listen off — on Android, camera and mic can't run together.");
+      }
+      settings.webcamWatch = turningOn;
       saveSettings();
       updateCamUi();
       if (settings.webcamWatch) {
         await startWebcam();
-        showToast("Camera on — layered truths through the all-seeing eye.");
+        showToast(androidMicCamExclusive()
+          ? "Camera on — tap 🎤 Listen again when you want to talk."
+          : "Camera on — layered truths through the all-seeing eye.");
       } else {
         stopWebcam();
         hideLayeredTruths();
@@ -6123,6 +6150,7 @@
     }
 
     function micIsOn() {
+      if (androidMicCamExclusive() && settings.alwaysListen && androidMicUserGranted) return true;
       return settings.alwaysListen && alwaysListening;
     }
 
@@ -6141,6 +6169,7 @@
       lunaMic.setBusy(false);
       if (isIOS()) lunaMic.resetForRetry?.();
       else if (isAndroid()) lunaMic.resetForRetry?.();
+      if (androidMicCamExclusive()) releaseCameraForAndroidMic();
       if (isAndroid() && isPublicWebVisit() && !isPetMode()) {
         await enableLunaVoice().catch(() => {});
       }
@@ -7353,6 +7382,7 @@
       if (!busy && speakDepth <= 0) {
         lunaMic?.setHoldReacquire?.(false);
         lunaMic?.setBusy(false);
+        if (isAndroid()) micPaused = false;
         syncDuplexMic();
         if (!dreamPeaking && !daydreaming) {
           scheduleMicResumeAfterSpeech();
@@ -10814,11 +10844,16 @@
         saveSettings();
         if (e.target.checked) startIdleLife(); else stopIdleLife();
       });
-      document.getElementById("opt-webcam")?.addEventListener("change", (e) => {
+      document.getElementById("opt-webcam")?.addEventListener("change", async (e) => {
+        if (e.target.checked && androidMicCamExclusive() && (micIsOn() || settings.alwaysListen)) {
+          e.target.checked = false;
+          showToast("Turn off 🎤 Listen first — Android can't use camera and mic together.");
+          return;
+        }
         settings.webcamWatch = e.target.checked;
         saveSettings();
         updateCamUi();
-        if (e.target.checked) startWebcam().then(() => syncLunaSeeBox());
+        if (e.target.checked) await startWebcam().then(() => syncLunaSeeBox());
         else {
           stopWebcam();
           syncLunaSeeBox();
@@ -12017,6 +12052,9 @@
     }
 
     function syncCamFeedUi() {
+      if (androidMicCamExclusive() && (micIsOn() || settings.alwaysListen) && webcamStream) {
+        releaseCameraForAndroidMic();
+      }
       const box = document.getElementById("luna-see-box");
       const feed = document.getElementById("luna-cam-feed");
       const visionCanvas = document.getElementById("luna-vision-canvas");
@@ -12046,7 +12084,8 @@
       if (camOn) tools?.removeAttribute("hidden");
       else tools?.setAttribute("hidden", "");
       if (feed) {
-        if (camOn && webcamStream) {
+        const showLiveFeed = camOn && webcamStream && !(androidMicCamExclusive() && (micIsOn() || settings.alwaysListen));
+        if (showLiveFeed) {
           feed.style.display = "block";
           if (feed.srcObject !== webcamStream) feed.srcObject = webcamStream;
           const rear = (settings.cameraFacing || "user") === "environment";
@@ -12054,6 +12093,7 @@
           feed.play().catch(() => {});
         } else {
           feed.style.display = "none";
+          if (feed.srcObject) feed.srcObject = null;
         }
       }
       if (flipBtn) flipBtn.title = (settings.cameraFacing || "user") === "environment" ? "Switch to front camera" : "Switch to back camera";
@@ -12364,6 +12404,14 @@
     }
 
     async function startWebcam() {
+      if (androidMicCamExclusive() && (micIsOn() || settings.alwaysListen || alwaysListening)) {
+        settings.webcamWatch = false;
+        saveSettings();
+        updateCamUi();
+        syncLunaSeeBox();
+        showToast("Turn off 🎤 Listen first — Android can't use camera and mic together.");
+        return;
+      }
       const wrap = document.getElementById("webcam-wrap");
       const indicator = document.getElementById("cam-indicator");
       const facing = settings.cameraFacing || "user";
@@ -14090,12 +14138,16 @@
         }
         updateCamUi();
         syncLunaSeeBox();
-        if (settings.webcamWatch && !webcamStream) startWebcam().catch(() => {});
+        if (settings.webcamWatch && !webcamStream && !androidMicCamExclusive()) {
+          startWebcam().catch(() => {});
+        } else if (androidMicCamExclusive()) {
+          releaseCameraForAndroidMic();
+        }
         if (isMobile()) {
           setTimeout(() => {
             if (!alwaysListening) {
               showLunaCaption(isAndroid()
-                ? "Tap 🎤 Listen once — allow mic — then talk and I'll answer aloud."
+                ? "Tap 🎤 Listen — allow mic. Camera stays off on Android so voice works."
                 : "Mic is off — tap Listen in the dock when you want to talk.");
             }
           }, 1400);
@@ -15080,8 +15132,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "152") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 152. Open https://telephanti.com/visit?fresh=1&v=152");
+        if (health.build && health.build !== "153") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 153. Open https://telephanti.com/visit?fresh=1&v=153");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

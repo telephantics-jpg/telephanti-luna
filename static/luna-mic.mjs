@@ -44,6 +44,19 @@ export class LunaWebSpeechMic {
     return !!this.stream?.active;
   }
 
+  prepareAndroidResume() {
+    if (!isAndroidUa()) return;
+    this._lastAndroidStartAt = 0;
+    this._androidFreshRecognition();
+  }
+
+  _androidFreshRecognition() {
+    this._stopRecognition();
+    this.recognition = null;
+    const SR = speechRecognitionCtor();
+    if (SR) this._buildRecognition(SR);
+  }
+
   constructor(opts) {
     this.onText = opts.onText;
     this.onStatus = opts.onStatus || (() => {});
@@ -136,16 +149,20 @@ export class LunaWebSpeechMic {
       const ok = await this.unlock();
       if (!ok) return;
     }
-    if (!isAndroidUa()) {
-      if (this.audioCtx?.state === "suspended") {
-        try { await this.audioCtx.resume(); } catch { /* ignore */ }
-      }
-      if (!this.stream?.active) {
-        const ok = await this.unlock();
-        if (!ok) return;
-      }
-      this._startLevelMonitor();
+    if (isAndroidUa()) {
+      this.prepareAndroidResume();
+      this._startRecognition({ force: true });
+      this.onStatus("listening");
+      return;
     }
+    if (this.audioCtx?.state === "suspended") {
+      try { await this.audioCtx.resume(); } catch { /* ignore */ }
+    }
+    if (!this.stream?.active) {
+      const ok = await this.unlock();
+      if (!ok) return;
+    }
+    this._startLevelMonitor();
     this._startRecognition();
     this.onStatus("listening");
   }
@@ -279,6 +296,7 @@ export class LunaWebSpeechMic {
         if (isAndroidUa() && (this.busy || this.paused || this.holdReacquire)) return;
       }
       if (code === "not-allowed" || code === "service-not-allowed") {
+        if (isAndroidUa() && (this.busy || this.paused || this.holdReacquire)) return;
         this.unlocked = false;
         this.onError("Microphone blocked — click 🎤 and Allow access.");
         return;
@@ -367,23 +385,35 @@ export class LunaWebSpeechMic {
     this._teardownAnalyser();
   }
 
-  _startRecognition() {
+  _startRecognition(opts = {}) {
     if (!this.recognition || this._starting || this.paused || !this.enabled) return;
     if (this.busy && !this.duplexListen) return;
     if (this.holdReacquire) return;
-    if (isAndroidUa()) {
-      const gap = 3500;
+    if (isAndroidUa() && !opts.force) {
+      const gap = 900;
       if (Date.now() - (this._lastAndroidStartAt || 0) < gap) return;
-      this._lastAndroidStartAt = Date.now();
     }
     this._starting = true;
+    if (isAndroidUa()) this._lastAndroidStartAt = Date.now();
     try {
       this.recognition.start();
       this.onStatus("listening");
     } catch (err) {
       this._starting = false;
-      const msg = String(err?.message || err);
+      const msg = String(err?.message || err).toLowerCase();
       if (msg.includes("already started")) return;
+      if (isAndroidUa() && (msg.includes("invalid state") || msg.includes("failed to start"))) {
+        this.prepareAndroidResume();
+        try {
+          this._starting = true;
+          this.recognition.start();
+          this.onStatus("listening");
+        } catch (retryErr) {
+          this._starting = false;
+          console.warn("LunaWebSpeechMic android retry:", retryErr);
+        }
+        return;
+      }
       if (isAndroidUa() && msg.includes("not-allowed")) {
         this.unlocked = false;
         this.onError("Tap 🎤 Listen and Allow microphone access.");
@@ -425,8 +455,9 @@ export class LunaWebSpeechMic {
       }
     }
     if (!this.busy && !this.paused) {
-      if (!isAndroidUa()) this._startLevelMonitor();
-      this._startRecognition();
+      if (isAndroidUa()) this.prepareAndroidResume();
+      else this._startLevelMonitor();
+      this._startRecognition({ force: isAndroidUa() });
     }
   }
 

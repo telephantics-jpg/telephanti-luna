@@ -67,6 +67,7 @@ export class LunaWebSpeechMic {
     this.duplexListen = false;
     this.holdReacquire = false;
     this._lastMicRetryAt = 0;
+    this._lastAndroidStartAt = 0;
   }
 
   setDuplexListen(on) {
@@ -85,10 +86,9 @@ export class LunaWebSpeechMic {
   }
 
   _emitMicRetry() {
-    if (this.holdReacquire) return;
+    if (this.holdReacquire || isAndroidUa()) return;
     const now = Date.now();
-    const gap = isAndroidUa() ? 2800 : 1200;
-    if (now - this._lastMicRetryAt < gap) return;
+    if (now - this._lastMicRetryAt < 1200) return;
     this._lastMicRetryAt = now;
     this.onStatus("mic-retry");
   }
@@ -124,7 +124,7 @@ export class LunaWebSpeechMic {
       this.restartTimer = null;
       this._stopRecognition();
       this._stopLevelMonitor();
-    } else if (this.enabled && !this.paused && !this.holdReacquire) {
+    } else if (!isAndroidUa() && this.enabled && !this.paused && !this.holdReacquire) {
       this._startLevelMonitor();
       this._startRecognition();
     }
@@ -197,7 +197,7 @@ export class LunaWebSpeechMic {
       clearTimeout(this.restartTimer);
       this.restartTimer = null;
       this._stopRecognition();
-    } else if (this.enabled && (!this.busy || this.duplexListen) && !this.holdReacquire) {
+    } else if (!isAndroidUa() && this.enabled && (!this.busy || this.duplexListen) && !this.holdReacquire) {
       this._startLevelMonitor();
       this._startRecognition();
     }
@@ -246,7 +246,7 @@ export class LunaWebSpeechMic {
   _buildRecognition(SR) {
     if (this.recognition) return;
     const rec = new SR();
-    rec.continuous = true;
+    rec.continuous = !isAndroidUa();
     rec.interimResults = true;
     rec.lang = (navigator.language || "en-US").replace("_", "-");
     rec.maxAlternatives = 1;
@@ -266,6 +266,7 @@ export class LunaWebSpeechMic {
         const now = Date.now();
         if (now - this._lastFinalAt < 120) return;
         this._lastFinalAt = now;
+        if (isAndroidUa()) this._stopRecognition();
         this.onStatus("hearing...");
         this.onText(finalText);
       }
@@ -291,11 +292,10 @@ export class LunaWebSpeechMic {
 
     rec.onend = () => {
       this._starting = false;
-      if (this.holdReacquire) return;
+      if (isAndroidUa() || this.holdReacquire) return;
       if (this.enabled && !this.paused && (!this.busy || this.duplexListen)) {
         clearTimeout(this.restartTimer);
-        const delay = isAndroidUa() ? 2200 : 80;
-        this.restartTimer = setTimeout(() => this._startRecognition(), delay);
+        this.restartTimer = setTimeout(() => this._startRecognition(), 80);
       }
     };
 
@@ -371,13 +371,24 @@ export class LunaWebSpeechMic {
     if (!this.recognition || this._starting || this.paused || !this.enabled) return;
     if (this.busy && !this.duplexListen) return;
     if (this.holdReacquire) return;
+    if (isAndroidUa()) {
+      const gap = 3500;
+      if (Date.now() - (this._lastAndroidStartAt || 0) < gap) return;
+      this._lastAndroidStartAt = Date.now();
+    }
     this._starting = true;
     try {
       this.recognition.start();
       this.onStatus("listening");
     } catch (err) {
       this._starting = false;
-      if (String(err?.message || err).includes("already started")) return;
+      const msg = String(err?.message || err);
+      if (msg.includes("already started")) return;
+      if (isAndroidUa() && msg.includes("not-allowed")) {
+        this.unlocked = false;
+        this.onError("Tap 🎤 Listen and Allow microphone access.");
+        return;
+      }
       console.warn("LunaWebSpeechMic start:", err);
     }
   }

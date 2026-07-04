@@ -39,6 +39,8 @@ export function createLunaMic(opts) {
 
 export class LunaWebSpeechMic {
   get micStreamLive() {
+    // Android: recognition-only — no separate MediaStream; don't treat as "dead".
+    if (isAndroidUa() && this.unlocked && this.enabled) return true;
     return !!this.stream?.active;
   }
 
@@ -93,6 +95,14 @@ export class LunaWebSpeechMic {
 
   resetForRetry() {
     this._stopRecognition();
+    clearTimeout(this.restartTimer);
+    this.restartTimer = null;
+    this._starting = false;
+    if (isAndroidUa()) {
+      this.recognition = null;
+      this.enabled = false;
+      return;
+    }
     this._stopLevelMonitor();
     if (this.stream) {
       this.stream.getTracks().forEach((t) => t.stop());
@@ -122,14 +132,20 @@ export class LunaWebSpeechMic {
 
   async resumeListening() {
     if (!this.enabled || this.paused || (this.busy && !this.duplexListen)) return;
-    if (this.audioCtx?.state === "suspended") {
-      try { await this.audioCtx.resume(); } catch { /* ignore */ }
-    }
-    if (!this.stream?.active || !this.unlocked) {
+    if (!this.unlocked) {
       const ok = await this.unlock();
       if (!ok) return;
     }
-    this._startLevelMonitor();
+    if (!isAndroidUa()) {
+      if (this.audioCtx?.state === "suspended") {
+        try { await this.audioCtx.resume(); } catch { /* ignore */ }
+      }
+      if (!this.stream?.active) {
+        const ok = await this.unlock();
+        if (!ok) return;
+      }
+      this._startLevelMonitor();
+    }
     this._startRecognition();
     this.onStatus("listening");
   }
@@ -140,7 +156,23 @@ export class LunaWebSpeechMic {
     clearTimeout(this.restartTimer);
     this.restartTimer = null;
     this._stopRecognition();
-    await new Promise((r) => setTimeout(r, isAndroidUa() ? 700 : 140));
+    await new Promise((r) => setTimeout(r, isAndroidUa() ? 1200 : 140));
+    if (isAndroidUa()) {
+      if (!this.unlocked) {
+        const ok = await this.unlock();
+        if (!ok) {
+          this._emitMicRetry();
+          return;
+        }
+      }
+      if (!this.recognition) {
+        const SR = speechRecognitionCtor();
+        if (SR) this._buildRecognition(SR);
+      }
+      if (!this.paused && !this.holdReacquire) this._startRecognition();
+      this.onStatus("listening");
+      return;
+    }
     if (!this.stream?.active || !this.unlocked) {
       const ok = await this.unlock();
       if (!ok) {
@@ -178,7 +210,7 @@ export class LunaWebSpeechMic {
       return false;
     }
     try {
-      if (!this.stream?.active && navigator.mediaDevices?.getUserMedia) {
+      if (!isAndroidUa() && !this.stream?.active && navigator.mediaDevices?.getUserMedia) {
         const constraints = [
           { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } },
           { audio: true },
@@ -242,6 +274,9 @@ export class LunaWebSpeechMic {
     rec.onerror = (event) => {
       const code = event.error || "";
       if (code === "no-speech" || code === "aborted") return;
+      if (code === "audio-capture") {
+        if (isAndroidUa() && (this.busy || this.paused || this.holdReacquire)) return;
+      }
       if (code === "not-allowed" || code === "service-not-allowed") {
         this.unlocked = false;
         this.onError("Microphone blocked — click 🎤 and Allow access.");
@@ -259,7 +294,7 @@ export class LunaWebSpeechMic {
       if (this.holdReacquire) return;
       if (this.enabled && !this.paused && (!this.busy || this.duplexListen)) {
         clearTimeout(this.restartTimer);
-        const delay = isAndroidUa() ? 1200 : 80;
+        const delay = isAndroidUa() ? 2200 : 80;
         this.restartTimer = setTimeout(() => this._startRecognition(), delay);
       }
     };
@@ -361,10 +396,12 @@ export class LunaWebSpeechMic {
     this.enabled = !!on;
     if (!this.enabled) {
       this._stopRecognition();
-      this._stopLevelMonitor();
-      if (this.stream) {
-        this.stream.getTracks().forEach((t) => t.stop());
-        this.stream = null;
+      if (!isAndroidUa()) {
+        this._stopLevelMonitor();
+        if (this.stream) {
+          this.stream.getTracks().forEach((t) => t.stop());
+          this.stream = null;
+        }
       }
       this.onStatus("mic off");
       return;
@@ -377,7 +414,7 @@ export class LunaWebSpeechMic {
       }
     }
     if (!this.busy && !this.paused) {
-      this._startLevelMonitor();
+      if (!isAndroidUa()) this._startLevelMonitor();
       this._startRecognition();
     }
   }
@@ -385,7 +422,7 @@ export class LunaWebSpeechMic {
   stop() {
     this.enabled = false;
     this._stopRecognition();
-    this._stopLevelMonitor();
+    if (!isAndroidUa()) this._stopLevelMonitor();
     if (this.stream) {
       this.stream.getTracks().forEach((t) => t.stop());
       this.stream = null;

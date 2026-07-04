@@ -4393,7 +4393,7 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=148";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=149";
     import { LiveLunaPortrait } from "/static/luna-live.mjs?v=143";
     import { LunaVideoAvatar } from "/static/luna-video.mjs?v=143";
 
@@ -4566,6 +4566,8 @@
     let pendingVoiceQueue = [];
     let micResumeTimer = null;
     let micHealthTimer = null;
+    let micRestartDebounce = null;
+    let micRestartInFlight = null;
     let speechWatchdogTimer = null;
     let speechStartedAt = 0;
     let activeChatCtrl = null;
@@ -6304,27 +6306,43 @@
       }
     }
 
+    function scheduleDebouncedMicRestart(delayMs = 600) {
+      clearTimeout(micRestartDebounce);
+      micRestartDebounce = setTimeout(() => {
+        micRestartDebounce = null;
+        restartMobileListen().catch(() => {});
+      }, delayMs);
+    }
+
     async function restartMobileListen() {
       if (!settings.alwaysListen || !lunaMic) return;
-      if (isIOS() || isAndroid()) await ensureMobileAudioCtx().catch(() => {});
-      syncDuplexMic();
-      micPaused = false;
-      lunaMic.setPaused(false);
-      lunaMic.setBusy(false);
-      if (lunaMic.reacquireAfterPlayback) {
-        await lunaMic.reacquireAfterPlayback().catch(() => {});
-      } else {
-        await lunaMic.resumeListening?.().catch(() => {});
-      }
-      if (!lunaMic.enabled || !lunaMic.unlocked) {
-        await startAlwaysListen();
-      } else {
-        alwaysListening = true;
-        updateMicUi();
-      }
-      if (settings.alwaysListen && !alwaysListening) {
-        await startAlwaysListen();
-      }
+      if (lunaSpeaking || busy || micPaused) return;
+      if (micRestartInFlight) return micRestartInFlight;
+      micRestartInFlight = (async () => {
+        if (isIOS() || isAndroid()) await ensureMobileAudioCtx().catch(() => {});
+        syncDuplexMic();
+        micPaused = false;
+        lunaMic.setHoldReacquire?.(false);
+        lunaMic.setPaused(false);
+        lunaMic.setBusy(false);
+        if (lunaMic.reacquireAfterPlayback) {
+          await lunaMic.reacquireAfterPlayback().catch(() => {});
+        } else {
+          await lunaMic.resumeListening?.().catch(() => {});
+        }
+        if (!lunaMic.enabled || !lunaMic.unlocked) {
+          await startAlwaysListen();
+        } else {
+          alwaysListening = true;
+          updateMicUi();
+        }
+        if (settings.alwaysListen && !alwaysListening) {
+          await startAlwaysListen();
+        }
+      })().finally(() => {
+        micRestartInFlight = null;
+      });
+      return micRestartInFlight;
     }
 
     function touchBatchDebounceMs() {
@@ -7145,7 +7163,7 @@
 
     function scheduleMicResumeAfterSpeech() {
       clearTimeout(micResumeTimer);
-      const delay = isIOS() ? 520 : isMobile() ? 280 : 120;
+      const delay = isIOS() ? 520 : isAndroid() ? 720 : isMobile() ? 280 : 120;
       micResumeTimer = setTimeout(() => {
         micResumeTimer = null;
         resumeListeningAfterTurn().catch(() => {});
@@ -7205,6 +7223,7 @@
       speechStartedAt = Date.now();
       armSpeechWatchdog();
       if (isMobile() && lunaMic) {
+        lunaMic.setHoldReacquire?.(true);
         lunaMic.setPaused(true);
         lunaMic.setBusy(true);
       }
@@ -7249,6 +7268,7 @@
       const tailGap = isPublicWebVisit() ? (busy ? 12 : 40) : 720;
       await sleepMs(tailGap);
       if (!busy && speakDepth <= 0) {
+        lunaMic?.setHoldReacquire?.(false);
         lunaMic?.setBusy(false);
         syncDuplexMic();
         if (!dreamPeaking && !daydreaming) {
@@ -7646,9 +7666,16 @@
           el.muted = false;
           el.volume = 1;
         }
+        if (lunaSpeaking || busy || micPaused) return;
         if (settings.alwaysListen && alwaysListening && lunaMic) {
-          const ok = await lunaMic.unlock().catch(() => false);
-          if (ok) await lunaMic.setEnabled(true);
+          if (lunaMic.unlocked && lunaMic.micStreamLive) {
+            await lunaMic.resumeListening?.().catch(() => {});
+          } else if (!isAndroid()) {
+            const ok = await lunaMic.unlock().catch(() => false);
+            if (ok) await lunaMic.setEnabled(true);
+          } else {
+            scheduleDebouncedMicRestart(isAndroid() ? 1200 : 500);
+          }
           updateMicUi();
         }
       };
@@ -8199,7 +8226,7 @@
       saveSettings();
 
       if (!lunaMic) setupMic();
-      if (isIOS()) await ensureMobileAudioCtx().catch(() => {});
+      if (isIOS() || isAndroid()) await ensureMobileAudioCtx().catch(() => {});
       if (isIOS()) lunaMic?.resetForRetry?.();
       const voiceOk = await enableLunaVoice();
       await startAlwaysListen();
@@ -13114,6 +13141,7 @@
     function pauseAlwaysListen() {
       if (shouldDuplexListen()) return;
       micPaused = true;
+      lunaMic?.setHoldReacquire?.(true);
       lunaMic?.setPaused(true);
       lunaMic?.setBusy(true);
     }
@@ -13204,13 +13232,16 @@
       if (micHealthTimer) return;
       micHealthTimer = setInterval(async () => {
         if (!settings.alwaysListen || !lunaMic) return;
-        if (lunaSpeaking || busy || dreamPeaking || daydreaming) return;
+        if (lunaSpeaking || busy || dreamPeaking || daydreaming || micPaused) return;
         const perm = await queryMicPermissionState();
         if (perm === "denied") {
           alwaysListening = false;
           updateMicUi();
           showPetHearBanner();
-          showToast("Mic blocked — Settings → Safari → Microphone → Allow for this site.");
+          const msg = isIOS()
+            ? "Mic blocked — Settings → Safari → Microphone → Allow for this site."
+            : "Mic blocked — open site settings and allow microphone for Luna.";
+          showToast(msg);
           return;
         }
         const live = lunaMic.enabled && lunaMic.unlocked && lunaMic.micStreamLive;
@@ -13218,9 +13249,10 @@
           alwaysListening = false;
           updateMicUi();
           if (isIOS()) lunaMic.resetForRetry?.();
-          await resumeListeningAfterTurn().catch(() => {});
+          if (isAndroid()) scheduleDebouncedMicRestart(1600);
+          else await resumeListeningAfterTurn().catch(() => {});
         }
-      }, isIOS() ? 3500 : 5000);
+      }, isIOS() ? 3500 : isAndroid() ? 9000 : 5000);
     }
 
     function bindMicLifecycleRecovery() {
@@ -13241,7 +13273,9 @@
     async function startAlwaysListen() {
       if (!lunaMic || !settings.alwaysListen || micPaused) return;
       if (busy && !shouldDuplexListen()) return;
-      if (isIOS()) await ensureMobileAudioCtx().catch(() => {});
+      if (lunaSpeaking) return;
+      if (micRestartInFlight) return micRestartInFlight;
+      if (isIOS() || isAndroid()) await ensureMobileAudioCtx().catch(() => {});
       bindMicLifecycleRecovery();
       const perm = await queryMicPermissionState();
       if (perm === "denied") {
@@ -13802,7 +13836,7 @@
             showToast("Couldn't transcribe — check mic level or try Chrome/Edge.");
           } else if (status === "mic-retry") {
             if (settings.alwaysListen) {
-              setTimeout(() => restartMobileListen().catch(() => {}), isIOS() ? 600 : 350);
+              scheduleDebouncedMicRestart(isIOS() ? 600 : isAndroid() ? 1400 : 350);
             } else {
               showPetHearBanner();
             }
@@ -14942,8 +14976,8 @@ return solve(step || 'breathe');`,
         if (hint && isPublicWebVisit() && !isPetMode() && health.build) {
           hint.dataset.build = health.build;
         }
-        if (health.build && health.build !== "148") {
-          console.warn("Luna build mismatch — live:", health.build, "expected: 148. Open https://telephanti.com/visit?fresh=1&v=148");
+        if (health.build && health.build !== "149") {
+          console.warn("Luna build mismatch — live:", health.build, "expected: 149. Open https://telephanti.com/visit?fresh=1&v=149");
         }
         if (isPetMode() && health.build) {
           updatePetTopbarStatus("v" + health.build + " — tap ⚙️ Settings", "ok");

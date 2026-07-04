@@ -16,6 +16,10 @@ function isIOSUa() {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
+function isAndroidUa() {
+  return /Android/i.test(navigator.userAgent);
+}
+
 function isSafariUa() {
   const ua = navigator.userAgent || "";
   return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox/i.test(ua);
@@ -23,7 +27,8 @@ function isSafariUa() {
 
 export function shouldUseWebSpeech() {
   // Safari (iOS + macOS) webkitSpeechRecognition stops after one phrase and won't restart reliably.
-  if (isIOSUa() || isSafariUa()) return false;
+  // Android Chrome: continuous recognition restarts rapidly (mic beeps) and fights TTS playback.
+  if (isIOSUa() || isAndroidUa() || isSafariUa()) return false;
   if (!speechRecognitionCtor()) return false;
   return true;
 }
@@ -59,6 +64,8 @@ export class LunaWebSpeechMic {
     this._starting = false;
     this._lastFinalAt = 0;
     this.duplexListen = false;
+    this.holdReacquire = false;
+    this._lastMicRetryAt = 0;
   }
 
   setDuplexListen(on) {
@@ -70,6 +77,19 @@ export class LunaWebSpeechMic {
         this._startRecognition();
       }
     }
+  }
+
+  setHoldReacquire(on) {
+    this.holdReacquire = !!on;
+  }
+
+  _emitMicRetry() {
+    if (this.holdReacquire) return;
+    const now = Date.now();
+    const gap = isAndroidUa() ? 2800 : 1200;
+    if (now - this._lastMicRetryAt < gap) return;
+    this._lastMicRetryAt = now;
+    this.onStatus("mic-retry");
   }
 
   resetForRetry() {
@@ -112,7 +132,7 @@ export class LunaWebSpeechMic {
   }
 
   async reacquireAfterPlayback() {
-    if (!this.enabled) return;
+    if (!this.enabled || this.holdReacquire) return;
     this.busy = false;
     this._stopRecognition();
     clearTimeout(this.restartTimer);
@@ -120,7 +140,7 @@ export class LunaWebSpeechMic {
     if (!this.stream?.active || !this.unlocked) {
       const ok = await this.unlock();
       if (!ok) {
-        this.onStatus("mic-retry");
+        this._emitMicRetry();
         return;
       }
     }
@@ -226,9 +246,11 @@ export class LunaWebSpeechMic {
 
     rec.onend = () => {
       this._starting = false;
+      if (this.holdReacquire) return;
       if (this.enabled && !this.paused && (!this.busy || this.duplexListen)) {
         clearTimeout(this.restartTimer);
-        this.restartTimer = setTimeout(() => this._startRecognition(), 80);
+        const delay = isAndroidUa() ? 650 : 80;
+        this.restartTimer = setTimeout(() => this._startRecognition(), delay);
       }
     };
 
@@ -386,6 +408,8 @@ export class LunaMic {
     this.source = null;
     this.timeData = null;
     this._trackEndedBound = false;
+    this.holdReacquire = false;
+    this._lastMicRetryAt = 0;
 
     this.minSpeechRms = 0.0032;
     this.minSpeechPeak = 0.009;
@@ -412,6 +436,23 @@ export class LunaMic {
 
   _isIOS() {
     return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  _isAndroid() {
+    return /Android/i.test(navigator.userAgent);
+  }
+
+  setHoldReacquire(on) {
+    this.holdReacquire = !!on;
+  }
+
+  _emitMicRetry() {
+    if (this.holdReacquire) return;
+    const now = Date.now();
+    const gap = this._isAndroid() ? 2800 : 1200;
+    if (now - this._lastMicRetryAt < gap) return;
+    this._lastMicRetryAt = now;
+    this.onStatus("mic-retry");
   }
 
   _pickMime() {
@@ -443,10 +484,11 @@ export class LunaMic {
     for (const track of this.stream.getTracks()) {
       track.addEventListener("ended", () => {
         this.unlocked = false;
-        this.onStatus("mic-retry");
-        if (this.enabled && !this.busy) {
+        this._emitMicRetry();
+        if (this.holdReacquire || this.busy || this.paused) return;
+        if (this.enabled) {
           this.unlock().then((ok) => {
-            if (ok && !this.paused && !this.busy) this._startMonitor();
+            if (ok && !this.paused && !this.busy && !this.holdReacquire) this._startMonitor();
           });
         }
       });
@@ -553,7 +595,7 @@ export class LunaMic {
     if (!this.enabled) return;
     this._stopMonitor();
     this._stopRecording();
-    if (this._isIOS()) {
+    if (this._isIOS() || this._isAndroid()) {
       this._teardownAnalyser();
       if (this.stream) {
         this.stream.getTracks().forEach((t) => t.stop());
@@ -561,10 +603,10 @@ export class LunaMic {
       }
       this._trackEndedBound = false;
       this.unlocked = false;
-      await new Promise((r) => setTimeout(r, 320));
+      await new Promise((r) => setTimeout(r, this._isAndroid() ? 480 : 320));
       const ok = await this.unlock();
       if (!ok) {
-        this.onStatus("mic-retry");
+        this._emitMicRetry();
         return;
       }
     } else if (this.stream?.active) {
@@ -572,7 +614,7 @@ export class LunaMic {
     } else {
       const ok = await this.unlock();
       if (!ok) {
-        this.onStatus("mic-retry");
+        this._emitMicRetry();
         return;
       }
     }
@@ -759,7 +801,7 @@ export class LunaMic {
     this.monitorTimer = setInterval(() => {
       if (!this.enabled || this.paused || (this.busy && !this.duplexListen)) return;
       if (!this.stream?.active) {
-        this.onStatus("mic-retry");
+        this._emitMicRetry();
         return;
       }
 

@@ -26,8 +26,9 @@ function isSafariUa() {
 }
 
 export function shouldUseWebSpeech() {
-  // Safari (iOS + macOS) webkitSpeechRecognition stops after one phrase and won't restart reliably.
-  if (isIOSUa() || isSafariUa()) return false;
+  // iOS Safari: webkitSpeechRecognition stops after one phrase.
+  // Android Chrome: Web Speech is single-shot and flakes on resume after TTS — use VAD like iPhone.
+  if (isIOSUa() || isAndroidUa() || isSafariUa()) return false;
   if (!speechRecognitionCtor()) return false;
   return true;
 }
@@ -44,17 +45,18 @@ export class LunaWebSpeechMic {
     return !!this.stream?.active;
   }
 
-  prepareAndroidResume() {
+  async prepareAndroidResume() {
     if (!isAndroidUa()) return;
     this._lastAndroidStartAt = 0;
-    this._androidFreshRecognition();
-  }
-
-  _androidFreshRecognition() {
     this._stopRecognition();
+    await new Promise((r) => setTimeout(r, 160));
     this.recognition = null;
     const SR = speechRecognitionCtor();
     if (SR) this._buildRecognition(SR);
+  }
+
+  _androidFreshRecognition() {
+    this.prepareAndroidResume().catch(() => {});
   }
 
   constructor(opts) {
@@ -150,7 +152,7 @@ export class LunaWebSpeechMic {
       if (!ok) return;
     }
     if (isAndroidUa()) {
-      this.prepareAndroidResume();
+      await this.prepareAndroidResume();
       this._startRecognition({ force: true });
       this.onStatus("listening");
       return;
@@ -283,7 +285,10 @@ export class LunaWebSpeechMic {
         const now = Date.now();
         if (now - this._lastFinalAt < 120) return;
         this._lastFinalAt = now;
-        if (isAndroidUa()) this._stopRecognition();
+        if (isAndroidUa()) {
+          this._stopRecognition();
+          this.onStatus("utterance-done");
+        }
         this.onStatus("hearing...");
         this.onText(finalText);
       }
@@ -403,15 +408,16 @@ export class LunaWebSpeechMic {
       const msg = String(err?.message || err).toLowerCase();
       if (msg.includes("already started")) return;
       if (isAndroidUa() && (msg.includes("invalid state") || msg.includes("failed to start"))) {
-        this.prepareAndroidResume();
-        try {
-          this._starting = true;
-          this.recognition.start();
-          this.onStatus("listening");
-        } catch (retryErr) {
-          this._starting = false;
-          console.warn("LunaWebSpeechMic android retry:", retryErr);
-        }
+        this.prepareAndroidResume().then(() => {
+          try {
+            this._starting = true;
+            this.recognition?.start();
+            this.onStatus("listening");
+          } catch (retryErr) {
+            this._starting = false;
+            console.warn("LunaWebSpeechMic android retry:", retryErr);
+          }
+        }).catch(() => {});
         return;
       }
       if (isAndroidUa() && msg.includes("not-allowed")) {
@@ -455,9 +461,13 @@ export class LunaWebSpeechMic {
       }
     }
     if (!this.busy && !this.paused) {
-      if (isAndroidUa()) this.prepareAndroidResume();
-      else this._startLevelMonitor();
-      this._startRecognition({ force: isAndroidUa() });
+      if (isAndroidUa()) {
+        await this.prepareAndroidResume();
+        this._startRecognition({ force: true });
+      } else {
+        this._startLevelMonitor();
+        this._startRecognition();
+      }
     }
   }
 
@@ -685,7 +695,7 @@ export class LunaMic {
     if (!this.enabled) return;
     this._stopMonitor();
     this._stopRecording();
-    if (this._isIOS()) {
+    if (this._isIOS() || this._isAndroid()) {
       this._teardownAnalyser();
       if (this.stream) {
         this.stream.getTracks().forEach((t) => t.stop());
@@ -693,7 +703,7 @@ export class LunaMic {
       }
       this._trackEndedBound = false;
       this.unlocked = false;
-      await new Promise((r) => setTimeout(r, 320));
+      await new Promise((r) => setTimeout(r, this._isAndroid() ? 520 : 320));
       const ok = await this.unlock();
       if (!ok) {
         this._emitMicRetry();
@@ -1031,8 +1041,9 @@ export class LunaMic {
 
   async _resumeAfterTranscribe() {
     if (!this.enabled || this.paused) return;
-    if (this._isIOS()) {
-      await new Promise((r) => setTimeout(r, 180));
+    if (this._isIOS() || this._isAndroid()) {
+      await new Promise((r) => setTimeout(r, this._isAndroid() ? 280 : 180));
+      if (this.busy && !this.duplexListen) return;
       await this.reacquireAfterPlayback();
       return;
     }

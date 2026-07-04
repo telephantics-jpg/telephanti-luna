@@ -27,8 +27,7 @@ function isSafariUa() {
 
 export function shouldUseWebSpeech() {
   // Safari (iOS + macOS) webkitSpeechRecognition stops after one phrase and won't restart reliably.
-  // Android Chrome: continuous recognition restarts rapidly (mic beeps) and fights TTS playback.
-  if (isIOSUa() || isAndroidUa() || isSafariUa()) return false;
+  if (isIOSUa() || isSafariUa()) return false;
   if (!speechRecognitionCtor()) return false;
   return true;
 }
@@ -110,8 +109,12 @@ export class LunaWebSpeechMic {
   setBusy(busy) {
     this.busy = !!busy;
     if (this.busy && this.duplexListen) return;
-    if (this.busy) this._stopRecognition();
-    else if (this.enabled && !this.paused) {
+    if (this.busy) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+      this._stopRecognition();
+      this._stopLevelMonitor();
+    } else if (this.enabled && !this.paused && !this.holdReacquire) {
       this._startLevelMonitor();
       this._startRecognition();
     }
@@ -134,9 +137,10 @@ export class LunaWebSpeechMic {
   async reacquireAfterPlayback() {
     if (!this.enabled || this.holdReacquire) return;
     this.busy = false;
-    this._stopRecognition();
     clearTimeout(this.restartTimer);
     this.restartTimer = null;
+    this._stopRecognition();
+    await new Promise((r) => setTimeout(r, isAndroidUa() ? 700 : 140));
     if (!this.stream?.active || !this.unlocked) {
       const ok = await this.unlock();
       if (!ok) {
@@ -148,7 +152,7 @@ export class LunaWebSpeechMic {
       const SR = speechRecognitionCtor();
       if (SR) this._buildRecognition(SR);
     }
-    if (!this.paused && (!this.busy || this.duplexListen)) {
+    if (!this.paused && (!this.busy || this.duplexListen) && !this.holdReacquire) {
       this._startLevelMonitor();
       this._startRecognition();
     }
@@ -157,8 +161,14 @@ export class LunaWebSpeechMic {
 
   setPaused(paused) {
     this.paused = !!paused;
-    if (this.paused) this._stopRecognition();
-    else if (this.enabled && (!this.busy || this.duplexListen)) this._startRecognition();
+    if (this.paused) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+      this._stopRecognition();
+    } else if (this.enabled && (!this.busy || this.duplexListen) && !this.holdReacquire) {
+      this._startLevelMonitor();
+      this._startRecognition();
+    }
   }
 
   async unlock() {
@@ -249,7 +259,7 @@ export class LunaWebSpeechMic {
       if (this.holdReacquire) return;
       if (this.enabled && !this.paused && (!this.busy || this.duplexListen)) {
         clearTimeout(this.restartTimer);
-        const delay = isAndroidUa() ? 650 : 80;
+        const delay = isAndroidUa() ? 1200 : 80;
         this.restartTimer = setTimeout(() => this._startRecognition(), delay);
       }
     };
@@ -325,6 +335,7 @@ export class LunaWebSpeechMic {
   _startRecognition() {
     if (!this.recognition || this._starting || this.paused || !this.enabled) return;
     if (this.busy && !this.duplexListen) return;
+    if (this.holdReacquire) return;
     this._starting = true;
     try {
       this.recognition.start();
@@ -595,7 +606,7 @@ export class LunaMic {
     if (!this.enabled) return;
     this._stopMonitor();
     this._stopRecording();
-    if (this._isIOS() || this._isAndroid()) {
+    if (this._isIOS()) {
       this._teardownAnalyser();
       if (this.stream) {
         this.stream.getTracks().forEach((t) => t.stop());
@@ -603,7 +614,7 @@ export class LunaMic {
       }
       this._trackEndedBound = false;
       this.unlocked = false;
-      await new Promise((r) => setTimeout(r, this._isAndroid() ? 480 : 320));
+      await new Promise((r) => setTimeout(r, 320));
       const ok = await this.unlock();
       if (!ok) {
         this._emitMicRetry();

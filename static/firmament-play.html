@@ -9,7 +9,7 @@
   <style>
     :root {
       --header-h: 118px;
-      --dock-h: 158px;
+      --dock-h: 64px;
       --sidebar-w: min(400px, 38vw);
       --gap: 10px;
       --radius: 14px;
@@ -263,9 +263,8 @@
     #convo-toggle { display: none; }
     #action-bar {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
-      height: var(--dock-h);
-      display: flex; flex-direction: column; gap: 6px;
-      padding: 8px var(--gap) max(8px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 6px var(--gap) max(6px, env(safe-area-inset-bottom));
       background: linear-gradient(0deg, rgba(4, 8, 18, 0.98) 70%, rgba(4, 8, 18, 0.85) 100%);
       border-top: 1px solid rgba(103, 232, 249, 0.2);
       pointer-events: none;
@@ -273,45 +272,31 @@
     @media (min-width: 900px) {
       #action-bar { right: calc(var(--sidebar-w) + var(--gap) * 2); }
     }
-    .dock-row {
-      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
-      pointer-events: auto;
+    .dock-compact {
+      display: flex; gap: 8px; align-items: center; justify-content: center;
+      pointer-events: auto; width: 100%; max-width: 360px;
     }
-    .dock-row.primary { justify-content: stretch; }
-    .dock-row.agents { justify-content: center; }
-    .dock-row.props { justify-content: center; gap: 8px; }
-    .dock-label {
-      font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em;
-      color: #64748b; width: 100%; text-align: center; margin-bottom: -2px;
-      pointer-events: none;
-    }
-    #action-bar button {
+    .dock-compact .dock-icon {
       pointer-events: auto; border: 2px solid rgba(103, 232, 249, 0.4);
-      background: #0f2847; color: #ecfeff; border-radius: 11px;
-      padding: 10px 12px; font-size: 0.88rem; font-weight: 700;
-      cursor: pointer; touch-action: manipulation;
-      transition: transform 0.15s ease;
+      background: #0f2847; color: #ecfeff; border-radius: 14px;
+      width: 50px; height: 50px; padding: 0; font-size: 1.35rem;
+      font-weight: 700; cursor: pointer; touch-action: manipulation;
+      transition: transform 0.15s ease; flex-shrink: 0;
     }
-    #action-bar button.conjure-btn {
+    .dock-compact .dock-icon.conjure-btn {
       background: linear-gradient(135deg, #4c1d95, #7c3aed 45%, #a78bfa);
-      border-color: #c4b5fd; flex: 1; font-size: 0.88rem;
-      box-shadow: 0 0 18px rgba(167, 139, 250, 0.35);
+      border-color: #c4b5fd;
+      box-shadow: 0 0 14px rgba(167, 139, 250, 0.35);
     }
-    #action-bar button.talk { background: #0e7490; border-color: var(--cyan); flex: 1; }
-    #action-bar button.chat-btn { background: #1e3a5f; flex: 1; min-width: 0; }
-    #action-bar button.prop-btn {
-      width: 52px; height: 44px; padding: 0; font-size: 1.25rem;
-      border-radius: 12px;
+    .dock-compact .dock-icon.talk { background: #0e7490; border-color: var(--cyan); }
+    .dock-compact .dock-icon:active { transform: scale(0.94); }
+    .dock-tip {
+      font-size: 0.68rem; color: #64748b; text-align: center;
+      pointer-events: none; line-height: 1.2; max-width: 100%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    #btn-beer { transform: rotate(-4deg); }
-    #btn-steaks { transform: rotate(3deg); }
-    #btn-herbs { transform: rotate(-2deg); }
-    #btn-weed { transform: rotate(-6deg); border-color: rgba(74, 222, 128, 0.55); background: #14532d; }
-    #btn-cookies { transform: rotate(5deg); }
-    #action-bar button#btn-find-bar {
-      width: 44px; padding: 10px; font-size: 1.1rem; margin-left: auto;
-    }
-    #action-bar button:active { transform: scale(0.96) !important; }
+    .dock-tip.flash { color: #a5f3fc; }
+    #game.dragging { cursor: grabbing; }
     #visitor-modal {
       display: none; position: fixed; inset: 0; z-index: 40;
       background: rgba(0,0,0,0.65); align-items: center; justify-content: center; padding: 16px;
@@ -369,7 +354,7 @@
     @media (max-width: 899px) {
       :root {
         --header-h: 88px;
-        --dock-h: 124px;
+        --dock-h: 58px;
         --sidebar-w: 100%;
       }
       body.camp-focus #game {
@@ -411,8 +396,8 @@
       }
       #camp-header .agents-row { display: none; }
       #camp-life-status { font-size: 0.72rem; }
-      .dock-row.agents { display: none; }
-      .dock-row.props .prop-btn { width: 46px; height: 40px; }
+      .dock-tip { display: none; }
+      .dock-compact .dock-icon { width: 46px; height: 46px; font-size: 1.2rem; }
     }
     @media (min-width: 900px) {
       body.camp-focus #game,
@@ -440,11 +425,10 @@
       }
     }
     @media (max-width: 480px) {
-      :root { --header-h: 82px; --dock-h: 118px; }
+      :root { --header-h: 82px; --dock-h: 54px; }
       .brand-block h1 { font-size: 0.88rem; }
       #status-toast { display: none; }
-      #action-bar .dock-label { display: none; }
-      .dock-row.primary button { flex: 1; min-width: 0; font-size: 0.78rem; padding: 8px 6px; }
+      .dock-compact .dock-icon { width: 44px; height: 44px; gap: 6px; }
     }
     #luna-embed-wrap {
       display: none; position: fixed; z-index: 28;
@@ -537,7 +521,7 @@
     <div class="header-row top">
       <div class="brand-block">
         <h1>🔥 Luna Camp</h1>
-        <div class="tagline">main camp — roam, props &amp; agents</div>
+        <div class="tagline">drag stuff · witty 3D agents · roam free</div>
       </div>
       <div id="status-toast">Loading camp…</div>
       <div id="mini-status">Server <span id="server-status">…</span></div>
@@ -572,28 +556,14 @@
   <div id="reply"></div>
   <div id="speech-now"><span class="who">Camp</span><span id="speech-text"></span></div>
   <footer id="action-bar">
-    <div class="dock-label">Actions</div>
-    <div class="dock-row primary">
-      <button type="button" class="conjure-btn" id="btn-conjure-aether" title="Summon something unknown from the aether">✨ Conjure</button>
-      <button type="button" id="btn-luna-avatar">🌙 Live Luna</button>
-      <button type="button" class="talk" id="btn-talk-near">💬 Talk</button>
+    <div class="dock-compact">
+      <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
+      <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
+      <button type="button" class="dock-icon talk" id="btn-talk-near" title="Talk to nearest">💬</button>
+      <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
+      <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
-    <div class="dock-label">Chat with</div>
-    <div class="dock-row agents">
-      <button type="button" class="chat-btn" data-agent="luna">Luna</button>
-      <button type="button" class="chat-btn" data-agent="hermes">Hermes</button>
-      <button type="button" class="chat-btn" data-agent="oracle">Oracle</button>
-      <button type="button" class="chat-btn" data-agent="caduceus">Caduceus</button>
-    </div>
-    <div class="dock-label">Camp stuff</div>
-    <div class="dock-row props">
-      <button type="button" class="prop-btn" id="btn-beer" title="Beer">🍺</button>
-      <button type="button" class="prop-btn" id="btn-steaks" title="Steaks">🥩</button>
-      <button type="button" class="prop-btn" id="btn-herbs" title="Herbs">🌿</button>
-      <button type="button" class="prop-btn" id="btn-weed" title="Weed">🍃</button>
-      <button type="button" class="prop-btn" id="btn-cookies" title="Cookies">🍪</button>
-      <button type="button" id="btn-find-bar" title="Reset positions">↺</button>
-    </div>
+    <div id="dock-tip" class="dock-tip">Drag camp stuff · tap agents to talk</div>
   </footer>
   <div id="prop-hint"></div>
   <button type="button" id="convo-toggle"></button>
@@ -648,7 +618,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-free";
+    const CAMP_BUILD = "2026-07-05-camp-drag3d";
     const isCampMobile = () => window.innerWidth < 900;
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
@@ -1476,6 +1446,242 @@
       luna: "#d946ef", hermes: "#fbbf24", oracle: "#8b5cf6",
       caduceus: "#34d399", sentinel: "#67e8f9", dionysus: "#e11d48",
     };
+    const AGENT_QUIPS = {
+      luna: "moon diplomat",
+      hermes: "ripple courier",
+      oracle: "saw that coming",
+      caduceus: "two snakes, one vibe",
+      sentinel: "beep boop prophecy",
+      dionysus: "crashed the party",
+    };
+    const ISO_SCALE = 5.4;
+    const ISO_COS = 0.8660254;
+    const ISO_SIN = 0.5;
+    let dragTarget = null;
+
+    function isoPoint(cx, cy, x, y, z) {
+      return {
+        x: cx + (x - y) * ISO_COS * ISO_SCALE,
+        y: cy + (x + y) * ISO_SIN * ISO_SCALE - z * ISO_SCALE * 1.12,
+      };
+    }
+
+    function fillIsoFace(points, fill, stroke) {
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke(); }
+    }
+
+    function drawIsoBox(cx, cy, bx, by, bz, w, d, h, colors) {
+      const p000 = isoPoint(cx, cy, bx, by, bz);
+      const p100 = isoPoint(cx, cy, bx + w, by, bz);
+      const p010 = isoPoint(cx, cy, bx, by + d, bz);
+      const p110 = isoPoint(cx, cy, bx + w, by + d, bz);
+      const p001 = isoPoint(cx, cy, bx, by, bz + h);
+      const p101 = isoPoint(cx, cy, bx + w, by, bz + h);
+      const p011 = isoPoint(cx, cy, bx, by + d, bz + h);
+      const p111 = isoPoint(cx, cy, bx + w, by + d, bz + h);
+      fillIsoFace([p001, p101, p111, p011], colors.top, colors.stroke);
+      fillIsoFace([p000, p100, p101, p001], colors.right, colors.stroke);
+      fillIsoFace([p000, p010, p011, p001], colors.left, colors.stroke);
+    }
+
+    function drawIsoCylinder(cx, cy, bx, by, r, h, colors) {
+      const segs = 10;
+      const top = [], bot = [];
+      for (let i = 0; i < segs; i++) {
+        const a = (i / segs) * Math.PI * 2;
+        const px = bx + Math.cos(a) * r;
+        const py = by + Math.sin(a) * r;
+        top.push(isoPoint(cx, cy, px, py, h));
+        bot.push(isoPoint(cx, cy, px, py, 0));
+      }
+      for (let i = 0; i < segs; i++) {
+        const j = (i + 1) % segs;
+        fillIsoFace([bot[i], bot[j], top[j], top[i]], colors.side, colors.stroke);
+      }
+      fillIsoFace(top, colors.top, colors.stroke);
+    }
+
+    function drawAvatarShadow(cx, cy, w) {
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 22, w, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawCaduceusFigure(cx, cy, t) {
+      const pulse = 0.5 + Math.sin(t * 3) * 0.25;
+      drawIsoBox(cx, cy, -0.15, -0.15, 0, 0.3, 0.3, 2.6,
+        { top: "#fde68a", left: "#b45309", right: "#f59e0b", stroke: "#34d399" });
+      ctx.strokeStyle = `rgba(52, 211, 153, ${0.7 + pulse * 0.3})`;
+      ctx.lineWidth = 2.5;
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        const base = isoPoint(cx, cy, 0, 0, 0.4);
+        const mid = isoPoint(cx, cy, side * 0.55, side * 0.2, 1.4);
+        const top = isoPoint(cx, cy, side * 0.35, side * 0.55, 2.2);
+        ctx.moveTo(base.x, base.y);
+        ctx.quadraticCurveTo(mid.x, mid.y, top.x, top.y);
+        ctx.stroke();
+        const head = isoPoint(cx, cy, side * 0.35, side * 0.55, 2.35);
+        ctx.fillStyle = "#6ee7b7";
+        ctx.beginPath();
+        ctx.arc(head.x, head.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const wingL = isoPoint(cx, cy, -0.9, -0.2, 2.5);
+      const wingR = isoPoint(cx, cy, 0.9, -0.2, 2.5);
+      const wingC = isoPoint(cx, cy, 0, -0.5, 2.7);
+      ctx.fillStyle = "rgba(253, 230, 138, 0.85)";
+      ctx.beginPath();
+      ctx.moveTo(wingC.x, wingC.y);
+      ctx.lineTo(wingL.x, wingL.y);
+      ctx.lineTo(isoPoint(cx, cy, -0.5, 0.1, 2.4).x, isoPoint(cx, cy, -0.5, 0.1, 2.4).y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(wingC.x, wingC.y);
+      ctx.lineTo(wingR.x, wingR.y);
+      ctx.lineTo(isoPoint(cx, cy, 0.5, 0.1, 2.4).x, isoPoint(cx, cy, 0.5, 0.1, 2.4).y);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawLunaFigure(cx, cy, t) {
+      const glow = 0.4 + Math.sin(t * 2.2) * 0.2;
+      ctx.strokeStyle = `rgba(217, 70, 239, ${glow})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 38, 16, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+      drawIsoBox(cx, cy, -0.35, -0.35, 0, 0.7, 0.7, 1.1,
+        { top: "#f0abfc", left: "#a21caf", right: "#d946ef", stroke: "#f5d0fe" });
+      drawIsoCylinder(cx, cy, 0, 0.55, 0.22, 0.55,
+        { top: "#e879f9", side: "#c026d3", stroke: "#fae8ff" });
+    }
+
+    function drawHermesFigure(cx, cy, t) {
+      const wing = Math.sin(t * 6) * 3;
+      drawIsoBox(cx, cy, -0.3, -0.3, 0, 0.6, 0.6, 1.0,
+        { top: "#fde68a", left: "#b45309", right: "#fbbf24", stroke: "#fcd34d" });
+      drawIsoBox(cx, cy, -0.55, -0.1, 1.0, 0.35, 0.15, 0.12,
+        { top: "#fef3c7", left: "#d97706", right: "#fbbf24", stroke: "#fff" });
+      ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
+      ctx.beginPath();
+      ctx.moveTo(cx - 18, cy - 28 + wing);
+      ctx.lineTo(cx - 8, cy - 36);
+      ctx.lineTo(cx - 2, cy - 26);
+      ctx.fill();
+      drawIsoBox(cx, cy, 0.45, -0.1, 0, 0.12, 0.12, 2.2,
+        { top: "#94a3b8", left: "#64748b", right: "#cbd5e1", stroke: "#fbbf24" });
+    }
+
+    function drawOracleFigure(cx, cy, t) {
+      drawIsoBox(cx, cy, -0.32, -0.32, 0, 0.64, 0.64, 0.95,
+        { top: "#c4b5fd", left: "#6d28d9", right: "#8b5cf6", stroke: "#ddd6fe" });
+      const orb = isoPoint(cx, cy, 0, 0, 1.5);
+      const r = 11 + Math.sin(t * 2.5) * 2;
+      const g = ctx.createRadialGradient(orb.x, orb.y, 1, orb.x, orb.y, r);
+      g.addColorStop(0, "rgba(196, 181, 253, 0.95)");
+      g.addColorStop(0.6, "rgba(139, 92, 246, 0.55)");
+      g.addColorStop(1, "rgba(139, 92, 246, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(orb.x, orb.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      drawIsoCylinder(cx, cy, 0, 0.5, 0.18, 0.35,
+        { top: "#7c3aed", side: "#5b21b6", stroke: "#a78bfa" });
+    }
+
+    function drawSentinelFigure(cx, cy, t) {
+      const flash = 0.5 + 0.5 * Math.sin(t * 4);
+      drawIsoBox(cx, cy, -0.2, -0.2, 0, 0.4, 0.4, 0.35,
+        { top: "#334155", left: "#1e293b", right: "#475569", stroke: "#67e8f9" });
+      drawIsoBox(cx, cy, -0.55, -0.35, 0.35, 1.1, 0.7, 0.85,
+        { top: `rgba(34, 211, 238, ${0.25 + flash * 0.25})`, left: "#0e7490", right: "#22d3ee", stroke: "#67e8f9" });
+      const scan = isoPoint(cx, cy, 0.7, 0, 0.9);
+      ctx.strokeStyle = `rgba(103, 232, 249, ${0.4 + flash * 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(scan.x, scan.y);
+      ctx.lineTo(scan.x + 22 + flash * 8, scan.y - 6);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(34, 211, 238, ${flash})`;
+      ctx.fillRect(scan.x + 4, scan.y - 10, 8, 5);
+    }
+
+    function drawDionysusFigure(cx, cy, t) {
+      const sway = Math.sin(t * 3) * 4;
+      drawIsoBox(cx, cy, -0.3 + sway * 0.01, -0.3, 0, 0.6, 0.6, 1.0,
+        { top: "#fda4af", left: "#be123c", right: "#e11d48", stroke: "#fecdd3" });
+      drawIsoCylinder(cx, cy, 0.35, 0.1, 0.14, 0.7,
+        { top: "#7f1d1d", side: "#991b1b", stroke: "#fca5a5" });
+      ctx.font = "14px Segoe UI";
+      ctx.fillText("🍇", cx - 14 + sway, cy - 18);
+    }
+
+    function drawAgentAvatar(n, wx, wy) {
+      const s = worldToScreen(wx, wy);
+      const t = Date.now() / 1000;
+      const dragging = dragTarget?.kind === "agent" && dragTarget.ref === n;
+      if (dragging) {
+        ctx.strokeStyle = n.color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 42, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      if (speakingAgentId === n.id) {
+        ctx.strokeStyle = n.color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 40, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      drawAvatarShadow(s.x, s.y, 20);
+      const drawers = {
+        luna: drawLunaFigure,
+        hermes: drawHermesFigure,
+        oracle: drawOracleFigure,
+        caduceus: drawCaduceusFigure,
+        sentinel: drawSentinelFigure,
+        dionysus: drawDionysusFigure,
+      };
+      (drawers[n.id] || drawLunaFigure)(s.x, s.y, t);
+      if (n.mood) {
+        const m = n.mood.slice(0, 10);
+        ctx.font = "bold 9px Segoe UI";
+        const mw = ctx.measureText(m).width;
+        ctx.fillStyle = "rgba(8, 14, 24, 0.92)";
+        ctx.beginPath();
+        ctx.roundRect(s.x - mw / 2 - 5, s.y - 58, mw + 10, 14, 5);
+        ctx.fill();
+        ctx.fillStyle = "#a7f3d0";
+        ctx.textAlign = "center";
+        ctx.fillText(m, s.x, s.y - 48);
+      }
+      ctx.font = "bold 12px Segoe UI";
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.fillText(n.name, s.x, s.y - 62);
+      const quip = AGENT_QUIPS[n.id];
+      if (quip) {
+        ctx.font = "italic 9px Segoe UI";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText(quip, s.x, s.y + 30);
+      }
+      const tag = npcBehaviorLabel(n);
+      ctx.font = "8px Segoe UI";
+      ctx.fillStyle = "#64748b";
+      ctx.fillText(tag, s.x, s.y + 42);
+    }
     let speakingAgentId = null;
     let speakingTimer = null;
 
@@ -1719,36 +1925,6 @@
       ctx.textAlign = "center";
     }
 
-    function drawNpcSprite(n, wx, wy) {
-      const s = worldToScreen(wx, wy);
-      if (n.sprite === "caduceus") {
-        const t = Date.now() / 1000;
-        const glow = 0.45 + Math.sin(t * 3) * 0.2;
-        ctx.strokeStyle = `rgba(52, 211, 153, ${glow})`;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y + 20);
-        ctx.lineTo(s.x, s.y - 18);
-        ctx.stroke();
-        ctx.fillStyle = "#34d399";
-        ctx.beginPath();
-        ctx.arc(s.x - 7, s.y - 2, 5, 0, Math.PI * 2);
-        ctx.arc(s.x + 7, s.y + 4, 4, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (n.sprite === "sentinel") {
-        const t = Date.now() / 1000;
-        const flash = 0.5 + 0.5 * Math.sin(t * 4);
-        ctx.fillStyle = `rgba(34, 211, 238, ${0.15 + flash * 0.2})`;
-        ctx.fillRect(s.x - 14, s.y - 16, 28, 32);
-        ctx.strokeStyle = `rgba(34, 211, 238, ${0.6 + flash * 0.4})`;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(s.x - 14, s.y - 16, 28, 32);
-        ctx.fillStyle = "#67e8f9";
-        ctx.font = "8px Segoe UI";
-        ctx.fillText("◉", s.x - 3, s.y + 2);
-      }
-    }
-
     function drawAgentSpeechBubbles() {
       for (const n of allRoamers()) {
         const held = speechHold.get(n.name);
@@ -1833,44 +2009,69 @@
 
     function drawCampProp(wx, wy, prop) {
       const s = worldToScreen(wx, wy);
+      const dragging = dragTarget?.kind === "prop" && dragTarget.ref === prop;
       const nearPlayer = nearestProp && nearestProp.id === prop.id;
-      const nearNpc = npcs.some((n) => dist(n, { x: prop.x, y: prop.y }) < 42);
-      if (nearPlayer || nearNpc) {
-        ctx.strokeStyle = `${prop.color}88`;
-        ctx.lineWidth = 2;
+      if (dragging || nearPlayer) {
+        ctx.strokeStyle = dragging ? "#fbbf24" : `${prop.color}aa`;
+        ctx.lineWidth = dragging ? 3 : 2;
+        ctx.setLineDash(dragging ? [6, 4] : []);
         ctx.beginPath();
-        ctx.arc(s.x, s.y, 28, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, 34, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.setLineDash([]);
       }
-      if (prop.id === "steaks") {
-        ctx.fillStyle = "#444";
-        ctx.fillRect(s.x - 22, s.y + 4, 44, 8);
-        ctx.fillStyle = "#b45309";
-        ctx.fillRect(s.x - 16, s.y - 2, 14, 6);
-        ctx.fillRect(s.x + 2, s.y - 4, 12, 5);
-      }
+      drawAvatarShadow(s.x, s.y, 16);
+      const cx = s.x, cy = s.y + 6;
       if (prop.id === "beer") {
-        ctx.fillStyle = "#1e3a5f";
-        ctx.fillRect(s.x - 18, s.y - 2, 36, 14);
-        ctx.fillStyle = "#f59e0b";
-        ctx.fillRect(s.x - 14, s.y + 2, 28, 4);
+        drawIsoCylinder(cx, cy, 0, 0, 0.35, 0.75,
+          { top: "#fbbf24", side: "#1e3a5f", stroke: "#f59e0b" });
+        drawIsoBox(cx, cy, -0.42, -0.42, 0.75, 0.84, 0.84, 0.1,
+          { top: "#fde68a", left: "#d97706", right: "#fbbf24", stroke: "#fff" });
+      } else if (prop.id === "steaks") {
+        drawIsoBox(cx, cy, -0.7, -0.45, 0, 1.4, 0.9, 0.25,
+          { top: "#444", left: "#292524", right: "#57534e", stroke: "#78716c" });
+        drawIsoBox(cx, cy, -0.45, -0.2, 0.25, 0.5, 0.35, 0.12,
+          { top: "#b45309", left: "#92400e", right: "#dc2626", stroke: "#fca5a5" });
+        drawIsoBox(cx, cy, 0.05, -0.15, 0.3, 0.4, 0.3, 0.1,
+          { top: "#ea580c", left: "#9a3412", right: "#c2410c", stroke: "#fdba74" });
+      } else if (prop.id === "herbs") {
+        drawIsoBox(cx, cy, -0.5, -0.35, 0, 1.0, 0.7, 0.2,
+          { top: "#14532d", left: "#052e16", right: "#166534", stroke: "#4ade80" });
+        ctx.font = "18px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("🌿", cx, cy - 22);
+      } else if (prop.id === "weed") {
+        drawIsoCylinder(cx, cy, 0, 0.1, 0.3, 0.45,
+          { top: "#166534", side: "#14532d", stroke: "#4ade80" });
+        ctx.font = "20px Segoe UI";
+        ctx.fillText("🍃", cx, cy - 26);
+      } else if (prop.id === "cookies") {
+        drawIsoCylinder(cx, cy, 0, 0, 0.55, 0.08,
+          { top: "#e2e8f0", side: "#94a3b8", stroke: "#f1f5f9" });
+        for (const [ox, oy] of [[-0.25, -0.15], [0.2, -0.2], [0, 0.2]]) {
+          const p = isoPoint(cx, cy, ox, oy, 0.12);
+          ctx.fillStyle = "#b45309";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-      if (prop.id === "herbs") {
-        ctx.fillStyle = "#14532d";
-        ctx.beginPath();
-        ctx.ellipse(s.x, s.y + 6, 20, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.font = "28px Segoe UI";
-      ctx.textAlign = "center";
-      ctx.fillText(prop.emoji, s.x, s.y + 10);
-      ctx.font = "bold 11px Segoe UI";
+      ctx.font = "bold 10px Segoe UI";
       ctx.fillStyle = "#f1f5f9";
-      ctx.fillText(prop.name, s.x, s.y - 24);
-      if (nearPlayer) {
+      ctx.textAlign = "center";
+      ctx.fillText(prop.name, s.x, s.y - 30);
+      if (dragging) {
+        ctx.fillStyle = "#fde68a";
+        ctx.font = "9px Segoe UI";
+        ctx.fillText("drop anywhere", s.x, s.y + 32);
+      } else if (nearPlayer) {
         ctx.fillStyle = "#6ee7b7";
         ctx.font = "9px Segoe UI";
-        ctx.fillText("E or tap", s.x, s.y + 28);
+        ctx.fillText("tap to use", s.x, s.y + 32);
+      } else {
+        ctx.fillStyle = "#64748b";
+        ctx.font = "8px Segoe UI";
+        ctx.fillText("drag me", s.x, s.y + 32);
       }
     }
 
@@ -1916,7 +2117,7 @@
       }
       if (nearestId) openDialogue(nearestId);
       else {
-        replyEl.textContent = "Tap anywhere to roam — agents wander the whole screen. Tap an agent to talk.";
+        replyEl.textContent = "Drag camp objects · tap agents to talk · empty ground = walk";
       }
     }
 
@@ -1955,27 +2156,103 @@
       }
     }
 
-    function setTargetFromEvent(ev) {
+    function campPointerPos(ev) {
       const rect = canvas.getBoundingClientRect();
-      const sx = ev.clientX - rect.left;
-      const sy = ev.clientY - rect.top;
+      return { sx: ev.clientX - rect.left, sy: ev.clientY - rect.top };
+    }
+
+    function hitTestCamp(sx, sy) {
       for (const p of props) {
         const ps = worldToScreen(camp.x + p.x, camp.y + p.y);
-        if (Math.hypot(sx - ps.x, sy - ps.y) < 38) {
-          player.tx = camp.x + p.x;
-          player.ty = camp.y + p.y;
-          setTimeout(() => {
-            if (dist(player, { x: camp.x + p.x, y: camp.y + p.y }) < p.radius + 20) useProp(p);
-          }, 350);
-          return;
-        }
+        if (Math.hypot(sx - ps.x, sy - ps.y) < 40) return { kind: "prop", ref: p };
+      }
+      for (const n of allRoamers()) {
+        const ns = worldToScreen(camp.x + n.x, camp.y + n.y);
+        if (Math.hypot(sx - ns.x, sy - ns.y) < 38) return { kind: "agent", ref: n };
+      }
+      return null;
+    }
+
+    function placeDragAt(sx, sy, target) {
+      const w = screenToWorld(sx, sy);
+      const b = getCampRelativeBounds();
+      const rx = Math.max(b.xMin, Math.min(b.xMax, w.x - camp.x));
+      const ry = Math.max(b.yMin, Math.min(b.yMax, w.y - camp.y));
+      if (target.kind === "prop") {
+        target.ref.x = rx;
+        target.ref.y = ry;
+      } else {
+        target.ref.x = rx;
+        target.ref.y = ry;
+        target.ref.tx = rx;
+        target.ref.ty = ry;
+        target.ref.idle = 50;
+        target.ref.behavior = "stand";
+        target.ref.behaviorTimer = 80;
+      }
+    }
+
+    function onCampPointerDown(ev) {
+      const { sx, sy } = campPointerPos(ev);
+      const hit = hitTestCamp(sx, sy);
+      if (hit) {
+        dragTarget = { ...hit, moved: false, startSx: sx, startSy: sy, pointerId: ev.pointerId };
+        canvas.setPointerCapture(ev.pointerId);
+        canvas.classList.add("dragging");
+        if (hit.kind === "prop") showToast(`Dragging ${hit.ref.emoji} ${hit.ref.name}`);
+        else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
+        return;
       }
       const w = screenToWorld(sx, sy);
       const b = getCampRelativeBounds();
       player.tx = Math.max(camp.x + b.xMin, Math.min(camp.x + b.xMax, w.x));
       player.ty = Math.max(camp.y + b.yMin, Math.min(camp.y + b.yMax, w.y));
     }
-    canvas.addEventListener("pointerdown", setTargetFromEvent);
+
+    function onCampPointerMove(ev) {
+      if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
+      const { sx, sy } = campPointerPos(ev);
+      if (Math.hypot(sx - dragTarget.startSx, sy - dragTarget.startSy) > 8) {
+        dragTarget.moved = true;
+        placeDragAt(sx, sy, dragTarget);
+      }
+    }
+
+    function onCampPointerUp(ev) {
+      if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
+      canvas.releasePointerCapture(ev.pointerId);
+      canvas.classList.remove("dragging");
+      const { sx, sy } = campPointerPos(ev);
+      if (!dragTarget.moved) {
+        if (dragTarget.kind === "prop") {
+          player.tx = camp.x + dragTarget.ref.x;
+          player.ty = camp.y + dragTarget.ref.y;
+          setTimeout(() => {
+            if (dist(player, { x: camp.x + dragTarget.ref.x, y: camp.y + dragTarget.ref.y }) < dragTarget.ref.radius + 24) {
+              useProp(dragTarget.ref);
+            }
+          }, 300);
+        } else if (dragTarget.kind === "agent") {
+          if (dragTarget.ref.id === "luna") openLunaEmbed();
+          else openDialogue(dragTarget.ref.id);
+        }
+      } else if (dragTarget.kind === "prop") {
+        showToast(`${dragTarget.ref.name} placed`);
+        recordCampMemory({
+          kind: "prop_move",
+          prop_id: dragTarget.ref.id,
+          text: `${myVisitorName || player.name || "You"} moved ${dragTarget.ref.name} at camp`,
+        });
+      } else {
+        showToast(`${dragTarget.ref.name} repositioned`);
+      }
+      dragTarget = null;
+    }
+
+    canvas.addEventListener("pointerdown", onCampPointerDown);
+    canvas.addEventListener("pointermove", onCampPointerMove);
+    canvas.addEventListener("pointerup", onCampPointerUp);
+    canvas.addEventListener("pointercancel", onCampPointerUp);
 
     document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
     document.getElementById("btn-find-bar").onclick = () => gatherNpcsAtCamp(false);
@@ -1983,12 +2260,15 @@
       if (nearestId) openDialogue(nearestId);
       else openDialogue("luna");
     };
-    document.querySelectorAll("#action-bar .chat-btn").forEach((btn) => {
-      btn.onclick = () => {
-        if (btn.dataset.agent === "luna") openLunaEmbed();
-        else openDialogue(btn.dataset.agent);
-      };
-    });
+    document.getElementById("btn-dock-help").onclick = () => {
+      const tip = document.getElementById("dock-tip");
+      if (tip) {
+        tip.classList.add("flash");
+        tip.textContent = "Drag 🍺🥩🌿🍃🍪 · tap agents · ✨ conjure · empty tap = walk";
+        setTimeout(() => tip.classList.remove("flash"), 2400);
+      }
+      showToast("Drag camp objects · tap agents to talk · walk on empty ground");
+    };
     document.querySelectorAll("#agent-strip .agent-chip").forEach((btn) => {
       btn.onclick = () => {
         if (btn.dataset.agent === "luna") openLunaEmbed();
@@ -1996,11 +2276,6 @@
       };
     });
     document.getElementById("btn-conjure-aether").onclick = () => conjureFromAether();
-    document.getElementById("btn-beer").onclick = () => useProp(props.find((p) => p.id === "beer"));
-    document.getElementById("btn-steaks").onclick = () => useProp(props.find((p) => p.id === "steaks"));
-    document.getElementById("btn-herbs").onclick = () => useProp(props.find((p) => p.id === "herbs"));
-    document.getElementById("btn-weed").onclick = () => useProp(props.find((p) => p.id === "weed"));
-    document.getElementById("btn-cookies").onclick = () => useProp(props.find((p) => p.id === "cookies"));
     document.querySelector("#convo-log header").onclick = () => {
       document.getElementById("convo-log").classList.toggle("collapsed");
     };
@@ -2516,7 +2791,7 @@
           applyGlobalNpcMode("free");
           document.body.classList.add("camp-focus");
           document.getElementById("convo-log")?.classList.add("collapsed");
-          setCampLifeStatus("Agents roam the whole camp — tap ✨ Conjure or 🌙 Live Luna");
+          setCampLifeStatus("Drag camp stuff · tap agents · ✨ Conjure · 🌙 Luna");
           spreadAllNpcs();
           setTimeout(() => {
             const t = document.getElementById("status-toast");
@@ -2541,8 +2816,7 @@
         }
         drawAetherEntities();
         for (const n of allRoamers()) {
-          drawPerson(camp.x + n.x, camp.y + n.y, n.color, n.name, "", n.mood);
-          drawNpcSprite(n, camp.x + n.x, camp.y + n.y);
+          drawAgentAvatar(n, camp.x + n.x, camp.y + n.y);
         }
         drawAgentSpeechBubbles();
         drawOtherVisitors();

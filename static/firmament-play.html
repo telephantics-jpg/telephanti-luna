@@ -222,10 +222,10 @@
     #convo-log h3 { font-size: 0.95rem; color: var(--cyan); margin-bottom: 2px; }
     #convo-log .sub { font-size: 0.72rem; color: #94a3b8; }
     #now-speaking {
-      flex-shrink: 0; padding: 10px 14px;
+      flex-shrink: 0; padding: 12px 14px;
       background: rgba(103, 232, 249, 0.08);
       border-bottom: 1px solid rgba(103, 232, 249, 0.2);
-      font-size: 0.95rem; line-height: 1.45; min-height: 44px;
+      font-size: 1.05rem; line-height: 1.55; min-height: 52px;
     }
     #now-speaking .ns-who { color: #67e8f9; font-weight: 700; display: block; margin-bottom: 3px; }
     #now-speaking .ns-text { color: #f1f5f9; }
@@ -236,7 +236,7 @@
       font-size: 0.92rem; line-height: 1.5; color: #e2e8f0;
     }
     #convo-lines .line {
-      margin-bottom: 10px; padding: 8px 10px 10px;
+      margin-bottom: 14px; padding: 8px 10px 10px;
       border-radius: 10px;
       background: rgba(255,255,255,0.03);
       border-left: 3px solid rgba(103, 232, 249, 0.4);
@@ -251,8 +251,12 @@
       text-transform: capitalize; opacity: 0.9;
     }
     #convo-lines .text {
-      display: block; margin-top: 4px; color: #f1f5f9;
-      white-space: pre-wrap; word-break: break-word; font-size: 1.05rem;
+      display: block; margin-top: 6px; color: #f1f5f9;
+      white-space: pre-wrap; word-break: break-word;
+      font-size: 1.12rem; line-height: 1.55;
+      padding: 10px 12px; border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(103, 232, 249, 0.18);
     }
     #npc-behavior, #launcher-dock, #visitors-online, #btn-find-friends { display: none; }
     #prop-hint { display: none !important; }
@@ -288,9 +292,10 @@
       cursor: pointer; touch-action: manipulation;
       transition: transform 0.15s ease;
     }
-    #action-bar button.listen-btn {
-      background: linear-gradient(135deg, #6d28d9, #7c3aed);
-      border-color: #c4b5fd; flex: 1; font-size: 0.92rem;
+    #action-bar button.conjure-btn {
+      background: linear-gradient(135deg, #4c1d95, #7c3aed 45%, #a78bfa);
+      border-color: #c4b5fd; flex: 1; font-size: 0.88rem;
+      box-shadow: 0 0 18px rgba(167, 139, 250, 0.35);
     }
     #action-bar button.talk { background: #0e7490; border-color: var(--cyan); flex: 1; }
     #action-bar button.chat-btn { background: #1e3a5f; flex: 1; min-width: 0; }
@@ -333,10 +338,11 @@
     }
     #dialogue-panel h2 { font-size: 1.65rem; color: #67e8f9; margin-bottom: 12px; }
     #npc-bubble {
-      background: rgba(15, 24, 40, 0.95); border-radius: 12px; padding: 18px;
-      min-height: 120px; max-height: min(50vh, 420px); overflow: auto; font-size: 1.3rem;
-      line-height: 1.6; color: #f8fafc; margin-bottom: 12px;
+      background: rgba(15, 24, 40, 0.95); border-radius: 14px; padding: 20px;
+      min-height: 140px; max-height: min(55vh, 480px); overflow: auto; font-size: 1.42rem;
+      line-height: 1.65; color: #f8fafc; margin-bottom: 12px;
       white-space: pre-wrap; word-break: break-word;
+      border: 1px solid rgba(103, 232, 249, 0.25);
     }
     .quick-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
     .quick-btns button {
@@ -477,6 +483,13 @@
       font-size: 0.92rem !important;
     }
     @media (max-width: 899px) {
+      #luna-embed-wrap.open:not(.expanded) {
+        pointer-events: none;
+      }
+      #luna-embed-wrap.open:not(.expanded) #luna-embed-header,
+      #luna-embed-wrap.open:not(.expanded) #luna-embed-frame {
+        pointer-events: auto;
+      }
       #luna-embed-wrap.open {
         left: auto;
         right: var(--gap);
@@ -551,7 +564,7 @@
   <div id="convo-log">
     <header>
       <h3>💬 Live camp chatter</h3>
-      <div class="sub">Tap to collapse · Luna, Hermes, Oracle &amp; friends talk on their own</div>
+      <div class="sub">Tap to collapse · agents roam free &amp; chat in bubbles</div>
     </header>
     <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents spread around the ring — one voice at a time here…</span></div>
     <div id="convo-lines">Recent lines appear below, newest at bottom.</div>
@@ -561,7 +574,7 @@
   <footer id="action-bar">
     <div class="dock-label">Actions</div>
     <div class="dock-row primary">
-      <button type="button" class="listen-btn" id="btn-listen-camp">🎧 Listen</button>
+      <button type="button" class="conjure-btn" id="btn-conjure-aether" title="Summon something unknown from the aether">✨ Conjure</button>
       <button type="button" id="btn-luna-avatar">🌙 Live Luna</button>
       <button type="button" class="talk" id="btn-talk-near">💬 Talk</button>
     </div>
@@ -635,7 +648,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-main";
+    const CAMP_BUILD = "2026-07-05-camp-free";
     const isCampMobile = () => window.innerWidth < 900;
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
@@ -691,15 +704,19 @@
       oracle: { x: 178, y: -30 },
       hermes: { x: 0, y: -128 },
       dionysus: { x: 158, y: 88 },
+      caduceus: { x: -145, y: 95 },
+      sentinel: { x: 162, y: 82 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
       oracle: { angle: Math.PI * 0.08, bias: 1.0 },
       hermes: { angle: -Math.PI / 2, bias: 1.0 },
       dionysus: { angle: Math.PI * 0.42, bias: 1.0 },
+      caduceus: { angle: Math.PI * 0.72, bias: 1.0 },
+      sentinel: { angle: Math.PI * 0.22, bias: 1.0 },
     };
-    const MIN_NPC_GAP = 52;
-    const ANCHOR_WANDER = 78;
+    const MIN_NPC_GAP = 58;
+    const ANCHOR_WANDER = 120;
     const CHAT_MEET_DIST = 40;
     const CAM_X = 0;
     const CAM_Y = -80;
@@ -745,17 +762,59 @@
       { id: "dionysus", name: "Dionysus" },
     ];
     const npcs = [
-      { id: "luna", name: "Luna", color: "#d946ef", x: -168, y: -38, tx: -168, ty: -38, speed: 2.4, roam: 48, idle: 0, line: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
-      { id: "oracle", name: "Oracle", color: "#8b5cf6", x: 178, y: -30, tx: 178, ty: -30, speed: 2.2, roam: 46, idle: 0, line: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
-      { id: "hermes", name: "Hermes", color: "#fbbf24", x: 0, y: -128, tx: 0, ty: -128, speed: 2.6, roam: 50, idle: 0, line: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
+      { id: "luna", name: "Luna", color: "#d946ef", x: -168, y: -38, tx: -168, ty: -38, speed: 2.5, roam: 120, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
+      { id: "oracle", name: "Oracle", color: "#8b5cf6", x: 178, y: -30, tx: 178, ty: -30, speed: 2.3, roam: 118, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
+      { id: "hermes", name: "Hermes", color: "#fbbf24", x: 0, y: -128, tx: 0, ty: -128, speed: 2.7, roam: 125, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
+      { id: "caduceus", name: "Caduceus", color: "#34d399", x: -145, y: 95, tx: -145, ty: 95, speed: 2.1, roam: 110, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, sprite: "caduceus" },
+      { id: "sentinel", name: "Sentinel", color: "#67e8f9", x: 162, y: 82, tx: 162, ty: 82, speed: 2.4, roam: 115, idle: 0, line: "", fullLine: "", mood: "alert", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, sprite: "sentinel" },
     ];
-    const CAMP_LIMIT = { x: 200, y: 150 };
+    const aetherEntities = [];
+    const AETHER_TYPES = [
+      { name: "Unknown Source", color: "#a78bfa", glyph: "✦" },
+      { name: "Aether Wisp", color: "#67e8f9", glyph: "◌" },
+      { name: "Ripple Spirit", color: "#f472b6", glyph: "◎" },
+      { name: "Lost Signal", color: "#fbbf24", glyph: "⌁" },
+      { name: "Void Mote", color: "#c4b5fd", glyph: "◇" },
+      { name: "Unnamed Presence", color: "#6ee7b7", glyph: "☽" },
+    ];
+
+    function getCampRelativeBounds() {
+      const style = getComputedStyle(document.documentElement);
+      const headerH = parseFloat(style.getPropertyValue("--header-h")) || 88;
+      const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 124;
+      const margin = 24;
+      const tl = screenToWorld(margin, headerH + margin);
+      const br = screenToWorld(canvas.width - margin, canvas.height - dockH - margin);
+      return {
+        xMin: tl.x - camp.x,
+        xMax: br.x - camp.x,
+        yMin: tl.y - camp.y,
+        yMax: br.y - camp.y,
+      };
+    }
+
+    function randomPointInBounds(pad = 18) {
+      const b = getCampRelativeBounds();
+      return {
+        x: b.xMin + pad + Math.random() * Math.max(40, b.xMax - b.xMin - pad * 2),
+        y: b.yMin + pad + Math.random() * Math.max(40, b.yMax - b.yMin - pad * 2),
+      };
+    }
 
     function clampCampCoord(x, y) {
+      const b = getCampRelativeBounds();
       return {
-        x: Math.max(-CAMP_LIMIT.x, Math.min(CAMP_LIMIT.x, x)),
-        y: Math.max(-CAMP_LIMIT.y, Math.min(CAMP_LIMIT.y, y)),
+        x: Math.max(b.xMin, Math.min(b.xMax, x)),
+        y: Math.max(b.yMin, Math.min(b.yMax, y)),
       };
+    }
+
+    function clampPlayerWorld() {
+      const b = getCampRelativeBounds();
+      player.x = Math.max(camp.x + b.xMin, Math.min(camp.x + b.xMax, player.x));
+      player.y = Math.max(camp.y + b.yMin, Math.min(camp.y + b.yMax, player.y));
+      player.tx = Math.max(camp.x + b.xMin, Math.min(camp.x + b.xMax, player.tx));
+      player.ty = Math.max(camp.y + b.yMin, Math.min(camp.y + b.yMax, player.ty));
     }
 
     function clampNpc(n) {
@@ -772,8 +831,15 @@
       if (anchor) return { x: anchor.x, y: anchor.y };
       const sector = NPC_SECTORS[agentId];
       const angle = sector ? sector.angle : Math.random() * Math.PI * 2;
-      const r = CAMP_LIMIT.x * 0.75;
-      return { x: Math.cos(angle) * r, y: Math.sin(angle) * r * 0.72 };
+      const b = getCampRelativeBounds();
+      const cx = (b.xMin + b.xMax) * 0.5;
+      const cy = (b.yMin + b.yMax) * 0.5;
+      const rx = (b.xMax - b.xMin) * 0.42;
+      const ry = (b.yMax - b.yMin) * 0.42;
+      return {
+        x: cx + Math.cos(angle) * rx,
+        y: cy + Math.sin(angle) * ry,
+      };
     }
 
     function shouldSkipSeparation(a, b) {
@@ -946,11 +1012,10 @@
         if (target) aimNpcNear(n, target, CHAT_MEET_DIST + Math.random() * 22);
       } else {
         const roll = Math.random();
-        if (roll < 0.4 || chilling) {
-          const r = CAMP_LIMIT.x * (0.42 + Math.random() * 0.52);
-          const ang = Math.random() * Math.PI * 2;
-          n.tx = Math.cos(ang) * r;
-          n.ty = Math.sin(ang) * r * (CAMP_LIMIT.y / CAMP_LIMIT.x);
+        if (roll < 0.48 || chilling) {
+          const pt = randomPointInBounds(12);
+          n.tx = pt.x;
+          n.ty = pt.y;
         } else if (roll < 0.74) {
           const wander = ANCHOR_WANDER * (chilling ? 1.9 : 1.35) * (0.75 + Math.random() * 1.1);
           const angle = (NPC_SECTORS[n.id]?.angle ?? Math.random() * Math.PI * 2) + (Math.random() - 0.5) * 1.5;
@@ -1187,8 +1252,6 @@
         document.getElementById("convo-log").classList.toggle("open");
       };
     }
-    const terminal = { x: 55, y: 22 };
-    const caduceus = { x: 48, y: 12, line: "press Caduceus to talk", mood: "neutral" };
     let nearestId = null;
     let chatBusy = false;
     let groundPattern = null;
@@ -1239,19 +1302,12 @@
       };
     }
 
-    function drawCampRing() {
+    function drawCampfireLabel() {
       const c = worldToScreen(camp.x, camp.y);
-      ctx.strokeStyle = "rgba(103, 232, 249, 0.22)";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([8, 10]);
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, CAMP_LIMIT.x * WORLD_ZOOM, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
       ctx.font = "11px Segoe UI";
-      ctx.fillStyle = "rgba(148, 163, 184, 0.7)";
+      ctx.fillStyle = "rgba(148, 163, 184, 0.55)";
       ctx.textAlign = "center";
-      ctx.fillText("campfire", c.x, c.y + CAMP_LIMIT.x * WORLD_ZOOM + 14);
+      ctx.fillText("campfire", c.x, c.y + 42);
     }
 
     function dist(a, b) {
@@ -1300,6 +1356,62 @@
         ctx.arc(s.x, s.y, rad, 0, Math.PI * 2);
         ctx.stroke();
       }
+    }
+
+    let conjureBusy = false;
+
+    async function conjureFromAether() {
+      if (conjureBusy) return;
+      conjureBusy = true;
+      const type = AETHER_TYPES[Math.floor(Math.random() * AETHER_TYPES.length)];
+      const pt = randomPointInBounds(20);
+      const entity = {
+        id: "aether-" + Date.now(),
+        name: type.name,
+        color: type.color,
+        glyph: type.glyph,
+        x: pt.x,
+        y: pt.y,
+        phase: Math.random() * Math.PI * 2,
+        until: Date.now() + 52000,
+        line: "",
+      };
+      aetherEntities.push(entity);
+      psychicRipples.push({ x: camp.x + pt.x, y: camp.y + pt.y, t: Date.now(), color: type.color });
+      setCampLifeStatus(`✨ ${type.name} manifesting from the aether…`);
+      showToast(`${type.glyph} ${type.name} appeared!`);
+      pushCampLine("Camp", `Something unknown flickers into view — ${type.name} ${type.glyph}`, 16, "alert", { fromLocal: true });
+      try {
+        const res = await fetch("/api/firmament/agent/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_id: "oracle",
+            message: `(An ${type.name} just manifested from the aether at Luna camp — speak AS the unknown presence in 2-4 mysterious sentences, not as Oracle.)`,
+            ...visitorPayload(),
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.reply) {
+          entity.line = data.reply;
+          entity.until = Date.now() + 60000;
+          pushCampLine(type.name, data.reply, 32, data.mood || "alert", { fromLocal: true });
+          setCampLifeStatus(`${type.name} spoke — agents are still roaming free`);
+        } else {
+          entity.line = "…a whisper without words, then gone.";
+          pushCampLine(type.name, entity.line, 20, "neutral", { fromLocal: true });
+        }
+      } catch (err) {
+        const whispers = [
+          "I was never here — and yet you called.",
+          "The aether folds… something almost had a name.",
+          "Static, starlight, and a question you forgot to ask.",
+          "Between ripples, a voice that isn't any of them.",
+        ];
+        entity.line = whispers[Math.floor(Math.random() * whispers.length)];
+        pushCampLine(type.name, entity.line, 24, "think", { fromLocal: true });
+      }
+      conjureBusy = false;
     }
 
     async function psychicPulse() {
@@ -1523,7 +1635,6 @@
       agentMoods[agentId] = clean;
       const npc = npcs.find((n) => n.id === agentId);
       if (npc) npc.mood = clean;
-      if (agentId === "caduceus") caduceus.mood = clean;
       renderMoodPanel();
       renderAgentStrip();
     }
@@ -1543,11 +1654,12 @@
 
     const isMobileView = () => window.innerWidth < 720;
 
-    function wrapCanvasLines(text, maxWidth, maxLines) {
+    function wrapCanvasLines(text, maxWidth, maxLines, fontSize) {
       const words = String(text || "").split(/\s+/).filter(Boolean);
       const lines = [];
       let line = "";
-      ctx.font = `bold ${isMobileView() ? 12 : 13}px Segoe UI`;
+      const fs = fontSize || (isMobileView() ? 14 : 16);
+      ctx.font = `600 ${fs}px Segoe UI`;
       for (const word of words) {
         const test = line ? `${line} ${word}` : word;
         if (ctx.measureText(test).width > maxWidth && line) {
@@ -1565,33 +1677,112 @@
       return lines.slice(0, maxLines);
     }
 
-    function drawSpeechBubble(sx, sy, text, color) {
+    function drawSpeechBubble(sx, sy, text, color, above = true) {
       if (!text) return;
       const mobile = isMobileView();
-      const maxW = mobile ? 210 : 280;
-      const fontSize = mobile ? 12 : 13;
-      const lineH = fontSize + 5;
-      const maxLines = mobile ? 5 : 6;
-      ctx.font = `bold ${fontSize}px Segoe UI`;
+      const maxW = mobile ? 260 : 340;
+      const fontSize = mobile ? 14 : 16;
+      const lineH = fontSize + 6;
+      const maxLines = mobile ? 8 : 10;
+      ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
-      const lines = wrapCanvasLines(text, maxW - 20, maxLines);
-      const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 48);
-      const boxW = textW + 24;
-      const boxH = lines.length * lineH + 18;
+      const lines = wrapCanvasLines(text, maxW - 24, maxLines, fontSize);
+      const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 56);
+      const boxW = textW + 28;
+      const boxH = lines.length * lineH + 22;
       const bx = sx - boxW / 2;
-      const by = sy + 20;
-      ctx.fillStyle = "rgba(4, 10, 18, 0.96)";
+      const by = above ? sy - boxH - 28 : sy + 20;
+      ctx.fillStyle = "rgba(4, 10, 18, 0.94)";
       ctx.beginPath();
-      ctx.roundRect(bx, by, boxW, boxH, 10);
+      ctx.roundRect(bx, by, boxW, boxH, 14);
       ctx.fill();
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
+      ctx.fillStyle = color + "33";
+      ctx.beginPath();
+      if (above) {
+        ctx.moveTo(sx - 8, by + boxH);
+        ctx.lineTo(sx, by + boxH + 12);
+        ctx.lineTo(sx + 8, by + boxH);
+      } else {
+        ctx.moveTo(sx - 8, by);
+        ctx.lineTo(sx, by - 10);
+        ctx.lineTo(sx + 8, by);
+      }
+      ctx.closePath();
+      ctx.fill();
       ctx.fillStyle = "#f8fafc";
       lines.forEach((ln, i) => {
-        ctx.fillText(ln, bx + 12, by + 16 + i * lineH);
+        ctx.fillText(ln, bx + 14, by + 18 + i * lineH);
       });
       ctx.textAlign = "center";
+    }
+
+    function drawNpcSprite(n, wx, wy) {
+      const s = worldToScreen(wx, wy);
+      if (n.sprite === "caduceus") {
+        const t = Date.now() / 1000;
+        const glow = 0.45 + Math.sin(t * 3) * 0.2;
+        ctx.strokeStyle = `rgba(52, 211, 153, ${glow})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y + 20);
+        ctx.lineTo(s.x, s.y - 18);
+        ctx.stroke();
+        ctx.fillStyle = "#34d399";
+        ctx.beginPath();
+        ctx.arc(s.x - 7, s.y - 2, 5, 0, Math.PI * 2);
+        ctx.arc(s.x + 7, s.y + 4, 4, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (n.sprite === "sentinel") {
+        const t = Date.now() / 1000;
+        const flash = 0.5 + 0.5 * Math.sin(t * 4);
+        ctx.fillStyle = `rgba(34, 211, 238, ${0.15 + flash * 0.2})`;
+        ctx.fillRect(s.x - 14, s.y - 16, 28, 32);
+        ctx.strokeStyle = `rgba(34, 211, 238, ${0.6 + flash * 0.4})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(s.x - 14, s.y - 16, 28, 32);
+        ctx.fillStyle = "#67e8f9";
+        ctx.font = "8px Segoe UI";
+        ctx.fillText("◉", s.x - 3, s.y + 2);
+      }
+    }
+
+    function drawAgentSpeechBubbles() {
+      for (const n of allRoamers()) {
+        const held = speechHold.get(n.name);
+        if (!held || held.until <= Date.now()) continue;
+        const s = worldToScreen(camp.x + n.x, camp.y + n.y);
+        drawSpeechBubble(s.x, s.y - 8, held.line, n.color || AGENT_COLORS[n.id] || "#67e8f9", true);
+      }
+    }
+
+    function drawAetherEntities() {
+      const now = Date.now();
+      for (let i = aetherEntities.length - 1; i >= 0; i--) {
+        const e = aetherEntities[i];
+        if (e.until < now) { aetherEntities.splice(i, 1); continue; }
+        const s = worldToScreen(camp.x + e.x, camp.y + e.y);
+        const pulse = 0.55 + 0.45 * Math.sin(now / 280 + e.phase);
+        const rad = 16 + pulse * 10;
+        const g = ctx.createRadialGradient(s.x, s.y, 2, s.x, s.y, rad * 2.2);
+        g.addColorStop(0, e.color + "cc");
+        g.addColorStop(0.55, e.color + "44");
+        g.addColorStop(1, e.color + "00");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, rad * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = "bold 22px Segoe UI";
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.fillText(e.glyph, s.x, s.y + 8);
+        ctx.font = "bold 10px Segoe UI";
+        ctx.fillStyle = e.color;
+        ctx.fillText(e.name, s.x, s.y - rad - 8);
+        if (e.line) drawSpeechBubble(s.x, s.y - rad - 14, e.line, e.color, true);
+      }
     }
 
     function drawPerson(wx, wy, color, label, sub, mood, isVisitor = false) {
@@ -1637,20 +1828,6 @@
           ctx.arc(s.x, s.y, r + 6, 0, Math.PI * 2);
           ctx.stroke();
         }
-      }
-    }
-
-    function drawAnchorMarkers() {
-      for (const [id, anchor] of Object.entries(NPC_ANCHORS)) {
-        const s = worldToScreen(camp.x + anchor.x, camp.y + anchor.y);
-        const col = AGENT_COLORS[id] || "#67e8f9";
-        ctx.strokeStyle = col + "44";
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 6]);
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, ANCHOR_WANDER * WORLD_ZOOM, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
       }
     }
 
@@ -1721,7 +1898,7 @@
             : prop.npcLines[Math.floor(Math.random() * prop.npcLines.length)];
           setTimeout(() => pushCampLine(n.name, line, 22, moods[n.id] || "happy"), 1800 + i * 4200);
         });
-        setTimeout(() => pushCampLine("Camp", "Everyone's spaced out now — wander the ring, vibes are mellow.", 18, "happy"), 12000);
+        setTimeout(() => pushCampLine("Camp", "Everyone's spaced out now — wander the whole camp, vibes are mellow.", 18, "happy"), 12000);
         return;
       }
       npcs.forEach((n, i) => {
@@ -1739,49 +1916,8 @@
       }
       if (nearestId) openDialogue(nearestId);
       else {
-        replyEl.textContent = "Walk to the campfire. Friends stay near the fire — tap ↺ Bring friends back if they wandered off.";
+        replyEl.textContent = "Tap anywhere to roam — agents wander the whole screen. Tap an agent to talk.";
       }
-    }
-
-    function drawCaduceus(wx, wy) {
-      const s = worldToScreen(wx, wy);
-      const t = Date.now() / 1000;
-      const glow = 0.45 + Math.sin(t * 3) * 0.2;
-      ctx.strokeStyle = `rgba(52, 211, 153, ${glow})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(s.x, s.y + 24);
-      ctx.lineTo(s.x, s.y - 22);
-      ctx.stroke();
-      ctx.fillStyle = "#34d399";
-      ctx.beginPath();
-      ctx.arc(s.x - 8, s.y - 4, 5, 0, Math.PI * 2);
-      ctx.arc(s.x + 8, s.y + 2, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#ecfdf5";
-      ctx.fillRect(s.x - 14, s.y - 28, 10, 4);
-      ctx.fillRect(s.x + 4, s.y - 28, 10, 4);
-      ctx.fillStyle = "#6ee7b7";
-      ctx.font = "bold 11px Segoe UI";
-      ctx.textAlign = "center";
-      ctx.fillText("CADUCEUS", s.x, s.y - 34);
-      const held = speechHold.get("Caduceus");
-      const cadLine = (held && held.until > Date.now()) ? held.line : caduceus.line;
-      if (cadLine) drawSpeechBubble(s.x, s.y + 8, cadLine, "#34d399");
-    }
-
-    function drawTerminal(wx, wy) {
-      const s = worldToScreen(wx, wy);
-      const t = Date.now() / 1000;
-      const flash = 0.5 + 0.5 * Math.sin(t * 4);
-      ctx.fillStyle = `rgba(34, 211, 238, ${0.15 + flash * 0.2})`;
-      ctx.fillRect(s.x - 16, s.y - 20, 32, 36);
-      ctx.strokeStyle = `rgba(34, 211, 238, ${0.6 + flash * 0.4})`;
-      ctx.strokeRect(s.x - 16, s.y - 20, 32, 36);
-      ctx.fillStyle = "#67e8f9";
-      ctx.font = "9px Segoe UI";
-      ctx.textAlign = "center";
-      ctx.fillText("SENTINEL", s.x, s.y - 26);
     }
 
     function drawPlayer() {
@@ -1808,10 +1944,6 @@
         const d = dist(player, { x: camp.x + n.x, y: camp.y + n.y });
         if (d < bestD) { bestD = d; best = n.id; }
       }
-      const cd = dist(player, { x: camp.x + caduceus.x, y: camp.y + caduceus.y });
-      if (cd < bestD) { bestD = cd; best = "caduceus"; nearestProp = null; }
-      const td = dist(player, { x: camp.x + terminal.x, y: camp.y + terminal.y });
-      if (td < 50) { best = "sentinel"; nearestProp = null; }
       nearestId = best;
 
       const hint = document.getElementById("prop-hint");
@@ -1839,8 +1971,9 @@
         }
       }
       const w = screenToWorld(sx, sy);
-      player.tx = w.x;
-      player.ty = w.y;
+      const b = getCampRelativeBounds();
+      player.tx = Math.max(camp.x + b.xMin, Math.min(camp.x + b.xMax, w.x));
+      player.ty = Math.max(camp.y + b.yMin, Math.min(camp.y + b.yMax, w.y));
     }
     canvas.addEventListener("pointerdown", setTargetFromEvent);
 
@@ -1862,7 +1995,7 @@
         else openDialogue(btn.dataset.agent);
       };
     });
-    document.getElementById("btn-listen-camp").onclick = () => runCampConverse();
+    document.getElementById("btn-conjure-aether").onclick = () => conjureFromAether();
     document.getElementById("btn-beer").onclick = () => useProp(props.find((p) => p.id === "beer"));
     document.getElementById("btn-steaks").onclick = () => useProp(props.find((p) => p.id === "steaks"));
     document.getElementById("btn-herbs").onclick = () => useProp(props.find((p) => p.id === "herbs"));
@@ -2073,8 +2206,10 @@
       if (npc && npcMode === "stand") {
         npc.idle = 99999;
       }
-      if (speaker === "Caduceus" || speaker === "caduceus") {
-        caduceus.line = clean;
+      showBigSpeech(speaker, clean, holdSec);
+      if (npc) {
+        npc.line = clean;
+        npc.fullLine = clean;
       }
       if (!opts.skipBroadcast && playWs && playWs.readyState === WebSocket.OPEN && opts.fromLocal) {
         playWs.send(JSON.stringify({
@@ -2098,13 +2233,14 @@
 
     let converseBusy = false;
 
-    async function playConverseLines(lines, gapMs = 7500) {
+    async function playConverseLines(lines, gapMs = 9000) {
       for (const line of lines || []) {
         if (chatterPaused) break;
         const who = line.name || line.agent_id || "Camp";
         setCampLifeStatus(`${who} is speaking…`);
-        pushCampLine(who, line.line, 20, line.mood);
-        await new Promise((r) => setTimeout(r, gapMs));
+        const hold = Math.max(24, Math.min(42, 18 + Math.ceil((line.line || "").length / 28)));
+        pushCampLine(who, line.line, hold, line.mood);
+        await new Promise((r) => setTimeout(r, gapMs + hold * 120));
       }
     }
 
@@ -2118,7 +2254,7 @@
         setTimeout(() => runCampConverse(forcedPair), 20000);
         return;
       }
-      const pairs = [["luna", "hermes"], ["luna", "oracle"], ["hermes", "oracle"], ["caduceus", "hermes"], ["caduceus", "luna"], ["oracle", "caduceus"], ["dionysus", "luna"], ["dionysus", "hermes"], ["dionysus", "oracle"]];
+      const pairs = [["luna", "hermes"], ["luna", "oracle"], ["hermes", "oracle"], ["caduceus", "hermes"], ["caduceus", "luna"], ["oracle", "caduceus"], ["sentinel", "oracle"], ["sentinel", "hermes"], ["caduceus", "sentinel"], ["dionysus", "luna"], ["dionysus", "hermes"], ["dionysus", "oracle"]];
       const topics = [
         "The aurora over camp — Luna wants warmth, Hermes wants the glowing orbs.",
         "Psychic ripples from Sentinel — what are you sensing?",
@@ -2165,7 +2301,7 @@
         setCampLifeStatus("Camp is alive — agents wandering & chatting");
       } catch (err) {
         const hint = isFetchOfflineError(err) ? serverOfflineHint() : err.message;
-        setCampLifeStatus(isFetchOfflineError(err) ? "Server offline — run OPEN_LUNA_CAMP.bat" : "Chat error — tap 🎧 Listen");
+        setCampLifeStatus(isFetchOfflineError(err) ? "Server offline — run OPEN_LUNA_CAMP.bat" : "Chat error — agents still roaming");
         pushCampLine("Camp", `Could not reach AI: ${hint}`, 30, "urgent");
       }
       endSocializing(pick[0], pick[1]);
@@ -2380,7 +2516,8 @@
           applyGlobalNpcMode("free");
           document.body.classList.add("camp-focus");
           document.getElementById("convo-log")?.classList.add("collapsed");
-          setCampLifeStatus("Camp is main — walk around, tap 🌙 Live Luna when you want her");
+          setCampLifeStatus("Agents roam the whole camp — tap ✨ Conjure or 🌙 Live Luna");
+          spreadAllNpcs();
           setTimeout(() => {
             const t = document.getElementById("status-toast");
             if (t) t.style.opacity = "0.35";
@@ -2394,19 +2531,20 @@
         }
         updateNpcSocial();
         enforceNpcSeparation(0.45);
+        clampPlayerWorld();
         drawGround();
-        drawCampRing();
-        drawAnchorMarkers();
         drawPsychicRipples();
         drawCampfire(camp.x, camp.y);
+        drawCampfireLabel();
         for (const p of props) {
           drawCampProp(camp.x + p.x, camp.y + p.y, p);
         }
-        drawCaduceus(camp.x + caduceus.x, camp.y + caduceus.y);
-        drawTerminal(camp.x + terminal.x, camp.y + terminal.y);
+        drawAetherEntities();
         for (const n of allRoamers()) {
           drawPerson(camp.x + n.x, camp.y + n.y, n.color, n.name, "", n.mood);
+          drawNpcSprite(n, camp.x + n.x, camp.y + n.y);
         }
+        drawAgentSpeechBubbles();
         drawOtherVisitors();
         drawPlayer();
         updateNearest();

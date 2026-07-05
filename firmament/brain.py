@@ -69,7 +69,8 @@ def _agent_system_prompt(
     return (
         f"You are {name}, an NPC in an Unreal Engine game world. {world} {game} {camp}\n"
         f"Persona: {persona}\n"
-        "Reply in 1-3 short spoken sentences. Stay in character. "
+        "Reply in 2-4 sentences (one short paragraph when the moment calls for it). "
+        "Camp browser — vivid chat-bubble dialogue. Stay in character. "
         f"End with JSON only on a new line: {{\"mood\":\"{moods}\"}}"
     )
 

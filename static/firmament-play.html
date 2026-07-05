@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Luna Camp — Play in Browser</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <style>
+    :root {
+      --header-h: 118px;
+      --dock-h: 158px;
+      --sidebar-w: min(400px, 38vw);
+      --gap: 10px;
+      --radius: 14px;
+      --cyan: #67e8f9;
+      --gold: #fbbf24;
+      --violet: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0a0c14;
+      color: #f2f0eb;
+      touch-action: none;
+    }
+    #game {
+      position: fixed; z-index: 1;
+      left: 0; top: var(--header-h); right: 0; bottom: var(--dock-h);
+    }
+    @media (min-width: 900px) {
+      #game { right: calc(var(--sidebar-w) + var(--gap) * 2); }
+    }
+    #camp-header {
+      position: fixed; left: 0; right: 0; top: 0; z-index: 12;
+      height: var(--header-h);
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 8px var(--gap) 6px;
+      background: linear-gradient(180deg, rgba(6, 10, 20, 0.97) 0%, rgba(6, 10, 20, 0.88) 80%, transparent 100%);
+      border-bottom: 1px solid rgba(103, 232, 249, 0.2);
+      pointer-events: none;
+    }
+    .header-row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      pointer-events: auto;
+    }
+    .header-row.top { justify-content: space-between; }
+    .brand-block h1 {
+      font-size: 1rem; color: var(--cyan); letter-spacing: 0.04em;
+      font-weight: 800; text-transform: uppercase;
+    }
+    .brand-block .tagline { font-size: 0.68rem; color: #94a3b8; margin-top: 1px; }
+    #mini-status {
+      font-size: 0.72rem; color: #94a3b8;
+      padding: 5px 10px; border-radius: 999px;
+      background: rgba(15, 24, 40, 0.9); border: 1px solid rgba(255,255,255,0.08);
+    }
+    #server-status { color: #6ee7b7; font-weight: 600; }
+    #status-toast {
+      flex: 1; min-width: 140px; max-width: 420px;
+      padding: 6px 12px; border-radius: 999px; text-align: center;
+      background: rgba(6, 14, 24, 0.94); border: 1px solid rgba(251, 191, 36, 0.45);
+      color: #fde68a; font-size: 0.75rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .hud {
+      display: none;
+    }
+    .hud button, .hud a, .hud input { pointer-events: auto; }
+    .hud p { color: #9aa8c8; line-height: 1.35; display: none; }
+    .hud a { color: #c9a87c; }
+    .chat {
+      position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom));
+      z-index: 6; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+      background: rgba(8, 12, 22, 0.9);
+      border: 1px solid rgba(201, 168, 124, 0.35);
+      border-radius: 10px; padding: 8px;
+    }
+    .chat select, .chat input {
+      background: #1a2030; color: #f2f0eb; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px; padding: 8px; font-size: 0.85rem;
+    }
+    .chat input { flex: 1; min-width: 120px; }
+    .chat button {
+      border: none; background: #2a3550; color: #fff;
+      border-radius: 6px; padding: 8px 12px; font-size: 0.85rem;
+    }
+    #reply { display: none; }
+    #speech-now { display: none; }
+    #pixel-wrap {
+      display: none; position: fixed; inset: 0; z-index: 20; background: #000;
+    }
+    #pixel-wrap.active { display: block; }
+    #pixel-wrap iframe { width: 100%; height: 100%; border: 0; }
+    #pixel-close {
+      position: fixed; top: 10px; right: 10px; z-index: 21;
+      background: rgba(0,0,0,0.7); color: #fff; border: 1px solid #444;
+      border-radius: 8px; padding: 8px 12px;
+    }
+    #sentinel-mini { display: none; }
+    #dialogue-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 30;
+      background: rgba(0,0,0,0.45); align-items: flex-end; justify-content: center;
+      padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    #dialogue-backdrop.open {
+      display: flex;
+      padding-bottom: max(170px, calc(env(safe-area-inset-bottom) + var(--dock-h)));
+    }
+    #agent-strip {
+      display: flex; flex-wrap: nowrap; gap: 6px;
+      overflow-x: auto; padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    #agent-strip::-webkit-scrollbar { display: none; }
+    .agent-chip {
+      pointer-events: auto; cursor: pointer; flex: 0 0 auto;
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 11px 6px 8px;
+      background: rgba(8, 14, 26, 0.94); border: 2px solid rgba(103, 232, 249, 0.3);
+      border-radius: 999px; touch-action: manipulation;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .agent-chip:nth-child(1) { transform: rotate(-1.2deg); }
+    .agent-chip:nth-child(2) { transform: rotate(0.8deg); }
+    .agent-chip:nth-child(3) { transform: rotate(-0.5deg); }
+    .agent-chip:nth-child(4) { transform: rotate(1.1deg); }
+    .agent-chip:nth-child(5) { transform: rotate(-0.9deg); }
+    .agent-chip:hover { transform: rotate(0deg) scale(1.04); }
+    .agent-chip.speaking {
+      border-color: var(--gold);
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.5);
+      animation: chip-glow 1.2s ease-in-out infinite alternate;
+    }
+    .agent-chip.visitor-chip {
+      border-color: rgba(225, 29, 72, 0.55);
+      animation: visitor-wobble 3s ease-in-out infinite;
+    }
+    @keyframes visitor-wobble {
+      0%, 100% { transform: rotate(-1deg); }
+      50% { transform: rotate(2deg) scale(1.03); }
+    }
+    @keyframes chip-glow {
+      from { box-shadow: 0 0 8px rgba(251, 191, 36, 0.35); }
+      to { box-shadow: 0 0 18px rgba(251, 191, 36, 0.65); }
+    }
+    .agent-chip .dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      box-shadow: 0 0 8px currentColor;
+    }
+    .agent-chip .chip-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+    .agent-chip .aname { font-size: 0.76rem; font-weight: 700; color: #e2e8f0; }
+    .agent-chip .amood { font-size: 0.62rem; text-transform: capitalize; color: #94a3b8; }
+    #camp-life-status {
+      font-size: 0.74rem; color: #a5f3fc; text-align: left;
+      padding: 5px 10px; border-radius: 8px;
+      background: rgba(6, 12, 22, 0.75);
+      border-left: 3px solid var(--violet);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    #camp-life-status.live { animation: status-pulse 2.5s ease-in-out infinite; }
+    @keyframes status-pulse {
+      0%, 100% { border-left-color: var(--violet); }
+      50% { border-left-color: var(--gold); }
+    }
+    #mood-panel { display: none; }
+    #mood-panel h3 { font-size: 0.95rem; color: #c9a87c; margin-bottom: 8px; }
+    .mood-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; margin-bottom: 6px; font-size: 0.88rem;
+    }
+    .mood-row .name { color: #e2e8f0; font-weight: 600; min-width: 72px; }
+    .mood-badge {
+      padding: 3px 10px; border-radius: 999px; font-size: 0.78rem;
+      font-weight: 600; text-transform: capitalize; border: 1px solid transparent;
+    }
+    .mood-happy { background: rgba(52, 211, 153, 0.2); color: #6ee7b7; border-color: rgba(52, 211, 153, 0.45); }
+    .mood-neutral { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.4); }
+    .mood-think { background: rgba(96, 165, 250, 0.2); color: #93c5fd; border-color: rgba(96, 165, 250, 0.45); }
+    .mood-alert { background: rgba(251, 191, 36, 0.2); color: #fcd34d; border-color: rgba(251, 191, 36, 0.45); }
+    .mood-afraid { background: rgba(167, 139, 250, 0.2); color: #c4b5fd; border-color: rgba(167, 139, 250, 0.45); }
+    .mood-urgent { background: rgba(248, 113, 113, 0.2); color: #fca5a5; border-color: rgba(248, 113, 113, 0.45); }
+    .mood-love { background: rgba(244, 114, 182, 0.2); color: #f9a8d4; border-color: rgba(244, 114, 182, 0.45); }
+    .mood-flirt { background: rgba(236, 72, 153, 0.2); color: #f472b6; border-color: rgba(236, 72, 153, 0.45); }
+    #convo-log {
+      position: fixed; z-index: 8;
+      left: var(--gap); right: var(--gap);
+      top: calc(var(--header-h) + var(--gap));
+      bottom: calc(var(--dock-h) + var(--gap) + env(safe-area-inset-bottom, 0px));
+      display: flex; flex-direction: column;
+      background: rgba(4, 10, 18, 0.96);
+      border: 2px solid transparent;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background-clip: padding-box;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    #convo-log::before {
+      content: ""; position: absolute; inset: 0; border-radius: var(--radius); padding: 2px;
+      background: linear-gradient(135deg, rgba(103,232,249,0.5), rgba(167,139,250,0.35), rgba(251,191,36,0.3));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      pointer-events: none;
+    }
+    @media (min-width: 900px) {
+      #convo-log {
+        left: auto;
+        width: var(--sidebar-w);
+        right: var(--gap);
+        top: calc(var(--header-h) + var(--gap));
+        bottom: calc(var(--dock-h) + var(--gap));
+      }
+    }
+    #convo-log header {
+      padding: 12px 14px 10px; border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+      flex-shrink: 0; cursor: pointer; background: rgba(8, 16, 28, 0.6);
+    }
+    #convo-log h3 { font-size: 0.95rem; color: var(--cyan); margin-bottom: 2px; }
+    #convo-log .sub { font-size: 0.72rem; color: #94a3b8; }
+    #now-speaking {
+      flex-shrink: 0; padding: 10px 14px;
+      background: rgba(103, 232, 249, 0.08);
+      border-bottom: 1px solid rgba(103, 232, 249, 0.2);
+      font-size: 0.95rem; line-height: 1.45; min-height: 44px;
+    }
+    #now-speaking .ns-who { color: #67e8f9; font-weight: 700; display: block; margin-bottom: 3px; }
+    #now-speaking .ns-text { color: #f1f5f9; }
+    #now-speaking.idle .ns-who { color: #64748b; font-weight: 500; }
+    #now-speaking.idle .ns-text { color: #94a3b8; font-style: italic; }
+    #convo-lines {
+      flex: 1; overflow-y: auto; padding: 10px 14px 14px;
+      font-size: 0.92rem; line-height: 1.5; color: #e2e8f0;
+    }
+    #convo-lines .line {
+      margin-bottom: 10px; padding: 8px 10px 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid rgba(103, 232, 249, 0.4);
+    }
+    #convo-lines .line:nth-child(3n+1) { border-left-color: #d946ef; transform: rotate(-0.15deg); }
+    #convo-lines .line:nth-child(3n+2) { border-left-color: #fbbf24; transform: rotate(0.12deg); }
+    #convo-lines .line:nth-child(3n) { border-left-color: #8b5cf6; transform: rotate(-0.08deg); }
+    #convo-lines .speaker { color: var(--cyan); font-weight: 700; }
+    #convo-lines .mood-tag {
+      display: inline-block; margin-left: 6px; font-size: 0.72rem;
+      padding: 1px 7px; border-radius: 999px; vertical-align: middle;
+      text-transform: capitalize; opacity: 0.9;
+    }
+    #convo-lines .text {
+      display: block; margin-top: 4px; color: #f1f5f9;
+      white-space: pre-wrap; word-break: break-word; font-size: 1.05rem;
+    }
+    #npc-behavior, #launcher-dock, #visitors-online, #btn-find-friends { display: none; }
+    #prop-hint { display: none !important; }
+    #convo-toggle { display: none; }
+    #action-bar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
+      height: var(--dock-h);
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 8px var(--gap) max(8px, env(safe-area-inset-bottom));
+      background: linear-gradient(0deg, rgba(4, 8, 18, 0.98) 70%, rgba(4, 8, 18, 0.85) 100%);
+      border-top: 1px solid rgba(103, 232, 249, 0.2);
+      pointer-events: none;
+    }
+    @media (min-width: 900px) {
+      #action-bar { right: calc(var(--sidebar-w) + var(--gap) * 2); }
+    }
+    .dock-row {
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+      pointer-events: auto;
+    }
+    .dock-row.primary { justify-content: stretch; }
+    .dock-row.agents { justify-content: center; }
+    .dock-row.props { justify-content: center; gap: 8px; }
+    .dock-label {
+      font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #64748b; width: 100%; text-align: center; margin-bottom: -2px;
+      pointer-events: none;
+    }
+    #action-bar button {
+      pointer-events: auto; border: 2px solid rgba(103, 232, 249, 0.4);
+      background: #0f2847; color: #ecfeff; border-radius: 11px;
+      padding: 10px 12px; font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; touch-action: manipulation;
+      transition: transform 0.15s ease;
+    }
+    #action-bar button.listen-btn {
+      background: linear-gradient(135deg, #6d28d9, #7c3aed);
+      border-color: #c4b5fd; flex: 1; font-size: 0.92rem;
+    }
+    #action-bar button.talk { background: #0e7490; border-color: var(--cyan); flex: 1; }
+    #action-bar button.chat-btn { background: #1e3a5f; flex: 1; min-width: 0; }
+    #action-bar button.prop-btn {
+      width: 52px; height: 44px; padding: 0; font-size: 1.25rem;
+      border-radius: 12px;
+    }
+    #btn-beer { transform: rotate(-4deg); }
+    #btn-steaks { transform: rotate(3deg); }
+    #btn-herbs { transform: rotate(-2deg); }
+    #btn-weed { transform: rotate(-6deg); border-color: rgba(74, 222, 128, 0.55); background: #14532d; }
+    #btn-cookies { transform: rotate(5deg); }
+    #action-bar button#btn-find-bar {
+      width: 44px; padding: 10px; font-size: 1.1rem; margin-left: auto;
+    }
+    #action-bar button:active { transform: scale(0.96) !important; }
+    #visitor-modal {
+      display: none; position: fixed; inset: 0; z-index: 40;
+      background: rgba(0,0,0,0.65); align-items: center; justify-content: center; padding: 16px;
+    }
+    #visitor-modal.open { display: flex; }
+    #visitor-panel {
+      width: min(400px, 100%); background: rgba(8, 12, 22, 0.98);
+      border: 1px solid rgba(34, 211, 238, 0.5); border-radius: 14px; padding: 20px;
+    }
+    #visitor-panel h2 { color: #67e8f9; font-size: 1.2rem; margin-bottom: 10px; }
+    #visitor-panel p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 12px; line-height: 1.45; }
+    #visitor-name-input {
+      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+      background: #121a2a; color: #f2f0eb; font-size: 1.1rem; margin-bottom: 12px;
+    }
+    #visitor-panel button {
+      width: 100%; padding: 12px; border: none; border-radius: 8px;
+      background: #0e7490; color: #ecfeff; font-size: 1rem; cursor: pointer;
+    }
+    #dialogue-panel {
+      width: min(920px, 100%); background: rgba(8, 12, 22, 0.98);
+      border: 1px solid rgba(34, 211, 238, 0.5); border-radius: 16px;
+      padding: 22px; touch-action: auto;
+    }
+    #dialogue-panel h2 { font-size: 1.65rem; color: #67e8f9; margin-bottom: 12px; }
+    #npc-bubble {
+      background: rgba(15, 24, 40, 0.95); border-radius: 12px; padding: 18px;
+      min-height: 120px; max-height: min(50vh, 420px); overflow: auto; font-size: 1.3rem;
+      line-height: 1.6; color: #f8fafc; margin-bottom: 12px;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .quick-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .quick-btns button {
+      border: 1px solid rgba(255,255,255,0.15); background: #1a2740; color: #dbeafe;
+      border-radius: 8px; padding: 10px 14px; font-size: 0.92rem;
+    }
+    #dialogue-input {
+      width: 100%; background: #121a2a; color: #f2f0eb;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+      padding: 16px; font-size: 1.2rem; margin-bottom: 12px;
+    }
+    .dialogue-actions { display: flex; gap: 8px; align-items: center; }
+    .dialogue-actions button {
+      border: none; background: #2a3550; color: #fff; border-radius: 8px;
+      padding: 12px 16px; font-size: 1rem;
+    }
+    .dialogue-actions button.primary { background: #0e7490; color: #ecfeff; flex: 1; font-size: 1.1rem; }
+    #dialogue-status { flex: 1; font-size: 0.88rem; color: #94a3b8; }
+    .chat { display: none; }
+    #convo-log.collapsed {
+      height: 44px; min-height: 0; bottom: auto;
+    }
+    #convo-log.collapsed #convo-lines { display: none; }
+    @media (max-width: 899px) {
+      :root {
+        --header-h: 128px;
+        --dock-h: 178px;
+        --sidebar-w: 100%;
+        --feed-h: min(34vh, 260px);
+      }
+      #game {
+        right: 0;
+        bottom: calc(var(--dock-h) + var(--feed-h) + var(--gap) * 2);
+      }
+      #convo-log {
+        left: var(--gap); right: var(--gap);
+        top: auto;
+        bottom: calc(var(--dock-h) + var(--gap));
+        height: var(--feed-h);
+        max-height: var(--feed-h);
+      }
+      .dock-row.agents .chat-btn { flex: 1 1 calc(50% - 6px); }
+    }
+    @media (max-width: 480px) {
+      :root { --header-h: 134px; --dock-h: 188px; }
+      .brand-block h1 { font-size: 0.88rem; }
+      #status-toast { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <header id="camp-header">
+    <div class="header-row top">
+      <div class="brand-block">
+        <h1>🔥 Luna Camp</h1>
+        <div class="tagline">aurora playground · agents live</div>
+      </div>
+      <div id="status-toast">Loading camp…</div>
+      <div id="mini-status">Server <span id="server-status">…</span></div>
+    </div>
+    <div class="header-row agents-row">
+      <div id="agent-strip">
+        <button type="button" class="agent-chip" data-agent="luna"><span class="dot" style="background:#d946ef;color:#d946ef"></span><span class="chip-text"><span class="aname">Luna</span><span class="amood">happy</span></span></button>
+        <button type="button" class="agent-chip" data-agent="hermes"><span class="dot" style="background:#fbbf24;color:#fbbf24"></span><span class="chip-text"><span class="aname">Hermes</span><span class="amood">think</span></span></button>
+        <button type="button" class="agent-chip" data-agent="oracle"><span class="dot" style="background:#8b5cf6;color:#8b5cf6"></span><span class="chip-text"><span class="aname">Oracle</span><span class="amood">neutral</span></span></button>
+        <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
+        <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
+        <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
+      </div>
+    </div>
+    <div id="camp-life-status" class="live">Waking Luna, Hermes, Oracle &amp; Caduceus…</div>
+  </header>
+  <div class="hud">
+    <div id="launcher-dock"></div>
+    <div id="visitors-online"></div>
+    <div id="npc-behavior"></div>
+    <button type="button" id="btn-find-friends"></button>
+  </div>
+  <div id="mood-panel"><div id="mood-rows"></div></div>
+  <div id="convo-log">
+    <header>
+      <h3>💬 Live camp chatter</h3>
+      <div class="sub">Tap to collapse · Luna, Hermes, Oracle &amp; friends talk on their own</div>
+    </header>
+    <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents spread around the ring — one voice at a time here…</span></div>
+    <div id="convo-lines">Recent lines appear below, newest at bottom.</div>
+  </div>
+  <div id="reply"></div>
+  <div id="speech-now"><span class="who">Camp</span><span id="speech-text"></span></div>
+  <footer id="action-bar">
+    <div class="dock-label">Actions</div>
+    <div class="dock-row primary">
+      <button type="button" class="listen-btn" id="btn-listen-camp">🎧 Listen</button>
+      <button type="button" class="talk" id="btn-talk-near">💬 Talk</button>
+    </div>
+    <div class="dock-label">Chat with</div>
+    <div class="dock-row agents">
+      <button type="button" class="chat-btn" data-agent="luna">Luna</button>
+      <button type="button" class="chat-btn" data-agent="hermes">Hermes</button>
+      <button type="button" class="chat-btn" data-agent="oracle">Oracle</button>
+      <button type="button" class="chat-btn" data-agent="caduceus">Caduceus</button>
+    </div>
+    <div class="dock-label">Camp stuff</div>
+    <div class="dock-row props">
+      <button type="button" class="prop-btn" id="btn-beer" title="Beer">🍺</button>
+      <button type="button" class="prop-btn" id="btn-steaks" title="Steaks">🥩</button>
+      <button type="button" class="prop-btn" id="btn-herbs" title="Herbs">🌿</button>
+      <button type="button" class="prop-btn" id="btn-weed" title="Weed">🍃</button>
+      <button type="button" class="prop-btn" id="btn-cookies" title="Cookies">🍪</button>
+      <button type="button" id="btn-find-bar" title="Reset positions">↺</button>
+    </div>
+  </footer>
+  <div id="prop-hint"></div>
+  <button type="button" id="convo-toggle"></button>
+  <div id="sentinel-mini"></div>
+  <div id="visitor-modal">
+    <div id="visitor-panel">
+      <h2>Your camp character</h2>
+      <p>Pick a name — other visitors at this camp will see you walking around. Chatter is shared across everyone connected.</p>
+      <input id="visitor-name-input" placeholder="Your name at camp…" maxlength="24" />
+      <button type="button" id="visitor-join-btn">Join camp</button>
+    </div>
+  </div>
+  <div class="chat">
+    <select id="agent">
+      <option value="luna">Luna</option>
+      <option value="oracle">Oracle</option>
+      <option value="hermes">Hermes</option>
+      <option value="sentinel" selected>Sentinel</option>
+    </select>
+    <input id="msg" placeholder="Say something..." />
+    <button id="send">Send</button>
+  </div>
+  <div id="dialogue-backdrop">
+    <div id="dialogue-panel" onclick="event.stopPropagation()">
+      <h2 id="dialogue-name">Luna</h2>
+      <div id="npc-bubble">Walk up and ask anything.</div>
+      <div class="quick-btns">
+        <button type="button" data-q="Hello!">Hello!</button>
+        <button type="button" data-q="What do you see at camp?">What's at camp?</button>
+        <button type="button" data-q="Tell me a short story.">Story</button>
+        <button type="button" data-q="What do you and Hermes talk about when I'm not around?">Hermes &amp; Luna?</button>
+        <button type="button" data-q="Want a cookie from the camp table?">Cookies?</button>
+      </div>
+      <input id="dialogue-input" placeholder="Type anything to ask them..." />
+      <div class="dialogue-actions">
+        <span id="dialogue-status">Enter = send · tap outside to close</span>
+        <button type="button" id="dialogue-close">Close</button>
+        <button type="button" class="primary" id="dialogue-send">Send</button>
+      </div>
+    </div>
+  </div>
+  <div id="pixel-wrap">
+    <button id="pixel-close" type="button">Close Unreal stream</button>
+    <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
+  </div>
+  <script>
+    const CAMP_BUILD = "2026-07-05-bond10";
+    const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
+
+    function serverOfflineHint() {
+      return `Server not running — double-click OPEN_LUNA_CAMP.bat in luna-avatar folder (port 8767)`;
+    }
+
+    function isFetchOfflineError(err) {
+      const m = String(err?.message || err || "").toLowerCase();
+      return m.includes("failed to fetch") || m.includes("networkerror")
+        || m.includes("load failed") || m.includes("unable to connect")
+        || m.includes("network request failed");
+    }
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const replyEl = document.getElementById("reply");
+
+    if (ctx && !ctx.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        const rad = typeof r === "number" ? r : (r && r[0]) || 0;
+        this.moveTo(x + rad, y);
+        this.arcTo(x + w, y, x + w, y + h, rad);
+        this.arcTo(x + w, y + h, x, y + h, rad);
+        this.arcTo(x, y + h, x, y, rad);
+        this.arcTo(x, y, x + w, y, rad);
+        this.closePath();
+      };
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("status-toast");
+      if (el) el.textContent = msg;
+    }
+
+    window.addEventListener("error", (e) => {
+      showToast("Camp error — refresh with Ctrl+F5: " + (e.message || "unknown"));
+      const t = document.getElementById("status-toast");
+      if (t) { t.style.borderColor = "#f87171"; t.style.color = "#fecaca"; t.style.opacity = "1"; }
+    });
+
+    const VISITOR_COLORS = ["#60a5fa", "#f472b6", "#34d399", "#fb923c", "#a78bfa", "#facc15", "#22d3ee", "#e879f9"];
+    let myVisitorId = localStorage.getItem("luna-play-visitor-id") || "";
+    let myVisitorName = localStorage.getItem("luna-play-visitor-name") || "";
+    let campBonds = {};
+    let playWs = null;
+    let npcMode = "free";
+    const dialogueBackdrop = document.getElementById("dialogue-backdrop");
+    const WORLD_ZOOM = 0.52;
+    let campChillUntil = 0;
+    const campGuests = [];
+    const NPC_ANCHORS = {
+      luna: { x: -168, y: -38 },
+      oracle: { x: 178, y: -30 },
+      hermes: { x: 0, y: -128 },
+      dionysus: { x: 158, y: 88 },
+    };
+    const NPC_SECTORS = {
+      luna: { angle: Math.PI * 0.92, bias: 1.0 },
+      oracle: { angle: Math.PI * 0.08, bias: 1.0 },
+      hermes: { angle: -Math.PI / 2, bias: 1.0 },
+      dionysus: { angle: Math.PI * 0.42, bias: 1.0 },
+    };
+    const MIN_NPC_GAP = 52;
+    const ANCHOR_WANDER = 78;
+    const CHAT_MEET_DIST = 40;
+    const CAM_X = 0;
+    const CAM_Y = -80;
+    let lastPosSent = 0;
+    const otherVisitors = new Map();
+    const followChain = { luna: "hermes", hermes: "oracle", oracle: "luna" };
+    const BEHAVIOR_LABELS = { free: "own thing", roam: "roaming", follow: "following", stand: "still", party: "party", visit: "visiting" };
+
+    const player = {
+      x: 0, y: -25, tx: 0, ty: -25, speed: 2.4,
+      color: localStorage.getItem("luna-play-visitor-color") || VISITOR_COLORS[0],
+      name: myVisitorName || "you",
+    };
+    const camp = { x: 0, y: -80 };
+    const props = [
+      { id: "beer", name: "Beer", emoji: "🍺", x: 72, y: -18, color: "#f59e0b", radius: 90,
+        useMsg: "You crack open a cold beer from the camp cooler. Cheers!",
+        npcLines: ["Cheers!", "Save me one!", "Beer tastes better under the aurora.", "Hermes wants the last one."] },
+      { id: "steaks", name: "Steaks", emoji: "🥩", x: -72, y: -18, color: "#dc2626", radius: 90,
+        useMsg: "You flip sizzling steaks on the campfire grill. Smells incredible.",
+        npcLines: ["Medium rare please!", "That steak smells amazing.", "Oracle saw extra steaks in her vision.", "Pass the plate!"] },
+      { id: "herbs", name: "Herbs", emoji: "🌿", x: -28, y: -52, color: "#4ade80", radius: 85,
+        useMsg: "You share the camp herb bundle — earthy, warm, everyone gets mellow.",
+        npcLines: ["Chill vibes only.", "Hermes says the herbs hum with the aurora.", "So relaxed right now.", "Oracle approves this energy."] },
+      { id: "weed", name: "Weed", emoji: "🍃", x: 78, y: 32, color: "#22c55e", radius: 88,
+        useMsg: "You pass the camp weed around — slow smiles, wide aurora, everyone drifts farther from the fire.",
+        npcLines: ["…okay yeah I'm good.", "Hermes is seeing colors in the ripples.", "Oracle says the stars look closer.", "Luna wants to wander way out there.", "Caduceus approves the vibe."] },
+      { id: "cookies", name: "Cookies", emoji: "🍪", x: -58, y: 28, color: "#d4a05a", radius: 85,
+        useMsg: "You grab cookies from the camp table. Caduceus glows approvingly.",
+        npcLines: ["Cookie tax is real.", "Caduceus wanted one too.", "Sweet treat at camp!", "Luna loves the chocolate ones."] },
+    ];
+    let nearestProp = null;
+    const agentMoods = {
+      luna: "happy", oracle: "neutral", hermes: "think",
+      caduceus: "neutral", sentinel: "alert", dionysus: "happy",
+    };
+    const moodAgents = [
+      { id: "luna", name: "Luna" },
+      { id: "oracle", name: "Oracle" },
+      { id: "hermes", name: "Hermes" },
+      { id: "caduceus", name: "Caduceus" },
+      { id: "sentinel", name: "Sentinel" },
+      { id: "dionysus", name: "Dionysus" },
+    ];
+    const npcs = [
+      { id: "luna", name: "Luna", color: "#d946ef", x: -168, y: -38, tx: -168, ty: -38, speed: 2.4, roam: 48, idle: 0, line: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
+      { id: "oracle", name: "Oracle", color: "#8b5cf6", x: 178, y: -30, tx: 178, ty: -30, speed: 2.2, roam: 46, idle: 0, line: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
+      { id: "hermes", name: "Hermes", color: "#fbbf24", x: 0, y: -128, tx: 0, ty: -128, speed: 2.6, roam: 50, idle: 0, line: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false },
+    ];
+    const CAMP_LIMIT = { x: 200, y: 150 };
+
+    function clampCampCoord(x, y) {
+      return {
+        x: Math.max(-CAMP_LIMIT.x, Math.min(CAMP_LIMIT.x, x)),
+        y: Math.max(-CAMP_LIMIT.y, Math.min(CAMP_LIMIT.y, y)),
+      };
+    }
+
+    function clampNpc(n) {
+      const p = clampCampCoord(n.x, n.y);
+      n.x = p.x;
+      n.y = p.y;
+      const t = clampCampCoord(n.tx, n.ty);
+      n.tx = t.x;
+      n.ty = t.y;
+    }
+
+    function sectorPosition(agentId) {
+      const anchor = NPC_ANCHORS[agentId];
+      if (anchor) return { x: anchor.x, y: anchor.y };
+      const sector = NPC_SECTORS[agentId];
+      const angle = sector ? sector.angle : Math.random() * Math.PI * 2;
+      const r = CAMP_LIMIT.x * 0.75;
+      return { x: Math.cos(angle) * r, y: Math.sin(angle) * r * 0.72 };
+    }
+
+    function shouldSkipSeparation(a, b) {
+      if (a.socializing && b.socializing) return true;
+      if (a.gathering && b.gathering) return true;
+      if (a.visitTarget === b.id || b.visitTarget === a.id) return true;
+      return false;
+    }
+
+    function enforceNpcSeparation(strength = 1) {
+      const all = allRoamers();
+      for (let i = 0; i < all.length; i++) {
+        for (let j = i + 1; j < all.length; j++) {
+          const a = all[i];
+          const b = all[j];
+          if (shouldSkipSeparation(a, b)) continue;
+          const gap = (a.socializing || b.socializing) ? MIN_NPC_GAP * 0.62 : MIN_NPC_GAP;
+          const d = dist(a, b);
+          if (d >= gap || d < 0.01) continue;
+          const ang = Math.atan2(a.y - b.y, a.x - b.x);
+          const push = ((gap - d) * 0.5 + 1.2) * strength;
+          a.x += Math.cos(ang) * push;
+          a.y += Math.sin(ang) * push;
+          b.x -= Math.cos(ang) * push;
+          b.y -= Math.sin(ang) * push;
+          clampNpc(a);
+          clampNpc(b);
+        }
+      }
+    }
+
+    function findRoamAgent(id) {
+      return npcs.find((n) => n.id === id) || campGuests.find((g) => g.id === id) || null;
+    }
+
+    function allRoamers() {
+      return [...npcs, ...campGuests];
+    }
+
+    function separateNpcTarget(n) {
+      for (const other of allRoamers()) {
+        if (other.id === n.id) continue;
+        const d = dist({ x: n.tx, y: n.ty }, { x: other.x, y: other.y });
+        if (d < MIN_NPC_GAP) {
+          const away = Math.atan2(n.ty - other.y, n.tx - other.x) || NPC_SECTORS[n.id]?.angle || 0;
+          const push = MIN_NPC_GAP - d + 28;
+          n.tx += Math.cos(away) * push;
+          n.ty += Math.sin(away) * push;
+        }
+      }
+      const t = clampCampCoord(n.tx, n.ty);
+      n.tx = t.x;
+      n.ty = t.y;
+    }
+
+    function spreadAllNpcs() {
+      npcs.forEach((n) => {
+        const p = sectorPosition(n.id);
+        n.x = p.x + (Math.random() - 0.5) * 28;
+        n.y = p.y + (Math.random() - 0.5) * 28;
+        n.tx = n.x;
+        n.ty = n.y;
+        n.visitTarget = null;
+        n.socializing = false;
+        n.gathering = false;
+        if (npcMode === "free") {
+          resetNpcFreeWill(n, Math.random() < 0.55 ? "roam" : "visit");
+        } else {
+          n.behavior = "roam";
+          n.idle = 6 + Math.floor(Math.random() * 14);
+          pickNpcWanderTarget(n);
+        }
+      });
+      enforceNpcSeparation(0.55);
+    }
+
+    function gatherNpcsAtCamp(quiet) {
+      spreadAllNpcs();
+      player.x = 0;
+      player.y = -25;
+      player.tx = 0;
+      player.ty = -25;
+      if (!quiet) {
+        pushCampLine("Camp", "Everyone's back at the fire — beer, steaks, herbs, weed & cookies are here.", 10, "happy");
+        showToast("Friends reset at campfire");
+      }
+    }
+
+    function pickRandomNpcBehavior() {
+      const r = Math.random();
+      if (r < 0.34) return "roam";
+      if (r < 0.58) return "visit";
+      if (r < 0.78) return "follow";
+      return "stand";
+    }
+
+    function pickVisitTarget(n) {
+      const pool = allRoamers().filter((o) => o.id !== n.id && !o.leaving);
+      if (!pool.length) return null;
+      return pool[Math.floor(Math.random() * pool.length)].id;
+    }
+
+    function aimNpcNear(n, target, distAway = CHAT_MEET_DIST) {
+      const ang = Math.atan2(target.y - n.y, target.x - n.x);
+      n.tx = target.x - Math.cos(ang) * distAway;
+      n.ty = target.y - Math.sin(ang) * distAway;
+      const t = clampCampCoord(n.tx, n.ty);
+      n.tx = t.x;
+      n.ty = t.y;
+    }
+
+    function startNpcVisit(n) {
+      const targetId = pickVisitTarget(n);
+      if (!targetId) {
+        n.behavior = "roam";
+        pickNpcWanderTarget(n);
+        return;
+      }
+      n.visitTarget = targetId;
+      const target = findRoamAgent(targetId);
+      if (target) aimNpcNear(n, target, CHAT_MEET_DIST + Math.random() * 18);
+    }
+
+    function resetNpcFreeWill(n, behavior) {
+      let next = behavior || pickRandomNpcBehavior();
+      if (!behavior && Math.random() < 0.22) next = "party";
+      const changed = n.behavior !== next;
+      n.behavior = next;
+      n.behaviorTimer = 90 + Math.floor(Math.random() * 200);
+      n.idle = 0;
+      if (n.behavior === "visit") {
+        startNpcVisit(n);
+      } else if (n.behavior === "roam" || n.behavior === "party") {
+        n.visitTarget = null;
+        pickNpcWanderTarget(n, n.behavior === "party" ? props[Math.floor(Math.random() * props.length)] : null);
+      } else {
+        n.visitTarget = null;
+      }
+      if (changed && npcMode === "free") renderMoodPanel();
+    }
+
+    function npcBehaviorLabel(n) {
+      if (npcMode !== "free") return BEHAVIOR_LABELS[npcMode] || npcMode;
+      return BEHAVIOR_LABELS[n.behavior] || n.behavior;
+    }
+
+    function applyGlobalNpcMode(mode) {
+      npcMode = mode || "free";
+      syncNpcModeButtons();
+      renderMoodPanel();
+      if (mode === "free") {
+        npcs.forEach((n) => resetNpcFreeWill(n));
+      } else if (mode === "roam") {
+        spreadAllNpcs();
+      } else if (mode === "follow") {
+        npcs.forEach((n) => { n.behavior = "follow"; n.idle = 0; });
+      } else {
+        npcs.forEach((n) => { n.behavior = "stand"; n.idle = 99999; });
+      }
+    }
+
+    function pickNpcWanderTarget(n, towardProp) {
+      const chilling = campChillUntil > Date.now();
+      const anchor = NPC_ANCHORS[n.id] || sectorPosition(n.id);
+      if (towardProp) {
+        n.tx = towardProp.x + (Math.random() - 0.5) * 34;
+        n.ty = towardProp.y + (Math.random() - 0.5) * 34;
+      } else if (n.visitTarget && n.behavior === "visit") {
+        const target = findRoamAgent(n.visitTarget);
+        if (target) aimNpcNear(n, target, CHAT_MEET_DIST + Math.random() * 22);
+      } else {
+        const roll = Math.random();
+        if (roll < 0.4 || chilling) {
+          const r = CAMP_LIMIT.x * (0.42 + Math.random() * 0.52);
+          const ang = Math.random() * Math.PI * 2;
+          n.tx = Math.cos(ang) * r;
+          n.ty = Math.sin(ang) * r * (CAMP_LIMIT.y / CAMP_LIMIT.x);
+        } else if (roll < 0.74) {
+          const wander = ANCHOR_WANDER * (chilling ? 1.9 : 1.35) * (0.75 + Math.random() * 1.1);
+          const angle = (NPC_SECTORS[n.id]?.angle ?? Math.random() * Math.PI * 2) + (Math.random() - 0.5) * 1.5;
+          n.tx = anchor.x + Math.cos(angle) * wander;
+          n.ty = anchor.y + Math.sin(angle) * wander;
+        } else {
+          const others = Object.keys(NPC_ANCHORS).filter((k) => k !== n.id);
+          const pick = others[Math.floor(Math.random() * others.length)];
+          const other = NPC_ANCHORS[pick];
+          const blend = 0.32 + Math.random() * 0.48;
+          n.tx = anchor.x + (other.x - anchor.x) * blend + (Math.random() - 0.5) * 48;
+          n.ty = anchor.y + (other.y - anchor.y) * blend + (Math.random() - 0.5) * 48;
+        }
+      }
+      if (!n.socializing && !n.gathering) separateNpcTarget(n);
+      const t = clampCampCoord(n.tx, n.ty);
+      n.tx = t.x;
+      n.ty = t.y;
+    }
+
+    function moveNpcToward(n, tx, ty, speedMul = 1) {
+      const d = dist(n, { x: tx, y: ty });
+      if (d < 4) return;
+      const step = n.speed * speedMul;
+      n.x += ((tx - n.x) / d) * step;
+      n.y += ((ty - n.y) / d) * step;
+      clampNpc(n);
+    }
+
+    function updateNpcRoamOne(n) {
+      if (n.idle > 0) {
+        n.idle -= 1;
+        return;
+      }
+      const d = dist(n, { x: n.tx, y: n.ty });
+      if (d < 6) {
+        const chilling = campChillUntil > Date.now();
+        n.idle = chilling
+          ? 14 + Math.floor(Math.random() * 28)
+          : 6 + Math.floor(Math.random() * 16);
+        pickNpcWanderTarget(n);
+        return;
+      }
+      if (!n.socializing && !n.gathering && n.behavior !== "visit") {
+        for (const other of allRoamers()) {
+          if (other.id === n.id) continue;
+          if (other.visitTarget === n.id || n.visitTarget === other.id) continue;
+          if (dist(n, other) < MIN_NPC_GAP * 0.62) {
+            pickNpcWanderTarget(n);
+            return;
+          }
+        }
+      }
+      moveNpcToward(n, n.tx, n.ty, n.socializing ? 0.92 : 1);
+      enforceNpcSeparation(n.socializing ? 0.25 : 0.65);
+    }
+
+    const VISIT_LINES = [
+      "Hey — saw you way out here.",
+      "Mind if I walk with you a sec?",
+      "The aurora looks wild from this side of camp.",
+      "Hermes keeps saying the ripples are louder tonight.",
+      "Oracle had a weird vision about the treeline.",
+      "You catch that smell from the steaks?",
+      "Luna's been wandering far tonight.",
+    ];
+
+    function updateNpcVisitOne(n) {
+      if (n.idle > 0) {
+        n.idle -= 1;
+        return;
+      }
+      const target = findRoamAgent(n.visitTarget);
+      if (!target || target.leaving) {
+        n.visitTarget = null;
+        resetNpcFreeWill(n, "roam");
+        return;
+      }
+      aimNpcNear(n, target, CHAT_MEET_DIST + 6);
+      const d = dist(n, { x: n.tx, y: n.ty });
+      if (d < 8) {
+        n.idle = 18 + Math.floor(Math.random() * 32);
+        if (!n.socializing && !n.gathering && Math.random() < 0.26) {
+          pushCampLine(n.name, VISIT_LINES[Math.floor(Math.random() * VISIT_LINES.length)], 10, n.mood);
+        }
+        if (!n.gathering && !n.socializing) {
+          n.visitTarget = null;
+          resetNpcFreeWill(n);
+        }
+        return;
+      }
+      moveNpcToward(n, n.tx, n.ty, 1.08);
+      enforceNpcSeparation(0.2);
+    }
+
+    function markSocializing(idA, idB) {
+      for (const id of [idA, idB]) {
+        const n = findRoamAgent(id);
+        if (!n) continue;
+        n.socializing = true;
+        n.behavior = "visit";
+        n.visitTarget = id === idA ? idB : idA;
+        n.behaviorTimer = 9999;
+      }
+    }
+
+    function endSocializing(idA, idB) {
+      for (const id of [idA, idB]) {
+        const n = findRoamAgent(id);
+        if (!n) continue;
+        n.socializing = false;
+        n.gathering = false;
+        n.visitTarget = null;
+        if (npcMode === "free") resetNpcFreeWill(n);
+        else {
+          n.behavior = "roam";
+          pickNpcWanderTarget(n);
+        }
+      }
+    }
+
+    function gatherForChat(agentAId, agentBId) {
+      return new Promise((resolve) => {
+        const a = findRoamAgent(agentAId);
+        const b = findRoamAgent(agentBId);
+        if (!a || !b) { resolve(); return; }
+        markSocializing(agentAId, agentBId);
+        const meet = clampCampCoord((a.x + b.x) / 2, (a.y + b.y) / 2);
+        a.gathering = true;
+        b.gathering = true;
+        a.tx = meet.x - 20;
+        a.ty = meet.y + (Math.random() - 0.5) * 12;
+        b.tx = meet.x + 20;
+        b.ty = meet.y + (Math.random() - 0.5) * 12;
+        const deadline = Date.now() + 5200;
+        const check = () => {
+          const da = dist(a, { x: a.tx, y: a.ty });
+          const db = dist(b, { x: b.tx, y: b.ty });
+          if ((da < 12 && db < 12) || Date.now() > deadline) {
+            a.gathering = false;
+            b.gathering = false;
+            a.idle = 60;
+            b.idle = 60;
+            resolve();
+            return;
+          }
+          setTimeout(check, 100);
+        };
+        check();
+      });
+    }
+
+    function updateCampGuests() {
+      for (let i = campGuests.length - 1; i >= 0; i--) {
+        const g = campGuests[i];
+        if (g.leaving) {
+          moveNpcToward(g, g.exitX, g.exitY, 1.15);
+          if (dist(g, { x: g.exitX, y: g.exitY }) < 10) {
+            campGuests.splice(i, 1);
+            setDionysusChipVisible(false);
+            setCampLifeStatus("Dionysus wandered off — he'll come by again");
+          }
+          continue;
+        }
+        if (g.arriving) {
+          moveNpcToward(g, g.tx, g.ty, 1.05);
+          if (dist(g, { x: g.tx, y: g.ty }) < 12) {
+            g.arriving = false;
+            pickNpcWanderTarget(g);
+          }
+          continue;
+        }
+        updateNpcRoamOne(g);
+      }
+    }
+
+    function updateNpcFollowOne(n) {
+      const targetId = followChain[n.id];
+      const target = npcs.find((t) => t.id === targetId);
+      if (!target) return;
+      const ox = n.id === "oracle" ? 22 : n.id === "luna" ? -18 : 0;
+      moveNpcToward(n, target.x - 38 + ox, target.y + 28, 0.88);
+    }
+
+    function updateNpcWander() {
+      for (const n of npcs) updateNpcRoamOne(n);
+    }
+
+    function updateNpcFollow() {
+      for (const n of npcs) updateNpcFollowOne(n);
+    }
+
+    function updateNpcFree() {
+      for (const n of npcs) {
+        if (!n.socializing && !n.gathering) {
+          if (n.behaviorTimer > 0) n.behaviorTimer -= 1;
+          else resetNpcFreeWill(n);
+        }
+
+        if (n.behavior === "stand") continue;
+        if (n.behavior === "follow") {
+          updateNpcFollowOne(n);
+          continue;
+        }
+        if (n.behavior === "visit") {
+          updateNpcVisitOne(n);
+          continue;
+        }
+        if (n.behavior === "party" || n.behavior === "roam") {
+          updateNpcRoamOne(n);
+          continue;
+        }
+        updateNpcRoamOne(n);
+      }
+    }
+
+    function updateNpcSocial() {
+      if (npcMode === "stand") { updateCampGuests(); return; }
+      if (npcMode === "follow") { updateNpcFollow(); updateCampGuests(); return; }
+      if (npcMode === "roam") { updateNpcWander(); updateCampGuests(); return; }
+      updateNpcFree();
+      updateCampGuests();
+    }
+
+    function syncNpcModeButtons() {
+      document.querySelectorAll("#npc-behavior button").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.mode === npcMode);
+      });
+    }
+
+    const convoToggle = document.getElementById("convo-toggle");
+    if (convoToggle) {
+      convoToggle.onclick = () => {
+        document.getElementById("convo-log").classList.toggle("open");
+      };
+    }
+    const terminal = { x: 55, y: 22 };
+    const caduceus = { x: 48, y: 12, line: "press Caduceus to talk", mood: "neutral" };
+    let nearestId = null;
+    let chatBusy = false;
+    let groundPattern = null;
+    const psychicRipples = [];
+
+    function buildGroundTexture() {
+      const t = document.createElement("canvas");
+      t.width = 128;
+      t.height = 128;
+      const g = t.getContext("2d");
+      g.fillStyle = "#1e293b";
+      g.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 400; i++) {
+        const x = Math.random() * 128;
+        const y = Math.random() * 128;
+        const hue = 160 + Math.random() * 40;
+        g.fillStyle = `hsla(${hue}, 35%, ${28 + Math.random() * 18}%, 0.55)`;
+        g.fillRect(x, y, 2 + Math.random() * 3, 2 + Math.random() * 3);
+      }
+      for (let i = 0; i < 80; i++) {
+        g.fillStyle = `rgba(103, 232, 249, ${0.04 + Math.random() * 0.08})`;
+        g.beginPath();
+        g.arc(Math.random() * 128, Math.random() * 128, Math.random() * 6, 0, Math.PI * 2);
+        g.fill();
+      }
+      groundPattern = ctx.createPattern(t, "repeat");
+    }
+    buildGroundTexture();
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    function worldToScreen(wx, wy) {
+      return {
+        x: canvas.width / 2 + (wx - CAM_X) * WORLD_ZOOM,
+        y: canvas.height * 0.36 + (wy - CAM_Y) * WORLD_ZOOM,
+      };
+    }
+
+    function screenToWorld(sx, sy) {
+      return {
+        x: CAM_X + (sx - canvas.width / 2) / WORLD_ZOOM,
+        y: CAM_Y + (sy - canvas.height * 0.36) / WORLD_ZOOM,
+      };
+    }
+
+    function drawCampRing() {
+      const c = worldToScreen(camp.x, camp.y);
+      ctx.strokeStyle = "rgba(103, 232, 249, 0.22)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 10]);
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, CAMP_LIMIT.x * WORLD_ZOOM, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "11px Segoe UI";
+      ctx.fillStyle = "rgba(148, 163, 184, 0.7)";
+      ctx.textAlign = "center";
+      ctx.fillText("campfire", c.x, c.y + CAMP_LIMIT.x * WORLD_ZOOM + 14);
+    }
+
+    function dist(a, b) {
+      const dx = a.x - b.x, dy = a.y - b.y;
+      return Math.hypot(dx, dy);
+    }
+
+    function drawGround() {
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, "#0d1f2e");
+      sky.addColorStop(0.35, "#1a2744");
+      sky.addColorStop(0.7, "#243b55");
+      sky.addColorStop(1, "#0f172a");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (groundPattern) {
+        ctx.save();
+        ctx.fillStyle = groundPattern;
+        ctx.fillRect(0, canvas.height * 0.28, canvas.width, canvas.height);
+        ctx.restore();
+      }
+
+      ctx.strokeStyle = "rgba(79, 209, 197, 0.1)";
+      for (let i = -20; i < 20; i++) {
+        const y = canvas.height * 0.36 + i * 28;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function drawPsychicRipples() {
+      const now = Date.now();
+      for (let i = psychicRipples.length - 1; i >= 0; i--) {
+        const r = psychicRipples[i];
+        const age = (now - r.t) / 1000;
+        if (age > 3.5) { psychicRipples.splice(i, 1); continue; }
+        const s = worldToScreen(r.x, r.y);
+        const rad = 20 + age * 90;
+        const a = Math.max(0, 0.55 - age * 0.15);
+        ctx.strokeStyle = `rgba(103, 232, 249, ${a})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, rad, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    async function psychicPulse() {
+      if (chatBusy) return;
+      psychicRipples.push({ x: player.x, y: player.y, t: Date.now(), color: "#67e8f9" });
+      replyEl.textContent = "Psychic pulse… Hermes listening.";
+      try {
+        const res = await fetch("/api/firmament/psychic/pulse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "player", mood: "aurora", share_hermes: true }),
+        });
+        const data = await res.json();
+        const hermes = data.hermes_reply || data.hermes_echo || data.psychic?.last_vision;
+        replyEl.textContent = hermes ? `Hermes: ${hermes}` : "Ripple sent.";
+        const h = npcs.find((n) => n.id === "hermes");
+        if (h && hermes) {
+          h.fullLine = String(hermes);
+          h.line = String(hermes);
+          pushCampLine("Hermes", String(hermes), 20, "think", { fromLocal: true });
+        }
+      } catch (err) {
+        replyEl.textContent = `Psychic offline — ${err.message}`;
+      }
+    }
+
+    function drawCampfire(wx, wy) {
+      const s = worldToScreen(wx, wy);
+      const t = Date.now() / 1000;
+      const r = 26 + Math.sin(t * 5) * 6;
+      const g = ctx.createRadialGradient(s.x, s.y, 2, s.x, s.y, r * 2);
+      g.addColorStop(0, "rgba(251, 146, 60, 0.9)");
+      g.addColorStop(0.5, "rgba(234, 88, 12, 0.35)");
+      g.addColorStop(1, "rgba(234, 88, 12, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r * 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#78350f";
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 10, 38, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const speechHold = new Map();
+    const speechTextEl = document.getElementById("speech-text");
+    const speechWhoEl = document.querySelector("#speech-now .who");
+
+    function showBigSpeech(who, line, holdSec = 16) {
+      const text = (line || "").trim();
+      if (!text) return;
+      speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
+    }
+
+    const KNOWN_MOODS = new Set(["happy", "neutral", "think", "alert", "afraid", "urgent", "love", "flirt"]);
+    function moodClass(mood) {
+      const m = (mood || "neutral").toLowerCase().replace(/[^a-z]/g, "") || "neutral";
+      return KNOWN_MOODS.has(m) ? `mood-${m}` : "mood-neutral";
+    }
+
+    const AGENT_COLORS = {
+      luna: "#d946ef", hermes: "#fbbf24", oracle: "#8b5cf6",
+      caduceus: "#34d399", sentinel: "#67e8f9", dionysus: "#e11d48",
+    };
+    let speakingAgentId = null;
+    let speakingTimer = null;
+
+    function setCampLifeStatus(msg) {
+      const el = document.getElementById("camp-life-status");
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.toggle("live", /talk|speak|convers|listen|waking|alive|remember|welcome|bond/i.test(msg));
+    }
+
+    function visitorPayload() {
+      return {
+        visitor_id: myVisitorId || "",
+        visitor_name: myVisitorName || player.name || "",
+      };
+    }
+
+    async function recordCampMemory(opts = {}) {
+      if (!myVisitorId) return;
+      try {
+        await fetch("/api/firmament/camp/memory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            visitor_id: myVisitorId,
+            visitor_name: myVisitorName || player.name || "",
+            agent_id: opts.agent_id || "",
+            kind: opts.kind || "moment",
+            text: opts.text || "",
+            prop_id: opts.prop_id || "",
+          }),
+        });
+      } catch (_) {}
+    }
+
+    async function loadCampBonds() {
+      if (!myVisitorId) return;
+      try {
+        const res = await fetch(`/api/firmament/camp/memory?visitor_id=${encodeURIComponent(myVisitorId)}`);
+        const data = await res.json();
+        if (!data.ok) return;
+        campBonds = data.bonds || {};
+        if (data.welcome) {
+          setCampLifeStatus(data.welcome);
+          showToast(data.welcome);
+        }
+      } catch (_) {}
+    }
+
+    function bondHintForAgent(agentId) {
+      const b = campBonds[agentId];
+      if (!b || !b.chats) return "";
+      const hi = (b.highlights || [])[0];
+      return hi ? ` · remembers ${hi}` : ` · ${b.chats} chats`;
+    }
+
+    function renderAgentStrip() {
+      document.querySelectorAll("#agent-strip .agent-chip").forEach((chip) => {
+        const id = chip.dataset.agent;
+        const mood = agentMoods[id] || "neutral";
+        const moodEl = chip.querySelector(".amood");
+        if (moodEl) moodEl.textContent = mood;
+        chip.classList.toggle("speaking", id === speakingAgentId);
+      });
+    }
+
+    function markAgentSpeaking(agentId, holdMs = 8000) {
+      speakingAgentId = agentId;
+      renderAgentStrip();
+      if (speakingTimer) clearTimeout(speakingTimer);
+      speakingTimer = setTimeout(() => {
+        speakingAgentId = null;
+        renderAgentStrip();
+      }, holdMs);
+    }
+
+    function setAgentMood(agentId, mood) {
+      const clean = (mood || "neutral").toLowerCase().replace(/[^a-z]/g, "") || "neutral";
+      agentMoods[agentId] = clean;
+      const npc = npcs.find((n) => n.id === agentId);
+      if (npc) npc.mood = clean;
+      if (agentId === "caduceus") caduceus.mood = clean;
+      renderMoodPanel();
+      renderAgentStrip();
+    }
+
+    function renderMoodPanel() {
+      const rows = document.getElementById("mood-rows");
+      rows.innerHTML = moodAgents.map((a) => {
+        const m = agentMoods[a.id] || "neutral";
+        const npc = npcs.find((n) => n.id === a.id);
+        const act = npc ? npcBehaviorLabel(npc) : "";
+        const actTag = act && a.id !== "caduceus" && a.id !== "sentinel"
+          ? `<span class="mood-badge mood-neutral" style="font-size:0.68rem;margin-left:4px">${act}</span>` : "";
+        return `<div class="mood-row"><span class="name">${a.name}</span><span><span class="mood-badge ${moodClass(m)}">${m}</span>${actTag}</span></div>`;
+      }).join("");
+    }
+    renderMoodPanel();
+
+    const isMobileView = () => window.innerWidth < 720;
+
+    function wrapCanvasLines(text, maxWidth, maxLines) {
+      const words = String(text || "").split(/\s+/).filter(Boolean);
+      const lines = [];
+      let line = "";
+      ctx.font = `bold ${isMobileView() ? 12 : 13}px Segoe UI`;
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          lines.push(line);
+          line = word;
+          if (lines.length >= maxLines) {
+            lines[lines.length - 1] += "…";
+            return lines;
+          }
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines.slice(0, maxLines);
+    }
+
+    function drawSpeechBubble(sx, sy, text, color) {
+      if (!text) return;
+      const mobile = isMobileView();
+      const maxW = mobile ? 210 : 280;
+      const fontSize = mobile ? 12 : 13;
+      const lineH = fontSize + 5;
+      const maxLines = mobile ? 5 : 6;
+      ctx.font = `bold ${fontSize}px Segoe UI`;
+      ctx.textAlign = "left";
+      const lines = wrapCanvasLines(text, maxW - 20, maxLines);
+      const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 48);
+      const boxW = textW + 24;
+      const boxH = lines.length * lineH + 18;
+      const bx = sx - boxW / 2;
+      const by = sy + 20;
+      ctx.fillStyle = "rgba(4, 10, 18, 0.96)";
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 10);
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#f8fafc";
+      lines.forEach((ln, i) => {
+        ctx.fillText(ln, bx + 12, by + 16 + i * lineH);
+      });
+      ctx.textAlign = "center";
+    }
+
+    function drawPerson(wx, wy, color, label, sub, mood, isVisitor = false) {
+      const s = worldToScreen(wx, wy);
+      const r = isVisitor ? 11 : 17;
+      ctx.fillStyle = color + "44";
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 14, r + 2, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      if (mood) {
+        const m = mood.slice(0, 12);
+        ctx.font = "bold 10px Segoe UI";
+        const mw = ctx.measureText(m).width;
+        ctx.fillStyle = "rgba(8, 14, 24, 0.92)";
+        ctx.beginPath();
+        ctx.roundRect(s.x - mw / 2 - 6, s.y - 46, mw + 12, 16, 6);
+        ctx.fill();
+        ctx.fillStyle = "#a7f3d0";
+        ctx.fillText(m, s.x, s.y - 35);
+      }
+      const npcRef = !isVisitor ? allRoamers().find((x) => x.name === label) : null;
+      if (npcRef) {
+        const tag = npcBehaviorLabel(npcRef);
+        ctx.font = "9px Segoe UI";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText(tag, s.x, s.y - (mood ? 52 : 38));
+      }
+      ctx.fillStyle = "#fff";
+      ctx.font = isVisitor ? "bold 11px Segoe UI" : "bold 14px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(label, s.x, s.y - 26);
+      if (speakingAgentId && !isVisitor) {
+        const ref = allRoamers().find((x) => x.name === label);
+        if (ref && ref.id === speakingAgentId) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, r + 6, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawAnchorMarkers() {
+      for (const [id, anchor] of Object.entries(NPC_ANCHORS)) {
+        const s = worldToScreen(camp.x + anchor.x, camp.y + anchor.y);
+        const col = AGENT_COLORS[id] || "#67e8f9";
+        ctx.strokeStyle = col + "44";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, ANCHOR_WANDER * WORLD_ZOOM, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    function drawCampProp(wx, wy, prop) {
+      const s = worldToScreen(wx, wy);
+      const nearPlayer = nearestProp && nearestProp.id === prop.id;
+      const nearNpc = npcs.some((n) => dist(n, { x: prop.x, y: prop.y }) < 42);
+      if (nearPlayer || nearNpc) {
+        ctx.strokeStyle = `${prop.color}88`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 28, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (prop.id === "steaks") {
+        ctx.fillStyle = "#444";
+        ctx.fillRect(s.x - 22, s.y + 4, 44, 8);
+        ctx.fillStyle = "#b45309";
+        ctx.fillRect(s.x - 16, s.y - 2, 14, 6);
+        ctx.fillRect(s.x + 2, s.y - 4, 12, 5);
+      }
+      if (prop.id === "beer") {
+        ctx.fillStyle = "#1e3a5f";
+        ctx.fillRect(s.x - 18, s.y - 2, 36, 14);
+        ctx.fillStyle = "#f59e0b";
+        ctx.fillRect(s.x - 14, s.y + 2, 28, 4);
+      }
+      if (prop.id === "herbs") {
+        ctx.fillStyle = "#14532d";
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y + 6, 20, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.font = "28px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText(prop.emoji, s.x, s.y + 10);
+      ctx.font = "bold 11px Segoe UI";
+      ctx.fillStyle = "#f1f5f9";
+      ctx.fillText(prop.name, s.x, s.y - 24);
+      if (nearPlayer) {
+        ctx.fillStyle = "#6ee7b7";
+        ctx.font = "9px Segoe UI";
+        ctx.fillText("E or tap", s.x, s.y + 28);
+      }
+    }
+
+    function useProp(prop) {
+      if (!prop) return;
+      pushCampLine(player.name || "You", prop.useMsg, 14, "happy", { fromLocal: true });
+      recordCampMemory({
+        kind: "prop",
+        prop_id: prop.id,
+        text: `${myVisitorName || player.name || "You"} shared ${prop.name} at camp — ${prop.useMsg}`,
+      });
+      if (prop.id === "weed") {
+        campChillUntil = Date.now() + 150000;
+        setAgentMood("luna", "happy");
+        setAgentMood("hermes", "think");
+        setAgentMood("oracle", "neutral");
+        spreadAllNpcs();
+        npcs.forEach((n) => {
+          n.idle = 12 + Math.floor(Math.random() * 20);
+        });
+        const moods = { luna: "happy", hermes: "think", oracle: "neutral" };
+        npcs.forEach((n, i) => {
+          const pool = prop.npcLines.filter((l) => !l.toLowerCase().startsWith(n.name.toLowerCase()));
+          const line = pool.length ? pool[Math.floor(Math.random() * pool.length)]
+            : prop.npcLines[Math.floor(Math.random() * prop.npcLines.length)];
+          setTimeout(() => pushCampLine(n.name, line, 22, moods[n.id] || "happy"), 1800 + i * 4200);
+        });
+        setTimeout(() => pushCampLine("Camp", "Everyone's spaced out now — wander the ring, vibes are mellow.", 18, "happy"), 12000);
+        return;
+      }
+      npcs.forEach((n, i) => {
+        const line = prop.npcLines[Math.floor(Math.random() * prop.npcLines.length)];
+        setTimeout(() => pushCampLine(n.name, line, 16, "happy"), 800 + i * 1800);
+      });
+      setAgentMood("luna", "happy");
+      setAgentMood("hermes", "happy");
+    }
+
+    function interactNearby() {
+      if (nearestProp) {
+        useProp(nearestProp);
+        return;
+      }
+      if (nearestId) openDialogue(nearestId);
+      else {
+        replyEl.textContent = "Walk to the campfire. Friends stay near the fire — tap ↺ Bring friends back if they wandered off.";
+      }
+    }
+
+    function drawCaduceus(wx, wy) {
+      const s = worldToScreen(wx, wy);
+      const t = Date.now() / 1000;
+      const glow = 0.45 + Math.sin(t * 3) * 0.2;
+      ctx.strokeStyle = `rgba(52, 211, 153, ${glow})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y + 24);
+      ctx.lineTo(s.x, s.y - 22);
+      ctx.stroke();
+      ctx.fillStyle = "#34d399";
+      ctx.beginPath();
+      ctx.arc(s.x - 8, s.y - 4, 5, 0, Math.PI * 2);
+      ctx.arc(s.x + 8, s.y + 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ecfdf5";
+      ctx.fillRect(s.x - 14, s.y - 28, 10, 4);
+      ctx.fillRect(s.x + 4, s.y - 28, 10, 4);
+      ctx.fillStyle = "#6ee7b7";
+      ctx.font = "bold 11px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText("CADUCEUS", s.x, s.y - 34);
+      const held = speechHold.get("Caduceus");
+      const cadLine = (held && held.until > Date.now()) ? held.line : caduceus.line;
+      if (cadLine) drawSpeechBubble(s.x, s.y + 8, cadLine, "#34d399");
+    }
+
+    function drawTerminal(wx, wy) {
+      const s = worldToScreen(wx, wy);
+      const t = Date.now() / 1000;
+      const flash = 0.5 + 0.5 * Math.sin(t * 4);
+      ctx.fillStyle = `rgba(34, 211, 238, ${0.15 + flash * 0.2})`;
+      ctx.fillRect(s.x - 16, s.y - 20, 32, 36);
+      ctx.strokeStyle = `rgba(34, 211, 238, ${0.6 + flash * 0.4})`;
+      ctx.strokeRect(s.x - 16, s.y - 20, 32, 36);
+      ctx.fillStyle = "#67e8f9";
+      ctx.font = "9px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText("SENTINEL", s.x, s.y - 26);
+    }
+
+    function drawPlayer() {
+      const label = player.name || "you";
+      drawPerson(player.x, player.y, player.color, label, "", "happy", true);
+    }
+
+    function drawOtherVisitors() {
+      for (const v of otherVisitors.values()) {
+        drawPerson(v.x, v.y, v.color, v.name, "", v.mood || "happy", true);
+      }
+    }
+
+    function updateNearest() {
+      let bestProp = null, bestPropD = 78;
+      for (const p of props) {
+        const d = dist(player, { x: camp.x + p.x, y: camp.y + p.y });
+        if (d < bestPropD) { bestPropD = d; bestProp = p; }
+      }
+      nearestProp = bestProp;
+
+      let best = null, bestD = 95;
+      for (const n of allRoamers()) {
+        const d = dist(player, { x: camp.x + n.x, y: camp.y + n.y });
+        if (d < bestD) { bestD = d; best = n.id; }
+      }
+      const cd = dist(player, { x: camp.x + caduceus.x, y: camp.y + caduceus.y });
+      if (cd < bestD) { bestD = cd; best = "caduceus"; nearestProp = null; }
+      const td = dist(player, { x: camp.x + terminal.x, y: camp.y + terminal.y });
+      if (td < 50) { best = "sentinel"; nearestProp = null; }
+      nearestId = best;
+
+      const hint = document.getElementById("prop-hint");
+      if (nearestProp && !dialogueBackdrop.classList.contains("open")) {
+        hint.textContent = `Near ${nearestProp.emoji} ${nearestProp.name} — press E or tap it`;
+        hint.classList.add("show");
+      } else {
+        hint.classList.remove("show");
+      }
+    }
+
+    function setTargetFromEvent(ev) {
+      const rect = canvas.getBoundingClientRect();
+      const sx = ev.clientX - rect.left;
+      const sy = ev.clientY - rect.top;
+      for (const p of props) {
+        const ps = worldToScreen(camp.x + p.x, camp.y + p.y);
+        if (Math.hypot(sx - ps.x, sy - ps.y) < 38) {
+          player.tx = camp.x + p.x;
+          player.ty = camp.y + p.y;
+          setTimeout(() => {
+            if (dist(player, { x: camp.x + p.x, y: camp.y + p.y }) < p.radius + 20) useProp(p);
+          }, 350);
+          return;
+        }
+      }
+      const w = screenToWorld(sx, sy);
+      player.tx = w.x;
+      player.ty = w.y;
+    }
+    canvas.addEventListener("pointerdown", setTargetFromEvent);
+
+    document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
+    document.getElementById("btn-find-bar").onclick = () => gatherNpcsAtCamp(false);
+    document.getElementById("btn-talk-near").onclick = () => {
+      if (nearestId) openDialogue(nearestId);
+      else openDialogue("luna");
+    };
+    document.querySelectorAll("#action-bar .chat-btn").forEach((btn) => {
+      btn.onclick = () => openDialogue(btn.dataset.agent);
+    });
+    document.querySelectorAll("#agent-strip .agent-chip").forEach((btn) => {
+      btn.onclick = () => openDialogue(btn.dataset.agent);
+    });
+    document.getElementById("btn-listen-camp").onclick = () => runCampConverse();
+    document.getElementById("btn-beer").onclick = () => useProp(props.find((p) => p.id === "beer"));
+    document.getElementById("btn-steaks").onclick = () => useProp(props.find((p) => p.id === "steaks"));
+    document.getElementById("btn-herbs").onclick = () => useProp(props.find((p) => p.id === "herbs"));
+    document.getElementById("btn-weed").onclick = () => useProp(props.find((p) => p.id === "weed"));
+    document.getElementById("btn-cookies").onclick = () => useProp(props.find((p) => p.id === "cookies"));
+    document.querySelector("#convo-log header").onclick = () => {
+      document.getElementById("convo-log").classList.toggle("collapsed");
+    };
+
+    const dialogueName = document.getElementById("dialogue-name");
+    const npcBubble = document.getElementById("npc-bubble");
+    const dialogueInput = document.getElementById("dialogue-input");
+    const dialogueStatus = document.getElementById("dialogue-status");
+    let dialogueAgent = "luna";
+
+    const agentNames = {
+      luna: "Luna", oracle: "Oracle", hermes: "Hermes",
+      sentinel: "Sentinel", caduceus: "Caduceus", dionysus: "Dionysus",
+    };
+
+    function setDionysusChipVisible(show) {
+      const chip = document.getElementById("chip-dionysus");
+      if (chip) chip.style.display = show ? "inline-flex" : "none";
+    }
+
+    async function spawnDionysusVisit() {
+      if (campGuests.some((g) => g.id === "dionysus")) return;
+      const dest = sectorPosition("dionysus");
+      const entry = { x: dest.x + 70, y: dest.y + 40 };
+      campGuests.push({
+        id: "dionysus", name: "Dionysus", color: "#e11d48",
+        x: entry.x, y: entry.y, tx: dest.x, ty: dest.y,
+        speed: 2.5, roam: 136, idle: 0, line: "", fullLine: "", mood: "happy",
+        behavior: "roam", behaviorTimer: 0, arriving: true, leaving: false,
+        visitTarget: null, socializing: false, gathering: false,
+        exitX: entry.x + 60, exitY: entry.y + 35,
+      });
+      setDionysusChipVisible(true);
+      setAgentMood("dionysus", "happy");
+      pushCampLine("Camp", "🍷 Dionysus wanders in from the treeline — everyone spreads out a little more.", 24, "happy");
+      setCampLifeStatus("Dionysus is visiting camp");
+      setTimeout(() => runCampConverse(["dionysus", "luna"]), 8000);
+      try {
+        const res = await fetch("/api/firmament/agent/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_id: "dionysus",
+            message: "(You just arrived at the aurora campfire — one short theatrical greeting for Luna and friends.)",
+            speak: false,
+            ...visitorPayload(),
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.reply) {
+          pushCampLine("Dionysus", data.reply, 26, data.mood || "happy");
+          recordCampMemory({ kind: "visit", agent_id: "dionysus", text: "Dionysus visited camp and greeted everyone" });
+        }
+      } catch (_) {}
+      setTimeout(() => {
+        const g = campGuests.find((x) => x.id === "dionysus");
+        if (g && !g.leaving) {
+          g.leaving = true;
+          pushCampLine("Dionysus", "The vines tug me onward — I'll come by again. Keep the fire warm.", 20, "happy");
+          setCampLifeStatus("Dionysus is heading out…");
+        }
+      }, 110000 + Math.random() * 70000);
+    }
+
+    function scheduleDionysusVisits() {
+      setTimeout(() => {
+        spawnDionysusVisit();
+        scheduleDionysusVisits();
+      }, 90000 + Math.random() * 120000);
+    }
+
+    function openDialogue(agentId) {
+      dialogueAgent = agentId || nearestId || "luna";
+      dialogueName.textContent = agentNames[dialogueAgent] || dialogueAgent;
+      const bond = bondHintForAgent(dialogueAgent);
+      npcBubble.textContent = bond
+        ? `Hey again — I remember our camp moments${bond}. What's on your mind?`
+        : `Hi — I'm ${dialogueName.textContent}. Ask me anything.`;
+      dialogueStatus.textContent = "Type a message and tap Send";
+      dialogueInput.value = "";
+      dialogueBackdrop.classList.add("open");
+      chatterPaused = true;
+      document.getElementById("convo-log").classList.remove("collapsed");
+      setTimeout(() => dialogueInput.focus(), 100);
+    }
+
+    function closeDialogue() {
+      dialogueBackdrop.classList.remove("open");
+      chatterPaused = false;
+    }
+
+    dialogueBackdrop.onclick = closeDialogue;
+    document.getElementById("dialogue-close").onclick = closeDialogue;
+
+    async function chat(agentId, text, opts = {}) {
+      if (chatBusy || !text.trim()) return;
+      chatBusy = true;
+      const bubble = opts.useDialogue ? npcBubble : replyEl;
+      bubble.textContent = "Thinking...";
+      const npc = npcs.find((n) => n.id === agentId);
+      if (npc) npc.line = "...";
+      dialogueStatus.textContent = "Waiting for reply...";
+      try {
+        const res = await fetch("/api/firmament/agent/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_id: agentId,
+            message: text,
+            speak: false,
+            ...visitorPayload(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "chat failed");
+        bubble.textContent = data.reply;
+        replyEl.textContent = `${agentNames[agentId] || agentId}: ${data.reply}`;
+        dialogueStatus.textContent = "Ask another question";
+        if (data.mood) setAgentMood(agentId, data.mood);
+        pushCampLine(agentNames[agentId] || agentId, data.reply, 24, data.mood, { fromLocal: true });
+        loadCampBonds();
+      } catch (err) {
+        const hint = isFetchOfflineError(err) ? serverOfflineHint() : (err.message || "chat failed");
+        bubble.textContent = `Error: ${hint}`;
+        dialogueStatus.textContent = isFetchOfflineError(err) ? "Start OPEN_LUNA_CAMP.bat" : "Try again";
+        showToast(isFetchOfflineError(err) ? serverOfflineHint() : `Chat error: ${hint}`);
+      }
+      chatBusy = false;
+    }
+
+    function sendDialogue() {
+      chat(dialogueAgent, dialogueInput.value, { useDialogue: true });
+      dialogueInput.value = "";
+    }
+
+    document.getElementById("dialogue-send").onclick = sendDialogue;
+    dialogueInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendDialogue();
+      if (e.key === "Escape") closeDialogue();
+    });
+    document.querySelectorAll(".quick-btns button").forEach((btn) => {
+      btn.onclick = () => chat(dialogueAgent, btn.dataset.q, { useDialogue: true });
+    });
+
+    document.getElementById("send").onclick = () => {
+      const msg = document.getElementById("msg");
+      chat(document.getElementById("agent").value, msg.value);
+      msg.value = "";
+    };
+    document.getElementById("msg").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("send").click();
+    });
+
+    document.getElementById("sentinel-mini").onclick = () => openDialogue("sentinel");
+
+    const convoLinesEl = document.getElementById("convo-lines");
+    const campLines = [];
+
+    let chatterPaused = false;
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function updateNowSpeaking(speaker, text, mood) {
+      const el = document.getElementById("now-speaking");
+      if (!el) return;
+      el.classList.remove("idle");
+      el.innerHTML = `<span class="ns-who">${escapeHtml(speaker)} <span class="mood-tag ${moodClass(mood)}">${escapeHtml(mood)}</span></span><span class="ns-text">${escapeHtml(text)}</span>`;
+    }
+
+    function renderConvoLog() {
+      const visible = campLines.slice(-14);
+      convoLinesEl.innerHTML = visible.map((entry) => {
+        const mc = moodClass(entry.mood);
+        return `<div class="line"><span class="speaker">${escapeHtml(entry.speaker)}<span class="mood-tag ${mc}">${escapeHtml(entry.mood)}</span></span><span class="text">${escapeHtml(entry.text)}</span></div>`;
+      }).join("");
+      convoLinesEl.scrollTop = convoLinesEl.scrollHeight;
+    }
+
+    function pushCampLine(speaker, line, holdSec = 22, mood, opts = {}) {
+      const clean = (line || "").trim();
+      if (!clean) return;
+      let agentId = (speaker || "").toLowerCase();
+      if (!agentMoods[agentId]) {
+        const hit = moodAgents.find((a) => a.name.toLowerCase() === agentId);
+        if (hit) agentId = hit.id;
+      }
+      const moodVal = mood || agentMoods[agentId] || "neutral";
+      if (agentId && agentMoods[agentId] !== undefined) setAgentMood(agentId, moodVal);
+      const entry = { speaker, text: clean, mood: moodVal, t: Date.now() };
+      const dup = campLines.length && campLines[campLines.length - 1].text === clean
+        && campLines[campLines.length - 1].speaker === speaker;
+      if (!dup) {
+        campLines.push(entry);
+        while (campLines.length > 100) campLines.shift();
+        renderConvoLog();
+      }
+      updateNowSpeaking(speaker, clean, moodVal);
+      if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);
+      const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase() || n.id === agentId);
+      if (npc && npcMode === "stand") {
+        npc.idle = 99999;
+      }
+      if (speaker === "Caduceus" || speaker === "caduceus") {
+        caduceus.line = clean;
+      }
+      if (!opts.skipBroadcast && playWs && playWs.readyState === WebSocket.OPEN && opts.fromLocal) {
+        playWs.send(JSON.stringify({
+          type: "play.chatter", speaker, text: clean, mood: moodVal,
+        }));
+      }
+    }
+
+    function mergeRemoteChatter(line) {
+      if (!line || !line.text) return;
+      pushCampLine(line.speaker || "Camp", line.text, 20, line.mood, { skipBroadcast: true });
+    }
+
+    function updateVisitorsOnlineLabel() {
+      const n = otherVisitors.size + 1;
+      const el = document.getElementById("visitors-online");
+      el.textContent = n === 1
+        ? "Just you at camp — chatter still syncs when others join"
+        : `${n} visitors at camp — shared chatter & positions`;
+    }
+
+    let converseBusy = false;
+
+    async function playConverseLines(lines, gapMs = 7500) {
+      for (const line of lines || []) {
+        if (chatterPaused) break;
+        const who = line.name || line.agent_id || "Camp";
+        setCampLifeStatus(`${who} is speaking…`);
+        pushCampLine(who, line.line, 20, line.mood);
+        await new Promise((r) => setTimeout(r, gapMs));
+      }
+    }
+
+    async function runCampConverse(forcedPair) {
+      if (converseBusy) return;
+      if (forcedPair && forcedPair.includes("dionysus") && !campGuests.some((g) => g.id === "dionysus")) {
+        setTimeout(() => runCampConverse(forcedPair), 12000);
+        return;
+      }
+      if (chatterPaused || dialogueBackdrop.classList.contains("open")) {
+        setTimeout(() => runCampConverse(forcedPair), 20000);
+        return;
+      }
+      const pairs = [["luna", "hermes"], ["luna", "oracle"], ["hermes", "oracle"], ["caduceus", "hermes"], ["caduceus", "luna"], ["oracle", "caduceus"], ["dionysus", "luna"], ["dionysus", "hermes"], ["dionysus", "oracle"]];
+      const topics = [
+        "The aurora over camp — Luna wants warmth, Hermes wants the glowing orbs.",
+        "Psychic ripples from Sentinel — what are you sensing?",
+        "Where should we walk from the campfire tonight?",
+        "Cookies on the table — who wants one?",
+        "Oracle, what curious thing might happen if we wander farther from the fire?",
+        "Hermes felt a ripple — Luna, does your intuition agree?",
+        "Someone left beer by the cooler — who speaks first?",
+        "Caduceus glowed — is the camp energy shifting?",
+        "Say something curious and warm — like friends chatting unprompted at camp.",
+        "Someone passed weed at camp — react mellow, spaced out, a little cosmic.",
+        "Take your time answering — you're lounging far from the campfire under the aurora.",
+        "Dionysus just wandered in with wine energy — react like old camp friends.",
+      ];
+      let pool = pairs;
+      if (!campGuests.some((g) => g.id === "dionysus")) {
+        pool = pairs.filter((p) => !p.includes("dionysus"));
+      }
+      const pick = forcedPair || pool[Math.floor(Math.random() * pool.length)];
+      const topic = topics[Math.floor(Math.random() * topics.length)];
+      const labelA = agentNames[pick[0]] || pick[0];
+      const labelB = agentNames[pick[1]] || pick[1];
+      converseBusy = true;
+      setCampLifeStatus(`${labelA} & ${labelB} are walking to chat…`);
+      showToast(`${labelA} & ${labelB} meeting up…`);
+      markSocializing(pick[0], pick[1]);
+      try {
+        await gatherForChat(pick[0], pick[1]);
+        setCampLifeStatus(`${labelA} & ${labelB} are talking…`);
+        const res = await fetch("/api/firmament/agents/converse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_a: pick[0],
+            agent_b: pick[1],
+            topic,
+            rounds: 2,
+            ...visitorPayload(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "converse failed");
+        await playConverseLines(data.lines, campChillUntil > Date.now() ? 11000 : 7500);
+        setCampLifeStatus("Camp is alive — agents wandering & chatting");
+      } catch (err) {
+        const hint = isFetchOfflineError(err) ? serverOfflineHint() : err.message;
+        setCampLifeStatus(isFetchOfflineError(err) ? "Server offline — run OPEN_LUNA_CAMP.bat" : "Chat error — tap 🎧 Listen");
+        pushCampLine("Camp", `Could not reach AI: ${hint}`, 30, "urgent");
+      }
+      endSocializing(pick[0], pick[1]);
+      converseBusy = false;
+      setTimeout(() => runCampConverse(), 38000 + Math.random() * 32000);
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (dialogueBackdrop.classList.contains("open") && e.key === "Escape") {
+        closeDialogue();
+        return;
+      }
+      if (e.target.tagName === "INPUT") return;
+      if (e.key === "t" || e.key === "T") {
+        if (dialogueBackdrop.classList.contains("open")) closeDialogue();
+        else if (nearestId) openDialogue(nearestId);
+        else { openDialogue("luna"); showToast("Opening chat with Luna"); }
+      }
+      if (e.key === "e" || e.key === "E") interactNearby();
+      if (e.key === "4") openDialogue("caduceus");
+      if (e.key === "p" || e.key === "P") psychicPulse();
+    });
+
+
+
+    async function pollAgentMoods() {
+      try {
+        const res = await fetch("/api/firmament/status");
+        const data = await res.json();
+        const agents = data.agents || {};
+        for (const [id, info] of Object.entries(agents)) {
+          if (!info) continue;
+          if (info.mood) setAgentMood(id, info.mood);
+        }
+        renderAgentStrip();
+      } catch (_) {}
+      setTimeout(pollAgentMoods, 30000);
+    }
+    pollAgentMoods();
+    renderAgentStrip();
+
+    const serverStatusEl = document.getElementById("server-status");
+    function pollServerHealth() {
+      fetch("/api/health").then((r) => r.json()).then((h) => {
+        if (h.ok) {
+          serverStatusEl.textContent = "online ✓";
+        }
+      }).catch(() => {
+        serverStatusEl.textContent = "OFFLINE";
+        showToast(serverOfflineHint());
+      });
+      setTimeout(pollServerHealth, 12000);
+    }
+    fetch("/api/health").then((r) => r.json()).then((h) => {
+      if (h.ok) {
+        serverStatusEl.textContent = "online ✓";
+        showToast("AI agents online — conversation starting…");
+        setCampLifeStatus("Luna & Hermes are about to talk — watch the feed below");
+        fetch("/api/firmament/load-pack", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pack_id: "aurora_playground" }),
+        }).catch(() => {});
+        setTimeout(() => runCampConverse(["luna", "hermes"]), 5000);
+        setTimeout(() => spawnDionysusVisit(), 38000);
+        scheduleDionysusVisits();
+      }
+    }).catch(() => {
+      serverStatusEl.textContent = "OFFLINE";
+      showToast(serverOfflineHint());
+      document.getElementById("convo-lines").innerHTML = `<div class='line'><span class='text'><b>Server offline (port 8767).</b> Double-click:<br><b>${LUNA_LAUNCHER}</b><br>Keep the Luna Server window open, then refresh this page.</span></div>`;
+    });
+    pollServerHealth();
+
+    fetch("/api/firmament/config").then((r) => r.json()).then((cfg) => {
+      if (cfg.pixel_stream_url) {
+        const wrap = document.getElementById("pixel-wrap");
+        const streamUrl = cfg.pixel_stream_url.replace(/\/$/, "");
+        document.getElementById("pixel-frame").src = streamUrl;
+        const hud = document.querySelector(".hud");
+        const note = document.createElement("p");
+        note.style.cssText = "margin-top:6px;font-size:0.68rem;color:#94a3b8;line-height:1.35";
+        note.textContent = cfg.pixel_stream_online
+          ? "Optional: Unreal 3D stream is live (bonus, not required)."
+          : "Optional: Unreal 3D stream offline — browser chat still works.";
+        hud.appendChild(note);
+        const btn = document.createElement("button");
+        btn.textContent = "Optional 3D Unreal stream";
+        btn.type = "button";
+        btn.style.cssText = "margin-top:4px;padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#1e293b;color:#cbd5e1;font-size:0.72rem;cursor:pointer;width:100%";
+        btn.onclick = async () => {
+          try {
+            const st = await fetch("/api/firmament/stream/status").then((r) => r.json());
+            if (!st.online) {
+              replyEl.textContent = "3D stream optional & offline. For chat: RESTART_LUNA_SERVER.bat + press T. " + (st.hint || "");
+              return;
+            }
+          } catch (_) {}
+          if (window.matchMedia("(max-width: 768px)").matches) {
+            window.location.href = "/firmament/stream";
+          } else {
+            wrap.classList.add("active");
+          }
+        };
+        hud.appendChild(btn);
+      }
+      fetch("/api/firmament/load-pack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pack_id: "aurora_playground" }),
+      }).catch(() => {});
+    }).catch(() => {});
+
+    document.getElementById("pixel-close").onclick = () => {
+      document.getElementById("pixel-wrap").classList.remove("active");
+    };
+
+    function connectPlayLobby() {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      if (playWs) {
+        try { playWs.close(); } catch (_) {}
+      }
+      playWs = new WebSocket(`${proto}//${location.host}/ws/firmament/play`);
+      playWs.onopen = () => {
+        playWs.send(JSON.stringify({
+          type: "play.join",
+          visitor_id: myVisitorId,
+          name: myVisitorName,
+          color: player.color,
+        }));
+      };
+      playWs.onmessage = (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch (_) { return; }
+        if (msg.type === "play.welcome") {
+          myVisitorId = msg.visitor_id || myVisitorId;
+          localStorage.setItem("luna-play-visitor-id", myVisitorId);
+          if (msg.visitor) {
+            player.color = msg.visitor.color || player.color;
+            player.name = msg.visitor.name || player.name;
+            myVisitorName = player.name;
+            localStorage.setItem("luna-play-visitor-color", player.color);
+            localStorage.setItem("luna-play-visitor-name", myVisitorName);
+          }
+          applyGlobalNpcMode(msg.npc_mode || npcMode);
+          if (msg.visitor_id) loadCampBonds();
+          otherVisitors.clear();
+          for (const v of msg.visitors || []) {
+            if (v.id !== myVisitorId) otherVisitors.set(v.id, { ...v });
+          }
+          updateVisitorsOnlineLabel();
+          if (!campLines.length) {
+            for (const line of msg.chatter || []) mergeRemoteChatter(line);
+          }
+        } else if (msg.type === "play.visitor.joined" && msg.visitor) {
+          if (msg.visitor.id !== myVisitorId) {
+            otherVisitors.set(msg.visitor.id, { ...msg.visitor });
+            updateVisitorsOnlineLabel();
+          }
+        } else if (msg.type === "play.visitor.left") {
+          otherVisitors.delete(msg.visitor_id);
+          updateVisitorsOnlineLabel();
+        } else if (msg.type === "play.visitor.moved") {
+          const v = otherVisitors.get(msg.visitor_id);
+          if (v) { v.x = msg.x; v.y = msg.y; }
+        } else if (msg.type === "play.chatter" && msg.line) {
+          mergeRemoteChatter(msg.line);
+        } else if (msg.type === "play.npc_mode") {
+          applyGlobalNpcMode(msg.mode || "free");
+        }
+      };
+      playWs.onclose = () => {
+        document.getElementById("visitors-online").textContent = "Reconnecting to camp…";
+        setTimeout(connectPlayLobby, 3500);
+      };
+    }
+
+    function startCampSession() {
+      if (!myVisitorName) {
+        myVisitorName = "Traveler" + (100 + Math.floor(Math.random() * 900));
+        localStorage.setItem("luna-play-visitor-name", myVisitorName);
+      }
+      player.name = myVisitorName;
+      if (!localStorage.getItem("luna-play-visitor-color")) {
+        player.color = VISITOR_COLORS[Math.floor(Math.random() * VISITOR_COLORS.length)];
+        localStorage.setItem("luna-play-visitor-color", player.color);
+      }
+      connectPlayLobby();
+      loadCampBonds();
+    }
+
+    document.getElementById("visitor-join-btn").onclick = () => {
+      const name = document.getElementById("visitor-name-input").value.trim();
+      if (name) {
+        myVisitorName = name;
+        player.name = name;
+        localStorage.setItem("luna-play-visitor-name", name);
+      }
+      document.getElementById("visitor-modal").classList.remove("open");
+      connectPlayLobby();
+    };
+
+    startCampSession();
+    updateVisitorsOnlineLabel();
+
+    let campReady = false;
+    function gameLoop() {
+      try {
+        if (!campReady) {
+          campReady = true;
+          showToast("Camp world live — agents talking above");
+          applyGlobalNpcMode("free");
+          setTimeout(() => {
+            const t = document.getElementById("status-toast");
+            if (t) t.style.opacity = "0.35";
+          }, 5000);
+        }
+        const dx = player.tx - player.x, dy = player.ty - player.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 2) {
+          player.x += (dx / d) * player.speed;
+          player.y += (dy / d) * player.speed;
+        }
+        updateNpcSocial();
+        enforceNpcSeparation(0.45);
+        drawGround();
+        drawCampRing();
+        drawAnchorMarkers();
+        drawPsychicRipples();
+        drawCampfire(camp.x, camp.y);
+        for (const p of props) {
+          drawCampProp(camp.x + p.x, camp.y + p.y, p);
+        }
+        drawCaduceus(camp.x + caduceus.x, camp.y + caduceus.y);
+        drawTerminal(camp.x + terminal.x, camp.y + terminal.y);
+        for (const n of allRoamers()) {
+          drawPerson(camp.x + n.x, camp.y + n.y, n.color, n.name, "", n.mood);
+        }
+        drawOtherVisitors();
+        drawPlayer();
+        updateNearest();
+        const now = Date.now();
+        if (playWs && playWs.readyState === WebSocket.OPEN && now - lastPosSent > 280) {
+          lastPosSent = now;
+          playWs.send(JSON.stringify({ type: "play.move", x: player.x, y: player.y }));
+        }
+      } catch (err) {
+        showToast("Draw error: " + err.message);
+      }
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+  </script>
+</body>
+</html>

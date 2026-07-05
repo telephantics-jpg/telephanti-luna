@@ -1,0 +1,43 @@
+{
+  "id": "cosmic_drift",
+  "name": "Cosmic Drift",
+  "description": "Default Luna firmament — aurora sky, floating agents, gentle neural drift.",
+  "version": 1,
+  "sky": {
+    "type": "gradient_aurora",
+    "colors": ["#1a1828", "#3d2a5c", "#6b8cff"],
+    "star_density": 0.75,
+    "fog_density": 0.18,
+    "time_of_day": "eternal_twilight"
+  },
+  "ground": {
+    "mesh": "infinite_plane",
+    "material": "M_CosmicFloor",
+    "reflectivity": 0.35
+  },
+  "physics": {
+    "gravity_z": -980,
+    "agent_roam_speed": 120,
+    "bubble_float_amplitude": 24
+  },
+  "agents": [
+    { "id": "luna", "spawn": [0.42, 0.18, 120], "bubble_color": "#c9a87c" },
+    { "id": "oracle", "spawn": [0.72, 0.55, 140], "bubble_color": "#9f7aea" }
+  ],
+  "hallucination": {
+    "enabled": true,
+    "intensity": 0.42,
+    "seed": 155,
+    "interval_sec": 60,
+    "prompt_template": "ethereal firmament, neural aurora, {mood}, soft volumetric light, cinematic"
+  },
+  "audio": {
+    "ambient": "cosmic_pad",
+    "reverb": "cathedral_soft"
+  },
+  "mods": {
+    "allow_user_sky": true,
+    "allow_agent_spawn": true,
+    "max_agents": 8
+  }
+}

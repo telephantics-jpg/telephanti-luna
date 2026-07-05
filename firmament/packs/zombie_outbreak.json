@@ -1,0 +1,51 @@
+{
+  "id": "zombie_outbreak",
+  "name": "Zombie Outbreak",
+  "description": "Survival outpost - Luna on radio, Oracle warns of waves, wanderer scouts.",
+  "version": 1,
+  "game_mode": "zombie_survival",
+  "sky": {
+    "type": "overcast_night",
+    "colors": ["#0a0a12", "#1a1520", "#2d1f28"],
+    "star_density": 0.15,
+    "fog_density": 0.45,
+    "time_of_day": "midnight"
+  },
+  "ground": {
+    "mesh": "ruined_outpost",
+    "material": "M_MudGrass",
+    "reflectivity": 0.1
+  },
+  "physics": {
+    "gravity_z": -980,
+    "agent_roam_speed": 80,
+    "zombie_speed": 260
+  },
+  "agents": [
+    { "id": "luna", "spawn": [0.35, 0.4, 100], "role": "radio_companion", "bubble_color": "#c9a87c" },
+    { "id": "oracle", "spawn": [0.65, 0.35, 110], "role": "wave_prophet", "bubble_color": "#9f7aea" },
+    { "id": "wanderer", "spawn": [0.5, 0.75, 90], "role": "scout", "bubble_color": "#4fd1c5" },
+    { "id": "hermes", "spawn": [0.2, 0.55, 95], "role": "tactician", "bubble_color": "#60a5fa" }
+  ],
+  "waves": {
+    "base_count": 6,
+    "per_wave_add": 3,
+    "max_waves": 12
+  },
+  "hallucination": {
+    "enabled": true,
+    "intensity": 0.55,
+    "seed": 666,
+    "interval_sec": 90,
+    "prompt_template": "apocalyptic fog, distant fires, {mood}, horror atmosphere"
+  },
+  "audio": {
+    "ambient": "distant_growls_wind",
+    "combat": "tense_pulse"
+  },
+  "mods": {
+    "allow_user_sky": true,
+    "allow_agent_spawn": true,
+    "max_agents": 8
+  }
+}

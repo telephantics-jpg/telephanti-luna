@@ -1,9 +1,5 @@
-# Deploy Luna to Render (https://render.com) — no home PC required.
-# 1. Push luna-avatar to GitHub
-# 2. Render → New → Blueprint → connect repo
-# 3. Set XAI_API_KEY in the dashboard
-# 4. Add custom domain: telephanti.com + www.telephanti.com in Render dashboard
-# 5. Squarespace DNS: A @ → 216.24.57.1, CNAME www → luna-ki77.onrender.com
+# telephanti.com — Luna Camp on Render (replaces old Luna avatar at root)
+# Connect repo in Render → Blueprint → set XAI_API_KEY in dashboard
 
 services:
   - type: web
@@ -18,13 +14,19 @@ services:
         value: 0.0.0.0
       - key: LUNA_PUBLIC_URL
         value: https://telephanti.com
+      - key: LUNA_LLM_BACKEND
+        value: grok
       - key: XAI_API_KEY
         sync: false
       - key: GROK_MODEL
-        value: grok-3-mini
+        value: grok-4-fast-non-reasoning
       - key: TTS_VOICE
         value: en-US-AriaNeural
       - key: LUNA_LIPSYNC
-        value: "1"
+        value: "0"
       - key: LUNA_PREWARM
         value: "0"
+    disk:
+      name: luna-camp-data
+      mountPath: /app/data
+      sizeGB: 1

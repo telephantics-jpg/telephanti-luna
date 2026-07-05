@@ -1,0 +1,61 @@
+{
+  "id": "aurora_playground",
+  "name": "Aurora Playground",
+  "description": "Brighter firmament for multi-agent experiments and mod tests.",
+  "version": 1,
+  "sky": {
+    "type": "gradient_aurora",
+    "colors": ["#0d1f2e", "#4fd1c5", "#9f7aea"],
+    "star_density": 0.55,
+    "fog_density": 0.12,
+    "time_of_day": "dawn"
+  },
+  "ground": {
+    "mesh": "infinite_plane",
+    "material": "M_AuroraFloor",
+    "reflectivity": 0.5,
+    "texture": "aurora_moss_gravel",
+    "texture_tiling": [4, 4],
+    "normal_strength": 0.35
+  },
+  "physics": {
+    "engine": "chaos",
+    "gravity_z": -780,
+    "agent_roam_speed": 180,
+    "bubble_float_amplitude": 36,
+    "prop_simulation": true,
+    "materials": ["rock", "crate", "bouncy_orb"]
+  },
+  "psychic_engine": {
+    "enabled": true,
+    "intensity": 0.75,
+    "shared_agents": ["hermes", "sentinel", "luna", "oracle", "caduceus", "dionysus"],
+    "zombie_mode": false,
+    "pulse_color": "#67e8f9",
+    "texture_overlay": "starfield_veil"
+  },
+  "agents": [
+    { "id": "luna", "spawn": [0.35, 0.25, 100], "bubble_color": "#c9a87c" },
+    { "id": "oracle", "spawn": [0.65, 0.4, 110], "bubble_color": "#9f7aea" },
+    { "id": "hermes", "spawn": [0.5, 0.55, 95], "bubble_color": "#60a5fa" },
+    { "id": "sentinel", "spawn": [0.5, 0.35, 105], "bubble_color": "#22d3ee" },
+    { "id": "caduceus", "spawn": [0.42, 0.32, 98], "bubble_color": "#34d399" },
+    { "id": "dionysus", "spawn": [0.78, 0.62, 100], "bubble_color": "#e11d48" }
+  ],
+  "hallucination": {
+    "enabled": true,
+    "intensity": 0.65,
+    "seed": 77,
+    "interval_sec": 35,
+    "prompt_template": "surreal AI playground, floating thought bubbles, {mood}, dream logic"
+  },
+  "audio": {
+    "ambient": "aurora_chimes",
+    "reverb": "hall_medium"
+  },
+  "mods": {
+    "allow_user_sky": true,
+    "allow_agent_spawn": true,
+    "max_agents": 12
+  }
+}

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luna Firmament</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0a0c14;
+      color: #f2f0eb;
+      overflow: hidden;
+    }
+    #sky { position: fixed; inset: 0; background: linear-gradient(165deg, #1a1828, #3d2a5c 45%, #6b8cff); }
+    #canvas { position: fixed; inset: 0; width: 100%; height: 100%; }
+    .hud {
+      position: fixed; left: 12px; top: 12px; z-index: 5;
+      background: rgba(10, 12, 20, 0.72);
+      border: 1px solid rgba(201, 168, 124, 0.35);
+      border-radius: 10px;
+      padding: 10px 12px;
+      min-width: 220px;
+      backdrop-filter: blur(8px);
+    }
+    .hud h1 { font-size: 0.95rem; color: #c9a87c; margin-bottom: 6px; }
+    .hud .meta { font-size: 0.72rem; color: #a8b4d4; line-height: 1.45; }
+    .hud .row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .hud button {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: #1a2030;
+      color: #f2f0eb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+    .agents {
+      position: fixed; right: 12px; top: 12px; z-index: 5;
+      width: min(320px, 42vw);
+      max-height: 70vh;
+      overflow: auto;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .agent-card {
+      background: rgba(10, 12, 20, 0.78);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+    }
+    .agent-card .name { font-weight: 700; }
+    .agent-card .state { color: #93c5fd; font-size: 0.68rem; }
+    .chat {
+      position: fixed; left: 12px; bottom: 12px; right: 12px; z-index: 6;
+      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+      background: rgba(10, 12, 20, 0.82);
+      border: 1px solid rgba(201, 168, 124, 0.35);
+      border-radius: 10px; padding: 8px;
+    }
+    .chat select, .chat input {
+      background: #1a2030; color: #f2f0eb; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px; padding: 6px 8px; font-size: 0.8rem;
+    }
+    .chat input { flex: 1; min-width: 180px; }
+    .chat button {
+      border: 1px solid rgba(255,255,255,0.14); background: #2a3550;
+      color: #f2f0eb; border-radius: 6px; padding: 6px 10px; cursor: pointer;
+    }
+    .log {
+      position: fixed; left: 12px; bottom: 64px; right: 72px; z-index: 5;
+      max-height: 100px; overflow: auto;
+      font-size: 0.68rem; color: #9aa8c8;
+      background: rgba(0,0,0,0.35);
+      border-radius: 8px; padding: 6px 8px;
+    }
+    #sentinel-float {
+      position: fixed;
+      right: max(10px, env(safe-area-inset-right));
+      bottom: calc(78px + env(safe-area-inset-bottom));
+      z-index: 12;
+      width: 88px;
+      height: 110px;
+      touch-action: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      cursor: grab;
+    }
+    #sentinel-float:active { cursor: grabbing; }
+    #sentinel-float .bubble {
+      position: absolute;
+      left: -8px;
+      top: -36px;
+      max-width: 160px;
+      background: rgba(8, 20, 32, 0.92);
+      border: 1px solid rgba(34, 211, 238, 0.55);
+      color: #a5f3fc;
+      font-size: 0.62rem;
+      line-height: 1.35;
+      padding: 6px 8px;
+      border-radius: 10px;
+      opacity: 0;
+      transform: translateY(6px) scale(0.96);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+    #sentinel-float.show-bubble .bubble {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    #sentinel-canvas {
+      width: 88px;
+      height: 88px;
+      display: block;
+      filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.65));
+    }
+    #sentinel-label {
+      text-align: center;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: #67e8f9;
+      margin-top: 2px;
+      text-transform: uppercase;
+    }
+    @media (max-width: 640px) {
+      #sentinel-float {
+        width: 96px;
+        height: 118px;
+        right: max(8px, env(safe-area-inset-right));
+        bottom: calc(86px + env(safe-area-inset-bottom));
+      }
+      #sentinel-canvas { width: 96px; height: 96px; }
+      .log { right: 12px; max-height: 72px; }
+      .agents { display: none; }
+      .hud { max-width: calc(100vw - 120px); }
+    }
+  </style>
+</head>
+<body>
+  <div id="sky"></div>
+  <canvas id="canvas"></canvas>
+  <div class="hud">
+    <h1>Firmament Observer</h1>
+    <div class="meta" id="status">Connecting…</div>
+    <div class="meta" style="margin-top:4px"><a href="/firmament/play" style="color:#67e8f9">▶ Play in browser</a></div>
+    <div class="row">
+      <button id="btn-cosmic">Cosmic Drift</button>
+      <button id="btn-aurora">Aurora Playground</button>
+      <button id="btn-psychic">Psychic Pulse</button>
+      <button id="btn-hermes">Hermes Link</button>
+      <button id="btn-dream">Hallucinate</button>
+      <button id="btn-debate">NPC Debate</button>
+    </div>
+  </div>
+  <div class="agents" id="agents"></div>
+  <div class="log" id="log"></div>
+  <div id="sentinel-float" title="Tap Sentinel — drag to move">
+    <div class="bubble" id="sentinel-bubble">online</div>
+    <canvas id="sentinel-canvas" width="96" height="96" aria-label="Sentinel flash character"></canvas>
+    <div id="sentinel-label">Sentinel</div>
+  </div>
+  <div class="chat">
+    <select id="chat-agent">
+      <option value="luna">Luna</option>
+      <option value="oracle">Oracle</option>
+      <option value="wanderer">Wanderer</option>
+      <option value="hermes">Hermes</option>
+      <option value="sentinel">Sentinel</option>
+    </select>
+    <input id="chat-input" type="text" placeholder="Talk to an NPC (Grok)..." />
+    <button id="chat-send">Send</button>
+    <label style="font-size:0.72rem;color:#a8b4d4"><input type="checkbox" id="chat-speak" checked /> voice</label>
+  </div>
+  <script>
+    const statusEl = document.getElementById("status");
+    const agentsEl = document.getElementById("agents");
+    const logEl = document.getElementById("log");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let ws = null;
+    let snapshot = null;
+    let stars = [];
+    let sentinelMood = "idle";
+    let sentinelFlash = 0;
+
+    const sentinelFloat = document.getElementById("sentinel-float");
+    const sentinelBubble = document.getElementById("sentinel-bubble");
+    const sentinelCanvas = document.getElementById("sentinel-canvas");
+    const sentinelCtx = sentinelCanvas.getContext("2d");
+
+    function sentinelSay(text, ms = 5000) {
+      sentinelBubble.textContent = (text || "…").slice(0, 90);
+      sentinelFloat.classList.add("show-bubble");
+      clearTimeout(sentinelSay._t);
+      sentinelSay._t = setTimeout(() => sentinelFloat.classList.remove("show-bubble"), ms);
+    }
+
+    function drawSentinel(t) {
+      const w = sentinelCanvas.width;
+      const h = sentinelCanvas.height;
+      sentinelCtx.clearRect(0, 0, w, h);
+      const pulse = 0.5 + 0.5 * Math.sin(t * 4.2);
+      const flash = sentinelMood === "speak" ? 0.65 + 0.35 * Math.sin(t * 14) : pulse * 0.35;
+      sentinelFlash = flash;
+
+      sentinelCtx.save();
+      sentinelCtx.translate(w / 2, h / 2 + Math.sin(t * 2.2) * 2);
+
+      const bodyGrad = sentinelCtx.createLinearGradient(-22, -28, 22, 28);
+      bodyGrad.addColorStop(0, `rgba(12, 32, 48, ${0.95})`);
+      bodyGrad.addColorStop(1, `rgba(4, 16, 28, ${0.98})`);
+      sentinelCtx.fillStyle = bodyGrad;
+      sentinelCtx.strokeStyle = `rgba(34, 211, 238, ${0.55 + flash})`;
+      sentinelCtx.lineWidth = 2;
+      sentinelCtx.beginPath();
+      sentinelCtx.roundRect(-22, -18, 44, 40, 8);
+      sentinelCtx.fill();
+      sentinelCtx.stroke();
+
+      sentinelCtx.fillStyle = `rgba(34, 211, 238, ${0.25 + flash})`;
+      sentinelCtx.fillRect(-16, -10, 32, 14);
+
+      const eyeOpen = 0.35 + 0.65 * Math.abs(Math.sin(t * 3.1));
+      sentinelCtx.fillStyle = `rgba(103, 232, 249, ${0.7 + flash})`;
+      sentinelCtx.fillRect(-12, -6, 8, 6 * eyeOpen);
+      sentinelCtx.fillRect(4, -6, 8, 6 * eyeOpen);
+
+      sentinelCtx.strokeStyle = `rgba(34, 211, 238, ${0.8})`;
+      sentinelCtx.beginPath();
+      sentinelCtx.moveTo(0, -18);
+      sentinelCtx.lineTo(0, -28);
+      sentinelCtx.stroke();
+      sentinelCtx.fillStyle = `rgba(167, 243, 252, ${0.5 + flash})`;
+      sentinelCtx.beginPath();
+      sentinelCtx.arc(0, -30, 3 + flash * 2, 0, Math.PI * 2);
+      sentinelCtx.fill();
+
+      sentinelCtx.fillStyle = `rgba(34, 211, 238, ${0.35 + flash * 0.5})`;
+      sentinelCtx.beginPath();
+      sentinelCtx.ellipse(0, 30, 18 + flash * 6, 5, 0, 0, Math.PI * 2);
+      sentinelCtx.fill();
+
+      sentinelCtx.restore();
+      requestAnimationFrame((now) => drawSentinel(now / 1000));
+    }
+    drawSentinel(0);
+
+    (function enableSentinelDrag() {
+      let dragging = false;
+      let moved = false;
+      let sx = 0;
+      let sy = 0;
+      let sl = 0;
+      let st = 0;
+      const start = (x, y) => {
+        dragging = true;
+        moved = false;
+        sx = x;
+        sy = y;
+        const r = sentinelFloat.getBoundingClientRect();
+        sl = r.left;
+        st = r.top;
+      };
+      const move = (x, y) => {
+        if (!dragging) return;
+        const dx = x - sx;
+        const dy = y - sy;
+        if (Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+        sentinelFloat.style.left = `${sl + dx}px`;
+        sentinelFloat.style.top = `${st + dy}px`;
+        sentinelFloat.style.right = "auto";
+        sentinelFloat.style.bottom = "auto";
+      };
+      const end = () => {
+        if (!dragging) return;
+        dragging = false;
+        if (!moved) {
+          document.getElementById("chat-agent").value = "sentinel";
+          document.getElementById("chat-input").focus();
+          sentinelSay("Talk to me — type below and Send");
+        }
+      };
+      sentinelFloat.addEventListener("pointerdown", (e) => {
+        sentinelFloat.setPointerCapture(e.pointerId);
+        start(e.clientX, e.clientY);
+      });
+      sentinelFloat.addEventListener("pointermove", (e) => move(e.clientX, e.clientY));
+      sentinelFloat.addEventListener("pointerup", end);
+      sentinelFloat.addEventListener("pointercancel", end);
+    })();
+
+    function log(msg) {
+      const line = document.createElement("div");
+      line.textContent = msg;
+      logEl.prepend(line);
+      while (logEl.children.length > 8) logEl.lastChild.remove();
+    }
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    function seedStars(n = 140) {
+      stars = Array.from({ length: n }, () => ({
+        x: Math.random(),
+        y: Math.random() * 0.65,
+        s: Math.random() * 1.6 + 0.4,
+        tw: Math.random() * Math.PI * 2,
+      }));
+    }
+    seedStars();
+
+    function wsUrl() {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      return `${proto}//${location.host}/ws/firmament`;
+    }
+
+    function send(obj) {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+    }
+
+    function renderAgentsPanel(agents) {
+      agentsEl.innerHTML = "";
+      Object.values(agents || {}).forEach((a) => {
+        const card = document.createElement("div");
+        card.className = "agent-card";
+        card.style.borderColor = a.bubble_color || "#c9a87c";
+        card.innerHTML = `<div class="name" style="color:${a.bubble_color || "#c9a87c"}">${a.name || a.id}</div>
+          <div class="state">${a.state || "idle"} · ${a.mood || "neutral"}</div>
+          <div>${(a.last_line || "…").slice(0, 120)}</div>`;
+        agentsEl.appendChild(card);
+      });
+    }
+
+    function applySky(pack) {
+      const sky = pack?.sky;
+      if (!sky?.colors?.length) return;
+      const el = document.getElementById("sky");
+      el.style.background = `linear-gradient(165deg, ${sky.colors.join(", ")})`;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const t = Date.now() / 1000;
+      for (const s of stars) {
+        const x = s.x * canvas.width;
+        const y = s.y * canvas.height;
+        const a = 0.35 + 0.35 * Math.sin(t * 1.4 + s.tw);
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
+        ctx.fillRect(x, y, s.s, s.s);
+      }
+      const agents = snapshot?.agents || {};
+      Object.values(agents).forEach((a, i) => {
+        const pos = a.position || [0.5, 0.3, 0];
+        const x = (pos[0] || 0.5) * canvas.width;
+        const y = (pos[1] || 0.3) * canvas.height;
+        const r = 28 + 6 * Math.sin(t * 1.8 + i);
+        const color = a.bubble_color || "#c9a87c";
+        const g = ctx.createRadialGradient(x, y, 4, x, y, r * 1.8);
+        g.addColorStop(0, color + "cc");
+        g.addColorStop(1, color + "00");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y + Math.sin(t + i) * 8, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = "12px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(a.name || a.id, x, y + r + 16);
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    function onSnapshot(data) {
+      snapshot = data;
+      statusEl.textContent = `Pack: ${data.pack_id} · agents: ${Object.keys(data.agents || {}).length} · clients: ${data.clients}`;
+      applySky(data.pack);
+      renderAgentsPanel(data.agents);
+    }
+
+    function connect() {
+      ws = new WebSocket(wsUrl());
+      ws.onopen = () => {
+        statusEl.textContent = "Connected · Aurora Playground";
+        log("ws open");
+        send({ type: "firmament.ping" });
+        send({ type: "firmament.load_pack", pack_id: "aurora_playground" });
+        sentinelSay("Sentinel online — tap me, then chat below");
+      };
+      ws.onclose = () => { statusEl.textContent = "Disconnected — retrying…"; setTimeout(connect, 2000); };
+      ws.onmessage = (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch { return; }
+        if (msg.type === "firmament.snapshot" || msg.type === "firmament.pack_loaded") onSnapshot(msg.data);
+        if (msg.type === "firmament.agent.updated") {
+          if (snapshot?.agents) snapshot.agents[msg.agent_id] = msg.agent;
+          renderAgentsPanel(snapshot?.agents);
+          log(`${msg.agent_id}: ${msg.agent?.state}`);
+        }
+        if (msg.type === "firmament.agent.spoke") {
+          if (snapshot?.agents && msg.agent) snapshot.agents[msg.agent_id] = msg.agent;
+          renderAgentsPanel(snapshot?.agents);
+          log(`${msg.agent_id}: ${(msg.reply || "").slice(0, 80)}`);
+          if (msg.agent_id === "sentinel") {
+            sentinelMood = "speak";
+            sentinelSay(msg.reply || "…");
+            setTimeout(() => { sentinelMood = "idle"; }, 4000);
+          }
+        }
+        if (msg.type === "firmament.hallucination") {
+          log(`hallucination · intensity ${msg.data?.intensity}`);
+          seedStars(180 + Math.floor((msg.data?.intensity || 0.4) * 120));
+        }
+      };
+    }
+    connect();
+
+    let chatAudio = null;
+    async function sendChat() {
+      const input = document.getElementById("chat-input");
+      const text = (input.value || "").trim();
+      if (!text) return;
+      const agentId = document.getElementById("chat-agent").value;
+      const speak = document.getElementById("chat-speak").checked;
+      input.value = "";
+      log(`you → ${agentId}: ${text.slice(0, 60)}`);
+      try {
+        const res = await fetch("/api/firmament/agent/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agent_id: agentId, message: text, speak }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "chat failed");
+        if (snapshot?.agents?.[agentId]) {
+          snapshot.agents[agentId].last_line = data.reply;
+          snapshot.agents[agentId].state = "speak";
+          snapshot.agents[agentId].mood = data.mood;
+          renderAgentsPanel(snapshot.agents);
+        }
+        log(`${agentId}: ${(data.reply || "").slice(0, 80)}`);
+        if (agentId === "sentinel") {
+          sentinelMood = "speak";
+          sentinelSay(data.reply || "…");
+          setTimeout(() => { sentinelMood = "idle"; }, 4000);
+        }
+        if (speak && data.audio_b64) {
+          chatAudio?.pause();
+          chatAudio = new Audio(`data:audio/mpeg;base64,${data.audio_b64}`);
+          chatAudio.play().catch(() => {});
+        }
+      } catch (err) {
+        log(`error: ${err.message}`);
+      }
+    }
+    document.getElementById("chat-send").onclick = sendChat;
+    document.getElementById("chat-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendChat();
+    });
+
+    document.getElementById("btn-cosmic").onclick = () => send({ type: "firmament.load_pack", pack_id: "cosmic_drift" });
+    document.getElementById("btn-aurora").onclick = () => send({ type: "firmament.load_pack", pack_id: "aurora_playground" });
+    document.getElementById("btn-psychic").onclick = async () => {
+      log("psychic pulse…");
+      try {
+        const res = await fetch("/api/firmament/psychic/pulse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "observer", mood: "aurora", share_hermes: true }),
+        });
+        const data = await res.json();
+        log(`psychic: ${data.psychic?.last_vision || "ripple"}`);
+        if (data.hermes_reply) log(`hermes: ${data.hermes_reply}`);
+      } catch (err) {
+        log(`psychic error: ${err.message}`);
+      }
+    };
+    document.getElementById("btn-hermes").onclick = async () => {
+      log("hermes link — shared playground with Grok…");
+      try {
+        const res = await fetch("/api/firmament/agents/converse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_a: "hermes",
+            agent_b: "sentinel",
+            topic: "Grok and Hermes co-running the psychic engine at Luna camp — textures, ripples, no zombies. What do we build next?",
+            rounds: 2,
+          }),
+        });
+        const data = await res.json();
+        for (const line of data.lines || []) log(`${line.name}: ${line.line}`);
+      } catch (err) {
+        log(`hermes link error: ${err.message}`);
+      }
+    };
+    document.getElementById("btn-debate").onclick = async () => {
+      log("luna vs oracle...");
+      try {
+        const res = await fetch("/api/firmament/agents/converse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_a: "luna",
+            agent_b: "oracle",
+            topic: "What should we explore at the Luna camp playground?",
+            rounds: 2,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "converse failed");
+        for (const line of data.lines || []) {
+          log(`${line.name}: ${(line.line || "").slice(0, 90)}`);
+          if (snapshot?.agents?.[line.agent_id]) {
+            snapshot.agents[line.agent_id].last_line = line.line;
+            snapshot.agents[line.agent_id].state = "speak";
+          }
+        }
+        renderAgentsPanel(snapshot?.agents);
+      } catch (err) {
+        log(`debate error: ${err.message}`);
+      }
+    };
+    document.getElementById("btn-dream").onclick = () => send({
+      type: "firmament.hallucinate",
+      prompt: "neural aurora firmament, lucid drift",
+      intensity: 0.72,
+    });
+  </script>
+</body>
+</html>

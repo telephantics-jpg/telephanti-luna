@@ -19,7 +19,7 @@ mimetypes.add_type("application/javascript", ".mjs")
 import edge_tts
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,9 +30,11 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
-STATS_PATH = BASE_DIR / "luna_stats.json"
+from firmament.paths import data_file, script_path
+
+STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "155"
+LUNA_BUILD = "156-camp"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -78,7 +80,7 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 _NO_CACHE_PREFIXES = ("/static/",)
-_NO_CACHE_EXACT = {"/", "/visit", "/manifest.json", "/sw.js", "/bubble", "/api/health"}
+_NO_CACHE_EXACT = {"/", "/visit", "/firmament/play", "/manifest.json", "/sw.js", "/bubble", "/api/health"}
 
 _CLOUD_HOSTS = frozenset({"telephanti.com", "www.telephanti.com"})
 
@@ -111,7 +113,7 @@ async def luna_no_cache_middleware(request: Request, call_next):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
-    if is_cloud_mode() and path in ("/", "/visit"):
+    if is_cloud_mode() and path in ("/", "/visit", "/firmament/play"):
         response.headers["Clear-Site-Data"] = '"cache"'
     if is_cloud_mode() and _request_is_https(request):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -748,7 +750,7 @@ GREETING_QUANTUM: list[str] = []
 
 
 def _load_quantum_greeting_lines() -> list[str]:
-    path = BASE_DIR / "luna_quantum_lines.json"
+    path = data_file("luna_quantum_lines.json")
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         lines = data.get("lines") or []
@@ -1138,6 +1140,31 @@ def get_lan_ip() -> str:
             return sock.getsockname()[0]
     except OSError:
         return "127.0.0.1"
+
+
+def port_is_open(port: int, host: str = "127.0.0.1", timeout: float = 1.0) -> bool:
+    try:
+        with socket.create_connection((host, int(port)), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def pixel_stream_url_for_request(request: Request | None = None) -> str | None:
+    """Unreal Pixel Streaming player URL — matches phone/PC host when possible."""
+    explicit = (os.getenv("LUNA_PIXEL_STREAM_URL") or "").strip()
+    if explicit:
+        return explicit
+    enabled = (os.getenv("LUNA_PIXEL_STREAM_ENABLED") or "1").strip().lower()
+    if enabled in ("0", "false", "no", "off"):
+        return None
+    port = (os.getenv("LUNA_PIXEL_STREAM_PORT") or "8080").strip() or "8080"
+    host = ""
+    if request is not None:
+        host = (request.headers.get("host") or request.url.hostname or "").split(":")[0].strip().lower()
+    if host in ("127.0.0.1", "localhost", ""):
+        return f"http://127.0.0.1:{port}"
+    return f"http://{host}:{port}"
 
 
 def _public_luna_url() -> str:
@@ -2043,7 +2070,7 @@ async def index(
 ):
     if is_cloud_mode() and not (avatar == "1" and web == "1"):
         return RedirectResponse(
-            f"/?avatar=1&web=1&v={LUNA_BUILD}",
+            f"/firmament/play?v={LUNA_BUILD}",
             status_code=302,
         )
     if mobile == "1" and web != "1" and desktop != "1" and pet != "1":
@@ -2056,7 +2083,9 @@ async def index(
 
 @app.get("/visit")
 async def luna_visit(request: Request):
-    """Public web entry — use this link on Beacons / telephanti.com."""
+    """Public web entry — telephanti.com opens Luna Camp."""
+    if is_cloud_mode():
+        return RedirectResponse(f"/firmament/play?v={LUNA_BUILD}", status_code=302)
     params = ["avatar=1", "web=1", f"v={LUNA_BUILD}"]
     if request.query_params.get("fresh") == "1":
         params.append("fresh=1")
@@ -2099,7 +2128,9 @@ h1{{color:#c9a87c}}a{{color:#8eb8ff}}</style></head><body>
 @app.get("/luna")
 async def luna_pet(desktop: str = ""):
     """Web by default — desktop pet only with ?desktop=1 (stops Luna.lnk opening in browser)."""
-    if is_cloud_mode() or desktop != "1":
+    if is_cloud_mode():
+        return RedirectResponse(f"/firmament/play?v={LUNA_BUILD}", status_code=302)
+    if desktop != "1":
         return RedirectResponse(f"/visit?v={LUNA_BUILD}", status_code=302)
     return RedirectResponse(
         f"/?overlay=1&pet=1&avatar=1&desktop=1&reach=1&opaque=1&petui=2&fresh=1&v={LUNA_BUILD}",
@@ -2107,7 +2138,7 @@ async def luna_pet(desktop: str = ""):
     )
 
 
-PET_SETTINGS_PATH = BASE_DIR / "pet_settings.json"
+PET_SETTINGS_PATH = data_file("pet_settings.json")
 DEFAULT_PET_SETTINGS = {
     "roam_desktop": True,
     "summon_on_click": True,
@@ -2214,6 +2245,446 @@ async def omni_enable_full_api():
 @app.get("/bubble")
 async def bubble():
     return FileResponse(STATIC_DIR / "bubble.html")
+
+
+@app.get("/firmament")
+async def firmament_page():
+    """Web observer for the UE firmament bridge (debug + fallback viewport)."""
+    path = STATIC_DIR / "firmament.html"
+    if path.is_file():
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="firmament.html missing")
+
+
+@app.get("/firmament/play")
+@app.get("/playground")
+async def firmament_play_page():
+    """Playable browser camp — walk, talk to NPCs, same Luna server brains."""
+    path = STATIC_DIR / "firmament-play.html"
+    if path.is_file():
+        return FileResponse(
+            path,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+            },
+        )
+    raise HTTPException(status_code=404, detail="firmament-play.html missing")
+
+
+@app.get("/firmament/stream")
+async def firmament_stream_page():
+    """Fullscreen Unreal Pixel Streaming embed (best on phone landscape)."""
+    path = STATIC_DIR / "firmament-stream.html"
+    if path.is_file():
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="firmament-stream.html missing")
+
+
+@app.get("/api/firmament/stream/status")
+async def firmament_stream_status_api(request: Request):
+    """Is Unreal Pixel Streaming signalling up on port 8080?"""
+    port = int((os.getenv("LUNA_PIXEL_STREAM_PORT") or "8080").strip() or "8080")
+    local_up = port_is_open(port, "127.0.0.1")
+    lan = get_lan_ip()
+    lan_up = port_is_open(port, lan) if lan not in ("127.0.0.1", "") else local_up
+    return {
+        "ok": True,
+        "online": local_up,
+        "lan_online": lan_up,
+        "port": port,
+        "pixel_stream_url": pixel_stream_url_for_request(request),
+        "lan_ip": lan,
+        "hint": (
+            "Unreal stream is live — connecting…"
+            if local_up
+            else "On PC: double-click START_UNREAL_STREAM.bat, then press green PLAY in Unreal. Wait ~30s."
+        ),
+    }
+
+
+@app.get("/api/firmament/config")
+async def firmament_config_api(request: Request):
+    """Client config for firmament play page (optional Pixel Streaming URL)."""
+    port = int((os.getenv("LUNA_PIXEL_STREAM_PORT") or "8080").strip() or "8080")
+    pixel_url = pixel_stream_url_for_request(request)
+    stream_up = port_is_open(port, "127.0.0.1")
+    return {
+        "pack_id": "aurora_playground",
+        "pixel_stream_url": pixel_url,
+        "pixel_stream_online": stream_up,
+        "pixel_stream_port": port,
+        "play_urls": {
+            "browser": "/firmament/play",
+            "observer": "/firmament",
+            "stream": "/firmament/stream",
+        },
+    }
+
+
+@app.get("/api/firmament/status")
+async def firmament_status_api():
+    from firmament.core import get_hub
+
+    hub = get_hub()
+    return {"ok": True, **hub.snapshot()}
+
+
+@app.get("/api/firmament/packs")
+async def firmament_packs_api():
+    from firmament.core import get_hub
+
+    return {"packs": get_hub().list_packs()}
+
+
+@app.get("/api/firmament/pack")
+async def firmament_current_pack_api():
+    from firmament.core import get_hub
+
+    hub = get_hub()
+    return {"pack_id": hub.pack_id, "pack": hub.pack, "agents": hub.agents}
+
+
+class FirmamentLoadBody(BaseModel):
+    pack_id: str = "cosmic_drift"
+
+
+class FirmamentAgentActionBody(BaseModel):
+    agent_id: str
+    action: str = "idle"
+    payload: dict | None = None
+
+
+class FirmamentHallucinateBody(BaseModel):
+    prompt: str = ""
+    intensity: float = 0.45
+    seed: int | None = None
+
+
+class FirmamentAgentChatBody(BaseModel):
+    agent_id: str = "luna"
+    message: str
+    speak: bool = False
+    clear_memory: bool = False
+    visitor_id: str = ""
+    visitor_name: str = ""
+
+
+class FirmamentCampMemoryBody(BaseModel):
+    visitor_id: str
+    visitor_name: str = ""
+    agent_id: str = ""
+    kind: str = "moment"
+    text: str = ""
+    prop_id: str = ""
+
+
+@app.get("/api/firmament/agents")
+async def firmament_agents_api():
+    from firmament.core import get_hub
+
+    hub = get_hub()
+    return {"agents": hub.agents, "pack_id": hub.pack_id}
+
+
+@app.get("/api/firmament/game/state")
+async def firmament_game_state_api():
+    from firmament.game_state import load
+
+    return load()
+
+
+class FirmamentGameEventBody(BaseModel):
+    event: str
+    payload: dict | None = None
+
+
+@app.get("/api/firmament/llm")
+async def firmament_llm_status_api():
+    from firmament.brain import llm_backend
+
+    return {
+        "backend": llm_backend(),
+        "ollama_host": os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434"),
+        "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
+        "grok_configured": bool(os.getenv("XAI_API_KEY", "").strip() not in ("", "your_api_key_here")),
+    }
+
+
+class FirmamentAgentsConverseBody(BaseModel):
+    agent_a: str = "luna"
+    agent_b: str = "oracle"
+    topic: str = "Psychic ripples at Luna camp — what should we explore with Hermes?"
+    rounds: int = 2
+    visitor_id: str = ""
+    visitor_name: str = ""
+
+
+class FirmamentPsychicPulseBody(BaseModel):
+    source: str = "playground"
+    mood: str = "curious"
+    share_hermes: bool = True
+
+
+@app.get("/api/firmament/camp/memory")
+async def firmament_camp_memory_get_api(visitor_id: str = ""):
+    from firmament.camp_memory import bond_summary
+
+    return bond_summary(visitor_id)
+
+
+@app.post("/api/firmament/camp/memory")
+async def firmament_camp_memory_post_api(body: FirmamentCampMemoryBody):
+    from firmament.camp_memory import record_moment
+
+    if not body.visitor_id.strip():
+        raise HTTPException(status_code=400, detail="visitor_id required")
+    return record_moment(
+        body.visitor_id.strip(),
+        visitor_name=body.visitor_name,
+        agent_id=body.agent_id,
+        kind=body.kind,
+        text=body.text,
+        prop_id=body.prop_id,
+    )
+
+
+@app.post("/api/firmament/agents/converse")
+async def firmament_agents_converse_api(body: FirmamentAgentsConverseBody):
+    from firmament.brain import agents_converse
+    from firmament.core import get_hub
+
+    hub = get_hub()
+    try:
+        result = await agents_converse(
+            body.agent_a,
+            body.agent_b,
+            topic=body.topic,
+            rounds=body.rounds,
+            pack_name=str(hub.pack.get("name") or hub.pack_id),
+            visitor_id=body.visitor_id,
+            visitor_name=body.visitor_name,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    from firmament.play_lobby import get_play_lobby
+
+    lobby = get_play_lobby()
+    for line in result.get("lines", []):
+        aid = line.get("agent_id")
+        if aid and aid in hub.agents:
+            hub.apply_chat_to_agent(aid, "assistant", line.get("line", ""), line.get("mood", "neutral"))
+        await lobby.push_chatter(
+            str(line.get("name") or aid or "Camp"),
+            str(line.get("line") or ""),
+            str(line.get("mood") or "neutral"),
+        )
+    hub._persist()
+    await hub.broadcast({"type": "firmament.agents.converse", "data": result})
+    return {"ok": True, **result}
+
+
+@app.get("/api/firmament/psychic/status")
+async def firmament_psychic_status_api():
+    from firmament.psychic_engine import load, status_blurb
+
+    return {"ok": True, **load(), "blurb": status_blurb()}
+
+
+@app.post("/api/firmament/psychic/pulse")
+async def firmament_psychic_pulse_api(body: FirmamentPsychicPulseBody):
+    from firmament.brain import agent_chat
+    from firmament.core import get_hub
+    from firmament.game_state import apply_event
+    from firmament.psychic_engine import hermes_echo, pulse
+
+    state = pulse(source=body.source, mood=body.mood)
+    game = apply_event("psychic_pulse", {"phase": "ripple", "mood": body.mood})
+    hub = get_hub()
+    payload: dict = {"ok": True, "psychic": state, "game": game}
+
+    if body.share_hermes:
+        echo_data = hermes_echo(state.get("last_vision"))
+        payload["hermes_echo"] = echo_data.get("echo")
+        try:
+            chat = await agent_chat(
+                "hermes",
+                f"Psychic pulse from {body.source}: {state.get('last_vision')}. Echo it to the player in one warm line.",
+                pack_name=str(hub.pack.get("name") or hub.pack_id),
+            )
+            payload["hermes_reply"] = chat.get("reply")
+            hub.apply_chat_to_agent("hermes", "assistant", chat.get("reply", ""), chat.get("mood", "happy"))
+            hub._persist()
+        except Exception as exc:
+            payload["hermes_error"] = str(exc)
+
+    await hub.broadcast({"type": "firmament.psychic.pulse", "data": payload})
+    return payload
+
+
+@app.post("/api/firmament/game/event")
+async def firmament_game_event_api(body: FirmamentGameEventBody):
+    from firmament.core import get_hub
+    from firmament.game_state import apply_event
+
+    if not body.event.strip():
+        raise HTTPException(status_code=400, detail="event required")
+    state = apply_event(body.event.strip(), body.payload or {})
+    hub = get_hub()
+    await hub.broadcast({"type": "firmament.game.updated", "state": state})
+    return {"ok": True, "state": state}
+
+
+@app.post("/api/firmament/agent/chat")
+async def firmament_agent_chat_api(body: FirmamentAgentChatBody):
+    from firmament.brain import agent_chat
+    from firmament.core import get_hub
+
+    if not body.message.strip():
+        raise HTTPException(status_code=400, detail="message required")
+    hub = get_hub()
+    try:
+        result = await agent_chat(
+            body.agent_id,
+            body.message.strip(),
+            pack_name=str(hub.pack.get("name") or hub.pack_id),
+            clear_memory=body.clear_memory,
+            visitor_id=body.visitor_id,
+            visitor_name=body.visitor_name,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    if body.visitor_id.strip():
+        try:
+            from firmament.camp_memory import record_moment
+
+            record_moment(
+                body.visitor_id.strip(),
+                visitor_name=body.visitor_name,
+                agent_id=body.agent_id,
+                kind="chat",
+                text=body.message.strip()[:200],
+            )
+        except Exception:
+            pass
+
+    hub.apply_chat_to_agent(body.agent_id, "assistant", result["reply"], result.get("mood", "happy"))
+    if body.agent_id in hub.agents:
+        hub.agents[body.agent_id]["state"] = "speak"
+    hub._persist()
+    from firmament.play_lobby import get_play_lobby
+
+    agent_name = str(hub.agents.get(body.agent_id, {}).get("name") or result.get("name") or body.agent_id)
+    await get_play_lobby().push_chatter(
+        agent_name,
+        result["reply"],
+        str(result.get("mood") or "happy"),
+    )
+    payload = {"ok": True, **result}
+    if body.speak:
+        try:
+            voice = hub.agents.get(body.agent_id, {}).get("voice") or "jenny"
+            mood = result.get("mood", "happy")
+            spoken = await synthesize_speech(result["reply"], voice, 0, 0, mood)
+            payload["audio_b64"] = spoken.get("audio_b64")
+        except Exception as exc:
+            payload["speak_error"] = str(exc)
+    event = {
+        "type": "firmament.agent.spoke",
+        "agent_id": body.agent_id,
+        "agent": hub.agents.get(body.agent_id),
+        "reply": result["reply"],
+        "mood": result.get("mood", "happy"),
+    }
+    await hub.broadcast(event)
+    return payload
+
+
+@app.post("/api/firmament/load-pack")
+async def firmament_load_pack_api(body: FirmamentLoadBody):
+    from firmament.core import get_hub
+
+    hub = get_hub()
+    try:
+        snap = hub.reload_pack(body.pack_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    await hub.broadcast({"type": "firmament.pack_loaded", "data": snap})
+    return {"ok": True, **snap}
+
+
+@app.post("/api/firmament/agent/action")
+async def firmament_agent_action_api(body: FirmamentAgentActionBody):
+    from firmament.core import get_hub
+
+    hub = get_hub()
+    result = await hub.handle_message({
+        "type": "firmament.agent.action",
+        "agent_id": body.agent_id,
+        "action": body.action,
+        "payload": body.payload or {},
+    })
+    return result or {"ok": False}
+
+
+@app.post("/api/firmament/hallucinate")
+async def firmament_hallucinate_api(body: FirmamentHallucinateBody):
+    from firmament.core import get_hub
+
+    hub = get_hub()
+    result = await hub.handle_message({
+        "type": "firmament.hallucinate",
+        "prompt": body.prompt,
+        "intensity": body.intensity,
+        "seed": body.seed,
+    })
+    return result or {"ok": False}
+
+
+@app.websocket("/ws/firmament")
+async def firmament_ws(websocket: WebSocket):
+    from firmament.core import get_hub
+
+    await websocket.accept()
+    hub = get_hub()
+    await hub.register(websocket)
+    try:
+        while True:
+            raw = await websocket.receive_json()
+            reply = await hub.handle_message(raw if isinstance(raw, dict) else {})
+            if reply:
+                await hub.send_to(websocket, reply)
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        log.info("firmament ws closed: %s", exc)
+    finally:
+        await hub.unregister(websocket)
+
+
+@app.websocket("/ws/firmament/play")
+async def firmament_play_ws(websocket: WebSocket):
+    """Browser camp lobby — shared visitor avatars + camp chatter across connections."""
+    from firmament.play_lobby import get_play_lobby
+
+    await websocket.accept()
+    lobby = get_play_lobby()
+    await lobby.register(websocket)
+    try:
+        while True:
+            raw = await websocket.receive_json()
+            reply = await lobby.handle(websocket, raw if isinstance(raw, dict) else {})
+            if reply:
+                await lobby.send_to(websocket, reply)
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        log.info("firmament play ws closed: %s", exc)
+    finally:
+        await lobby.unregister(websocket)
 
 
 @app.get("/manifest.json")
@@ -2390,7 +2861,7 @@ async def mobile():
 
 
 def _run_ps1(script_name: str) -> dict:
-    script = BASE_DIR / script_name
+    script = script_path(script_name)
     if not script.exists():
         raise HTTPException(status_code=404, detail=f"Missing {script_name}")
     try:
@@ -2502,11 +2973,11 @@ async def tools_phone_export():
 
 @app.post("/api/tools/email-android")
 async def tools_email_android():
-    script = BASE_DIR / "email_luna_android.ps1"
+    script = script_path("email_luna_android.ps1")
     if not script.exists():
         raise HTTPException(status_code=404, detail="Missing email_luna_android.ps1")
     to_addr = ""
-    cfg = BASE_DIR / "phone_email.txt"
+    cfg = script_path("phone_email.txt")
     if cfg.exists():
         to_addr = cfg.read_text(encoding="utf-8").strip()
     args = [
@@ -2542,7 +3013,7 @@ async def tools_email_android():
 
 @app.post("/api/tools/android-export")
 async def tools_android_export():
-    script = BASE_DIR / "build_android_apk.ps1"
+    script = script_path("build_android_apk.ps1")
     if not script.exists():
         raise HTTPException(status_code=404, detail="Missing build_android_apk.ps1")
     lan_ip = get_lan_ip()
@@ -2589,7 +3060,7 @@ async def tools_android_export():
 
 @app.post("/api/tools/phone-firewall")
 async def tools_phone_firewall():
-    script = BASE_DIR / "allow_phone_access.ps1"
+    script = script_path("allow_phone_access.ps1")
     if not script.exists():
         raise HTTPException(status_code=404, detail="Missing allow_phone_access.ps1")
     try:

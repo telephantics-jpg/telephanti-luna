@@ -2638,6 +2638,33 @@
     }
     .luna-memory-thread.visible { display: block; }
     .luna-memory-thread::before { content: "✦ "; opacity: 0.85; }
+    /* Luna embedded inside firmament camp iframe (?camp=1) */
+    html.luna-camp-embed, body.luna-camp-embed {
+      height: 100%;
+      overflow: hidden;
+    }
+    body.luna-camp-embed .phone-install-banner,
+    body.luna-camp-embed .secure-connection-banner,
+    body.luna-camp-embed #pet-boot-splash { display: none !important; }
+    body.luna-camp-embed header { padding: 0.3rem 0.45rem; }
+    body.luna-camp-embed .brand-sub,
+    body.luna-camp-embed #luna-user-count { display: none; }
+    body.luna-camp-embed #desktop-btn,
+    body.luna-camp-embed #ouija-btn,
+    body.luna-camp-embed #install-btn,
+    body.luna-camp-embed #chill-btn,
+    body.luna-camp-embed #succubus-btn,
+    body.luna-camp-embed #feel-btn,
+    body.luna-camp-embed #bliss-btn,
+    body.luna-camp-embed #daydream-btn,
+    body.luna-camp-embed #dream-btn { display: none !important; }
+    body.luna-camp-embed .main {
+      min-height: calc(100vh - 7.5rem);
+    }
+    body.luna-camp-embed .chat-panel {
+      max-height: 38vh;
+    }
+    body.luna-camp-embed .mobile-tabs button[data-view="chat"] { display: inline-flex; }
     .luna-listen-ring {
       position: absolute;
       inset: -3px;
@@ -3850,6 +3877,9 @@
 <body>
   <script>
     (function () {
+      if (/[?&]camp=1/.test(location.search)) {
+        document.documentElement.classList.add("luna-camp-embed");
+      }
       function isPublicWeb() {
         var h = location.hostname.toLowerCase();
         if (/[?&]web=1/.test(location.search)) return true;
@@ -6057,9 +6087,38 @@
       }
     }
 
+    function setupCampEmbedBridge() {
+      const params = new URLSearchParams(location.search);
+      if (params.get("camp") !== "1") return;
+      document.title = "Luna — at camp";
+      window.addEventListener("message", (ev) => {
+        if (ev.origin !== location.origin) return;
+        const msg = ev.data;
+        if (!msg || typeof msg !== "object") return;
+        if (msg.type === "luna-camp:chatter" && msg.text) {
+          const who = msg.speaker || "Camp";
+          if (typeof showLunaCaption === "function") {
+            showLunaCaption(`${who}: ${msg.text}`);
+          }
+        }
+        if (msg.type === "luna-camp:visitor" && msg.name) {
+          try {
+            const raw = localStorage.getItem(SETTINGS_KEY);
+            const s = raw ? JSON.parse(raw) : {};
+            s.userName = msg.name;
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+          } catch (_) {}
+        }
+      });
+      try {
+        window.parent.postMessage({ type: "luna-camp:ready" }, location.origin);
+      } catch (_) {}
+    }
+
     function setupWebCloudMode() {
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
+      setupCampEmbedBridge();
       document.body.classList.toggle("web-desktop", window.innerWidth > 860);
       bindCamFeedControls();
       bindWebPcDock();

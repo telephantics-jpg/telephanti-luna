@@ -385,6 +385,53 @@
       .brand-block h1 { font-size: 0.88rem; }
       #status-toast { display: none; }
     }
+    #luna-embed-wrap {
+      display: none; position: fixed; z-index: 28;
+      left: var(--gap); bottom: calc(var(--dock-h) + var(--gap));
+      width: min(360px, 44vw); height: min(500px, 58vh);
+      border-radius: 16px; overflow: hidden;
+      border: 2px solid rgba(217, 70, 239, 0.55);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 0 24px rgba(217,70,239,0.2);
+      background: #060a12; flex-direction: column;
+    }
+    #luna-embed-wrap.open { display: flex; }
+    #luna-embed-wrap.expanded {
+      inset: var(--gap);
+      width: auto; height: auto; bottom: calc(var(--dock-h) + var(--gap));
+      left: var(--gap); right: var(--gap); top: calc(var(--header-h) + var(--gap));
+    }
+    #luna-embed-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: rgba(12, 8, 22, 0.96);
+      border-bottom: 1px solid rgba(217, 70, 239, 0.35);
+      font-size: 0.82rem; font-weight: 700; color: #f0abfc;
+      pointer-events: auto; flex-shrink: 0;
+    }
+    #luna-embed-header span { flex: 1; }
+    #luna-embed-header button {
+      border: 1px solid rgba(255,255,255,0.15); background: #1a2030;
+      color: #e2e8f0; border-radius: 8px; padding: 4px 10px; cursor: pointer;
+      font-size: 0.85rem;
+    }
+    #luna-embed-frame {
+      flex: 1; width: 100%; border: 0; background: #0a0c14;
+    }
+    #btn-luna-avatar {
+      background: linear-gradient(135deg, #a21caf, #d946ef) !important;
+      border-color: #f0abfc !important;
+      font-size: 0.92rem !important;
+    }
+    @media (max-width: 899px) {
+      #luna-embed-wrap {
+        left: var(--gap); right: var(--gap);
+        width: auto; height: min(42vh, 340px);
+        bottom: calc(var(--dock-h) + var(--feed-h) + var(--gap) * 2);
+      }
+      #luna-embed-wrap.expanded {
+        bottom: calc(var(--dock-h) + var(--gap));
+        height: auto;
+      }
+    }
   </style>
 </head>
 <body>
@@ -431,6 +478,7 @@
     <div class="dock-label">Actions</div>
     <div class="dock-row primary">
       <button type="button" class="listen-btn" id="btn-listen-camp">🎧 Listen</button>
+      <button type="button" id="btn-luna-avatar">🌙 Live Luna</button>
       <button type="button" class="talk" id="btn-talk-near">💬 Talk</button>
     </div>
     <div class="dock-label">Chat with</div>
@@ -490,12 +538,20 @@
       </div>
     </div>
   </div>
+  <div id="luna-embed-wrap" aria-label="Luna full avatar at camp">
+    <div id="luna-embed-header">
+      <span>🌙 Luna — full avatar &amp; voice</span>
+      <button type="button" id="luna-embed-expand" title="Expand">⛶</button>
+      <button type="button" id="luna-embed-close" title="Minimize">✕</button>
+    </div>
+    <iframe id="luna-embed-frame" title="Luna avatar" allow="microphone; autoplay; camera; fullscreen"></iframe>
+  </div>
   <div id="pixel-wrap">
     <button id="pixel-close" type="button">Close Unreal stream</button>
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-bond10";
+    const CAMP_BUILD = "2026-07-05-bond11-luna";
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
     function serverOfflineHint() {
@@ -1279,6 +1335,69 @@
       return hi ? ` · remembers ${hi}` : ` · ${b.chats} chats`;
     }
 
+    function lunaEmbedUrl() {
+      const q = new URLSearchParams({
+        avatar: "1",
+        web: "1",
+        camp: "1",
+        v: CAMP_BUILD,
+      });
+      if (myVisitorId) q.set("visitor_id", myVisitorId);
+      if (myVisitorName || player.name) q.set("visitor_name", myVisitorName || player.name || "");
+      return `/?${q.toString()}`;
+    }
+
+    function syncLunaEmbedVisitor() {
+      const frame = document.getElementById("luna-embed-frame");
+      if (!frame?.contentWindow) return;
+      try {
+        frame.contentWindow.postMessage({
+          type: "luna-camp:visitor",
+          visitor_id: myVisitorId,
+          name: myVisitorName || player.name || "",
+        }, location.origin);
+      } catch (_) {}
+    }
+
+    function notifyLunaEmbed(speaker, text) {
+      const frame = document.getElementById("luna-embed-frame");
+      if (!frame?.contentWindow || !text) return;
+      try {
+        frame.contentWindow.postMessage({
+          type: "luna-camp:chatter",
+          speaker,
+          text,
+        }, location.origin);
+      } catch (_) {}
+    }
+
+    function openLunaEmbed() {
+      const wrap = document.getElementById("luna-embed-wrap");
+      const frame = document.getElementById("luna-embed-frame");
+      if (!wrap || !frame) return;
+      wrap.classList.add("open");
+      const want = lunaEmbedUrl();
+      if (!frame.src || !frame.src.includes("camp=1")) frame.src = want;
+      else syncLunaEmbedVisitor();
+      setCampLifeStatus("Luna's full avatar is here — talk with voice & mic");
+      showToast("Live Luna embedded at camp");
+    }
+
+    function closeLunaEmbed() {
+      document.getElementById("luna-embed-wrap")?.classList.remove("open", "expanded");
+    }
+
+    window.addEventListener("message", (ev) => {
+      if (ev.origin !== location.origin) return;
+      if (ev.data?.type === "luna-camp:ready") syncLunaEmbedVisitor();
+    });
+
+    document.getElementById("btn-luna-avatar").onclick = () => openLunaEmbed();
+    document.getElementById("luna-embed-close").onclick = () => closeLunaEmbed();
+    document.getElementById("luna-embed-expand").onclick = () => {
+      document.getElementById("luna-embed-wrap")?.classList.toggle("expanded");
+    };
+
     function renderAgentStrip() {
       document.querySelectorAll("#agent-strip .agent-chip").forEach((chip) => {
         const id = chip.dataset.agent;
@@ -1632,10 +1751,16 @@
       else openDialogue("luna");
     };
     document.querySelectorAll("#action-bar .chat-btn").forEach((btn) => {
-      btn.onclick = () => openDialogue(btn.dataset.agent);
+      btn.onclick = () => {
+        if (btn.dataset.agent === "luna") openLunaEmbed();
+        else openDialogue(btn.dataset.agent);
+      };
     });
     document.querySelectorAll("#agent-strip .agent-chip").forEach((btn) => {
-      btn.onclick = () => openDialogue(btn.dataset.agent);
+      btn.onclick = () => {
+        if (btn.dataset.agent === "luna") openLunaEmbed();
+        else openDialogue(btn.dataset.agent);
+      };
     });
     document.getElementById("btn-listen-camp").onclick = () => runCampConverse();
     document.getElementById("btn-beer").onclick = () => useProp(props.find((p) => p.id === "beer"));
@@ -1842,6 +1967,7 @@
         renderConvoLog();
       }
       updateNowSpeaking(speaker, clean, moodVal);
+      notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase() || n.id === agentId);
       if (npc && npcMode === "stand") {
@@ -2152,6 +2278,7 @@
           campReady = true;
           showToast("Camp world live — agents talking above");
           applyGlobalNpcMode("free");
+          setTimeout(() => openLunaEmbed(), 2800);
           setTimeout(() => {
             const t = document.getElementById("status-toast");
             if (t) t.style.opacity = "0.35";

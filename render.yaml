@@ -1,6 +1,4 @@
-# telephanti.com — Luna Camp on Render (replaces old Luna avatar at root)
-# Connect repo in Render → Blueprint → set XAI_API_KEY in dashboard
-
+# telephanti.com — Luna Camp on Render
 services:
   - type: web
     name: luna
@@ -19,14 +17,10 @@ services:
       - key: XAI_API_KEY
         sync: false
       - key: GROK_MODEL
-        value: grok-4-fast-non-reasoning
+        value: grok-3-mini
       - key: TTS_VOICE
         value: en-US-AriaNeural
       - key: LUNA_LIPSYNC
         value: "0"
       - key: LUNA_PREWARM
         value: "0"
-    disk:
-      name: luna-camp-data
-      mountPath: /app/data
-      sizeGB: 1

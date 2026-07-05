@@ -362,28 +362,83 @@
     #convo-log.collapsed #convo-lines { display: none; }
     @media (max-width: 899px) {
       :root {
-        --header-h: 128px;
-        --dock-h: 178px;
+        --header-h: 88px;
+        --dock-h: 124px;
         --sidebar-w: 100%;
-        --feed-h: min(34vh, 260px);
       }
-      #game {
+      body.camp-focus #game {
+        left: 0;
         right: 0;
-        bottom: calc(var(--dock-h) + var(--feed-h) + var(--gap) * 2);
+        top: var(--header-h);
+        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
       }
-      #convo-log {
-        left: var(--gap); right: var(--gap);
+      body.camp-focus #convo-log.collapsed {
+        top: calc(var(--header-h) + var(--gap));
+        left: auto;
+        right: var(--gap);
+        bottom: auto;
+        width: auto;
+        min-width: 0;
+        height: 34px;
+        max-height: 34px;
+      }
+      body.camp-focus #convo-log.collapsed header {
+        padding: 6px 12px;
+        border: none;
+      }
+      body.camp-focus #convo-log.collapsed header h3 {
+        font-size: 0.78rem;
+        margin: 0;
+      }
+      body.camp-focus #convo-log.collapsed .sub,
+      body.camp-focus #convo-log.collapsed #now-speaking,
+      body.camp-focus #convo-log.collapsed #convo-lines {
+        display: none !important;
+      }
+      body.camp-focus #convo-log:not(.collapsed) {
+        left: var(--gap);
+        right: var(--gap);
         top: auto;
         bottom: calc(var(--dock-h) + var(--gap));
-        height: var(--feed-h);
-        max-height: var(--feed-h);
+        height: min(22vh, 170px);
+        max-height: min(22vh, 170px);
       }
-      .dock-row.agents .chat-btn { flex: 1 1 calc(50% - 6px); }
+      #camp-header .agents-row { display: none; }
+      #camp-life-status { font-size: 0.72rem; }
+      .dock-row.agents { display: none; }
+      .dock-row.props .prop-btn { width: 46px; height: 40px; }
+    }
+    @media (min-width: 900px) {
+      body.camp-focus #game,
+      body.camp-focus #action-bar {
+        right: 0;
+      }
+      body.camp-focus #convo-log.collapsed {
+        left: auto;
+        width: auto;
+        min-width: 0;
+        height: 40px;
+        max-height: 40px;
+        top: calc(var(--header-h) + var(--gap));
+        right: var(--gap);
+        bottom: auto;
+      }
+      body.camp-focus #convo-log.collapsed header {
+        padding: 8px 14px;
+        border: none;
+      }
+      body.camp-focus #convo-log.collapsed .sub,
+      body.camp-focus #convo-log.collapsed #now-speaking,
+      body.camp-focus #convo-log.collapsed #convo-lines {
+        display: none !important;
+      }
     }
     @media (max-width: 480px) {
-      :root { --header-h: 134px; --dock-h: 188px; }
+      :root { --header-h: 82px; --dock-h: 118px; }
       .brand-block h1 { font-size: 0.88rem; }
       #status-toast { display: none; }
+      #action-bar .dock-label { display: none; }
+      .dock-row.primary button { flex: 1; min-width: 0; font-size: 0.78rem; padding: 8px 6px; }
     }
     #luna-embed-wrap {
       display: none; position: fixed; z-index: 28;
@@ -422,44 +477,44 @@
       font-size: 0.92rem !important;
     }
     @media (max-width: 899px) {
-      :root {
-        --header-h: 108px;
-        --dock-h: 152px;
-        --feed-h: min(28vh, 200px);
-      }
-      #camp-header .agents-row { display: none; }
-      #camp-life-status { font-size: 0.72rem; }
-      #convo-log { height: var(--feed-h); max-height: var(--feed-h); }
-      #convo-log.collapsed { height: 40px; }
-      .dock-row.agents { display: none; }
-      .dock-row.props .prop-btn { width: 46px; height: 40px; }
       #luna-embed-wrap.open {
+        left: auto;
+        right: var(--gap);
+        top: calc(var(--header-h) + var(--gap));
+        bottom: auto;
+        width: min(152px, 40vw);
+        height: min(220px, 30vh);
+        border-radius: 14px;
+        z-index: 18;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+      }
+      #luna-embed-wrap.open #luna-embed-header {
+        padding: 5px 8px;
+        font-size: 0.72rem;
+      }
+      #luna-embed-wrap.open #luna-embed-header span {
+        font-size: 0.68rem;
+      }
+      #luna-embed-wrap.open.expanded {
         inset: 0;
         left: 0; right: 0; top: 0; bottom: 0;
         width: 100%; height: 100%;
         max-height: none;
         border-radius: 0;
-        border: none;
         z-index: 55;
       }
-      #luna-embed-wrap.open #luna-embed-header {
+      #luna-embed-wrap.open.expanded #luna-embed-header {
         padding-top: max(10px, env(safe-area-inset-top));
         padding-left: max(10px, env(safe-area-inset-left));
         padding-right: max(10px, env(safe-area-inset-right));
       }
-      #luna-embed-header span { font-size: 0.9rem; }
       body.luna-embed-open #game,
       body.luna-embed-open #convo-log,
-      body.luna-embed-open #action-bar {
+      body.luna-embed-open #action-bar,
+      body.luna-embed-open #camp-header {
         visibility: hidden;
         pointer-events: none;
       }
-    }
-    @media (max-width: 480px) {
-      :root { --header-h: 96px; --dock-h: 140px; }
-      .brand-block .tagline { display: none; }
-      #action-bar .dock-label { display: none; }
-      .dock-row.primary button { flex: 1; min-width: 0; font-size: 0.8rem; padding: 9px 8px; }
     }
   </style>
 </head>
@@ -469,7 +524,7 @@
     <div class="header-row top">
       <div class="brand-block">
         <h1>🔥 Luna Camp</h1>
-        <div class="tagline">aurora playground · agents live</div>
+        <div class="tagline">main camp — roam, props &amp; agents</div>
       </div>
       <div id="status-toast">Loading camp…</div>
       <div id="mini-status">Server <span id="server-status">…</span></div>
@@ -580,7 +635,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-bond12-mobile";
+    const CAMP_BUILD = "2026-07-05-camp-main";
     const isCampMobile = () => window.innerWidth < 900;
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
@@ -1401,27 +1456,31 @@
       } catch (_) {}
     }
 
-    function openLunaEmbed() {
+    function openLunaEmbed(opts = {}) {
       const wrap = document.getElementById("luna-embed-wrap");
       const frame = document.getElementById("luna-embed-frame");
       if (!wrap || !frame) return;
       wrap.classList.add("open");
-      if (isCampMobile()) {
-        document.body.classList.add("luna-embed-open");
+      if (opts.expand) {
         wrap.classList.add("expanded");
+        if (isCampMobile()) document.body.classList.add("luna-embed-open");
+      } else {
+        wrap.classList.remove("expanded");
+        document.body.classList.remove("luna-embed-open");
       }
       const want = lunaEmbedUrl();
       if (!frame.src || !frame.src.includes("camp=1")) frame.src = want;
       else syncLunaEmbedVisitor();
       setCampLifeStatus(isCampMobile()
-        ? "Luna — Listen · Speak · Settings"
-        : "Luna's full avatar is here — talk with voice & mic");
-      showToast(isCampMobile() ? "Luna fullscreen — Listen & Speak" : "Live Luna at camp");
+        ? "Luna picture-in-picture — ⛶ to enlarge, camp still main"
+        : "Luna panel open — camp is still the main view");
+      showToast(isCampMobile() ? "Luna mini — camp stays main" : "Luna at camp edge");
     }
 
     function closeLunaEmbed() {
       document.body.classList.remove("luna-embed-open");
       document.getElementById("luna-embed-wrap")?.classList.remove("open", "expanded");
+      setCampLifeStatus("Back at camp — roam and tap props");
     }
 
     window.addEventListener("message", (ev) => {
@@ -1432,7 +1491,11 @@
     document.getElementById("btn-luna-avatar").onclick = () => openLunaEmbed();
     document.getElementById("luna-embed-close").onclick = () => closeLunaEmbed();
     document.getElementById("luna-embed-expand").onclick = () => {
-      document.getElementById("luna-embed-wrap")?.classList.toggle("expanded");
+      const wrap = document.getElementById("luna-embed-wrap");
+      if (!wrap) return;
+      const goingFull = !wrap.classList.contains("expanded");
+      wrap.classList.toggle("expanded", goingFull);
+      document.body.classList.toggle("luna-embed-open", goingFull && isCampMobile());
     };
 
     function renderAgentStrip() {
@@ -2315,10 +2378,9 @@
           campReady = true;
           showToast("Camp world live — agents talking above");
           applyGlobalNpcMode("free");
-          if (isCampMobile()) {
-            document.getElementById("convo-log")?.classList.add("collapsed");
-          }
-          setTimeout(() => openLunaEmbed(), isCampMobile() ? 1200 : 2800);
+          document.body.classList.add("camp-focus");
+          document.getElementById("convo-log")?.classList.add("collapsed");
+          setCampLifeStatus("Camp is main — walk around, tap 🌙 Live Luna when you want her");
           setTimeout(() => {
             const t = document.getElementById("status-toast");
             if (t) t.style.opacity = "0.35";

@@ -422,15 +422,44 @@
       font-size: 0.92rem !important;
     }
     @media (max-width: 899px) {
-      #luna-embed-wrap {
-        left: var(--gap); right: var(--gap);
-        width: auto; height: min(42vh, 340px);
-        bottom: calc(var(--dock-h) + var(--feed-h) + var(--gap) * 2);
+      :root {
+        --header-h: 108px;
+        --dock-h: 152px;
+        --feed-h: min(28vh, 200px);
       }
-      #luna-embed-wrap.expanded {
-        bottom: calc(var(--dock-h) + var(--gap));
-        height: auto;
+      #camp-header .agents-row { display: none; }
+      #camp-life-status { font-size: 0.72rem; }
+      #convo-log { height: var(--feed-h); max-height: var(--feed-h); }
+      #convo-log.collapsed { height: 40px; }
+      .dock-row.agents { display: none; }
+      .dock-row.props .prop-btn { width: 46px; height: 40px; }
+      #luna-embed-wrap.open {
+        inset: 0;
+        left: 0; right: 0; top: 0; bottom: 0;
+        width: 100%; height: 100%;
+        max-height: none;
+        border-radius: 0;
+        border: none;
+        z-index: 55;
       }
+      #luna-embed-wrap.open #luna-embed-header {
+        padding-top: max(10px, env(safe-area-inset-top));
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+      }
+      #luna-embed-header span { font-size: 0.9rem; }
+      body.luna-embed-open #game,
+      body.luna-embed-open #convo-log,
+      body.luna-embed-open #action-bar {
+        visibility: hidden;
+        pointer-events: none;
+      }
+    }
+    @media (max-width: 480px) {
+      :root { --header-h: 96px; --dock-h: 140px; }
+      .brand-block .tagline { display: none; }
+      #action-bar .dock-label { display: none; }
+      .dock-row.primary button { flex: 1; min-width: 0; font-size: 0.8rem; padding: 9px 8px; }
     }
   </style>
 </head>
@@ -551,7 +580,8 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-bond11-luna";
+    const CAMP_BUILD = "2026-07-05-bond12-mobile";
+    const isCampMobile = () => window.innerWidth < 900;
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
     function serverOfflineHint() {
@@ -1376,14 +1406,21 @@
       const frame = document.getElementById("luna-embed-frame");
       if (!wrap || !frame) return;
       wrap.classList.add("open");
+      if (isCampMobile()) {
+        document.body.classList.add("luna-embed-open");
+        wrap.classList.add("expanded");
+      }
       const want = lunaEmbedUrl();
       if (!frame.src || !frame.src.includes("camp=1")) frame.src = want;
       else syncLunaEmbedVisitor();
-      setCampLifeStatus("Luna's full avatar is here — talk with voice & mic");
-      showToast("Live Luna embedded at camp");
+      setCampLifeStatus(isCampMobile()
+        ? "Luna — Listen · Speak · Settings"
+        : "Luna's full avatar is here — talk with voice & mic");
+      showToast(isCampMobile() ? "Luna fullscreen — Listen & Speak" : "Live Luna at camp");
     }
 
     function closeLunaEmbed() {
+      document.body.classList.remove("luna-embed-open");
       document.getElementById("luna-embed-wrap")?.classList.remove("open", "expanded");
     }
 
@@ -2278,7 +2315,10 @@
           campReady = true;
           showToast("Camp world live — agents talking above");
           applyGlobalNpcMode("free");
-          setTimeout(() => openLunaEmbed(), 2800);
+          if (isCampMobile()) {
+            document.getElementById("convo-log")?.classList.add("collapsed");
+          }
+          setTimeout(() => openLunaEmbed(), isCampMobile() ? 1200 : 2800);
           setTimeout(() => {
             const t = document.getElementById("status-toast");
             if (t) t.style.opacity = "0.35";

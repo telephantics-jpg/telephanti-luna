@@ -2660,11 +2660,90 @@
     body.luna-camp-embed #dream-btn { display: none !important; }
     body.luna-camp-embed .main {
       min-height: calc(100vh - 7.5rem);
+      min-height: calc(100dvh - 7.5rem);
     }
-    body.luna-camp-embed .chat-panel {
-      max-height: 38vh;
+    body.luna-camp-embed .chat,
+    body.luna-camp-embed .chat-panel,
+    body.luna-camp-embed .mobile-tabs,
+    body.luna-camp-embed .interact-bar,
+    body.luna-camp-embed .ouija-fab,
+    body.luna-camp-embed .quiet-fab,
+    body.luna-camp-embed .mobile-feel-bar,
+    body.luna-camp-embed .web-pc-dock,
+    body.luna-camp-embed .luna-quick-chips,
+    body.luna-camp-embed .touch-sense-box,
+    body.luna-camp-embed .rapport-bar,
+    body.luna-camp-embed .zone-hint,
+    body.luna-camp-embed .luna-memory-thread,
+    body.luna-camp-embed .luna-assistant-hud { display: none !important; }
+    body.luna-camp-embed .main.show-chat .avatar-wrap { display: flex !important; }
+    @media (max-width: 860px) {
+      body.luna-camp-embed {
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+      body.luna-camp-embed header { display: none !important; }
+      body.luna-camp-embed .main {
+        min-height: calc(100dvh - 4.25rem);
+        grid-template-rows: 1fr;
+      }
+      body.luna-camp-embed .avatar-wrap {
+        min-height: calc(100dvh - 4.25rem);
+        max-height: none;
+      }
+      body.luna-camp-embed .mobile-action-dock {
+        display: flex !important;
+        justify-content: space-evenly;
+        align-items: stretch;
+        gap: 0.7rem;
+        padding: 0.5rem max(0.85rem, var(--safe-l)) calc(0.5rem + var(--safe-b)) max(0.85rem, var(--safe-r));
+        border-top: 1px solid rgba(217, 70, 239, 0.38);
+        background: rgba(6, 8, 16, 0.98);
+      }
+      body.luna-camp-embed .mobile-action-dock .dock-btn {
+        display: none !important;
+        flex: 1;
+        max-width: 8.5rem;
+        min-height: 3.5rem;
+        border-radius: 14px;
+        background: rgba(24, 18, 36, 0.95);
+        border-color: rgba(217, 70, 239, 0.28);
+      }
+      body.luna-camp-embed .mobile-action-dock #dock-mic,
+      body.luna-camp-embed .mobile-action-dock #dock-voice,
+      body.luna-camp-embed .mobile-action-dock #dock-options {
+        display: flex !important;
+      }
+      body.luna-camp-embed .mobile-action-dock .dock-btn .dock-icon { font-size: 1.4rem; }
+      body.luna-camp-embed .mobile-action-dock .dock-btn .dock-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #f1f5f9;
+        letter-spacing: 0.03em;
+      }
+      body.luna-camp-embed .mobile-action-dock #dock-mic.mic-on {
+        border-color: rgba(134, 239, 172, 0.7);
+        box-shadow: 0 0 14px rgba(134, 239, 172, 0.25);
+      }
+      body.luna-camp-embed .mobile-action-dock #dock-voice.voice-on {
+        border-color: rgba(251, 191, 36, 0.65);
+        box-shadow: 0 0 14px rgba(251, 191, 36, 0.2);
+      }
     }
-    body.luna-camp-embed .mobile-tabs button[data-view="chat"] { display: inline-flex; }
+    /* Camp Luna panel is narrow on desktop — same minimal dock inside iframe */
+    @media (max-width: 520px) {
+      body.luna-camp-embed header { display: none !important; }
+      body.luna-camp-embed .mobile-action-dock {
+        display: flex !important;
+        justify-content: space-evenly;
+      }
+      body.luna-camp-embed .mobile-action-dock .dock-btn { display: none !important; }
+      body.luna-camp-embed .mobile-action-dock #dock-mic,
+      body.luna-camp-embed .mobile-action-dock #dock-voice,
+      body.luna-camp-embed .mobile-action-dock #dock-options {
+        display: flex !important;
+        flex: 1;
+      }
+    }
     .luna-listen-ring {
       position: absolute;
       inset: -3px;
@@ -3907,6 +3986,7 @@
       forcePublicWebUi();
       document.addEventListener("DOMContentLoaded", function () {
         forcePublicWebUi();
+        applyCampMinimalUi();
         document.getElementById("options-backdrop")?.classList.remove("open");
         document.getElementById("options-panel")?.classList.remove("open");
         document.body?.classList.remove("pet-settings-open");
@@ -6087,9 +6167,31 @@
       }
     }
 
+    function applyCampMinimalUi() {
+      const params = new URLSearchParams(location.search);
+      if (params.get("camp") !== "1") return;
+      document.documentElement.classList.add("luna-camp-embed");
+      document.body.classList.add("luna-camp-embed");
+      const micLabel = document.querySelector("#dock-mic .dock-label");
+      const voiceLabel = document.querySelector("#dock-voice .dock-label");
+      const optLabel = document.querySelector("#dock-options .dock-label");
+      if (micLabel) micLabel.textContent = "Listen";
+      if (voiceLabel) voiceLabel.textContent = "Speak";
+      if (optLabel) optLabel.textContent = "Settings";
+      const main = document.getElementById("main");
+      if (main) {
+        main.classList.add("show-avatar");
+        main.classList.remove("show-chat");
+      }
+      if (typeof setMobileView === "function") {
+        try { setMobileView("avatar"); } catch (_) {}
+      }
+    }
+
     function setupCampEmbedBridge() {
       const params = new URLSearchParams(location.search);
       if (params.get("camp") !== "1") return;
+      applyCampMinimalUi();
       document.title = "Luna — at camp";
       window.addEventListener("message", (ev) => {
         if (ev.origin !== location.origin) return;

@@ -963,7 +963,7 @@
         <h3 id="convo-log-title-short">💬</h3>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
-      <div class="sub">Right panel · ▼ minimize · ▲ expand</div>
+      <div class="sub">Agents take their time — read &amp; think between lines · ▼/▲</div>
     </header>
     <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents spread around the ring — one voice at a time here…</span></div>
     <div id="convo-lines">Recent lines appear below, newest at bottom.</div>
@@ -1084,7 +1084,25 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-ouija-chat";
+    const CAMP_BUILD = "2026-07-05-camp-read-pace";
+    const CAMP_PACE = {
+      readMinSec: 38,
+      readMaxSec: 90,
+      charsPerSec: 9,
+      converseGapMs: 22000,
+      converseGapChillMs: 28000,
+      nextConverseMinMs: 100000,
+      nextConverseRandMs: 80000,
+      retryConverseMs: 50000,
+    };
+
+    function campReadHoldSec(text, floor = 34) {
+      const len = String(text || "").length;
+      return Math.max(
+        CAMP_PACE.readMinSec,
+        Math.min(CAMP_PACE.readMaxSec, floor + Math.ceil(len / CAMP_PACE.charsPerSec)),
+      );
+    }
     const isCampMobile = () => window.innerWidth < 900;
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
@@ -2137,11 +2155,11 @@
         ouijaSessionHistory.push({ question: q, reading, board: boardMsg, spirit: ouijaSpiritName });
         const mood = data.mood || "love";
         refreshCampTalkTarget();
-        pushCampLine(ouijaSpiritName, reading || boardMsg, 36, mood, { fromLocal: true });
+        pushCampLine(ouijaSpiritName, reading || boardMsg, campReadHoldSec(reading || boardMsg, 48), mood, { fromLocal: true });
         expandSpeechBubble();
         setCampLifeStatus(`${ouijaSpiritName} spoke through the board`);
         psychicRipples.push({ x: camp.x, y: camp.y, t: Date.now(), color: "#a855f7" });
-        setTimeout(() => spiritAgentReaction(ouijaSpiritName, reading || boardMsg), 4000);
+        setTimeout(() => spiritAgentReaction(ouijaSpiritName, reading || boardMsg), 35000);
       } catch (err) {
         setOuijaTyping(false);
         const hint = isFetchOfflineError(err) ? "Server offline" : err.message;
@@ -2307,7 +2325,7 @@
       ].filter(Boolean).join(" ");
     }
 
-    async function spiritAgentReaction(spiritName, spiritLine) {
+    async function spiritAgentReaction(spiritName, spiritLine, delayMs = 22000) {
       const pool = npcs.filter((n) => !n.leaving);
       if (!pool.length) return;
       const reactor = pool[Math.floor(Math.random() * pool.length)];
@@ -2330,14 +2348,16 @@
           });
           const data = await res.json();
           if (res.ok && data.reply) {
-            pushCampLine(reactor.name, data.reply, 26, data.mood || "think", { fromLocal: true });
+            pushCampLine(reactor.name, data.reply, campReadHoldSec(data.reply, 36), data.mood || "think", { fromLocal: true });
           } else {
-            pushCampLine(reactor.name, local[Math.floor(Math.random() * local.length)], 20, "think", { fromLocal: true });
+            const fb = local[Math.floor(Math.random() * local.length)];
+            pushCampLine(reactor.name, fb, campReadHoldSec(fb, 32), "think", { fromLocal: true });
           }
         } catch (_) {
-          pushCampLine(reactor.name, local[Math.floor(Math.random() * local.length)], 20, "think", { fromLocal: true });
+          const fb = local[Math.floor(Math.random() * local.length)];
+          pushCampLine(reactor.name, fb, campReadHoldSec(fb, 32), "think", { fromLocal: true });
         }
-      }, 3200 + Math.random() * 2000);
+      }, delayMs);
     }
 
     async function conjureFromAether() {
@@ -2387,9 +2407,9 @@
       }
       entity.line = spiritLine;
       entity.until = Date.now() + 75000;
-      pushCampLine(type.name, spiritLine, 36, "alert", { fromLocal: true });
-      setCampLifeStatus(`${type.name} spoke — tap ▼ to tuck bubble by dock`);
-      spiritAgentReaction(type.name, spiritLine);
+      pushCampLine(type.name, spiritLine, campReadHoldSec(spiritLine, 44), "alert", { fromLocal: true });
+      setCampLifeStatus(`${type.name} spoke — take your time reading`);
+      spiritAgentReaction(type.name, spiritLine, 28000);
       conjureBusy = false;
     }
 
@@ -2439,7 +2459,7 @@
     const speechTextEl = document.getElementById("speech-text");
     const speechWhoEl = document.querySelector("#speech-now .who");
 
-    function showBigSpeech(who, line, holdSec = 16) {
+    function showBigSpeech(who, line, holdSec = 30) {
       const text = (line || "").trim();
       if (!text) return;
       speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
@@ -3149,14 +3169,14 @@
           const pool = prop.npcLines.filter((l) => !l.toLowerCase().startsWith(n.name.toLowerCase()));
           const line = pool.length ? pool[Math.floor(Math.random() * pool.length)]
             : prop.npcLines[Math.floor(Math.random() * prop.npcLines.length)];
-          setTimeout(() => pushCampLine(n.name, line, 22, moods[n.id] || "happy"), 1800 + i * 4200);
+          setTimeout(() => pushCampLine(n.name, line, campReadHoldSec(line, 36), moods[n.id] || "happy"), 5000 + i * 11000);
         });
         setTimeout(() => pushCampLine("Camp", "Everyone's spaced out now — wander the whole camp, vibes are mellow.", 18, "happy"), 12000);
         return;
       }
       npcs.forEach((n, i) => {
         const line = prop.npcLines[Math.floor(Math.random() * prop.npcLines.length)];
-        setTimeout(() => pushCampLine(n.name, line, 16, "happy"), 800 + i * 1800);
+        setTimeout(() => pushCampLine(n.name, line, campReadHoldSec(line, 32), "happy"), 3500 + i * 9000);
       });
       setAgentMood("luna", "happy");
       setAgentMood("hermes", "happy");
@@ -3391,7 +3411,7 @@
       setAgentMood("dionysus", "happy");
       pushCampLine("Camp", "🍷 Dionysus wanders in from the treeline — everyone spreads out a little more.", 24, "happy");
       setCampLifeStatus("Dionysus is visiting camp");
-      setTimeout(() => runCampConverse(["dionysus", "luna"]), 8000);
+      setTimeout(() => runCampConverse(["dionysus", "luna"]), 22000);
       try {
         const res = await fetch("/api/firmament/agent/chat", {
           method: "POST",
@@ -3477,7 +3497,7 @@
         }
         replyEl.textContent = `${agentNames[agentId] || agentId}: ${data.reply}`;
         if (data.mood) setAgentMood(agentId, data.mood);
-        pushCampLine(agentNames[agentId] || agentId, data.reply, 24, data.mood, { fromLocal: true });
+        pushCampLine(agentNames[agentId] || agentId, data.reply, campReadHoldSec(data.reply, 40), data.mood, { fromLocal: true });
         if (opts.fromCampBar) setCampLifeStatus(`${agentNames[agentId] || agentId} replied`);
         loadCampBonds();
       } catch (err) {
@@ -3541,7 +3561,8 @@
       convoLinesEl.scrollTop = convoLinesEl.scrollHeight;
     }
 
-    function pushCampLine(speaker, line, holdSec = 22, mood, opts = {}) {
+    function pushCampLine(speaker, line, holdSec, mood, opts = {}) {
+      if (holdSec == null) holdSec = campReadHoldSec(line, 36);
       const clean = (line || "").trim();
       if (!clean) return;
       let agentId = (speaker || "").toLowerCase();
@@ -3581,7 +3602,7 @@
 
     function mergeRemoteChatter(line) {
       if (!line || !line.text) return;
-      pushCampLine(line.speaker || "Camp", line.text, 20, line.mood, { skipBroadcast: true });
+      pushCampLine(line.speaker || "Camp", line.text, campReadHoldSec(line.text, 34), line.mood, { skipBroadcast: true });
     }
 
     function updateVisitorsOnlineLabel() {
@@ -3594,25 +3615,26 @@
 
     let converseBusy = false;
 
-    async function playConverseLines(lines, gapMs = 9000) {
+    async function playConverseLines(lines, gapMs = CAMP_PACE.converseGapMs) {
       for (const line of lines || []) {
         if (chatterPaused) break;
         const who = line.name || line.agent_id || "Camp";
-        setCampLifeStatus(`${who} is speaking…`);
-        const hold = Math.max(24, Math.min(42, 18 + Math.ceil((line.line || "").length / 28)));
-        pushCampLine(who, line.line, hold, line.mood);
-        await new Promise((r) => setTimeout(r, gapMs + hold * 120));
+        const text = line.line || "";
+        setCampLifeStatus(`${who} is speaking — take your time reading…`);
+        const hold = campReadHoldSec(text, 42);
+        pushCampLine(who, text, hold, line.mood);
+        await new Promise((r) => setTimeout(r, hold * 1000 + gapMs));
       }
     }
 
     async function runCampConverse(forcedPair) {
       if (converseBusy) return;
       if (forcedPair && forcedPair.includes("dionysus") && !campGuests.some((g) => g.id === "dionysus")) {
-        setTimeout(() => runCampConverse(forcedPair), 12000);
+        setTimeout(() => runCampConverse(forcedPair), 28000);
         return;
       }
       if (chatterPaused || dialogueBackdrop.classList.contains("open")) {
-        setTimeout(() => runCampConverse(forcedPair), 20000);
+        setTimeout(() => runCampConverse(forcedPair), CAMP_PACE.retryConverseMs);
         return;
       }
       const pairs = [["luna", "hermes"], ["luna", "oracle"], ["hermes", "oracle"], ["caduceus", "hermes"], ["caduceus", "luna"], ["oracle", "caduceus"], ["sentinel", "oracle"], ["sentinel", "hermes"], ["caduceus", "sentinel"], ["dionysus", "luna"], ["dionysus", "hermes"], ["dionysus", "oracle"]];
@@ -3658,7 +3680,10 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "converse failed");
-        await playConverseLines(data.lines, campChillUntil > Date.now() ? 11000 : 7500);
+        await playConverseLines(
+          data.lines,
+          campChillUntil > Date.now() ? CAMP_PACE.converseGapChillMs : CAMP_PACE.converseGapMs,
+        );
         setCampLifeStatus("Camp is alive — agents wandering & chatting");
       } catch (err) {
         const hint = isFetchOfflineError(err) ? serverOfflineHint() : err.message;
@@ -3667,7 +3692,10 @@
       }
       endSocializing(pick[0], pick[1]);
       converseBusy = false;
-      setTimeout(() => runCampConverse(), 38000 + Math.random() * 32000);
+      setTimeout(
+        () => runCampConverse(),
+        CAMP_PACE.nextConverseMinMs + Math.random() * CAMP_PACE.nextConverseRandMs,
+      );
     }
 
     window.addEventListener("keydown", (e) => {
@@ -3732,7 +3760,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pack_id: "aurora_playground" }),
         }).catch(() => {});
-        setTimeout(() => runCampConverse(["luna", "hermes"]), 5000);
+        setTimeout(() => runCampConverse(["luna", "hermes"]), 18000);
         setTimeout(() => spawnDionysusVisit(), 38000);
         scheduleDionysusVisits();
       }

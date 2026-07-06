@@ -935,7 +935,7 @@
         <div class="tagline">type to talk · drag stuff · witty 3D agents · roam free</div>
       </div>
       <div id="status-toast">Loading camp…</div>
-      <div id="mini-status">Server <span id="server-status">…</span></div>
+      <div id="mini-status">Build <span id="camp-build-tag">…</span> · Server <span id="server-status">…</span></div>
     </div>
     <div class="header-row agents-row">
       <div id="agent-strip">
@@ -1084,7 +1084,18 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-no-t-key";
+    const CAMP_BUILD = "2026-07-05-camp-no-t-key2";
+
+    // T is only a letter — block any shortcut handler (incl. stale cached scripts)
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "t" && e.key !== "T") return;
+      const el = e.target;
+      const typing = el && (
+        el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT"
+        || el.isContentEditable
+      );
+      if (!typing) e.stopImmediatePropagation();
+    }, true);
     const CAMP_PACE = {
       readMinSec: 38,
       readMaxSec: 90,
@@ -3737,6 +3748,8 @@
     renderAgentStrip();
 
     const serverStatusEl = document.getElementById("server-status");
+    const campBuildEl = document.getElementById("camp-build-tag");
+    if (campBuildEl) campBuildEl.textContent = CAMP_BUILD;
     function pollServerHealth() {
       fetch("/api/health").then((r) => r.json()).then((h) => {
         if (h.ok) {

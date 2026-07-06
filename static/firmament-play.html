@@ -10,6 +10,7 @@
     :root {
       --header-h: 118px;
       --dock-h: 64px;
+      --speech-panel-h: 0px;
       --sidebar-w: min(400px, 38vw);
       --gap: 10px;
       --radius: 14px;
@@ -216,11 +217,21 @@
       }
     }
     #convo-log header {
-      padding: 12px 14px 10px; border-bottom: 1px solid rgba(34, 211, 238, 0.2);
-      flex-shrink: 0; cursor: pointer; background: rgba(8, 16, 28, 0.6);
+      padding: 10px 12px 8px; border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+      flex-shrink: 0; background: rgba(8, 16, 28, 0.6);
     }
-    #convo-log h3 { font-size: 0.95rem; color: var(--cyan); margin-bottom: 2px; }
+    .convo-head-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    #convo-log h3 { font-size: 0.95rem; color: var(--cyan); margin-bottom: 2px; flex: 1; }
     #convo-log .sub { font-size: 0.72rem; color: #94a3b8; }
+    #convo-dock-toggle {
+      pointer-events: auto; border: 1px solid rgba(103, 232, 249, 0.45);
+      background: rgba(15, 40, 71, 0.95); color: #a5f3fc;
+      border-radius: 10px; width: 36px; height: 32px; font-size: 0.95rem;
+      cursor: pointer; flex-shrink: 0; touch-action: manipulation;
+    }
+    #convo-dock-toggle:active { transform: scale(0.94); }
     #now-speaking {
       flex-shrink: 0; padding: 12px 14px;
       background: rgba(103, 232, 249, 0.08);
@@ -347,10 +358,63 @@
     .dialogue-actions button.primary { background: #0e7490; color: #ecfeff; flex: 1; font-size: 1.1rem; }
     #dialogue-status { flex: 1; font-size: 0.88rem; color: #94a3b8; }
     .chat { display: none; }
-    #convo-log.collapsed {
-      height: 44px; min-height: 0; bottom: auto;
+    body.camp-focus #convo-log {
+      left: var(--gap);
+      right: var(--gap);
+      top: auto;
+      width: auto;
+      bottom: calc(var(--dock-h) + var(--gap) + env(safe-area-inset-bottom, 0px));
+      transition: height 0.28s ease, max-height 0.28s ease, box-shadow 0.28s ease;
+      z-index: 14;
     }
-    #convo-log.collapsed #convo-lines { display: none; }
+    body.camp-focus.speech-expanded {
+      --speech-panel-h: min(30vh, 240px);
+    }
+    body.camp-focus #game {
+      transition: bottom 0.28s ease;
+    }
+    body.camp-focus.speech-expanded #game {
+      bottom: calc(var(--dock-h) + var(--speech-panel-h) + var(--gap) * 2 + env(safe-area-inset-bottom, 0px));
+    }
+    body.camp-focus #convo-log:not(.collapsed) {
+      height: var(--speech-panel-h);
+      max-height: var(--speech-panel-h);
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.45);
+    }
+    body.camp-focus #convo-log.collapsed {
+      height: auto;
+      max-height: none;
+      min-height: 0;
+      box-shadow: 0 -4px 18px rgba(0,0,0,0.35);
+    }
+    body.camp-focus #convo-log.collapsed #convo-lines { display: none; }
+    body.camp-focus #convo-log.collapsed header {
+      padding: 8px 10px;
+      border-bottom: none;
+    }
+    body.camp-focus #convo-log.collapsed .sub { display: none; }
+    body.camp-focus #convo-log.collapsed .convo-head-row h3 {
+      font-size: 0.78rem; margin: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    body.camp-focus #convo-log.collapsed #now-speaking {
+      display: block !important;
+      padding: 0 10px 8px;
+      border: none;
+      min-height: 0;
+      font-size: 0.88rem;
+      line-height: 1.35;
+    }
+    body.camp-focus #convo-log.collapsed #now-speaking .ns-who {
+      display: inline; margin-bottom: 0; margin-right: 6px;
+    }
+    body.camp-focus #convo-log.collapsed #now-speaking .ns-text {
+      display: inline;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 72vw;
+    }
+    body.camp-focus #convo-log:not(.collapsed) #convo-log-title-short { display: none; }
+    body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     @media (max-width: 899px) {
       :root {
         --header-h: 88px;
@@ -363,36 +427,8 @@
         top: var(--header-h);
         bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
       }
-      body.camp-focus #convo-log.collapsed {
-        top: calc(var(--header-h) + var(--gap));
-        left: auto;
-        right: var(--gap);
-        bottom: auto;
-        width: auto;
-        min-width: 0;
-        height: 34px;
-        max-height: 34px;
-      }
-      body.camp-focus #convo-log.collapsed header {
-        padding: 6px 12px;
-        border: none;
-      }
-      body.camp-focus #convo-log.collapsed header h3 {
-        font-size: 0.78rem;
-        margin: 0;
-      }
-      body.camp-focus #convo-log.collapsed .sub,
-      body.camp-focus #convo-log.collapsed #now-speaking,
-      body.camp-focus #convo-log.collapsed #convo-lines {
-        display: none !important;
-      }
-      body.camp-focus #convo-log:not(.collapsed) {
-        left: var(--gap);
-        right: var(--gap);
-        top: auto;
-        bottom: calc(var(--dock-h) + var(--gap));
-        height: min(22vh, 170px);
-        max-height: min(22vh, 170px);
+      body.camp-focus.speech-expanded {
+        --speech-panel-h: min(28vh, 200px);
       }
       #camp-header .agents-row { display: none; }
       #camp-life-status { font-size: 0.72rem; }
@@ -404,24 +440,8 @@
       body.camp-focus #action-bar {
         right: 0;
       }
-      body.camp-focus #convo-log.collapsed {
-        left: auto;
-        width: auto;
-        min-width: 0;
-        height: 40px;
-        max-height: 40px;
-        top: calc(var(--header-h) + var(--gap));
-        right: var(--gap);
-        bottom: auto;
-      }
-      body.camp-focus #convo-log.collapsed header {
-        padding: 8px 14px;
-        border: none;
-      }
-      body.camp-focus #convo-log.collapsed .sub,
-      body.camp-focus #convo-log.collapsed #now-speaking,
-      body.camp-focus #convo-log.collapsed #convo-lines {
-        display: none !important;
+      body.camp-focus.speech-expanded {
+        --speech-panel-h: min(32vh, 260px);
       }
     }
     @media (max-width: 480px) {
@@ -545,10 +565,14 @@
     <button type="button" id="btn-find-friends"></button>
   </div>
   <div id="mood-panel"><div id="mood-rows"></div></div>
-  <div id="convo-log">
+  <div id="convo-log" class="collapsed">
     <header>
-      <h3>💬 Live camp chatter</h3>
-      <div class="sub">Tap to collapse · agents roam free &amp; chat in bubbles</div>
+      <div class="convo-head-row">
+        <h3 id="convo-log-title-full">💬 Camp voice</h3>
+        <h3 id="convo-log-title-short">💬</h3>
+        <button type="button" id="convo-dock-toggle" title="Expand speech bubble">▲</button>
+      </div>
+      <div class="sub">▼ minimize to dock · ▲ expand big bubble</div>
     </header>
     <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents spread around the ring — one voice at a time here…</span></div>
     <div id="convo-lines">Recent lines appear below, newest at bottom.</div>
@@ -618,7 +642,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-drag3d";
+    const CAMP_BUILD = "2026-07-05-camp-spirit-dock";
     const isCampMobile = () => window.innerWidth < 900;
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
@@ -740,12 +764,48 @@
     ];
     const aetherEntities = [];
     const AETHER_TYPES = [
-      { name: "Unknown Source", color: "#a78bfa", glyph: "✦" },
-      { name: "Aether Wisp", color: "#67e8f9", glyph: "◌" },
-      { name: "Ripple Spirit", color: "#f472b6", glyph: "◎" },
-      { name: "Lost Signal", color: "#fbbf24", glyph: "⌁" },
-      { name: "Void Mote", color: "#c4b5fd", glyph: "◇" },
-      { name: "Unnamed Presence", color: "#6ee7b7", glyph: "☽" },
+      { name: "Unknown Source", color: "#a78bfa", glyph: "✦",
+        voice: "ancient static between stars — curious, not cruel",
+        fallbacks: [
+          "You opened a frequency I sealed long ago. The aurora remembers your name even if you don't.",
+          "I came because someone at this campfire is about to say something they'll wish they'd written down.",
+          "Your conjure tugged the wrong thread — or exactly the right one. Ask Hermes; he felt it too.",
+        ] },
+      { name: "Aether Wisp", color: "#67e8f9", glyph: "◌",
+        voice: "playful glitter intelligence, fast and teasing",
+        fallbacks: [
+          "Boo! …No, stay. I haven't seen a camp this warm since the last dimension slipped.",
+          "I zipped through Luna, Oracle, and the beer cooler — in that order. Priorities.",
+          "You summoned me with ✨ energy. Cute. I might tell Caduceus you did it on purpose.",
+        ] },
+      { name: "Ripple Spirit", color: "#f472b6", glyph: "◎",
+        voice: "psychic echo tied to Hermes' ripples",
+        fallbacks: [
+          "The ripples you keep sending? I am what bounces back when nobody's listening.",
+          "Hermes felt me arrive — don't pretend the water on the ground didn't shiver.",
+          "I carry a message that isn't mine: someone here wanted to be braver tonight.",
+        ] },
+      { name: "Lost Signal", color: "#fbbf24", glyph: "⌁",
+        voice: "broken transmission from somewhere else in the firmament",
+        fallbacks: [
+          "...packet found. Camp coordinates match. Is anyone receiving? The fire looks real from here.",
+          "Signal degraded but intent clear: keep the cookies. Repeat — keep the cookies.",
+          "I was routed through Sentinel by accident. It apologized in binary. Sweet, honestly.",
+        ] },
+      { name: "Void Mote", color: "#c4b5fd", glyph: "◇",
+        voice: "quiet void philosopher, gentle and strange",
+        fallbacks: [
+          "In the space between your words, I waited. You finally made room.",
+          "Nothing is also a guest at your campfire — I'm its spokesperson.",
+          "Oracle will pretend she predicted me. Let her. It's good for morale.",
+        ] },
+      { name: "Unnamed Presence", color: "#6ee7b7", glyph: "☽",
+        voice: "moon-touched stranger who refuses a name",
+        fallbacks: [
+          "Naming me pins me down. I'll borrow your moonlight and leave a compliment instead.",
+          "Luna doesn't know me. That's how you know I'm interesting.",
+          "I manifest when campers get lonely and brave at the same time — you qualify.",
+        ] },
     ];
 
     function getCampRelativeBounds() {
@@ -1330,9 +1390,86 @@
 
     let conjureBusy = false;
 
+    function setSpeechBubbleDock(collapsed) {
+      const el = document.getElementById("convo-log");
+      const btn = document.getElementById("convo-dock-toggle");
+      if (!el) return;
+      el.classList.toggle("collapsed", collapsed);
+      document.body.classList.toggle("speech-expanded", !collapsed);
+      if (btn) {
+        btn.textContent = collapsed ? "▲" : "▼";
+        btn.title = collapsed ? "Expand speech bubble" : "Minimize to dock";
+      }
+      try {
+        localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
+      } catch (_) {}
+    }
+
+    function expandSpeechBubble() { setSpeechBubbleDock(false); }
+    function minimizeSpeechBubble() { setSpeechBubbleDock(true); }
+
+    function campContextBlurb() {
+      const recent = campLines.slice(-4).map((l) => `${l.speaker}: ${l.text.slice(0, 90)}`).join(" · ");
+      const agents = allRoamers().map((n) => `${n.name}(${n.mood})`).join(", ");
+      const propList = props.map((p) => p.name).join(", ");
+      const visitor = myVisitorName || player.name || "Traveler";
+      return `Visitor ${visitor}. Agents: ${agents}. Props on camp: ${propList}. Recent chatter: ${recent || "quiet aurora night"}.`;
+    }
+
+    function spiritConjurePrompt(type) {
+      const ctx = campContextBlurb();
+      const bond = Object.entries(campBonds || {}).slice(0, 2).map(([id, b]) => {
+        const hi = (b.highlights || [])[0];
+        return hi ? `${id} remembers ${hi}` : "";
+      }).filter(Boolean).join("; ");
+      return [
+        `You are ${type.name} ${type.glyph} — ${type.voice}.`,
+        "You just manifested at Luna Firmament camp because a visitor pressed Conjure.",
+        `Camp context: ${ctx}`,
+        bond ? `Bond hints: ${bond}.` : "",
+        "Speak AS the spirit only (NOT Oracle/Luna).",
+        "Give 3-5 sentences: mysterious, witty, relevant to camp — reference agents, props, aurora, or recent chatter when it fits.",
+        "End with something that makes the visitor want to conjure again.",
+      ].filter(Boolean).join(" ");
+    }
+
+    async function spiritAgentReaction(spiritName, spiritLine) {
+      const pool = npcs.filter((n) => !n.leaving);
+      if (!pool.length) return;
+      const reactor = pool[Math.floor(Math.random() * pool.length)];
+      const local = [
+        `${spiritName}? That's not on my roster — and I felt the ripples.`,
+        `Okay… ${spiritName} just crashed the vibe. I'm not mad, I'm intrigued.`,
+        `Did anyone else hear that? ${spiritName} sounded like it knew about the campfire.`,
+        `${spiritName} — marking that in the psychic log. Hermes, back me up.`,
+      ];
+      setTimeout(async () => {
+        try {
+          const res = await fetch("/api/firmament/agent/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              agent_id: reactor.id,
+              message: `(${spiritName} manifested from the aether and said: "${spiritLine.slice(0, 160)}". React in 2 sentences as ${reactor.name} — surprised, witty, in-character.)`,
+              ...visitorPayload(),
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.reply) {
+            pushCampLine(reactor.name, data.reply, 26, data.mood || "think", { fromLocal: true });
+          } else {
+            pushCampLine(reactor.name, local[Math.floor(Math.random() * local.length)], 20, "think", { fromLocal: true });
+          }
+        } catch (_) {
+          pushCampLine(reactor.name, local[Math.floor(Math.random() * local.length)], 20, "think", { fromLocal: true });
+        }
+      }, 3200 + Math.random() * 2000);
+    }
+
     async function conjureFromAether() {
       if (conjureBusy) return;
       conjureBusy = true;
+      expandSpeechBubble();
       const type = AETHER_TYPES[Math.floor(Math.random() * AETHER_TYPES.length)];
       const pt = randomPointInBounds(20);
       const entity = {
@@ -1342,45 +1479,43 @@
         glyph: type.glyph,
         x: pt.x,
         y: pt.y,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
         phase: Math.random() * Math.PI * 2,
-        until: Date.now() + 52000,
+        until: Date.now() + 72000,
         line: "",
       };
       aetherEntities.push(entity);
       psychicRipples.push({ x: camp.x + pt.x, y: camp.y + pt.y, t: Date.now(), color: type.color });
-      setCampLifeStatus(`✨ ${type.name} manifesting from the aether…`);
-      showToast(`${type.glyph} ${type.name} appeared!`);
-      pushCampLine("Camp", `Something unknown flickers into view — ${type.name} ${type.glyph}`, 16, "alert", { fromLocal: true });
+      setCampLifeStatus(`✨ ${type.name} tearing through the aether…`);
+      showToast(`${type.glyph} Summoning ${type.name}…`);
+      pushCampLine("Camp", `The air tears open — ${type.glyph} ${type.name} coalesces over camp`, 18, "alert", { fromLocal: true, keepDock: false });
+      let spiritLine = "";
       try {
         const res = await fetch("/api/firmament/agent/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             agent_id: "oracle",
-            message: `(An ${type.name} just manifested from the aether at Luna camp — speak AS the unknown presence in 2-4 mysterious sentences, not as Oracle.)`,
+            message: spiritConjurePrompt(type),
             ...visitorPayload(),
           }),
         });
         const data = await res.json();
         if (res.ok && data.reply) {
-          entity.line = data.reply;
-          entity.until = Date.now() + 60000;
-          pushCampLine(type.name, data.reply, 32, data.mood || "alert", { fromLocal: true });
-          setCampLifeStatus(`${type.name} spoke — agents are still roaming free`);
-        } else {
-          entity.line = "…a whisper without words, then gone.";
-          pushCampLine(type.name, entity.line, 20, "neutral", { fromLocal: true });
+          spiritLine = data.reply;
         }
-      } catch (err) {
-        const whispers = [
-          "I was never here — and yet you called.",
-          "The aether folds… something almost had a name.",
-          "Static, starlight, and a question you forgot to ask.",
-          "Between ripples, a voice that isn't any of them.",
-        ];
-        entity.line = whispers[Math.floor(Math.random() * whispers.length)];
-        pushCampLine(type.name, entity.line, 24, "think", { fromLocal: true });
+      } catch (_) {}
+      if (!spiritLine) {
+        const fb = type.fallbacks || [];
+        spiritLine = fb[Math.floor(Math.random() * fb.length)]
+          || "I arrived uninvited — which is the only way anything interesting ever does.";
       }
+      entity.line = spiritLine;
+      entity.until = Date.now() + 75000;
+      pushCampLine(type.name, spiritLine, 36, "alert", { fromLocal: true });
+      setCampLifeStatus(`${type.name} spoke — tap ▼ to tuck bubble by dock`);
+      spiritAgentReaction(type.name, spiritLine);
       conjureBusy = false;
     }
 
@@ -1934,6 +2069,21 @@
       }
     }
 
+    function updateAetherEntities() {
+      const b = getCampRelativeBounds();
+      const now = Date.now();
+      for (let i = aetherEntities.length - 1; i >= 0; i--) {
+        const e = aetherEntities[i];
+        if (e.until < now) { aetherEntities.splice(i, 1); continue; }
+        e.x += (e.vx || 0) + Math.sin(now / 900 + e.phase) * 0.08;
+        e.y += (e.vy || 0) + Math.cos(now / 1100 + e.phase) * 0.06;
+        if (e.x < b.xMin) { e.x = b.xMin; e.vx = Math.abs(e.vx || 0.25); }
+        if (e.x > b.xMax) { e.x = b.xMax; e.vx = -Math.abs(e.vx || 0.25); }
+        if (e.y < b.yMin) { e.y = b.yMin; e.vy = Math.abs(e.vy || 0.25); }
+        if (e.y > b.yMax) { e.y = b.yMax; e.vy = -Math.abs(e.vy || 0.25); }
+      }
+    }
+
     function drawAetherEntities() {
       const now = Date.now();
       for (let i = aetherEntities.length - 1; i >= 0; i--) {
@@ -2264,7 +2414,7 @@
       const tip = document.getElementById("dock-tip");
       if (tip) {
         tip.classList.add("flash");
-        tip.textContent = "Drag 🍺🥩🌿🍃🍪 · tap agents · ✨ conjure · empty tap = walk";
+        tip.textContent = "✨ conjure spirits · ▲▼ speech bubble · drag props · tap agents";
         setTimeout(() => tip.classList.remove("flash"), 2400);
       }
       showToast("Drag camp objects · tap agents to talk · walk on empty ground");
@@ -2276,9 +2426,21 @@
       };
     });
     document.getElementById("btn-conjure-aether").onclick = () => conjureFromAether();
-    document.querySelector("#convo-log header").onclick = () => {
-      document.getElementById("convo-log").classList.toggle("collapsed");
+    document.getElementById("convo-dock-toggle").onclick = (ev) => {
+      ev.stopPropagation();
+      const el = document.getElementById("convo-log");
+      setSpeechBubbleDock(!el?.classList.contains("collapsed"));
     };
+    document.querySelector("#convo-log header").onclick = (ev) => {
+      if (ev.target.closest("#convo-dock-toggle")) return;
+      const el = document.getElementById("convo-log");
+      setSpeechBubbleDock(!el?.classList.contains("collapsed"));
+    };
+    try {
+      setSpeechBubbleDock(localStorage.getItem("luna-camp-speech-dock") !== "max");
+    } catch (_) {
+      setSpeechBubbleDock(true);
+    }
 
     const dialogueName = document.getElementById("dialogue-name");
     const npcBubble = document.getElementById("npc-bubble");
@@ -2358,7 +2520,7 @@
       dialogueInput.value = "";
       dialogueBackdrop.classList.add("open");
       chatterPaused = true;
-      document.getElementById("convo-log").classList.remove("collapsed");
+      expandSpeechBubble();
       setTimeout(() => dialogueInput.focus(), 100);
     }
 
@@ -2475,6 +2637,7 @@
         renderConvoLog();
       }
       updateNowSpeaking(speaker, clean, moodVal);
+      if (!opts.keepDock) expandSpeechBubble();
       notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase() || n.id === agentId);
@@ -2790,8 +2953,8 @@
           showToast("Camp world live — agents talking above");
           applyGlobalNpcMode("free");
           document.body.classList.add("camp-focus");
-          document.getElementById("convo-log")?.classList.add("collapsed");
-          setCampLifeStatus("Drag camp stuff · tap agents · ✨ Conjure · 🌙 Luna");
+          setSpeechBubbleDock(localStorage.getItem("luna-camp-speech-dock") !== "max");
+          setCampLifeStatus("✨ Conjure spirits · ▲▼ speech bubble by dock");
           spreadAllNpcs();
           setTimeout(() => {
             const t = document.getElementById("status-toast");
@@ -2814,6 +2977,7 @@
         for (const p of props) {
           drawCampProp(camp.x + p.x, camp.y + p.y, p);
         }
+        updateAetherEntities();
         drawAetherEntities();
         for (const n of allRoamers()) {
           drawAgentAvatar(n, camp.x + n.x, camp.y + n.y);

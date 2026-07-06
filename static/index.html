@@ -2676,6 +2676,11 @@
     body.luna-camp-embed .zone-hint,
     body.luna-camp-embed .luna-memory-thread,
     body.luna-camp-embed .luna-assistant-hud { display: none !important; }
+    body.luna-camp-embed:not(.web-roam-on) #luna-roam-buddy,
+    body.luna-camp-embed:not(.web-roam-on) #luna-roam-shadow {
+      display: none !important;
+      visibility: hidden !important;
+    }
     body.luna-camp-embed .main.show-chat .avatar-wrap { display: flex !important; }
     @media (max-width: 860px) {
       body.luna-camp-embed {
@@ -3974,7 +3979,13 @@
             var s = JSON.parse(raw);
             s.desktopOverlay = false;
             s.petWalk = false;
-            s.webRoam = true;
+            if (!/[?&]camp=1/.test(location.search) && !localStorage.getItem("luna-camp-motion-user-set")) {
+              s.webRoam = true;
+            }
+            if (/[?&]camp=1/.test(location.search) && !localStorage.getItem("luna-camp-motion-user-set")) {
+              s.webRoam = false;
+              s.idleLife = false;
+            }
             s.omniFollow = false;
             localStorage.setItem("luna-settings-v1", JSON.stringify(s));
           }
@@ -4882,6 +4893,52 @@
       return false;
     }
 
+    const CAMP_MOTION_USER_KEY = "luna-camp-motion-user-set";
+
+    function isCampEmbed() {
+      const params = new URLSearchParams(location.search);
+      return params.get("camp") === "1"
+        || document.documentElement.classList.contains("luna-camp-embed")
+        || document.body.classList.contains("luna-camp-embed");
+    }
+
+    function markCampMotionUserSet() {
+      try { localStorage.setItem(CAMP_MOTION_USER_KEY, "1"); } catch (_) {}
+    }
+
+    function webRoamSettingChecked() {
+      if (isCampEmbed()) return settings.webRoam === true;
+      return settings.webRoam !== false;
+    }
+
+    function webRoamEnabled() {
+      if (isCampEmbed()) return settings.webRoam === true;
+      return settings.webRoam !== false;
+    }
+
+    function campPortraitMotionOn() {
+      return !isCampEmbed() || settings.idleLife === true;
+    }
+
+    function applyCampEmbedMotionDefaults() {
+      if (!isCampEmbed()) return;
+      try {
+        if (!localStorage.getItem(CAMP_MOTION_USER_KEY)) {
+          settings.webRoam = false;
+          settings.idleLife = false;
+          saveSettings();
+        }
+      } catch (_) {}
+      stopWebRoamBuddy();
+      if (livePortrait && !campPortraitMotionOn()) livePortrait.stop();
+    }
+
+    function startLivePortraitMotion() {
+      if (!livePortrait) return;
+      if (campPortraitMotionOn()) livePortrait.start();
+      else livePortrait.stop();
+    }
+
     function updateWebPortraitStrip(level = stripLevel) {
       const cls = "strip-" + Math.max(0, Math.min(3, level));
       document.body.classList.remove("strip-0", "strip-1", "strip-2", "strip-3");
@@ -4986,7 +5043,7 @@
           await livePortrait.load();
           livePortrait.observeResize();
           attachPortraitAudio(livePortrait);
-          livePortrait.start();
+          startLivePortraitMotion();
           bindLivePortraitPointer();
           if (video) {
             lunaSpeakVideo = new LunaVideoAvatar(video, null);
@@ -5027,7 +5084,7 @@
         await livePortrait.load();
         livePortrait.observeResize();
         attachPortraitAudio(livePortrait);
-        livePortrait.start();
+        startLivePortraitMotion();
         bindLivePortraitPointer();
         document.body.classList.add("luna-canvas-mode");
         return livePortrait;
@@ -5061,7 +5118,7 @@
             await livePortrait.load();
             livePortrait.observeResize();
             attachPortraitAudio(livePortrait);
-            livePortrait.start();
+            startLivePortraitMotion();
             bindLivePortraitPointer();
             document.body.classList.add("luna-canvas-mode");
             document.body.classList.add("avatar-live-ready");
@@ -5932,7 +5989,7 @@
         ["opt-proactive", !!settings.proactiveSpeech],
         ["opt-webcam", !!settings.webcamWatch],
         ["opt-touch-sense", settings.touchSense !== false],
-        ["opt-web-roam", settings.webRoam !== false],
+        ["opt-web-roam", webRoamSettingChecked()],
         ["opt-sensual", isSensualMode()],
       ];
       for (const [id, on] of map) {
@@ -5996,7 +6053,7 @@
       settings.micSensitivity = mobileWeb
         ? Math.min(settings.micSensitivity ?? 40, 42)
         : Math.min(settings.micSensitivity ?? 52, 58);
-      settings.webRoam = true;
+      if (!isCampEmbed()) settings.webRoam = true;
       settings.touchSense = false;
       settings.lucidMind = true;
       persistSensualModePref();
@@ -6172,6 +6229,7 @@
       if (params.get("camp") !== "1") return;
       document.documentElement.classList.add("luna-camp-embed");
       document.body.classList.add("luna-camp-embed");
+      applyCampEmbedMotionDefaults();
       const micLabel = document.querySelector("#dock-mic .dock-label");
       const voiceLabel = document.querySelector("#dock-voice .dock-label");
       const optLabel = document.querySelector("#dock-options .dock-label");
@@ -6249,7 +6307,7 @@
         startWebAssistantLife();
         if (settings.proactiveSpeech) startAmbientSpeech();
         startWebEnvironmentLife();
-        if (settings.webRoam !== false) startWebRoamBuddy();
+        if (webRoamEnabled()) startWebRoamBuddy();
       }
       bootstrapWebVoice();
       if (!isMobile()) warmVoice().catch(() => {});
@@ -10717,7 +10775,7 @@
       document.getElementById("opt-aether-body").checked = settings.aetherBody !== false;
       document.getElementById("opt-pet-walk").checked = settings.petWalk !== false;
       const webRoamOpt = document.getElementById("opt-web-roam");
-      if (webRoamOpt) webRoamOpt.checked = settings.webRoam !== false;
+      if (webRoamOpt) webRoamOpt.checked = webRoamSettingChecked();
       document.getElementById("opt-pet-summon").checked = settings.summonOnClick !== false;
       document.getElementById("opt-omni-buddy").checked = settings.omniBuddy !== false;
       document.getElementById("opt-omni-follow").checked = settings.omniFollow === true;
@@ -10999,7 +11057,9 @@
       });
       document.getElementById("opt-idle")?.addEventListener("change", (e) => {
         settings.idleLife = e.target.checked;
+        if (isCampEmbed()) markCampMotionUserSet();
         saveSettings();
+        if (isCampEmbed()) startLivePortraitMotion();
         if (e.target.checked) startIdleLife(); else stopIdleLife();
       });
       document.getElementById("opt-webcam")?.addEventListener("change", async (e) => {
@@ -11067,10 +11127,13 @@
       });
       document.getElementById("opt-web-roam")?.addEventListener("change", (e) => {
         settings.webRoam = e.target.checked;
+        if (isCampEmbed()) markCampMotionUserSet();
         saveSettings();
         if (e.target.checked) startWebRoamBuddy();
         else stopWebRoamBuddy();
-        showToast(e.target.checked ? "Roam buddy on — drag or tap her" : "Roam buddy off");
+        showToast(e.target.checked
+          ? (isCampEmbed() ? "Mini Luna roam on — walkers can move" : "Roam buddy on — drag or tap her")
+          : (isCampEmbed() ? "Mini Luna still — roam off" : "Roam buddy off"));
       });
       document.getElementById("opt-pet-walk")?.addEventListener("change", async (e) => {
         settings.petWalk = e.target.checked;
@@ -13288,7 +13351,7 @@
     }
 
     function startWebRoamBuddy() {
-      if (isPetMode() || settings.webRoam === false) {
+      if (isPetMode() || !webRoamEnabled()) {
         stopWebRoamBuddy();
         return;
       }
@@ -13305,7 +13368,7 @@
       const size = () => (isMobile() ? 64 : 76);
       const pad = () => (isMobile() ? 72 : 52);
       const tick = () => {
-        if (!settings.webRoam || isPetMode()) {
+        if (!webRoamEnabled() || isPetMode()) {
           stopWebRoamBuddy();
           return;
         }
@@ -13380,7 +13443,7 @@
       webRoamRaf = requestAnimationFrame(tick);
       if (!window.__lunaRoamTurn) {
         window.__lunaRoamTurn = setInterval(() => {
-          if (!settings.webRoam) return;
+          if (!webRoamEnabled()) return;
           for (const { state } of buddies) {
             if (state.drag) continue;
             state.vx = (Math.random() < 0.5 ? -1 : 1) * (0.35 + Math.random() * 0.55);
@@ -14339,10 +14402,13 @@
           showToast(`Hi! Glide over me to feel touch — two little walkers roam around.${voiceHint}`);
         }
         setTimeout(() => playBrowserWelcome(), isMobile() ? 2200 : 900);
-        if (settings.webRoam !== false) {
+        if (webRoamEnabled()) {
           startWebRoamBuddy();
           setTimeout(startWebRoamBuddy, 600);
+        } else {
+          stopWebRoamBuddy();
         }
+        startLivePortraitMotion();
         return;
       }
       if (isPetMode()) {

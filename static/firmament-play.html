@@ -510,12 +510,16 @@
       .brand-block h1 { font-size: 0.88rem; }
       #status-toast { display: none; }
       .dock-compact .dock-icon { width: 44px; height: 44px; gap: 6px; }
+      .camp-ouija-board-wrap { max-height: min(28vh, 260px); }
+      .camp-ouija-chat-panel { min-height: min(34vh, 200px); max-height: min(42vh, 280px); }
+      .camp-ouija-msg-text { font-size: 0.94rem; }
     }
     #camp-ouija-layer {
       position: fixed; inset: 0; z-index: 45;
-      display: none; flex-direction: column; align-items: center; justify-content: center;
-      gap: 8px;
-      padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      display: none; flex-direction: column; align-items: center; justify-content: flex-start;
+      gap: 10px;
+      padding: max(42px, calc(env(safe-area-inset-top) + 36px)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      overflow-y: auto;
       background:
         radial-gradient(ellipse at 50% 12%, rgba(120, 60, 160, 0.42), transparent 52%),
         radial-gradient(ellipse at 20% 80%, rgba(251, 191, 36, 0.08), transparent 40%),
@@ -584,8 +588,28 @@
     }
     .camp-ouija-board-wrap {
       position: relative; width: 100%;
-      max-height: min(52vh, 460px); aspect-ratio: 1.05;
+      max-height: min(36vh, 340px); aspect-ratio: 1.05;
       transform-style: preserve-3d;
+    }
+    .camp-ouija-board::after {
+      content: ""; position: absolute; inset: 0; border-radius: 16px; pointer-events: none;
+      background: linear-gradient(105deg, transparent 38%, rgba(244, 114, 182, 0.07) 48%, transparent 58%);
+      animation: camp-ouija-light-sweep 6s ease-in-out infinite;
+    }
+    @keyframes camp-ouija-light-sweep {
+      0%, 100% { opacity: 0.3; transform: translateX(-8%); }
+      50% { opacity: 0.85; transform: translateX(8%); }
+    }
+    .camp-ouija-veil-hands {
+      position: absolute; inset: -8% -4%; pointer-events: none; z-index: 5; opacity: 0.22;
+      background:
+        radial-gradient(ellipse 80px 50px at 8% 72%, rgba(244, 114, 182, 0.35), transparent 70%),
+        radial-gradient(ellipse 80px 50px at 92% 72%, rgba(167, 139, 250, 0.35), transparent 70%);
+      animation: camp-ouija-hands-breathe 4.2s ease-in-out infinite;
+    }
+    @keyframes camp-ouija-hands-breathe {
+      0%, 100% { opacity: 0.18; transform: scale(1); }
+      50% { opacity: 0.32; transform: scale(1.03); }
     }
     .camp-ouija-board-wrap.living { animation: camp-ouija-board-breathe 5.5s ease-in-out infinite; }
     @keyframes camp-ouija-board-breathe {
@@ -715,17 +739,92 @@
       0%, 100% { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45)) drop-shadow(0 0 12px rgba(244, 114, 182, 0.45)); }
       50% { filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 22px rgba(167, 139, 250, 0.55)); }
     }
-    .camp-ouija-readout {
-      width: min(96vw, 680px); padding: 10px 12px; border-radius: 12px;
-      background: rgba(8, 6, 16, 0.78); border: 1px solid rgba(167, 139, 250, 0.28);
+    .camp-ouija-chat-panel {
+      width: min(96vw, 720px);
+      display: flex; flex-direction: column;
+      min-height: min(30vh, 240px);
+      max-height: min(38vh, 320px);
+      border-radius: 16px;
+      background: rgba(6, 4, 14, 0.88);
+      border: 2px solid rgba(167, 139, 250, 0.32);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 0 40px rgba(88, 28, 120, 0.12);
+      overflow: hidden;
+      animation: camp-ouija-chat-pulse 4s ease-in-out infinite;
+    }
+    @keyframes camp-ouija-chat-pulse {
+      0%, 100% { border-color: rgba(167, 139, 250, 0.32); box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 0 40px rgba(88, 28, 120, 0.12); }
+      50% { border-color: rgba(244, 114, 182, 0.45); box-shadow: 0 8px 36px rgba(88, 28, 120, 0.35), inset 0 0 50px rgba(124, 58, 237, 0.15); }
+    }
+    .camp-ouija-chat-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 10px 14px; border-bottom: 1px solid rgba(167, 139, 250, 0.22);
+      background: rgba(12, 8, 22, 0.75); flex-shrink: 0;
+    }
+    .camp-ouija-chat-head span:first-child {
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #e9d5ff;
     }
     .camp-ouija-spelled {
-      min-height: 1.2rem; font-size: 0.95rem; letter-spacing: 0.1em; text-transform: uppercase;
-      color: #f5e6c8; font-family: Georgia, "Times New Roman", serif; word-break: break-word;
+      font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #fbbf24; font-family: Georgia, "Times New Roman", serif;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 58%;
+      min-height: 0;
     }
-    .camp-ouija-reading {
-      margin-top: 6px; font-size: 0.88rem; line-height: 1.45; color: #e9d5ff; font-style: italic;
+    .camp-ouija-chat-log {
+      flex: 1; overflow-y: auto; padding: 12px 14px 14px;
+      display: flex; flex-direction: column; gap: 12px;
+      scroll-behavior: smooth;
     }
+    .camp-ouija-msg {
+      display: flex; flex-direction: column; gap: 4px;
+      max-width: 92%; padding: 10px 14px; border-radius: 14px;
+      line-height: 1.55; font-size: 0.95rem;
+      animation: camp-ouija-msg-in 0.35s ease;
+    }
+    @keyframes camp-ouija-msg-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    .camp-ouija-msg.you {
+      align-self: flex-end;
+      background: rgba(14, 116, 144, 0.35);
+      border: 1px solid rgba(103, 232, 249, 0.35);
+      color: #ecfeff;
+    }
+    .camp-ouija-msg.spirit {
+      align-self: flex-start;
+      background: rgba(88, 28, 120, 0.38);
+      border: 1px solid rgba(244, 114, 182, 0.4);
+      color: #f3e8ff;
+    }
+    .camp-ouija-msg.system {
+      align-self: center; max-width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed rgba(167, 139, 250, 0.3);
+      color: #c4b5fd; font-size: 0.82rem; font-style: italic; text-align: center;
+    }
+    .camp-ouija-msg.typing {
+      align-self: flex-start;
+      background: rgba(30, 18, 48, 0.6);
+      border: 1px solid rgba(167, 139, 250, 0.25);
+      color: #a78bfa; font-size: 0.88rem; font-style: italic;
+    }
+    .camp-ouija-msg-who {
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em;
+      text-transform: uppercase; opacity: 0.85;
+    }
+    .camp-ouija-msg.you .camp-ouija-msg-who { color: #67e8f9; }
+    .camp-ouija-msg.spirit .camp-ouija-msg-who { color: #f9a8d4; }
+    .camp-ouija-msg-text {
+      white-space: pre-wrap; word-break: break-word;
+      font-size: 1.02rem; line-height: 1.58;
+    }
+    .camp-ouija-msg-board {
+      margin-top: 4px; font-size: 0.72rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: #fde68a; font-family: Georgia, serif;
+      opacity: 0.9; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .camp-ouija-reading { display: none; }
     .camp-ouija-controls {
       width: min(96vw, 680px); display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
     }
@@ -951,18 +1050,23 @@
         <div class="camp-ouija-candle left" aria-hidden="true"><span class="flame"></span></div>
         <div class="camp-ouija-candle right" aria-hidden="true"><span class="flame"></span></div>
         <div class="camp-ouija-board-shadow" aria-hidden="true"></div>
+        <div class="camp-ouija-veil-hands" aria-hidden="true"></div>
         <div class="camp-ouija-board-tilt">
           <div class="camp-ouija-board" id="camp-ouija-board"></div>
           <div class="camp-ouija-planchette idle-drift" id="camp-ouija-planchette" aria-hidden="true"></div>
         </div>
       </div>
     </div>
-    <div class="camp-ouija-readout">
-      <div class="camp-ouija-spelled" id="camp-ouija-spelled" aria-live="polite"></div>
-      <div class="camp-ouija-reading" id="camp-ouija-reading"></div>
+    <div class="camp-ouija-chat-panel" id="camp-ouija-chat-panel">
+      <div class="camp-ouija-chat-head">
+        <span>Veil conversation</span>
+        <div class="camp-ouija-spelled" id="camp-ouija-spelled" aria-live="polite"></div>
+      </div>
+      <div class="camp-ouija-chat-log" id="camp-ouija-chat-log" aria-live="polite"></div>
+      <div class="camp-ouija-reading" id="camp-ouija-reading" aria-hidden="true"></div>
     </div>
     <div class="camp-ouija-controls">
-      <input type="text" id="camp-ouija-question" maxlength="240" placeholder="Ask the other side… (or leave empty)" autocomplete="off" />
+      <input type="text" id="camp-ouija-question" maxlength="400" placeholder="Ask anything — open channel gets a full reply…" autocomplete="off" />
       <button type="button" class="primary" id="camp-ouija-contact">Contact</button>
       <button type="button" id="camp-ouija-speak">Speak</button>
     </div>
@@ -980,7 +1084,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-talk-ouija3d";
+    const CAMP_BUILD = "2026-07-05-camp-ouija-chat";
     const isCampMobile = () => window.innerWidth < 900;
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
@@ -1754,6 +1858,8 @@
     let ouijaBoardBuilt = false;
     let ouijaSpiritName = "";
     let ouijaSessionHistory = [];
+    let ouijaChatMessages = [];
+    let ouijaTypingId = null;
     let campOuijaVoice = null;
     let ouijaIdleToken = 0;
     let campTalkBusy = false;
@@ -1786,6 +1892,50 @@
       if (!el) return;
       el.textContent = text;
       el.className = "camp-ouija-status " + mode;
+    }
+
+    function renderOuijaChatLog() {
+      const log = document.getElementById("camp-ouija-chat-log");
+      if (!log) return;
+      log.innerHTML = ouijaChatMessages.map((m) => {
+        const board = m.board
+          ? `<span class="camp-ouija-msg-board">board: ${escapeHtml(m.board)}</span>`
+          : "";
+        return `<div class="camp-ouija-msg ${m.role}" data-id="${m.id || ""}">
+          <span class="camp-ouija-msg-who">${escapeHtml(m.who)}</span>
+          <span class="camp-ouija-msg-text">${escapeHtml(m.text)}</span>${board}
+        </div>`;
+      }).join("");
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function pushOuijaChat(who, text, role, opts = {}) {
+      const clean = (text || "").trim();
+      if (!clean && role !== "typing") return null;
+      const entry = {
+        id: opts.id || `ouija-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        who, text: clean, role, board: opts.board || "", t: Date.now(),
+      };
+      ouijaChatMessages.push(entry);
+      while (ouijaChatMessages.length > 48) ouijaChatMessages.shift();
+      renderOuijaChatLog();
+      return entry.id;
+    }
+
+    function setOuijaTyping(on, spiritName = "") {
+      ouijaChatMessages = ouijaChatMessages.filter((m) => m.id !== "ouija-typing");
+      ouijaTypingId = null;
+      if (!on) {
+        renderOuijaChatLog();
+        return;
+      }
+      pushOuijaChat(
+        spiritName || ouijaSpiritName || "Spirit",
+        "channeling through the board…",
+        "typing",
+        { id: "ouija-typing" },
+      );
+      ouijaTypingId = "ouija-typing";
     }
 
     function ouijaSleep(ms) {
@@ -1883,15 +2033,15 @@
         if (unit === " ") {
           built += " ";
           spelledEl.textContent = built;
-          await ouijaSleep(220 + Math.random() * 180);
+          await ouijaSleep(90 + Math.random() * 70);
           continue;
         }
         const cell = ouijaCellForToken(unit);
         if (cell) {
           moveCampOuijaPlanchette(cell);
-          try { navigator.vibrate?.(5); } catch (_) {}
+          try { navigator.vibrate?.(3); } catch (_) {}
         }
-        await ouijaSleep(300 + Math.random() * 380);
+        await ouijaSleep(130 + Math.random() * 120);
         if (unit.length === 1) built += unit;
         else built += (built && !built.endsWith(" ") ? " " : "") + unit;
         spelledEl.textContent = built;
@@ -1932,9 +2082,9 @@
       if (!line || !window.speechSynthesis) return;
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(line);
-      u.rate = 0.88;
-      u.pitch = 0.72;
-      u.volume = 0.95;
+      u.rate = 1.14;
+      u.pitch = 0.9;
+      u.volume = 0.98;
       const voices = window.speechSynthesis.getVoices();
       const pick = voices.find((v) => /female|zira|samantha|google uk english female/i.test(v.name))
         || voices.find((v) => v.lang.startsWith("en"));
@@ -1964,29 +2114,39 @@
       ouijaBusy = true;
       if (btn) btn.disabled = true;
       chatterPaused = true;
+      const you = myVisitorName || player.name || "You";
       try {
         if (!ouijaSpiritName) {
           ouijaSpiritName = CAMP_SPIRIT_NAMES[Math.floor(Math.random() * CAMP_SPIRIT_NAMES.length)];
           document.getElementById("camp-ouija-medium").textContent =
             `Luna channels · spirit: ${ouijaSpiritName}`;
         }
+        if (q) pushOuijaChat(you, q, "you");
+        else pushOuijaChat("Camp", "The channel opens — no question, just listening…", "system");
+        setOuijaTyping(true, ouijaSpiritName);
+        document.getElementById("camp-ouija-board-wrap")?.classList.add("glow");
         const data = await fetchCampOuijaSpirit(q);
+        setOuijaTyping(false);
         const boardMsg = (data.board || "").trim();
         const reading = (data.reading || data.text || "").trim();
         if (!boardMsg && !reading) throw new Error("Empty spirit reply");
+        ouijaLastReading = reading || boardMsg;
+        pushOuijaChat(ouijaSpiritName, reading || boardMsg, "spirit", { board: boardMsg });
+        speakCampOuija(reading || boardMsg);
         await spellCampOuijaMessage(boardMsg || reading, reading || boardMsg);
         ouijaSessionHistory.push({ question: q, reading, board: boardMsg, spirit: ouijaSpiritName });
         const mood = data.mood || "love";
         refreshCampTalkTarget();
-        pushCampLine(ouijaSpiritName, reading || boardMsg, 32, mood, { fromLocal: true });
+        pushCampLine(ouijaSpiritName, reading || boardMsg, 36, mood, { fromLocal: true });
         expandSpeechBubble();
         setCampLifeStatus(`${ouijaSpiritName} spoke through the board`);
         psychicRipples.push({ x: camp.x, y: camp.y, t: Date.now(), color: "#a855f7" });
         setTimeout(() => spiritAgentReaction(ouijaSpiritName, reading || boardMsg), 4000);
-        speakCampOuija(reading || boardMsg);
       } catch (err) {
+        setOuijaTyping(false);
         const hint = isFetchOfflineError(err) ? "Server offline" : err.message;
         setCampOuijaStatus(`Contact faded — ${hint}`, "contact");
+        pushOuijaChat("Camp", `The veil flickered — ${hint}`, "system");
         showToast("Ouija: " + hint);
       }
       ouijaBusy = false;
@@ -2004,6 +2164,9 @@
       document.getElementById("camp-ouija-spelled").textContent = "";
       document.getElementById("camp-ouija-reading").textContent = "";
       ouijaLastReading = "";
+      if (!ouijaChatMessages.length) {
+        pushOuijaChat("Camp", "The board is warm. Ask anything — the spirit answers in full.", "system");
+      }
       setCampOuijaStatus("Place fingers lightly — or type a question.", "contact");
       expandSpeechBubble();
       showToast("🔮 Ouija board open — Luna channels the other side");

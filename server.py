@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "166-camp-talk-ouija3d"
+LUNA_BUILD = "167-camp-ouija-chat"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -4463,12 +4463,12 @@ def parse_ouija_action(raw: str, fallback: dict) -> dict:
     board = _sanitize_ouija_board(str(data.get("board") or ""))
     reading = clean_speech_text(
         str(data.get("reading") or data.get("text") or "").strip(),
-        max_len=320,
+        max_len=720,
     )
     if not board and reading:
         board = _sanitize_ouija_board(reading)
     if not reading:
-        reading = clean_speech_text(str(data.get("text") or fallback.get("reading", "")), max_len=320)
+        reading = clean_speech_text(str(data.get("text") or fallback.get("reading", "")), max_len=720)
     if not board:
         board = _sanitize_ouija_board(str(fallback.get("board") or "YES"))
     if not reading:
@@ -4496,9 +4496,10 @@ async def ask_ouija_spirit(
             "role": "system",
             "content": (
                 "You channel Ouija spirit messages. Reply with ONLY valid JSON — no markdown. "
-                'Keys: board (uppercase A-Z 0-9 spaces, max 60 chars), reading (1-2 plain sentences), '
-                "text (same as reading), mood (happy|love|flirt|neutral). "
-                "board may use YES NO GOODBYE as whole words."
+                'Keys: board (uppercase A-Z 0-9 spaces, max 55 chars — short punchy phrase for the planchette), '
+                "reading (open-ended conversational reply: 4-7 sentences, natural voice, can ask follow-ups, "
+                "specific and uncanny — not terse), text (same as reading), mood (happy|love|flirt|neutral|think|afraid). "
+                "board may use YES NO GOODBYE as whole words. reading carries the real message; board is just the headline."
             ),
         },
         {"role": "user", "content": user_prompt},
@@ -4506,7 +4507,7 @@ async def ask_ouija_spirit(
     response = client.chat.completions.create(
         model=model,
         messages=messages,
-        max_tokens=280,
+        max_tokens=560,
         temperature=temperature,
     )
     choices = getattr(response, "choices", None) or []
@@ -4541,17 +4542,18 @@ async def ouija(request: OuijaRequest):
         camp_note = (
             " Setting: outdoor Luna camp — aurora, campfire, agents Luna Hermes Oracle Caduceus Sentinel nearby. "
             "Spirit speaks with eerie specificity about camp, visitor, or agents — convincing other-side voice. "
-            "reading may be 2-3 sentences for depth."
+            "reading should be open-ended: 4-7 sentences, like a real conversation through the veil — "
+            "answer the question fully, add unsettling detail, invite another question. Not one-liners."
         )
     prompt = (
         "INTERDIMENSIONAL OUIJA CHANNEL — Luna channels a spirit message through a physical board. "
         f"Context: {ctx}\n{recent}{qbit}{camp_note}"
         "Return JSON only with keys: board, reading, text, mood. "
-        "board = uppercase A-Z 0-9 and spaces only, max 60 chars, spelled letter-by-letter on the board "
+        "board = uppercase A-Z 0-9 and spaces only, max 55 chars — short headline the planchette spells "
         "(may use YES NO GOODBYE as whole words). "
-        "reading = 2-3 plain English sentences — what the spirit means, intimate and convincing. "
-        "text = same as reading (for voice). mood = happy|love|flirt|neutral|afraid|think. "
-        "Mystical, cinematic, specific — not generic oracle filler. Fresh imagery."
+        "reading = open-ended 4-7 plain English sentences — full conversational spirit reply, intimate and convincing, "
+        "may end with a question back to the seeker. text = same as reading (for voice). "
+        "mood = happy|love|flirt|neutral|afraid|think. Mystical, cinematic, specific — not generic oracle filler."
         f"{avoid_note}"
     )
     fallbacks = [

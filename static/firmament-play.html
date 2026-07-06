@@ -1028,7 +1028,7 @@
       </div>
       <input id="dialogue-input" placeholder="Type anything to ask them..." />
       <div class="dialogue-actions">
-        <span id="dialogue-status">Enter = send · ` = close · T = open chat</span>
+        <span id="dialogue-status">Enter = send · ` = close</span>
         <button type="button" id="dialogue-close">Close</button>
         <button type="button" class="primary" id="dialogue-send">Send</button>
       </div>
@@ -1084,7 +1084,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-keys";
+    const CAMP_BUILD = "2026-07-05-camp-no-t-key";
     const CAMP_PACE = {
       readMinSec: 38,
       readMaxSec: 90,
@@ -3713,16 +3713,6 @@
       }
       const typing = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT";
       if (typing) return;
-      if (e.key === "t" || e.key === "T") {
-        if (dialogueBackdrop.classList.contains("open")) {
-          dialogueInput?.focus();
-        } else if (nearestId) {
-          openDialogue(nearestId);
-        } else {
-          openDialogue("luna");
-          showToast("Opening chat with Luna");
-        }
-      }
       if (e.key === "e" || e.key === "E") interactNearby();
       if (e.key === "4") openDialogue("caduceus");
       if (e.key === "p" || e.key === "P") psychicPulse();
@@ -3799,7 +3789,7 @@
           try {
             const st = await fetch("/api/firmament/stream/status").then((r) => r.json());
             if (!st.online) {
-              replyEl.textContent = "3D stream optional & offline. For chat: RESTART_LUNA_SERVER.bat + press T. " + (st.hint || "");
+              replyEl.textContent = "3D stream optional & offline. For chat: RESTART_LUNA_SERVER.bat, then tap an agent or use the talk bar. " + (st.hint || "");
               return;
             }
           } catch (_) {}

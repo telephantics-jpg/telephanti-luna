@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "164-camp-sidebar"
+LUNA_BUILD = "165-camp-ouija"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -4506,7 +4506,7 @@ async def ask_ouija_spirit(
     response = client.chat.completions.create(
         model=model,
         messages=messages,
-        max_tokens=200,
+        max_tokens=280,
         temperature=temperature,
     )
     choices = getattr(response, "choices", None) or []
@@ -4536,14 +4536,21 @@ async def ouija(request: OuijaRequest):
         if lines:
             recent = "Recent chat:\n" + "\n".join(lines) + "\n"
     qbit = f'The seeker asks: "{question}"\n' if question else "No question — open channel; the spirit speaks first.\n"
+    camp_note = ""
+    if "firmament camp" in ctx.lower() or "luna camp" in ctx.lower():
+        camp_note = (
+            " Setting: outdoor Luna camp — aurora, campfire, agents Luna Hermes Oracle Caduceus Sentinel nearby. "
+            "Spirit speaks with eerie specificity about camp, visitor, or agents — convincing other-side voice. "
+            "reading may be 2-3 sentences for depth."
+        )
     prompt = (
         "INTERDIMENSIONAL OUIJA CHANNEL — Luna channels a spirit message through a physical board. "
-        f"Context: {ctx}\n{recent}{qbit}"
+        f"Context: {ctx}\n{recent}{qbit}{camp_note}"
         "Return JSON only with keys: board, reading, text, mood. "
         "board = uppercase A-Z 0-9 and spaces only, max 60 chars, spelled letter-by-letter on the board "
         "(may use YES NO GOODBYE as whole words). "
-        "reading = 1-2 plain English sentences explaining what the spirit means. "
-        "text = same as reading (for voice). mood = happy|love|flirt|neutral. "
+        "reading = 2-3 plain English sentences — what the spirit means, intimate and convincing. "
+        "text = same as reading (for voice). mood = happy|love|flirt|neutral|afraid|think. "
         "Mystical, cinematic, specific — not generic oracle filler. Fresh imagery."
         f"{avoid_note}"
     )

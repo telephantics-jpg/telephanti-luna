@@ -285,7 +285,7 @@
     }
     .dock-compact {
       display: flex; gap: 8px; align-items: center; justify-content: center;
-      pointer-events: auto; width: 100%; max-width: 360px;
+      pointer-events: auto; width: 100%; max-width: 400px;
     }
     .dock-compact .dock-icon {
       pointer-events: auto; border: 2px solid rgba(103, 232, 249, 0.4);
@@ -298,6 +298,15 @@
       background: linear-gradient(135deg, #4c1d95, #7c3aed 45%, #a78bfa);
       border-color: #c4b5fd;
       box-shadow: 0 0 14px rgba(167, 139, 250, 0.35);
+    }
+    .dock-compact .dock-icon.ouija-btn {
+      background: linear-gradient(135deg, #3b0764, #581c87 50%, #7e22ce);
+      border-color: #d8b4fe;
+      box-shadow: 0 0 14px rgba(168, 85, 247, 0.35);
+    }
+    .dock-compact .dock-icon.ouija-btn.active {
+      box-shadow: 0 0 20px rgba(244, 114, 182, 0.55);
+      border-color: #f9a8d4;
     }
     .dock-compact .dock-icon.talk { background: #0e7490; border-color: var(--cyan); }
     .dock-compact .dock-icon:active { transform: scale(0.94); }
@@ -464,6 +473,123 @@
       #status-toast { display: none; }
       .dock-compact .dock-icon { width: 44px; height: 44px; gap: 6px; }
     }
+    #camp-ouija-layer {
+      position: fixed; inset: 0; z-index: 45;
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px;
+      padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse at 50% 15%, rgba(88, 44, 120, 0.35), transparent 55%),
+        radial-gradient(ellipse at 50% 100%, rgba(8, 4, 16, 0.98), rgba(2, 1, 6, 0.99));
+      overflow: hidden; touch-action: manipulation;
+    }
+    body.camp-ouija-open #camp-ouija-layer { display: flex; }
+    body.camp-ouija-open { overflow: hidden; }
+    .camp-ouija-fog {
+      position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse at 25% 75%, rgba(88, 28, 120, 0.25), transparent 50%),
+        radial-gradient(ellipse at 75% 25%, rgba(40, 20, 80, 0.2), transparent 45%);
+      animation: camp-ouija-fog 9s ease-in-out infinite alternate;
+    }
+    @keyframes camp-ouija-fog {
+      from { opacity: 0.4; transform: translateX(-2%); }
+      to { opacity: 0.65; transform: translateX(2%); }
+    }
+    #camp-ouija-layer > *:not(.camp-ouija-fog) { position: relative; z-index: 1; }
+    .camp-ouija-cancel {
+      position: fixed; top: max(8px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right));
+      z-index: 46; border: 1px solid rgba(244, 114, 182, 0.45);
+      background: rgba(12, 8, 22, 0.88); color: #f9a8d4;
+      border-radius: 999px; padding: 6px 14px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    }
+    .camp-ouija-hud {
+      width: min(96vw, 680px); display: flex; flex-wrap: wrap;
+      align-items: center; justify-content: space-between; gap: 6px;
+    }
+    .camp-ouija-title { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #e9d5ff; }
+    .camp-ouija-medium { font-size: 0.68rem; color: #c4b5fd; font-style: italic; }
+    .camp-ouija-status {
+      font-size: 0.68rem; color: #c4b5fd; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid rgba(196, 181, 253, 0.35); background: rgba(10, 8, 20, 0.6);
+    }
+    .camp-ouija-status.spelling { color: #fde68a; border-color: rgba(253, 230, 138, 0.45); }
+    .camp-ouija-status.reading { color: #86efac; border-color: rgba(134, 239, 172, 0.45); }
+    .camp-ouija-status.contact { color: #93c5fd; border-color: rgba(147, 197, 253, 0.45); }
+    .camp-ouija-board-wrap {
+      position: relative; width: min(96vw, 680px);
+      max-height: min(52vh, 460px); aspect-ratio: 1.05;
+    }
+    .camp-ouija-board-wrap.glow { animation: camp-ouija-glow 2.4s ease-in-out infinite; }
+    @keyframes camp-ouija-glow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.25)); }
+      50% { filter: drop-shadow(0 0 22px rgba(244, 114, 182, 0.5)); }
+    }
+    .camp-ouija-board {
+      position: absolute; inset: 0; border-radius: 16px; padding: 8px 6px 10px;
+      background: linear-gradient(145deg, #2a1810 0%, #1a1008 45%, #120a06 100%);
+      border: 2px solid rgba(201, 168, 124, 0.55);
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.55), 0 12px 40px rgba(0,0,0,0.55);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .camp-ouija-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; }
+    .camp-ouija-row.top { gap: 8px; margin-bottom: 2px; }
+    .camp-ouija-letter {
+      min-width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.68rem; font-weight: 700; color: #f5e6c8; border-radius: 5px;
+      border: 1px solid rgba(201, 168, 124, 0.22);
+    }
+    .camp-ouija-letter.wide { min-width: 52px; font-size: 0.58rem; }
+    .camp-ouija-letter.wider { min-width: 78px; font-size: 0.55rem; }
+    .camp-ouija-letter.active {
+      color: #fff; transform: scale(1.12);
+      border-color: rgba(244, 114, 182, 0.75);
+      box-shadow: 0 0 14px rgba(244, 114, 182, 0.55);
+      background: rgba(88, 28, 88, 0.45);
+    }
+    .camp-ouija-planchette {
+      position: absolute; width: 48px; height: 48px; left: 50%; top: 50%;
+      margin: -24px 0 0 -24px; pointer-events: none; z-index: 4;
+      transition: left 0.36s cubic-bezier(0.34, 1.2, 0.48, 1), top 0.36s cubic-bezier(0.34, 1.2, 0.48, 1);
+      filter: drop-shadow(0 0 12px rgba(244, 114, 182, 0.55));
+    }
+    .camp-ouija-planchette::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.95), rgba(220, 200, 255, 0.85) 55%, rgba(120, 80, 160, 0.9));
+      clip-path: polygon(50% 8%, 92% 88%, 8% 88%);
+      border: 1px solid rgba(255,255,255,0.65);
+    }
+    .camp-ouija-planchette.tremble { animation: camp-ouija-tremble 0.12s ease-in-out infinite; }
+    @keyframes camp-ouija-tremble {
+      0%, 100% { transform: translate(0,0); }
+      50% { transform: translate(2px,-2px) rotate(2deg); }
+    }
+    .camp-ouija-readout {
+      width: min(96vw, 680px); padding: 10px 12px; border-radius: 12px;
+      background: rgba(8, 6, 16, 0.78); border: 1px solid rgba(167, 139, 250, 0.28);
+    }
+    .camp-ouija-spelled {
+      min-height: 1.2rem; font-size: 0.95rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #f5e6c8; font-family: Georgia, "Times New Roman", serif; word-break: break-word;
+    }
+    .camp-ouija-reading {
+      margin-top: 6px; font-size: 0.88rem; line-height: 1.45; color: #e9d5ff; font-style: italic;
+    }
+    .camp-ouija-controls {
+      width: min(96vw, 680px); display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    }
+    .camp-ouija-controls input {
+      flex: 1 1 160px; min-width: 0; border-radius: 10px;
+      border: 1px solid rgba(167, 139, 250, 0.35); background: rgba(8, 6, 16, 0.85);
+      color: #f2f0eb; padding: 8px 10px; font-size: 0.82rem;
+    }
+    .camp-ouija-controls button {
+      border: 1px solid rgba(167, 139, 250, 0.45); background: rgba(30, 18, 48, 0.9);
+      color: #e9d5ff; border-radius: 10px; padding: 8px 14px; font-size: 0.82rem;
+      font-weight: 700; cursor: pointer;
+    }
+    .camp-ouija-controls button.primary {
+      background: linear-gradient(135deg, #6b21a8, #9333ea); border-color: #d8b4fe;
+    }
     #luna-embed-wrap {
       display: none; position: fixed; z-index: 28;
       left: var(--gap); bottom: calc(var(--dock-h) + var(--gap));
@@ -596,6 +722,7 @@
   <footer id="action-bar">
     <div class="dock-compact">
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
+      <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
       <button type="button" class="dock-icon talk" id="btn-talk-near" title="Talk to nearest">💬</button>
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
@@ -643,6 +770,30 @@
       </div>
     </div>
   </div>
+  <div id="camp-ouija-layer" aria-hidden="true" role="dialog" aria-label="Camp Ouija board">
+    <div class="camp-ouija-fog" aria-hidden="true"></div>
+    <button type="button" class="camp-ouija-cancel" id="camp-ouija-close">✕ Close veil</button>
+    <div class="camp-ouija-hud">
+      <div>
+        <div class="camp-ouija-title">Camp Ouija — other side</div>
+        <div class="camp-ouija-medium" id="camp-ouija-medium">Luna channels · you listen</div>
+      </div>
+      <span class="camp-ouija-status contact" id="camp-ouija-status">Awaiting contact</span>
+    </div>
+    <div class="camp-ouija-board-wrap" id="camp-ouija-board-wrap">
+      <div class="camp-ouija-board" id="camp-ouija-board"></div>
+      <div class="camp-ouija-planchette" id="camp-ouija-planchette" aria-hidden="true"></div>
+    </div>
+    <div class="camp-ouija-readout">
+      <div class="camp-ouija-spelled" id="camp-ouija-spelled" aria-live="polite"></div>
+      <div class="camp-ouija-reading" id="camp-ouija-reading"></div>
+    </div>
+    <div class="camp-ouija-controls">
+      <input type="text" id="camp-ouija-question" maxlength="240" placeholder="Ask the other side… (or leave empty)" autocomplete="off" />
+      <button type="button" class="primary" id="camp-ouija-contact">Contact</button>
+      <button type="button" id="camp-ouija-speak">Speak</button>
+    </div>
+  </div>
   <div id="luna-embed-wrap" aria-label="Luna full avatar at camp">
     <div id="luna-embed-header">
       <span>🌙 Luna — full avatar &amp; voice</span>
@@ -656,7 +807,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-sidebar";
+    const CAMP_BUILD = "2026-07-05-camp-ouija";
     const isCampMobile = () => window.innerWidth < 900;
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
@@ -755,6 +906,9 @@
       { id: "cookies", name: "Cookies", emoji: "🍪", x: -58, y: 28, color: "#d4a05a", radius: 85,
         useMsg: "You grab cookies from the camp table. Caduceus glows approvingly.",
         npcLines: ["Cookie tax is real.", "Caduceus wanted one too.", "Sweet treat at camp!", "Luna loves the chocolate ones."] },
+      { id: "ouija", name: "Ouija", emoji: "🔮", x: 42, y: 48, color: "#a855f7", radius: 92,
+        useMsg: "You kneel by the spirit board — the planchette is already twitching.",
+        npcLines: ["Oracle says don't look away.", "Hermes felt a ripple.", "Luna will channel — be respectful.", "Caduceus glows violet."] },
     ];
     let nearestProp = null;
     const agentMoods = {
@@ -1400,6 +1554,272 @@
         ctx.arc(s.x, s.y, rad, 0, Math.PI * 2);
         ctx.stroke();
       }
+    }
+
+    const CAMP_OUIJA_ROWS = [
+      [{ t: "YES", cls: "wide" }, { t: "NO", cls: "wide" }],
+      "ABCDEFGHIJKLMNOP".split(""),
+      "QRSTUVWXYZ".split(""),
+      "0123456789".split(""),
+      [{ t: "GOODBYE", cls: "wider" }],
+    ];
+    const CAMP_SPIRIT_NAMES = [
+      "The One Beyond", "Ash Witness", "Veil Walker", "Echo From Before",
+      "Unnamed Presence", "The Cold Thread", "Someone Remembering You",
+    ];
+    const CAMP_OUIJA_INTRO = [
+      "…did you feel that? The planchette moved on its own.",
+      "A cold thread of air — something wants in.",
+      "The veil thins at camp. Don't look away.",
+      "Someone on the other side just leaned closer.",
+      "The board is warm. That shouldn't be possible.",
+    ];
+    let ouijaOpen = false;
+    let ouijaBusy = false;
+    let ouijaSpellToken = 0;
+    let ouijaLastReading = "";
+    let ouijaBoardBuilt = false;
+    let ouijaSpiritName = "";
+    let ouijaSessionHistory = [];
+    let campOuijaVoice = null;
+
+    function buildCampOuijaBoard() {
+      if (ouijaBoardBuilt) return;
+      const board = document.getElementById("camp-ouija-board");
+      if (!board) return;
+      board.innerHTML = "";
+      for (const row of CAMP_OUIJA_ROWS) {
+        const items = Array.isArray(row) && typeof row[0] === "string"
+          ? row.map((t) => ({ t }))
+          : row;
+        const rowEl = document.createElement("div");
+        rowEl.className = "camp-ouija-row" + (items[0]?.t === "YES" ? " top" : "");
+        for (const item of items) {
+          const cell = document.createElement("span");
+          cell.className = "camp-ouija-letter" + (item.cls ? ` ${item.cls}` : "");
+          cell.dataset.letter = item.t;
+          cell.textContent = item.t;
+          rowEl.appendChild(cell);
+        }
+        board.appendChild(rowEl);
+      }
+      ouijaBoardBuilt = true;
+    }
+
+    function setCampOuijaStatus(text, mode = "contact") {
+      const el = document.getElementById("camp-ouija-status");
+      if (!el) return;
+      el.textContent = text;
+      el.className = "camp-ouija-status " + mode;
+    }
+
+    function ouijaSleep(ms) {
+      return new Promise((r) => setTimeout(r, ms));
+    }
+
+    function ouijaCampContext() {
+      const recent = campLines.slice(-5).map((l) => `${l.speaker}: ${l.text.slice(0, 70)}`).join(" · ");
+      const agents = allRoamers().map((n) => n.name).join(", ");
+      return [
+        "Luna Firmament camp at night — aurora, campfire, spirit board at the fire.",
+        `Visitor: ${myVisitorName || player.name || "Traveler"}. Agents nearby: ${agents}.`,
+        recent ? `Recent camp chatter: ${recent}` : "Camp is quiet — spirits may speak first.",
+        ouijaSpiritName ? `Current spirit channel: ${ouijaSpiritName}.` : "",
+      ].filter(Boolean).join(" ");
+    }
+
+    function ouijaCellForToken(token) {
+      const board = document.getElementById("camp-ouija-board");
+      if (!board) return null;
+      const key = String(token || "").toUpperCase();
+      return board.querySelector(`.camp-ouija-letter[data-letter="${key}"]`);
+    }
+
+    function moveCampOuijaPlanchette(cell) {
+      const wrap = document.getElementById("camp-ouija-board-wrap");
+      const planchette = document.getElementById("camp-ouija-planchette");
+      if (!wrap || !planchette || !cell) return;
+      const wRect = wrap.getBoundingClientRect();
+      const cRect = cell.getBoundingClientRect();
+      planchette.style.left = `${cRect.left + cRect.width / 2 - wRect.left}px`;
+      planchette.style.top = `${cRect.top + cRect.height / 2 - wRect.top}px`;
+      document.getElementById("camp-ouija-board")?.querySelectorAll(".camp-ouija-letter.active").forEach((el) => el.classList.remove("active"));
+      cell.classList.add("active");
+    }
+
+    function ouijaSpellUnits(message) {
+      const raw = String(message || "").toUpperCase();
+      const units = [];
+      let i = 0;
+      while (i < raw.length) {
+        if (raw[i] === " ") { units.push(" "); i += 1; continue; }
+        const slice = raw.slice(i);
+        if (slice.startsWith("GOODBYE")) { units.push("GOODBYE"); i += 7; continue; }
+        if (slice.startsWith("YES") && (i + 3 >= raw.length || raw[i + 3] === " ")) { units.push("YES"); i += 3; continue; }
+        if (slice.startsWith("NO") && (i + 2 >= raw.length || raw[i + 2] === " ")) { units.push("NO"); i += 2; continue; }
+        const ch = raw[i];
+        if (/[A-Z0-9]/.test(ch)) units.push(ch);
+        i += 1;
+      }
+      return units;
+    }
+
+    async function spellCampOuijaMessage(message, reading = "") {
+      const token = ++ouijaSpellToken;
+      const spelledEl = document.getElementById("camp-ouija-spelled");
+      const readingEl = document.getElementById("camp-ouija-reading");
+      if (!spelledEl) return;
+      spelledEl.textContent = "";
+      if (readingEl) readingEl.textContent = "";
+      setCampOuijaStatus("Spelling through the veil…", "spelling");
+      let built = "";
+      for (const unit of ouijaSpellUnits(message)) {
+        if (token !== ouijaSpellToken) return;
+        if (unit === " ") {
+          built += " ";
+          spelledEl.textContent = built;
+          await ouijaSleep(220 + Math.random() * 180);
+          continue;
+        }
+        const cell = ouijaCellForToken(unit);
+        if (cell) {
+          moveCampOuijaPlanchette(cell);
+          try { navigator.vibrate?.(5); } catch (_) {}
+        }
+        await ouijaSleep(300 + Math.random() * 380);
+        if (unit.length === 1) built += unit;
+        else built += (built && !built.endsWith(" ") ? " " : "") + unit;
+        spelledEl.textContent = built;
+      }
+      if (token !== ouijaSpellToken) return;
+      ouijaLastReading = reading || message;
+      if (readingEl) readingEl.textContent = reading || "";
+      setCampOuijaStatus("Message received", "reading");
+    }
+
+    async function fetchCampOuijaSpirit(question = "") {
+      setCampOuijaStatus("Contacting the other side…", "contact");
+      const history = ouijaSessionHistory.slice(-6).flatMap((h) => [
+        { role: "user", content: h.question || "(open channel)" },
+        { role: "assistant", content: h.reading },
+      ]);
+      const res = await fetch("/api/ouija", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: (question || "").trim(),
+          mood: "love",
+          context: ouijaCampContext(),
+          history,
+          profile: { name: myVisitorName || player.name || "Traveler" },
+          avoid_recent: ouijaSessionHistory.map((h) => h.reading).slice(-8),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Spirit contact failed");
+      }
+      return res.json();
+    }
+
+    function speakCampOuija(text) {
+      const line = (text || ouijaLastReading || "").trim();
+      if (!line || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(line);
+      u.rate = 0.88;
+      u.pitch = 0.72;
+      u.volume = 0.95;
+      const voices = window.speechSynthesis.getVoices();
+      const pick = voices.find((v) => /female|zira|samantha|google uk english female/i.test(v.name))
+        || voices.find((v) => v.lang.startsWith("en"));
+      if (pick) u.voice = pick;
+      campOuijaVoice = u;
+      setCampOuijaStatus("Spirit speaking…", "reading");
+      u.onend = () => setCampOuijaStatus("Channel open — ask again", "reading");
+      window.speechSynthesis.speak(u);
+    }
+
+    async function surpriseCampOuijaIntro() {
+      document.getElementById("camp-ouija-board-wrap")?.classList.add("glow");
+      document.getElementById("camp-ouija-planchette")?.classList.add("tremble");
+      const line = CAMP_OUIJA_INTRO[Math.floor(Math.random() * CAMP_OUIJA_INTRO.length)];
+      setCampOuijaStatus(line, "contact");
+      showToast("🔮 " + line);
+      try { navigator.vibrate?.([18, 35, 18]); } catch (_) {}
+      await ouijaSleep(1200);
+      document.getElementById("camp-ouija-planchette")?.classList.remove("tremble");
+    }
+
+    async function startCampOuijaContact() {
+      if (!ouijaOpen || ouijaBusy) return;
+      const qInput = document.getElementById("camp-ouija-question");
+      const q = qInput?.value?.trim() || "";
+      const btn = document.getElementById("camp-ouija-contact");
+      ouijaBusy = true;
+      if (btn) btn.disabled = true;
+      chatterPaused = true;
+      try {
+        if (!ouijaSpiritName) {
+          ouijaSpiritName = CAMP_SPIRIT_NAMES[Math.floor(Math.random() * CAMP_SPIRIT_NAMES.length)];
+          document.getElementById("camp-ouija-medium").textContent =
+            `Luna channels · spirit: ${ouijaSpiritName}`;
+        }
+        const data = await fetchCampOuijaSpirit(q);
+        const boardMsg = (data.board || "").trim();
+        const reading = (data.reading || data.text || "").trim();
+        if (!boardMsg && !reading) throw new Error("Empty spirit reply");
+        await spellCampOuijaMessage(boardMsg || reading, reading || boardMsg);
+        ouijaSessionHistory.push({ question: q, reading, board: boardMsg, spirit: ouijaSpiritName });
+        const mood = data.mood || "love";
+        pushCampLine(ouijaSpiritName, reading || boardMsg, 32, mood, { fromLocal: true });
+        expandSpeechBubble();
+        setCampLifeStatus(`${ouijaSpiritName} spoke through the board`);
+        psychicRipples.push({ x: camp.x, y: camp.y, t: Date.now(), color: "#a855f7" });
+        setTimeout(() => spiritAgentReaction(ouijaSpiritName, reading || boardMsg), 4000);
+        speakCampOuija(reading || boardMsg);
+      } catch (err) {
+        const hint = isFetchOfflineError(err) ? "Server offline" : err.message;
+        setCampOuijaStatus(`Contact faded — ${hint}`, "contact");
+        showToast("Ouija: " + hint);
+      }
+      ouijaBusy = false;
+      if (btn) btn.disabled = false;
+      chatterPaused = false;
+    }
+
+    function openCampOuija(opts = {}) {
+      buildCampOuijaBoard();
+      ouijaOpen = true;
+      document.body.classList.add("camp-ouija-open");
+      document.getElementById("camp-ouija-layer")?.setAttribute("aria-hidden", "false");
+      document.getElementById("btn-camp-ouija")?.classList.add("active");
+      document.getElementById("camp-ouija-spelled").textContent = "";
+      document.getElementById("camp-ouija-reading").textContent = "";
+      ouijaLastReading = "";
+      setCampOuijaStatus("Place fingers lightly — or type a question.", "contact");
+      expandSpeechBubble();
+      showToast("🔮 Ouija board open — Luna channels the other side");
+      (async () => {
+        await surpriseCampOuijaIntro();
+        if (opts.autoContact !== false && ouijaOpen && !ouijaBusy) {
+          await startCampOuijaContact();
+        } else {
+          document.getElementById("camp-ouija-question")?.focus();
+        }
+      })();
+    }
+
+    function closeCampOuija() {
+      ouijaSpellToken += 1;
+      ouijaBusy = false;
+      ouijaOpen = false;
+      window.speechSynthesis?.cancel();
+      document.body.classList.remove("camp-ouija-open");
+      document.getElementById("camp-ouija-layer")?.setAttribute("aria-hidden", "true");
+      document.getElementById("btn-camp-ouija")?.classList.remove("active");
+      document.getElementById("camp-ouija-board-wrap")?.classList.remove("glow");
+      chatterPaused = false;
     }
 
     let conjureBusy = false;
@@ -2219,6 +2639,14 @@
           ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
           ctx.fill();
         }
+      } else if (prop.id === "ouija") {
+        drawIsoBox(cx, cy, -0.55, -0.38, 0, 1.1, 0.75, 0.12,
+          { top: "#3b0764", left: "#2a1810", right: "#581c87", stroke: "#d8b4fe" });
+        ctx.font = "bold 9px Segoe UI";
+        ctx.fillStyle = "#f5e6c8";
+        ctx.fillText("YES  NO", cx, cy - 4);
+        ctx.font = "20px Segoe UI";
+        ctx.fillText("🔮", cx, cy + 10);
       }
       ctx.font = "bold 10px Segoe UI";
       ctx.fillStyle = "#f1f5f9";
@@ -2231,7 +2659,7 @@
       } else if (nearPlayer) {
         ctx.fillStyle = "#6ee7b7";
         ctx.font = "9px Segoe UI";
-        ctx.fillText("tap to use", s.x, s.y + 32);
+        ctx.fillText(prop.id === "ouija" ? "tap — open veil" : "tap to use", s.x, s.y + 32);
       } else {
         ctx.fillStyle = "#64748b";
         ctx.font = "8px Segoe UI";
@@ -2241,6 +2669,11 @@
 
     function useProp(prop) {
       if (!prop) return;
+      if (prop.id === "ouija") {
+        pushCampLine(player.name || "You", prop.useMsg, 16, "alert", { fromLocal: true });
+        openCampOuija({ autoContact: true });
+        return;
+      }
       pushCampLine(player.name || "You", prop.useMsg, 14, "happy", { fromLocal: true });
       recordCampMemory({
         kind: "prop",
@@ -2428,7 +2861,7 @@
       const tip = document.getElementById("dock-tip");
       if (tip) {
         tip.classList.add("flash");
-        tip.textContent = "✨ conjure spirits · ▲▼ speech bubble · drag props · tap agents";
+        tip.textContent = "🔮 Ouija · ✨ conjure · drag props · tap agents";
         setTimeout(() => tip.classList.remove("flash"), 2400);
       }
       showToast("Drag camp objects · tap agents to talk · walk on empty ground");
@@ -2440,6 +2873,16 @@
       };
     });
     document.getElementById("btn-conjure-aether").onclick = () => conjureFromAether();
+    document.getElementById("btn-camp-ouija").onclick = () => {
+      if (ouijaOpen) closeCampOuija();
+      else openCampOuija({ autoContact: false });
+    };
+    document.getElementById("camp-ouija-close").onclick = () => closeCampOuija();
+    document.getElementById("camp-ouija-contact").onclick = () => startCampOuijaContact();
+    document.getElementById("camp-ouija-speak").onclick = () => speakCampOuija();
+    document.getElementById("camp-ouija-question").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); startCampOuijaContact(); }
+    });
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();
       const el = document.getElementById("convo-log");
@@ -2762,11 +3205,15 @@
     }
 
     window.addEventListener("keydown", (e) => {
+      if (ouijaOpen && e.key === "Escape") {
+        closeCampOuija();
+        return;
+      }
       if (dialogueBackdrop.classList.contains("open") && e.key === "Escape") {
         closeDialogue();
         return;
       }
-      if (e.target.tagName === "INPUT") return;
+      if (e.target.tagName === "INPUT" && e.target.id !== "camp-ouija-question") return;
       if (e.key === "t" || e.key === "T") {
         if (dialogueBackdrop.classList.contains("open")) closeDialogue();
         else if (nearestId) openDialogue(nearestId);
@@ -2968,7 +3415,7 @@
           applyGlobalNpcMode("free");
           document.body.classList.add("camp-focus");
           setSpeechBubbleDock(localStorage.getItem("luna-camp-speech-dock") === "min");
-          setCampLifeStatus("Chatter panel on the right · ▼ to minimize");
+          setCampLifeStatus("🔮 Ouija talks to the other side · chatter panel on the right");
           spreadAllNpcs();
           setTimeout(() => {
             const t = document.getElementById("status-toast");

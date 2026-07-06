@@ -1028,7 +1028,7 @@
       </div>
       <input id="dialogue-input" placeholder="Type anything to ask them..." />
       <div class="dialogue-actions">
-        <span id="dialogue-status">Enter = send · tap outside to close</span>
+        <span id="dialogue-status">Enter = send · ` = close · T = open chat</span>
         <button type="button" id="dialogue-close">Close</button>
         <button type="button" class="primary" id="dialogue-send">Send</button>
       </div>
@@ -1084,7 +1084,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-camp-read-pace";
+    const CAMP_BUILD = "2026-07-05-camp-keys";
     const CAMP_PACE = {
       readMinSec: 38,
       readMaxSec: 90,
@@ -3519,7 +3519,7 @@
     document.getElementById("dialogue-send").onclick = sendDialogue;
     dialogueInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendDialogue();
-      if (e.key === "Escape") closeDialogue();
+      if (e.key === "Escape" || e.key === "`" || e.key === "Backquote") closeDialogue();
     });
     document.querySelectorAll(".quick-btns button").forEach((btn) => {
       btn.onclick = () => chat(dialogueAgent, btn.dataset.q, { useDialogue: true });
@@ -3707,13 +3707,21 @@
         closeDialogue();
         return;
       }
-      const campInputIds = ["camp-ouija-question", "camp-talk-input", "visitor-name-input", "dialogue-input"];
-      if (e.target.tagName === "INPUT" && !campInputIds.includes(e.target.id)) return;
-      if (e.target.tagName === "SELECT" && e.target.id === "camp-talk-target") return;
+      if (dialogueBackdrop.classList.contains("open") && (e.key === "`" || e.key === "Backquote")) {
+        closeDialogue();
+        return;
+      }
+      const typing = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT";
+      if (typing) return;
       if (e.key === "t" || e.key === "T") {
-        if (dialogueBackdrop.classList.contains("open")) closeDialogue();
-        else if (nearestId) openDialogue(nearestId);
-        else { openDialogue("luna"); showToast("Opening chat with Luna"); }
+        if (dialogueBackdrop.classList.contains("open")) {
+          dialogueInput?.focus();
+        } else if (nearestId) {
+          openDialogue(nearestId);
+        } else {
+          openDialogue("luna");
+          showToast("Opening chat with Luna");
+        }
       }
       if (e.key === "e" || e.key === "E") interactNearby();
       if (e.key === "4") openDialogue("caduceus");

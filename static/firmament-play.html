@@ -2110,7 +2110,7 @@
     <a id="camp-music-open" href="https://www.youtube.com/watch?v=HbIa6PgpEaQ" target="_blank" rel="noopener" title="Open on YouTube">↗</a>
     <button type="button" id="camp-music-stop" title="Stop jukebox">✕</button>
   </div>
-  <audio id="camp-music-audio" preload="auto" playsinline></audio>
+  <audio id="camp-music-audio" preload="none" playsinline></audio>
   <iframe id="camp-music-yt-fallback" title="Telephantix fallback" allow="autoplay; encrypted-media" hidden></iframe>
   <button type="button" id="camp-music-prompt" aria-live="polite">🔊 Tap to hear Telephantix</button>
   <button type="button" id="camp-enter-house" aria-live="polite">🚪 Enter house</button>
@@ -2262,7 +2262,7 @@
         <div id="camp-house-host">
           <div class="house-portrait-frame" id="camp-house-portrait-frame">
             <img id="camp-house-portrait-img" src="/static/avatars/luna-portrait.jpg" alt="" hidden />
-            <video id="camp-house-portrait-video" playsinline muted loop preload="auto" poster="/static/avatars/luna-portrait.jpg" hidden></video>
+            <video id="camp-house-portrait-video" playsinline muted loop preload="none" hidden></video>
             <div class="house-portrait-aura"></div>
             <span class="house-portrait-song" id="camp-house-portrait-song" hidden></span>
             <span class="house-portrait-glyph" id="camp-house-portrait-glyph">🌙</span>
@@ -2297,9 +2297,10 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-chatter-portraits";
+    const CAMP_BUILD = "2026-07-07-camp-android-fast";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
+    const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
 
     // T is only a letter — block any shortcut handler (incl. stale cached scripts)
     document.addEventListener("keydown", (e) => {
@@ -2332,8 +2333,11 @@
       );
     }
     const isCampMobile = () => window.innerWidth < 900;
+    const isAndroid = () => /Android/i.test(navigator.userAgent);
+    const isSlowDevice = () => isCampMobile() || isAndroid();
     const isIOS = () => /iPad|iPhone|iPod/i.test(navigator.userAgent)
       || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isSlowDevice()) document.documentElement.classList.add("slow-device");
     let stableCampW = 0;
     let stableCampH = 0;
     let campLayoutTag = "";
@@ -2809,7 +2813,8 @@
 
     function housePortraitPath(ownerId, songId) {
       if (!HOUSE_PORTRAIT_AGENTS.includes(ownerId)) return null;
-      return `/static/camp/portraits/${ownerId}/${songId}.jpg`;
+      const suffix = isSlowDevice() ? "-m" : "";
+      return `/static/camp/portraits/${ownerId}/${songId}${suffix}.jpg`;
     }
 
     function pickHousePortraitVariant(ownerId) {
@@ -3738,8 +3743,24 @@
       campBgImage = campBgImg;
       campBgReady = true;
     };
-    campBgImg.onerror = () => { campBgReady = false; };
-    campBgImg.src = CAMP_BG_URL;
+    campBgImg.onerror = () => {
+      if (campBgImg.dataset.fallback !== "1" && isSlowDevice()) {
+        campBgImg.dataset.fallback = "1";
+        campBgImg.src = CAMP_BG_URL;
+        return;
+      }
+      campBgReady = false;
+    };
+    function loadCampBackground() {
+      campBgImg.src = isSlowDevice() ? CAMP_BG_MOBILE_URL : CAMP_BG_URL;
+    }
+    if (isSlowDevice()) {
+      const deferBg = () => loadCampBackground();
+      if ("requestIdleCallback" in window) requestIdleCallback(deferBg, { timeout: 2500 });
+      else setTimeout(deferBg, 900);
+    } else {
+      loadCampBackground();
+    }
     const psychicRipples = [];
 
     function buildGroundTexture() {
@@ -3998,7 +4019,8 @@
         ctx.closePath();
         ctx.fill();
       }
-      for (let i = 0; i < 48; i++) {
+      const starCount = isSlowDevice() ? 18 : 48;
+      for (let i = 0; i < starCount; i++) {
         const sx = (i * 97 + t * 40) % viewW;
         const sy = (i * 53) % (viewH * 0.35);
         const tw = 0.35 + 0.65 * Math.sin(t * 2.2 + i);
@@ -4029,7 +4051,8 @@
       ctx.save();
       ctx.strokeStyle = "rgba(148, 163, 184, 0.22)";
       ctx.lineWidth = 1.2;
-      for (let i = 0; i < 90; i++) {
+      const rainCount = isSlowDevice() ? 36 : 90;
+      for (let i = 0; i < rainCount; i++) {
         const x = ((i * 137 + t * 180) % viewW);
         const y = ((i * 83 + t * 420) % viewH);
         ctx.beginPath();
@@ -6849,7 +6872,8 @@
 
     function scheduleCampIdleChatter() {
       if (idleChatterTimer) clearTimeout(idleChatterTimer);
-      const delay = CAMP_PACE.idleChatterMinMs + Math.random() * CAMP_PACE.idleChatterRandMs;
+      const slowMul = isSlowDevice() ? 1.65 : 1;
+      const delay = (CAMP_PACE.idleChatterMinMs + Math.random() * CAMP_PACE.idleChatterRandMs) * slowMul;
       idleChatterTimer = setTimeout(() => {
         tryCampIdleChatter();
         scheduleCampIdleChatter();
@@ -7124,6 +7148,8 @@
       }
       if (img) {
         img.hidden = false;
+        img.loading = "lazy";
+        img.decoding = "async";
         img.onerror = () => {
           img.onerror = null;
           img.src = fallbackSrc;
@@ -8737,7 +8763,8 @@
       } catch (_) {}
       setTimeout(pollAgentMoods, 30000);
     }
-    pollAgentMoods();
+    if (isSlowDevice()) setTimeout(pollAgentMoods, 22000);
+    else pollAgentMoods();
     renderAgentStrip();
 
     const serverStatusEl = document.getElementById("server-status");
@@ -8786,13 +8813,10 @@
         updateBrainStatusChip(h);
         showToast(h.ollama_ok ? "🦙 Ollama brains live — free chat & memory" : "🌫 Aether brains — start Ollama for fuller AI");
         setCampLifeStatus("Tap 🎵 for Telephantix — Flowing Free & more · Luna & Hermes talk below");
-        fetch("/api/firmament/load-pack", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pack_id: "aurora_playground" }),
-        }).catch(() => {});
-        setTimeout(() => runCampConverse(["luna", "hermes"]), 18000);
-        setTimeout(() => runCampConverse(["jesus", "luna"]), 42000);
+        const convA = isSlowDevice() ? 52000 : 18000;
+        const convB = isSlowDevice() ? 130000 : 42000;
+        setTimeout(() => runCampConverse(["luna", "hermes"]), convA);
+        setTimeout(() => runCampConverse(["jesus", "luna"]), convB);
       }
     }).catch(() => {
       campServerOnline = false;
@@ -8807,7 +8831,7 @@
       btn.onclick = () => setCampWeather(btn.dataset.weather);
     });
 
-    fetch("/api/firmament/config").then((r) => r.json()).then((cfg) => {
+    const bootFirmamentConfig = () => fetch("/api/firmament/config").then((r) => r.json()).then((cfg) => {
       if (cfg.weather) {
         campWeather = cfg.weather;
         document.querySelectorAll(".weather-chip").forEach((btn) => {
@@ -8824,7 +8848,9 @@
       if (cfg.pixel_stream_url) {
         const wrap = document.getElementById("pixel-wrap");
         const streamUrl = cfg.pixel_stream_url.replace(/\/$/, "");
-        document.getElementById("pixel-frame").src = streamUrl;
+        const pixelFrame = document.getElementById("pixel-frame");
+        if (pixelFrame && !isSlowDevice()) pixelFrame.src = streamUrl;
+        else if (pixelFrame) pixelFrame.dataset.streamUrl = streamUrl;
         const hud = document.querySelector(".hud");
         const note = document.createElement("p");
         note.style.cssText = "margin-top:6px;font-size:0.68rem;color:#94a3b8;line-height:1.35";
@@ -8852,12 +8878,16 @@
         };
         hud.appendChild(btn);
       }
-      fetch("/api/firmament/load-pack", {
+      const loadPack = () => fetch("/api/firmament/load-pack", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pack_id: "aurora_playground" }),
       }).catch(() => {});
+      if (isSlowDevice()) setTimeout(loadPack, 7000);
+      else loadPack();
     }).catch(() => {});
+    if (isSlowDevice()) setTimeout(bootFirmamentConfig, 2800);
+    else bootFirmamentConfig();
 
     document.getElementById("pixel-close").onclick = () => {
       document.getElementById("pixel-wrap").classList.remove("active");
@@ -8891,7 +8921,11 @@
             localStorage.setItem("luna-play-visitor-name", myVisitorName);
           }
           applyGlobalNpcMode(msg.npc_mode || npcMode);
-          if (msg.visitor_id) { loadCampBonds(); loadCampWallet(); }
+          if (msg.visitor_id) {
+            const pullWallet = () => { loadCampBonds(); loadCampWallet(); };
+            if (isSlowDevice()) setTimeout(pullWallet, 6000);
+            else pullWallet();
+          }
           otherVisitors.clear();
           for (const v of msg.visitors || []) {
             if (v.id !== myVisitorId) otherVisitors.set(v.id, { ...v });
@@ -8933,8 +8967,8 @@
         player.color = VISITOR_COLORS[Math.floor(Math.random() * VISITOR_COLORS.length)];
         localStorage.setItem("luna-play-visitor-color", player.color);
       }
-      connectPlayLobby();
-      loadCampBonds();
+      if (isSlowDevice()) setTimeout(connectPlayLobby, 1200);
+      else connectPlayLobby();
     }
 
     document.getElementById("visitor-join-btn").onclick = () => {
@@ -8953,33 +8987,52 @@
     updateVisitorsOnlineLabel();
 
     let campReady = false;
+    let lastDrawAt = 0;
+    const CAMP_FRAME_MS = isSlowDevice() ? 36 : 0;
+
+    function bootCampWorld() {
+      showToast(isSlowDevice() ? "Camp loading — meadow first, extras shortly" : "Camp world live — agents talking above");
+      applyGlobalNpcMode("free");
+      document.body.classList.add("camp-focus");
+      try {
+        const savedDock = localStorage.getItem("luna-camp-speech-dock");
+        setSpeechBubbleDock(isCampMobile() ? true : savedDock === "min");
+      } catch (_) {
+        setSpeechBubbleDock(isCampMobile());
+      }
+      setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 💃 Aurora Velvet · 🐱 Nebula");
+      initCampCat();
+      spreadAllNpcs();
+      mergeLocalBondsIntoCamp();
+      bindCampMusicGestureUnlock();
+      const greetDelay = isSlowDevice() ? 5200 : 2800;
+      const dataDelay = isSlowDevice() ? 8000 : 0;
+      const idleDelay = isSlowDevice() ? 30000 : 0;
+      setTimeout(scheduleCampArrivalGreetings, greetDelay);
+      setTimeout(() => {
+        loadCampWallet();
+        loadShopCatalog();
+        loadCampBonds();
+      }, dataDelay);
+      setTimeout(scheduleCampIdleChatter, idleDelay);
+      setTimeout(() => {
+        const t = document.getElementById("status-toast");
+        if (t) t.style.opacity = "0.35";
+      }, 5000);
+    }
+
     function gameLoop() {
       try {
+        const frameNow = performance.now();
+        if (CAMP_FRAME_MS && frameNow - lastDrawAt < CAMP_FRAME_MS) {
+          requestAnimationFrame(gameLoop);
+          return;
+        }
+        lastDrawAt = frameNow;
         if (!campReady) {
           campReady = true;
-          showToast("Camp world live — agents talking above");
-          applyGlobalNpcMode("free");
-          document.body.classList.add("camp-focus");
-          try {
-            const savedDock = localStorage.getItem("luna-camp-speech-dock");
-            setSpeechBubbleDock(isCampMobile() ? true : savedDock === "min");
-          } catch (_) {
-            setSpeechBubbleDock(isCampMobile());
-          }
-          setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 💃 Aurora Velvet · 🐱 Nebula");
-          initCampCat();
-          loadCampWallet();
-          loadShopCatalog();
-          spreadAllNpcs();
-          mergeLocalBondsIntoCamp();
-          loadCampBonds();
-          bindCampMusicGestureUnlock();
-          setTimeout(scheduleCampArrivalGreetings, 2800);
-          scheduleCampIdleChatter();
-          setTimeout(() => {
-            const t = document.getElementById("status-toast");
-            if (t) t.style.opacity = "0.35";
-          }, 5000);
+          if (isSlowDevice()) requestAnimationFrame(() => bootCampWorld());
+          else bootCampWorld();
         }
         const dx = player.tx - player.x, dy = player.ty - player.y;
         const d = Math.hypot(dx, dy);

@@ -594,42 +594,46 @@
       border-color: #f9a8d4;
     }
     .dock-compact .dock-icon.talk { background: #0e7490; border-color: var(--cyan); }
-    .dock-compact .dock-icon.music-btn {
+    .dock-music-group {
+      display: flex; gap: 5px; align-items: center; flex-shrink: 0;
+      padding: 3px 5px; border-radius: 14px;
+      background: rgba(6, 12, 24, 0.75);
+      border: 1px solid rgba(103, 232, 249, 0.22);
+    }
+    .dock-compact .dock-icon.dock-tpx {
       background: linear-gradient(135deg, #0c4a6e, #0284c7 45%, #38bdf8);
       border-color: #7dd3fc;
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
-    }
-    .dock-compact .dock-icon.music-btn-hero {
-      width: 58px;
-      height: 58px;
-      display: inline-flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1px;
-      font-size: 1.25rem;
-      animation: music-btn-idle 2.4s ease-in-out infinite;
-    }
-    .dock-compact .dock-icon.music-btn-hero .music-lbl {
-      font-size: 0.46rem;
-      font-weight: 900;
-      letter-spacing: 0.1em;
-      line-height: 1;
+      font-size: 0.72rem; font-weight: 900; letter-spacing: 0.04em;
       color: #e0f2fe;
     }
-    .dock-compact .dock-icon.music-btn.active,
-    .dock-compact .dock-icon.music-btn-hero.active {
-      box-shadow: 0 0 22px rgba(56, 189, 248, 0.65);
+    .dock-compact .dock-icon.dock-tpx.active {
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
       border-color: #e0f2fe;
-      animation: music-btn-play 1.1s ease-in-out infinite;
     }
-    @keyframes music-btn-idle {
-      0%, 100% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.25); }
-      50% { box-shadow: 0 0 18px rgba(56, 189, 248, 0.45); }
+    .dock-compact .dock-icon.dock-spotify {
+      background: #1db954; border-color: #1ed760; color: #fff;
+      position: relative;
     }
-    @keyframes music-btn-play {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(56, 189, 248, 0.5); }
-      50% { transform: scale(1.06); box-shadow: 0 0 28px rgba(56, 189, 248, 0.75); }
+    .dock-compact .dock-icon.dock-spotify.active {
+      box-shadow: 0 0 18px rgba(30, 215, 96, 0.55);
+      border-color: #bbf7d0;
+    }
+    .dock-compact .dock-icon.dock-spotify svg {
+      width: 22px; height: 22px; display: block; pointer-events: none;
+    }
+    .dock-compact .dock-icon.dock-spotify-liked .liked-badge {
+      position: absolute; right: 2px; bottom: 2px;
+      font-size: 0.55rem; line-height: 1; color: #fecdd3;
+      text-shadow: 0 0 4px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+    .dock-compact .dock-icon.dock-music-off {
+      background: rgba(30, 41, 59, 0.95); border-color: rgba(148, 163, 184, 0.45);
+      font-size: 1rem; color: #cbd5e1;
+    }
+    .dock-compact .dock-icon.dock-music-off.active {
+      border-color: #f87171; color: #fecaca;
+      box-shadow: 0 0 12px rgba(248, 113, 113, 0.35);
     }
     .dock-compact .dock-icon:active { transform: scale(0.94); }
     #camp-music-now {
@@ -875,60 +879,21 @@
     }
     body.camp-spotify-open #camp-spotify-layer { display: flex; }
 
-    #camp-music-picker {
-      display: none; position: fixed; inset: 0; z-index: 42;
-      background: rgba(2, 6, 14, 0.82); align-items: flex-end; justify-content: center;
-      padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
-        max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-      backdrop-filter: blur(6px);
-      pointer-events: auto;
+    #camp-music-bar { display: none !important; }
+    #camp-music-picker { display: none !important; }
+    #camp-spotify-tabs {
+      display: flex; gap: 6px; margin-bottom: 4px;
     }
-    #camp-music-picker.open { display: flex; }
-    #camp-music-picker-panel {
-      width: min(420px, 100%);
-      display: flex; flex-direction: column; gap: 8px;
-      background: linear-gradient(165deg, rgba(8, 16, 28, 0.98), rgba(4, 8, 18, 0.98));
-      border: 2px solid rgba(56, 189, 248, 0.4); border-radius: 16px 16px 12px 12px;
-      padding: 12px; box-shadow: 0 -8px 40px rgba(56, 189, 248, 0.15);
+    #camp-spotify-tabs button {
+      flex: 1; border: 1px solid rgba(30, 215, 96, 0.35);
+      background: rgba(15, 23, 42, 0.85); color: #bbf7d0;
+      border-radius: 8px; padding: 6px 8px; font-size: 0.68rem; font-weight: 700;
+      cursor: pointer; touch-action: manipulation;
     }
-    #camp-music-picker-panel h3 {
-      margin: 0; font-size: 0.88rem; color: #bae6fd; text-align: center;
-    }
-    .camp-music-pick-btn {
-      border: 2px solid rgba(103, 232, 249, 0.35);
-      background: rgba(15, 23, 42, 0.92); color: #ecfeff;
-      border-radius: 12px; padding: 12px 14px; font-size: 0.82rem; font-weight: 700;
-      cursor: pointer; text-align: left; touch-action: manipulation;
-    }
-    .camp-music-pick-btn.spotify {
-      border-color: rgba(30, 215, 96, 0.45);
-      background: linear-gradient(135deg, rgba(20, 83, 45, 0.7), rgba(15, 23, 42, 0.95));
-    }
-    .camp-music-pick-btn.telephantix {
-      border-color: rgba(56, 189, 248, 0.45);
-      background: linear-gradient(135deg, rgba(12, 74, 110, 0.7), rgba(15, 23, 42, 0.95));
-    }
-    .camp-music-pick-btn small {
-      display: block; margin-top: 4px; font-size: 0.68rem; font-weight: 500; color: #94a3b8;
-    }
-    #camp-music-picker-close {
-      align-self: center; border: 1px solid rgba(148, 163, 184, 0.35);
-      background: transparent; color: #cbd5e1; border-radius: 8px;
-      padding: 6px 14px; font-size: 0.75rem; cursor: pointer;
-    }
-    .camp-music-src-btn {
-      border: 1px solid rgba(103, 232, 249, 0.35);
-      background: rgba(15, 23, 42, 0.9); color: #e2e8f0;
-      border-radius: 8px; min-width: 34px; height: 30px; font-size: 0.9rem;
-      cursor: pointer; touch-action: manipulation; flex-shrink: 0;
-    }
-    .camp-music-src-btn.active {
-      border-color: #7dd3fc;
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
-    }
-    .camp-music-src-btn.spotify.active {
+    #camp-spotify-tabs button.active {
+      background: rgba(20, 83, 45, 0.75);
       border-color: #86efac;
-      box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.25);
     }
 
     .dock-tip {
@@ -1629,7 +1594,7 @@
       }
       #camp-music-bar .camp-music-title { font-size: 0.8rem; }
       #camp-music-now .camp-music-now-title { font-size: 0.82rem; }
-      .dock-compact .dock-icon.music-btn-hero { width: 54px; height: 54px; }
+      .dock-music-group .dock-icon { width: 44px; height: 44px; }
       #camp-keyboard-reply .ckr-who {
         color: #67e8f9;
         font-weight: 800;
@@ -2249,18 +2214,13 @@
     </div>
     <div id="unreal-hint">PC &amp; phone share this camp — free Ollama/aether brains, memory, and chatter. Unreal 3D is optional on your PC.</div>
     <div id="camp-life-status" class="live">Waking Luna, Hermes, Oracle &amp; Caduceus…</div>
-    <div id="camp-music-now" aria-live="polite">
+    <div id="camp-music-now" aria-live="polite" hidden>
       <div class="camp-music-now-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
       <div class="camp-music-now-meta">
         <span class="camp-music-now-badge" id="camp-music-now-badge">MUSIC</span>
-        <span class="camp-music-now-artist" id="camp-music-now-artist">stoodstrong</span>
-        <span class="camp-music-now-title" id="camp-music-now-title">New Metal, Rock, rap, and country</span>
+        <span class="camp-music-now-artist" id="camp-music-now-artist">Camp</span>
+        <span class="camp-music-now-title" id="camp-music-now-title">Tap toolbar below</span>
       </div>
-      <button type="button" class="camp-music-now-ctl camp-music-src-btn spotify" id="camp-music-now-spotify" title="stoodstrong Spotify playlist">🎧</button>
-      <button type="button" class="camp-music-now-ctl camp-music-src-btn telephantix" id="camp-music-now-tpx" title="Telephantix camp stereo">🎵</button>
-      <button type="button" class="camp-music-now-ctl" id="camp-music-now-mute" title="Mute jukebox">🔇</button>
-      <button type="button" class="camp-music-now-ctl" id="camp-music-now-next" title="Next track">⏭</button>
-      <a class="camp-music-now-ctl" id="camp-music-now-open" href="https://open.spotify.com/playlist/1UfrZNrliP4h7dCjQfEk6E" target="_blank" rel="noopener" title="Open in Spotify app">↗</a>
     </div>
   </header>
   <div class="hud">
@@ -2324,7 +2284,17 @@
       <button type="button" id="camp-talk-send" title="Send">➤</button>
     </div>
     <div class="dock-compact">
-      <button type="button" class="dock-icon music-btn music-btn-hero" id="btn-camp-music" title="Music — stoodstrong playlist or Telephantix"><span class="music-glyph">🎵</span><span class="music-lbl">MUSIC</span></button>
+      <div class="dock-music-group" aria-label="Camp music">
+        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix — AI album at camp">TX</button>
+        <button type="button" class="dock-icon dock-spotify" id="btn-camp-spotify-pl" data-spotify-key="playlist" title="stoodstrong playlist on Spotify">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        </button>
+        <button type="button" class="dock-icon dock-spotify dock-spotify-liked" id="btn-camp-spotify-liked" data-spotify-key="liked" title="Liked songs on Spotify">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          <span class="liked-badge" aria-hidden="true">♥</span>
+        </button>
+        <button type="button" class="dock-icon dock-music-off" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
+      </div>
       <button type="button" class="dock-icon" id="btn-lucid-tv" title="Lucid Mind TV — real mysterious feeds" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
       <button type="button" class="dock-icon" id="btn-camp-shop" title="Aurora shop — spend tokens" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917">✦</button>
@@ -2337,59 +2307,31 @@
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
       <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
-    <div id="dock-tip" class="dock-tip">🎵 MUSIC · double-tap agents to seat them · 🍷 Dionysus · drag pinned agents to empower</div>
+    <div id="dock-tip" class="dock-tip">TX = Telephantix · green = Spotify · 🔇 off · swipe toolbar →</div>
     <div class="dock-scroll-hint">swipe toolbar →</div>
   </footer>
-  <div id="camp-music-picker" role="dialog" aria-label="Choose camp music">
-    <div id="camp-music-picker-panel" onclick="event.stopPropagation()">
-      <h3>Pick your soundtrack</h3>
-      <button type="button" class="camp-music-pick-btn spotify" id="camp-music-pick-spotify">
-        🎧 stoodstrong playlist
-        <small>New Metal, Rock, rap, and country — Spotify</small>
-      </button>
-      <button type="button" class="camp-music-pick-btn telephantix" id="camp-music-pick-tpx">
-        🎵 Telephantix camp stereo
-        <small>Flowing Free &amp; more — built-in jukebox</small>
-      </button>
-      <button type="button" id="camp-music-picker-close">Close</button>
-    </div>
-  </div>
-  <div id="camp-music-bar" hidden aria-live="polite">
-    <div class="camp-music-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-    <div class="camp-music-meta">
-      <span class="camp-music-artist" id="camp-music-artist">♫ Music</span>
-      <span class="camp-music-title" id="camp-music-title">Pick stoodstrong or Telephantix</span>
-    </div>
-    <button type="button" class="camp-music-src-btn spotify" id="camp-music-source-spotify" title="stoodstrong playlist">🎧</button>
-    <button type="button" class="camp-music-src-btn telephantix" id="camp-music-source-tpx" title="Telephantix stereo">🎵</button>
-    <button type="button" id="camp-music-mute" title="Mute jukebox">🔇</button>
-    <button type="button" id="camp-music-next" title="Next track">⏭</button>
-    <a id="camp-music-open" href="https://open.spotify.com/playlist/1UfrZNrliP4h7dCjQfEk6E" target="_blank" rel="noopener" title="Open in Spotify app">↗</a>
-    <button type="button" id="camp-music-stop" title="Stop music">✕</button>
-  </div>
-  <div id="camp-spotify-layer" role="dialog" aria-label="stoodstrong playlist on Spotify">
+  <div id="camp-spotify-layer" role="dialog" aria-label="Spotify at camp">
     <div id="camp-spotify-panel" onclick="event.stopPropagation()">
       <div id="camp-spotify-head">
         <div>
-          <h2>🎧 stoodstrong</h2>
-          <p>New Metal, Rock, rap, and country — your playlist</p>
+          <h2 id="camp-spotify-head-title">🎧 stoodstrong</h2>
+          <p id="camp-spotify-head-sub">New Metal, Rock, rap, and country</p>
         </div>
         <button type="button" id="camp-spotify-close" title="Close">✕</button>
       </div>
-      <iframe id="camp-spotify-embed" title="stoodstrong playlist on Spotify"
-        src="https://open.spotify.com/embed/playlist/1UfrZNrliP4h7dCjQfEk6E?utm_source=generator&amp;theme=0"
+      <div id="camp-spotify-tabs">
+        <button type="button" data-spotify-key="playlist" id="camp-spotify-tab-pl">My playlist</button>
+        <button type="button" data-spotify-key="liked" id="camp-spotify-tab-liked">Liked songs</button>
+      </div>
+      <iframe id="camp-spotify-embed" title="Spotify at camp"
         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
         referrerpolicy="strict-origin-when-cross-origin"></iframe>
       <a id="camp-spotify-open" href="https://open.spotify.com/playlist/1UfrZNrliP4h7dCjQfEk6E" target="_blank" rel="noopener">Open in Spotify app ↗</a>
-      <button type="button" class="camp-music-pick-btn telephantix" id="camp-spotify-switch-tpx" style="margin-top:4px">
-        🎵 Switch to Telephantix stereo
-        <small>Flowing Free &amp; more</small>
-      </button>
     </div>
   </div>
   <audio id="camp-music-audio" preload="none" playsinline></audio>
   <iframe id="camp-music-yt-fallback" title="Telephantix fallback" allow="autoplay; encrypted-media" hidden></iframe>
-  <button type="button" id="camp-music-prompt" aria-live="polite">🎵 Tap MUSIC — stoodstrong or Telephantix</button>
+  <button type="button" id="camp-music-prompt" aria-live="polite">🎵 Tap TX or Spotify in the toolbar</button>
   <button type="button" id="camp-enter-house" aria-live="polite">🚪 Enter house</button>
   <div id="prop-hint"></div>
   <button type="button" id="convo-toggle"></button>
@@ -2574,11 +2516,32 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-music-dock";
-    const CAMP_SPOTIFY_PLAYLIST = "1UfrZNrliP4h7dCjQfEk6E";
-    const CAMP_SPOTIFY_TITLE = "New Metal, Rock, rap, and country";
-    const CAMP_SPOTIFY_URL = `https://open.spotify.com/playlist/${CAMP_SPOTIFY_PLAYLIST}`;
-    const CAMP_SPOTIFY_EMBED = `https://open.spotify.com/embed/playlist/${CAMP_SPOTIFY_PLAYLIST}?utm_source=generator&theme=0`;
+    const CAMP_BUILD = "2026-07-07-camp-music-strip";
+    const CAMP_SPOTIFY_SOURCES = {
+      playlist: {
+        playlistId: "1UfrZNrliP4h7dCjQfEk6E",
+        title: "New Metal, Rock, rap, and country",
+        shortLabel: "My playlist",
+        owner: "stoodstrong",
+      },
+      liked: {
+        playlistId: "0lw5XmLlpaqlVDWUzCkjBY",
+        title: "Liked Songs",
+        shortLabel: "Liked songs",
+        owner: "stoodstrong",
+      },
+    };
+    function campSpotifyMeta(key) {
+      return CAMP_SPOTIFY_SOURCES[key] || CAMP_SPOTIFY_SOURCES.playlist;
+    }
+    function campSpotifyUrl(key) {
+      const meta = campSpotifyMeta(key);
+      return `https://open.spotify.com/playlist/${meta.playlistId}`;
+    }
+    function campSpotifyEmbed(key) {
+      const meta = campSpotifyMeta(key);
+      return `https://open.spotify.com/embed/playlist/${meta.playlistId}?utm_source=generator&theme=0`;
+    }
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5757,69 +5720,33 @@
       return campMusicSource === "spotify" || campMusicSource === "telephantix";
     }
 
+    function campMusicStatusLabel() {
+      const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
+      if (campMusicSource === "telephantix") {
+        return `Telephantix — ${campMusicBoost ? `${track.title} · BASS` : track.title}`;
+      }
+      if (campMusicSource === "spotify") {
+        const meta = campSpotifyMeta(campSpotifyKey);
+        return `Spotify — ${meta.shortLabel}`;
+      }
+      return "Music off — tap TX or Spotify below";
+    }
+
     function updateCampMusicPrompt() {
       const prompt = document.getElementById("camp-music-prompt");
-      const nowBar = document.getElementById("camp-music-now");
-      const nowBadge = document.getElementById("camp-music-now-badge");
-      const nowArtist = document.getElementById("camp-music-now-artist");
-      const nowTitle = document.getElementById("camp-music-now-title");
-      const nowOpen = document.getElementById("camp-music-now-open");
-      const nowMute = document.getElementById("camp-music-now-mute");
-      const nowNext = document.getElementById("camp-music-now-next");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
       const tpxPending = campMusicSource === "telephantix" && (campMusicPlayPending || campMusicMuted);
-      const showPrompt = !campMusicIsActive() || tpxPending;
       if (prompt) {
-        prompt.classList.toggle("visible", showPrompt);
+        prompt.classList.toggle("visible", tpxPending);
         if (campMusicSource === "telephantix" && campMusicMuted) {
           prompt.textContent = "🔊 Tap to hear Telephantix";
         } else if (campMusicSource === "telephantix" && campMusicPlayPending) {
           prompt.textContent = `🔊 Tap to play — ${track?.title || "Telephantix"}`;
         } else {
-          prompt.textContent = "🎵 Tap MUSIC — stoodstrong or Telephantix";
+          prompt.textContent = "🎵 Tap TX or Spotify in the toolbar";
         }
       }
-      if (nowBar) {
-        nowBar.classList.toggle("visible", campMusicIsActive() || campMusicPickerOpen);
-        nowBar.classList.toggle("pending", tpxPending || (!campMusicIsActive() && !campMusicPickerOpen));
-      }
-      if (nowBadge) {
-        if (campMusicSource === "spotify") nowBadge.textContent = "SPOTIFY";
-        else if (campMusicSource === "telephantix") nowBadge.textContent = campMusicPlayPending || campMusicMuted ? "TAP TO HEAR" : "ON AIR";
-        else nowBadge.textContent = "MUSIC";
-      }
-      if (nowArtist) {
-        nowArtist.textContent = campMusicSource === "telephantix" ? "Telephantix" : "stoodstrong";
-      }
-      if (nowTitle) {
-        nowTitle.textContent = campMusicSource === "telephantix"
-          ? (campMusicBoost ? `${track.title} · BASS BLOOM` : track.title)
-          : CAMP_SPOTIFY_TITLE;
-      }
-      if (nowOpen) {
-        nowOpen.href = campMusicSource === "telephantix"
-          ? `https://www.youtube.com/watch?v=${track.id}`
-          : CAMP_SPOTIFY_URL;
-        nowOpen.title = campMusicSource === "telephantix" ? "Open on YouTube" : "Open in Spotify app";
-        nowOpen.hidden = !campMusicIsActive();
-      }
-      if (nowMute) {
-        nowMute.hidden = campMusicSource !== "telephantix";
-        if (campMusicSource === "telephantix") {
-          nowMute.textContent = campMusicMuted ? "🔊" : "🔇";
-          nowMute.title = campMusicMuted ? "Turn jukebox sound back on" : "Mute jukebox";
-        }
-      }
-      if (nowNext) nowNext.hidden = campMusicSource !== "telephantix";
       document.body.classList.toggle("camp-music-pending", tpxPending);
-      for (const [id, src] of [
-        ["camp-music-now-spotify", "spotify"],
-        ["camp-music-now-tpx", "telephantix"],
-        ["camp-music-source-spotify", "spotify"],
-        ["camp-music-source-tpx", "telephantix"],
-      ]) {
-        document.getElementById(id)?.classList.toggle("active", campMusicSource === src);
-      }
     }
 
     function campMusicPlaySucceeded() {
@@ -6004,27 +5931,25 @@
 
     let campSpotifyOpen = false;
     let campMusicSource = null;
-    let campMusicPickerOpen = false;
+    let campSpotifyKey = "playlist";
 
-    function ensureCampSpotifyEmbed() {
+    function syncCampSpotifyPanel(key = campSpotifyKey) {
+      campSpotifyKey = key in CAMP_SPOTIFY_SOURCES ? key : "playlist";
+      const meta = campSpotifyMeta(campSpotifyKey);
       const frame = document.getElementById("camp-spotify-embed");
-      if (frame && (!frame.src || !String(frame.src).includes(CAMP_SPOTIFY_PLAYLIST))) {
-        frame.src = CAMP_SPOTIFY_EMBED;
+      const embedUrl = campSpotifyEmbed(campSpotifyKey);
+      if (frame && !String(frame.src || "").includes(meta.playlistId)) {
+        frame.src = embedUrl;
       }
+      const titleEl = document.getElementById("camp-spotify-head-title");
+      const subEl = document.getElementById("camp-spotify-head-sub");
       const link = document.getElementById("camp-spotify-open");
-      if (link) link.href = CAMP_SPOTIFY_URL;
-    }
-
-    function closeCampMusicPicker() {
-      campMusicPickerOpen = false;
-      document.getElementById("camp-music-picker")?.classList.remove("open");
-      updateCampMusicPrompt();
-    }
-
-    function openCampMusicPicker() {
-      campMusicPickerOpen = true;
-      document.getElementById("camp-music-picker")?.classList.add("open");
-      updateCampMusicPrompt();
+      if (titleEl) titleEl.textContent = `🎧 ${meta.owner}`;
+      if (subEl) subEl.textContent = meta.title;
+      if (link) link.href = campSpotifyUrl(campSpotifyKey);
+      document.querySelectorAll("#camp-spotify-tabs button").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.spotifyKey === campSpotifyKey);
+      });
     }
 
     function hideCampSpotifyLayer() {
@@ -6042,28 +5967,40 @@
 
     function closeAllCampMusic(opts = {}) {
       campMusicSource = null;
+      campSpotifyKey = "playlist";
       hideCampSpotifyLayer();
       stopCampTelephantix({ keepPreference: opts.keepPreference });
-      closeCampMusicPicker();
       updateCampMusicUi();
       updateCampMusicPrompt();
+      if (!opts.quiet) showToast("🔇 Camp music off");
     }
 
-    function openCampSpotify(opts = {}) {
-      closeCampMusicPicker();
+    function openCampSpotify(key = "playlist", opts = {}) {
+      const nextKey = key in CAMP_SPOTIFY_SOURCES ? key : "playlist";
+      if (campMusicSource === "spotify" && campSpotifyKey === nextKey && campSpotifyOpen && !opts.force) {
+        closeAllCampMusic(opts);
+        return;
+      }
       stopCampTelephantix({ keepPreference: true });
-      ensureCampSpotifyEmbed();
       campMusicSource = "spotify";
+      campSpotifyKey = nextKey;
       campSpotifyOpen = true;
+      syncCampSpotifyPanel(campSpotifyKey);
       document.body.classList.add("camp-spotify-open", "camp-music-on");
       document.getElementById("camp-spotify-layer")?.classList.add("open");
       updateCampMusicUi();
       updateCampMusicPrompt();
-      if (!opts.quiet) showToast(`${CAMP_SPOTIFY_TITLE} — stoodstrong on Spotify`);
+      if (!opts.quiet) {
+        const meta = campSpotifyMeta(campSpotifyKey);
+        showToast(`${meta.shortLabel} — stoodstrong on Spotify`);
+      }
     }
 
     function openCampTelephantix(opts = {}) {
-      closeCampMusicPicker();
+      if (campMusicSource === "telephantix" && campMusicOn && !opts.force) {
+        closeAllCampMusic(opts);
+        return;
+      }
       hideCampSpotifyLayer();
       campMusicSource = "telephantix";
       campMusicUserStopped = false;
@@ -6082,69 +6019,43 @@
     }
 
     function closeCampSpotify() {
-      if (campMusicSource === "spotify") closeAllCampMusic();
-      else hideCampSpotifyLayer();
-    }
-
-    function toggleCampSpotify() {
-      if (campMusicSource === "spotify") closeAllCampMusic();
-      else openCampSpotify();
+      closeAllCampMusic();
     }
 
     function updateCampMusicUi() {
-      const bar = document.getElementById("camp-music-bar");
-      const titleEl = document.getElementById("camp-music-title");
-      const artistEl = document.getElementById("camp-music-artist");
-      const openEl = document.getElementById("camp-music-open");
-      const muteBtn = document.getElementById("camp-music-mute");
-      const nextBtn = document.getElementById("camp-music-next");
-      const dockBtn = document.getElementById("btn-camp-music");
-      const dockGlyph = dockBtn?.querySelector(".music-glyph");
+      const tpxBtn = document.getElementById("btn-camp-tpx");
+      const plBtn = document.getElementById("btn-camp-spotify-pl");
+      const likedBtn = document.getElementById("btn-camp-spotify-liked");
+      const offBtn = document.getElementById("btn-camp-music-off");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
       const active = campMusicIsActive();
-      if (bar) bar.hidden = !active;
-      if (titleEl) {
-        titleEl.textContent = campMusicSource === "telephantix"
-          ? (campMusicBoost ? `${track.title} · BASS BLOOM` : track.title)
-          : CAMP_SPOTIFY_TITLE;
+      if (tpxBtn) {
+        tpxBtn.classList.toggle("active", campMusicSource === "telephantix");
+        tpxBtn.title = campMusicSource === "telephantix"
+          ? `Telephantix ON — ${track.title} (tap to stop)`
+          : "Telephantix — AI album at camp";
       }
-      if (artistEl) {
-        artistEl.textContent = campMusicSource === "telephantix"
-          ? "♫ Telephantix"
-          : campMusicSource === "spotify"
-            ? "♫ stoodstrong"
-            : "♫ Music";
+      if (plBtn) {
+        plBtn.classList.toggle("active", campMusicSource === "spotify" && campSpotifyKey === "playlist");
+        plBtn.title = campMusicSource === "spotify" && campSpotifyKey === "playlist"
+          ? "My playlist ON (tap to stop)"
+          : "stoodstrong playlist on Spotify";
       }
-      if (openEl) {
-        openEl.href = campMusicSource === "telephantix"
-          ? `https://www.youtube.com/watch?v=${track.id}`
-          : CAMP_SPOTIFY_URL;
-        openEl.title = campMusicSource === "telephantix" ? "Open on YouTube" : "Open in Spotify app";
-        openEl.hidden = !active;
+      if (likedBtn) {
+        likedBtn.classList.toggle("active", campMusicSource === "spotify" && campSpotifyKey === "liked");
+        likedBtn.title = campMusicSource === "spotify" && campSpotifyKey === "liked"
+          ? "Liked songs ON (tap to stop)"
+          : "Liked songs on Spotify";
       }
-      if (muteBtn) muteBtn.hidden = campMusicSource !== "telephantix";
-      if (nextBtn) nextBtn.hidden = campMusicSource !== "telephantix";
-      if (muteBtn && campMusicSource === "telephantix") {
-        muteBtn.textContent = campMusicMuted ? "🔊 UNMUTE" : "🔇 MUTE";
-        muteBtn.classList.toggle("muted", campMusicMuted);
-        muteBtn.title = campMusicMuted ? "Turn jukebox sound back on" : "Mute jukebox";
-      }
-      if (dockBtn) {
-        dockBtn.classList.toggle("active", active);
-        if (dockGlyph) dockGlyph.textContent = active ? "🎶" : "🎵";
-        dockBtn.title = active
-          ? (campMusicSource === "spotify"
-            ? `Spotify ON — ${CAMP_SPOTIFY_TITLE}`
-            : `Telephantix ON — ${track.title}`)
-          : "Music — stoodstrong playlist or Telephantix";
+      if (offBtn) {
+        offBtn.classList.toggle("active", !active);
+        offBtn.title = active ? "Turn off camp music" : "Music is off";
       }
       const tip = document.getElementById("dock-tip");
       if (tip) {
         tip.textContent = active
-          ? (campMusicSource === "spotify"
-            ? `🎶 ${CAMP_SPOTIFY_TITLE} on Spotify · talk · 🍷 Dionysus · drag pinned agents`
-            : `🎶 Telephantix — ${track.title} · talk · 🍷 Dionysus · drag pinned agents`)
-          : "🎵 Tap MUSIC for stoodstrong or Telephantix · talk · 🍷 Dionysus · drag pinned agents";
+          ? `🎶 ${campMusicStatusLabel()} · swipe toolbar →`
+          : "TX = Telephantix · green = Spotify · 🔇 off · swipe toolbar →";
         tip.classList.toggle("flash", active);
       }
       document.body.classList.toggle("camp-music-on", campMusicSource === "telephantix" || campMusicSource === "spotify");
@@ -6171,17 +6082,8 @@
     }
 
     function toggleCampMusic(opts = {}) {
-      if (campMusicIsActive()) {
-        closeAllCampMusic();
-        if (!opts.quiet) {
-          pushCampLine(player.name || "You", "You mute the camp soundtrack — just the aurora and sun corona now.", 14, "happy", { fromLocal: true });
-        }
-      } else {
-        openCampMusicPicker();
-        if (!opts.quiet) {
-          showToast("Pick stoodstrong Spotify or Telephantix stereo");
-        }
-      }
+      if (campMusicIsActive()) closeAllCampMusic(opts);
+      else openCampTelephantix(opts);
       return campMusicIsActive();
     }
 
@@ -8651,35 +8553,19 @@
         else openDialogue(btn.dataset.agent);
       };
     });
-    document.getElementById("btn-camp-music").onclick = () => toggleCampMusic();
+    document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
+    document.getElementById("btn-camp-spotify-pl").onclick = () => openCampSpotify("playlist");
+    document.getElementById("btn-camp-spotify-liked").onclick = () => openCampSpotify("liked");
+    document.getElementById("btn-camp-music-off").onclick = () => closeAllCampMusic();
     document.getElementById("camp-music-prompt").onclick = () => {
-      if (campMusicIsActive()) return;
-      openCampMusicPicker();
-    };
-    document.getElementById("camp-music-now").onclick = (ev) => {
-      if (ev.target.closest("button, a")) return;
       if (campMusicSource === "telephantix" && (campMusicPlayPending || campMusicMuted)) {
         resumeCampMusicPlayback();
-        return;
       }
-      if (!campMusicIsActive()) openCampMusicPicker();
     };
-    document.getElementById("camp-music-stop").onclick = () => closeAllCampMusic();
-    document.getElementById("camp-music-mute").onclick = () => toggleCampJukeboxMute();
-    document.getElementById("camp-music-now-mute").onclick = () => toggleCampJukeboxMute();
-    document.getElementById("camp-music-next").onclick = () => nextCampMusicTrack();
-    document.getElementById("camp-music-now-next").onclick = () => nextCampMusicTrack();
-    document.getElementById("camp-music-source-spotify").onclick = () => openCampSpotify();
-    document.getElementById("camp-music-source-tpx").onclick = () => openCampTelephantix();
-    document.getElementById("camp-music-now-spotify").onclick = () => openCampSpotify();
-    document.getElementById("camp-music-now-tpx").onclick = () => openCampTelephantix();
-    document.getElementById("camp-music-pick-spotify").onclick = () => openCampSpotify();
-    document.getElementById("camp-music-pick-tpx").onclick = () => openCampTelephantix();
-    document.getElementById("camp-music-picker-close").onclick = () => closeCampMusicPicker();
-    document.getElementById("camp-music-picker").onclick = () => closeCampMusicPicker();
     document.getElementById("camp-spotify-close").onclick = () => closeCampSpotify();
     document.getElementById("camp-spotify-layer").onclick = () => closeCampSpotify();
-    document.getElementById("camp-spotify-switch-tpx").onclick = () => openCampTelephantix();
+    document.getElementById("camp-spotify-tab-pl").onclick = () => openCampSpotify("playlist", { force: true });
+    document.getElementById("camp-spotify-tab-liked").onclick = () => openCampSpotify("liked", { force: true });
     document.getElementById("btn-lucid-tv").onclick = () => openLucidTv();
     document.getElementById("btn-camp-shop").onclick = () => openCampShop();
     document.getElementById("camp-token-badge").onclick = () => openCampShop();
@@ -9211,10 +9097,6 @@
         closeCampHouse();
         return;
       }
-      if (campMusicPickerOpen && e.key === "Escape") {
-        closeCampMusicPicker();
-        return;
-      }
       if (campSpotifyOpen && e.key === "Escape") {
         closeCampSpotify();
         return;
@@ -9276,7 +9158,7 @@
     const serverStatusEl = document.getElementById("server-status");
     const campBuildEl = document.getElementById("camp-build-tag");
     if (campBuildEl) campBuildEl.textContent = CAMP_BUILD;
-    ensureCampSpotifyEmbed();
+    syncCampSpotifyPanel("playlist");
     updateCampMusicUi();
     function updateBrainStatusChip(h) {
       const ollamaChip = document.getElementById("chip-ollama");
@@ -9322,7 +9204,7 @@
           if (!isSlowDevice()) {
             showToast(h.ollama_ok ? "🦙 Ollama brains live — free chat & memory" : "🌫 Aether brains — start Ollama for fuller AI");
           }
-          setCampLifeStatus("Tap 🎵 for stoodstrong or Telephantix · Luna & Hermes talk below");
+          setCampLifeStatus("Toolbar: TX = Telephantix · green = Spotify · 🔇 off · Luna & Hermes talk below");
           const convA = isSlowDevice() ? 52000 : 18000;
           const convB = isSlowDevice() ? 130000 : 42000;
           setTimeout(() => runCampConverse(["luna", "hermes"]), convA);

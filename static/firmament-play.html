@@ -2123,7 +2123,7 @@
         <span class="camp-music-now-artist">Telephantix</span>
         <span class="camp-music-now-title" id="camp-music-now-title">Flowing Free</span>
       </div>
-      <button type="button" class="camp-music-now-ctl" id="camp-music-now-spotify" title="Telephantix on Spotify">♫</button>
+      <button type="button" class="camp-music-now-ctl" id="camp-music-now-spotify" title="stoodstrong playlist on Spotify">♫</button>
       <button type="button" class="camp-music-now-ctl" id="camp-music-now-mute" title="Mute jukebox">🔇</button>
       <button type="button" class="camp-music-now-ctl" id="camp-music-now-next" title="Next track">⏭</button>
     </div>
@@ -2209,23 +2209,23 @@
     </div>
     <button type="button" id="camp-music-mute" title="Mute jukebox">🔇 MUTE</button>
     <button type="button" id="camp-music-next" title="Next track">⏭</button>
-    <button type="button" id="camp-music-spotify" title="Telephantix on Spotify">♫</button>
+    <button type="button" id="camp-music-spotify" title="stoodstrong playlist on Spotify">♫</button>
     <a id="camp-music-open" href="https://www.youtube.com/watch?v=HbIa6PgpEaQ" target="_blank" rel="noopener" title="Open on YouTube">↗</a>
     <button type="button" id="camp-music-stop" title="Stop jukebox">✕</button>
   </div>
-  <div id="camp-spotify-layer" role="dialog" aria-label="Telephantix on Spotify">
+  <div id="camp-spotify-layer" role="dialog" aria-label="Telephantix playlist on Spotify">
     <div id="camp-spotify-panel" onclick="event.stopPropagation()">
       <div id="camp-spotify-head">
         <div>
-          <h2>🎧 Telephantix</h2>
-          <p>Camp jukebox album — scroll tracks, play in Spotify</p>
+          <h2>🎧 stoodstrong</h2>
+          <p>New Metal, Rock, rap, and country — Telephantix playlist</p>
         </div>
         <button type="button" id="camp-spotify-close" title="Close">✕</button>
       </div>
-      <iframe id="camp-spotify-embed" title="Telephantix on Spotify" loading="lazy"
+      <iframe id="camp-spotify-embed" title="Telephantix playlist on Spotify" loading="lazy"
         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
         referrerpolicy="strict-origin-when-cross-origin"></iframe>
-      <a id="camp-spotify-open" href="https://open.spotify.com/album/0TQgbKYS4r0fDmciMoiqKt" target="_blank" rel="noopener">Open in Spotify app ↗</a>
+      <a id="camp-spotify-open" href="https://open.spotify.com/playlist/1UfrZNrliP4h7dCjQfEk6E" target="_blank" rel="noopener">Open in Spotify app ↗</a>
     </div>
   </div>
   <audio id="camp-music-audio" preload="none" playsinline></audio>
@@ -2415,10 +2415,11 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-bubbles-spotify";
-    const CAMP_SPOTIFY_ALBUM = "0TQgbKYS4r0fDmciMoiqKt";
-    const CAMP_SPOTIFY_URL = `https://open.spotify.com/album/${CAMP_SPOTIFY_ALBUM}`;
-    const CAMP_SPOTIFY_EMBED = `https://open.spotify.com/embed/album/${CAMP_SPOTIFY_ALBUM}?utm_source=generator&theme=0`;
+    const CAMP_BUILD = "2026-07-07-camp-spotify-playlist";
+    const CAMP_SPOTIFY_PLAYLIST = "1UfrZNrliP4h7dCjQfEk6E";
+    const CAMP_SPOTIFY_TITLE = "New Metal, Rock, rap, and country";
+    const CAMP_SPOTIFY_URL = `https://open.spotify.com/playlist/${CAMP_SPOTIFY_PLAYLIST}`;
+    const CAMP_SPOTIFY_EMBED = `https://open.spotify.com/embed/playlist/${CAMP_SPOTIFY_PLAYLIST}?utm_source=generator&theme=0`;
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5756,7 +5757,7 @@
       document.body.classList.add("camp-spotify-open");
       document.getElementById("camp-spotify-layer")?.classList.add("open");
       if (!campMusicOn) setCampMusic(true, { quiet: true });
-      showToast("Telephantix album on Spotify — scroll tracks in the player");
+      showToast(`${CAMP_SPOTIFY_TITLE} — your Spotify playlist`);
     }
 
     function closeCampSpotify() {

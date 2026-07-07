@@ -1170,6 +1170,7 @@
         <button type="button" class="agent-chip" data-agent="oracle"><span class="dot" style="background:#8b5cf6;color:#8b5cf6"></span><span class="chip-text"><span class="aname">Oracle</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
+        <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
       </div>
     </div>
@@ -1365,7 +1366,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-05-unreal-camp-world";
+    const CAMP_BUILD = "2026-07-06-jesus-cross-wide-roam";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1444,21 +1445,21 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM = 0.52;
+    const WORLD_ZOOM = 0.38;
     let campChillUntil = 0;
     const campGuests = [];
     const NPC_ANCHORS = {
-      luna: { x: -168, y: -38 },
-      oracle: { x: 178, y: -30 },
-      hermes: { x: 0, y: -128 },
-      dionysus: { x: 158, y: 88 },
-      caduceus: { x: -145, y: 95 },
-      sentinel: { x: 162, y: 82 },
-      jesus: { x: 0, y: 42 },
-      michael: { x: -88, y: 58 },
-      gabriel: { x: 88, y: 52 },
-      raphael: { x: -52, y: 108 },
-      uriel: { x: 52, y: 102 },
+      luna: { x: -278, y: -78 },
+      oracle: { x: 288, y: -68 },
+      hermes: { x: 0, y: -218 },
+      dionysus: { x: 248, y: 138 },
+      caduceus: { x: -248, y: 152 },
+      sentinel: { x: 262, y: 142 },
+      jesus: { x: 0, y: 108 },
+      michael: { x: -178, y: 138 },
+      gabriel: { x: 178, y: 128 },
+      raphael: { x: -108, y: 208 },
+      uriel: { x: 108, y: 198 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
@@ -1473,6 +1474,7 @@
       raphael: { angle: Math.PI * 0.62, bias: 1.0 },
       uriel: { angle: Math.PI * 0.38, bias: 1.0 },
     };
+    const ARCHANGEL_IDS = ["michael", "gabriel", "raphael", "uriel"];
     const HEAVEN_ROSTER = [
       { id: "jesus", name: "Jesus", color: "#fde68a", mood: "love" },
       { id: "michael", name: "Michael", color: "#60a5fa", mood: "alert" },
@@ -1481,8 +1483,8 @@
       { id: "uriel", name: "Uriel", color: "#fb923c", mood: "think" },
     ];
     let heavenSummoned = false;
-    const MIN_NPC_GAP = 58;
-    const ANCHOR_WANDER = 120;
+    const MIN_NPC_GAP = 52;
+    const ANCHOR_WANDER = 220;
     const CHAT_MEET_DIST = 40;
     const CAM_X = 0;
     const CAM_Y = -80;
@@ -1499,24 +1501,24 @@
     };
     const camp = { x: 0, y: -80 };
     const campHouses = [
-      { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -235, y: 72,
+      { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -348, y: 118,
         color: "#d946ef", roof: "#a21caf", wall: "#581c87", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "hermes-home", ownerId: "hermes", name: "Hermes' House", emoji: "🏡", x: 235, y: 68,
+      { id: "hermes-home", ownerId: "hermes", name: "Hermes' House", emoji: "🏡", x: 348, y: 112,
         color: "#fbbf24", roof: "#d97706", wall: "#92400e", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "oracle-home", ownerId: "oracle", name: "Oracle's House", emoji: "🏚", x: 0, y: 178,
+      { id: "oracle-home", ownerId: "oracle", name: "Oracle's House", emoji: "🏚", x: 0, y: 268,
         color: "#8b5cf6", roof: "#6d28d9", wall: "#4c1d95", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
     ];
     const campStructures = [
-      { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -118, y: 168,
+      { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -208, y: 248,
         color: "#34d399", roof: "#059669", wall: "#064e3b", enterRadius: 44,
         doorOffset: { x: 0, y: -0.32 }, interior: { x: 0, y: 0.08 } },
-      { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 128, y: 168,
+      { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 228, y: 252,
         color: "#f59e0b", roof: "#d97706", wall: "#92400e", enterRadius: 44,
         doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.1 } },
-      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -42, y: 118,
+      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -92, y: 198,
         color: "#6366f1", roof: "#4338ca", wall: "#312e81", enterRadius: 46,
         doorOffset: { x: 0, y: -0.28 }, interior: { x: 0, y: 0.05 } },
     ];
@@ -1532,25 +1534,25 @@
     let campMusicOn = false;
     let campMusicPhase = 0;
     const props = [
-      { id: "beer", name: "Beer", emoji: "🍺", x: 72, y: -18, color: "#f59e0b", radius: 90,
+      { id: "beer", name: "Beer", emoji: "🍺", x: 158, y: -58, color: "#f59e0b", radius: 90,
         useMsg: "You crack open a cold beer from the camp cooler. Cheers!",
         npcLines: ["Cheers!", "Save me one!", "Beer tastes better under the aurora.", "Hermes wants the last one."] },
-      { id: "steaks", name: "Steaks", emoji: "🥩", x: -72, y: -18, color: "#dc2626", radius: 90,
+      { id: "steaks", name: "Steaks", emoji: "🥩", x: -162, y: -52, color: "#dc2626", radius: 90,
         useMsg: "You flip sizzling steaks on the campfire grill. Smells incredible.",
         npcLines: ["Medium rare please!", "That steak smells amazing.", "Oracle saw extra steaks in her vision.", "Pass the plate!"] },
-      { id: "herbs", name: "Herbs", emoji: "🌿", x: -28, y: -52, color: "#4ade80", radius: 85,
+      { id: "herbs", name: "Herbs", emoji: "🌿", x: -68, y: -128, color: "#4ade80", radius: 85,
         useMsg: "You share the camp herb bundle — earthy, warm, everyone gets mellow.",
         npcLines: ["Chill vibes only.", "Hermes says the herbs hum with the aurora.", "So relaxed right now.", "Oracle approves this energy."] },
-      { id: "weed", name: "Weed", emoji: "🍃", x: 78, y: 32, color: "#22c55e", radius: 88,
+      { id: "weed", name: "Weed", emoji: "🍃", x: 172, y: 88, color: "#22c55e", radius: 88,
         useMsg: "You pass the camp weed around — slow smiles, wide aurora, everyone drifts farther from the fire.",
         npcLines: ["…okay yeah I'm good.", "Hermes is seeing colors in the ripples.", "Oracle says the stars look closer.", "Luna wants to wander way out there.", "Caduceus approves the vibe."] },
-      { id: "cookies", name: "Cookies", emoji: "🍪", x: -58, y: 28, color: "#d4a05a", radius: 85,
+      { id: "cookies", name: "Cookies", emoji: "🍪", x: -138, y: 78, color: "#d4a05a", radius: 85,
         useMsg: "You grab cookies from the camp table. Caduceus glows approvingly.",
         npcLines: ["Cookie tax is real.", "Caduceus wanted one too.", "Sweet treat at camp!", "Luna loves the chocolate ones."] },
-      { id: "ouija", name: "Ouija", emoji: "🔮", x: 42, y: 48, color: "#a855f7", radius: 92,
+      { id: "ouija", name: "Ouija", emoji: "🔮", x: 98, y: 118, color: "#a855f7", radius: 92,
         useMsg: "You kneel by the spirit board — the planchette is already twitching.",
         npcLines: ["Oracle says don't look away.", "Hermes felt a ripple.", "Luna will channel — be respectful.", "Caduceus glows violet."] },
-      { id: "stereo", name: "Camp Music", emoji: "🎵", x: -108, y: -108, color: "#38bdf8", radius: 86,
+      { id: "stereo", name: "Camp Music", emoji: "🎵", x: -218, y: -188, color: "#38bdf8", radius: 86,
         useMsg: "You flip on camp music — soft aurora beats pulse under the sun corona.",
         npcLines: ["That's the vibe.", "Hermes is vibing to the ripples in the bass.", "Luna wants to dance by the corona.", "Oracle predicted this song.", "Turn it up a little."] },
     ];
@@ -1566,14 +1568,16 @@
       { id: "hermes", name: "Hermes" },
       { id: "caduceus", name: "Caduceus" },
       { id: "sentinel", name: "Sentinel" },
+      { id: "jesus", name: "Jesus" },
       { id: "dionysus", name: "Dionysus" },
     ];
     const npcs = [
-      { id: "luna", name: "Luna", color: "#d946ef", x: -168, y: -38, tx: -168, ty: -38, speed: 2.5, roam: 120, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
-      { id: "oracle", name: "Oracle", color: "#8b5cf6", x: 178, y: -30, tx: 178, ty: -30, speed: 2.3, roam: 118, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
-      { id: "hermes", name: "Hermes", color: "#fbbf24", x: 0, y: -128, tx: 0, ty: -128, speed: 2.7, roam: 125, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
-      { id: "caduceus", name: "Caduceus", color: "#34d399", x: -145, y: 95, tx: -145, ty: 95, speed: 2.1, roam: 110, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "caduceus" },
-      { id: "sentinel", name: "Sentinel", color: "#67e8f9", x: 162, y: 82, tx: 162, ty: 82, speed: 2.4, roam: 115, idle: 0, line: "", fullLine: "", mood: "alert", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "sentinel" },
+      { id: "luna", name: "Luna", color: "#d946ef", x: -278, y: -78, tx: -278, ty: -78, speed: 2.5, roam: 195, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
+      { id: "oracle", name: "Oracle", color: "#8b5cf6", x: 288, y: -68, tx: 288, ty: -68, speed: 2.3, roam: 190, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
+      { id: "hermes", name: "Hermes", color: "#fbbf24", x: 0, y: -218, tx: 0, ty: -218, speed: 2.7, roam: 200, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
+      { id: "caduceus", name: "Caduceus", color: "#34d399", x: -248, y: 152, tx: -248, ty: 152, speed: 2.1, roam: 185, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "caduceus" },
+      { id: "sentinel", name: "Sentinel", color: "#67e8f9", x: 262, y: 142, tx: 262, ty: 142, speed: 2.4, roam: 188, idle: 0, line: "", fullLine: "", mood: "alert", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "sentinel" },
+      { id: "jesus", name: "Jesus", color: "#fde68a", x: 0, y: 108, tx: 0, ty: 108, speed: 2.0, roam: 192, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "jesus" },
     ];
     const HOUSE_HOME_LINES = {
       luna: "Slipping into my house — the corona glow seeps through the windows.",
@@ -1682,8 +1686,8 @@
       const b = getCampRelativeBounds();
       const cx = (b.xMin + b.xMax) * 0.5;
       const cy = (b.yMin + b.yMax) * 0.5;
-      const rx = (b.xMax - b.xMin) * 0.42;
-      const ry = (b.yMax - b.yMin) * 0.42;
+      const rx = (b.xMax - b.xMin) * 0.48;
+      const ry = (b.yMax - b.yMin) * 0.48;
       return {
         x: cx + Math.cos(angle) * rx,
         y: cy + Math.sin(angle) * ry,
@@ -1746,8 +1750,8 @@
     function spreadAllNpcs() {
       npcs.forEach((n) => {
         const p = sectorPosition(n.id);
-        n.x = p.x + (Math.random() - 0.5) * 28;
-        n.y = p.y + (Math.random() - 0.5) * 28;
+        n.x = p.x + (Math.random() - 0.5) * 52;
+        n.y = p.y + (Math.random() - 0.5) * 52;
         n.tx = n.x;
         n.ty = n.y;
         n.visitTarget = null;
@@ -1985,8 +1989,8 @@
         if (target) aimNpcNear(n, target, CHAT_MEET_DIST + Math.random() * 22);
       } else {
         const roll = Math.random();
-        if (roll < 0.32 && !chilling) {
-          const coronaR = 34 + Math.random() * 42;
+        if (roll < 0.28 && !chilling) {
+          const coronaR = 52 + Math.random() * 68;
           const coronaA = Math.random() * Math.PI * 2;
           n.tx = Math.cos(coronaA) * coronaR;
           n.ty = Math.sin(coronaA) * coronaR * 0.55 - 6;
@@ -2298,10 +2302,15 @@
       }
     }
 
+    let campSpreadInit = false;
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       syncUILayout();
+      if (!campSpreadInit) {
+        campSpreadInit = true;
+        spreadAllNpcs();
+      }
     }
     window.addEventListener("resize", resize);
     if (typeof ResizeObserver !== "undefined") {
@@ -2888,12 +2897,13 @@
       if (nearOpt) nearOpt.textContent = `📍 ${nearName} (nearest)`;
       const allNearOpt = sel.querySelector('option[value="all-near"]');
       if (allNearOpt) allNearOpt.textContent = `📍📢 ${nearName} first, all hear`;
-      const heavenIds = ["jesus", "michael", "gabriel", "raphael", "uriel"];
-      const heavenHere = heavenSummoned || campGuests.some((g) => heavenIds.includes(g.id) && !g.leaving);
-      heavenIds.forEach((id) => {
+      const heavenHere = heavenSummoned || campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving);
+      ARCHANGEL_IDS.forEach((id) => {
         const opt = sel.querySelector(`option[value="${id}"]`);
         if (opt) opt.hidden = !heavenHere;
       });
+      const jesusOpt = sel.querySelector('option[value="jesus"]');
+      if (jesusOpt) jesusOpt.hidden = false;
       syncCampTalkAllBtn();
       let spiritOpt = sel.querySelector('option[value="spirit"]');
       if (!spiritOpt) {
@@ -2963,7 +2973,7 @@
         id: def.id, name: def.name, color: def.color,
         x: dest.x + offset, y: dest.y + offset * 0.5,
         tx: dest.x, ty: dest.y,
-        speed: 2.2, roam: 128, idle: 0, line: "", fullLine: "", mood: def.mood,
+        speed: 2.2, roam: 195, idle: 0, line: "", fullLine: "", mood: def.mood,
         behavior: "roam", behaviorTimer: 0, arriving: true, leaving: false,
         visitTarget: null, socializing: false, gathering: false,
         sprite: "heaven",
@@ -2973,8 +2983,8 @@
     }
 
     async function summonArchangelCouncil() {
-      if (heavenSummoned && campGuests.some((g) => g.id === "jesus")) {
-        showToast("Heaven is already at camp — talk to them in the bar");
+      if (heavenSummoned && campGuests.some((g) => ARCHANGEL_IDS.includes(g.id))) {
+        showToast("Archangels are already at camp — talk to them in the bar");
         return;
       }
       heavenSummoned = true;
@@ -2990,7 +3000,7 @@
           body: JSON.stringify({ pack_id: "aurora_playground" }),
         });
       } catch (_) {}
-      HEAVEN_ROSTER.forEach((def, i) => spawnHeavenGuest(def, i * 14));
+      HEAVEN_ROSTER.filter((def) => def.id !== "jesus").forEach((def, i) => spawnHeavenGuest(def, i * 18));
       spreadAllNpcs();
       try {
         const res = await fetch("/api/firmament/agents/converse", {
@@ -3678,6 +3688,7 @@
       oracle: "saw that coming",
       caduceus: "two snakes, one vibe",
       sentinel: "beep boop prophecy",
+      jesus: "peace, then wander",
       dionysus: "crashed the party",
     };
     const ISO_SCALE = 5.4;
@@ -3742,40 +3753,90 @@
 
     function drawCaduceusFigure(cx, cy, t) {
       const pulse = 0.5 + Math.sin(t * 3) * 0.25;
-      drawIsoBox(cx, cy, -0.15, -0.15, 0, 0.3, 0.3, 2.6,
-        { top: "#fde68a", left: "#b45309", right: "#f59e0b", stroke: "#34d399" });
-      ctx.strokeStyle = `rgba(52, 211, 153, ${0.7 + pulse * 0.3})`;
-      ctx.lineWidth = 2.5;
+      drawIsoBox(cx, cy, -0.1, -0.1, 0, 0.2, 0.2, 3.1,
+        { top: "#fde68a", left: "#92400e", right: "#d97706", stroke: "#34d399" });
+      const wingC = isoPoint(cx, cy, 0, -0.12, 3.15);
+      ctx.fillStyle = "rgba(253, 230, 138, 0.92)";
       for (const side of [-1, 1]) {
+        const tip = isoPoint(cx, cy, side * 1.15, side * -0.38, 3.05);
+        const mid = isoPoint(cx, cy, side * 0.55, side * -0.12, 3.12);
         ctx.beginPath();
-        const base = isoPoint(cx, cy, 0, 0, 0.4);
-        const mid = isoPoint(cx, cy, side * 0.55, side * 0.2, 1.4);
-        const top = isoPoint(cx, cy, side * 0.35, side * 0.55, 2.2);
-        ctx.moveTo(base.x, base.y);
-        ctx.quadraticCurveTo(mid.x, mid.y, top.x, top.y);
+        ctx.moveTo(wingC.x, wingC.y);
+        ctx.quadraticCurveTo(mid.x, mid.y - 5, tip.x, tip.y);
+        ctx.quadraticCurveTo(mid.x, mid.y + 7, wingC.x, wingC.y);
+        ctx.fill();
+        ctx.strokeStyle = "#ca8a04";
+        ctx.lineWidth = 1;
         ctx.stroke();
-        const head = isoPoint(cx, cy, side * 0.35, side * 0.55, 2.35);
-        ctx.fillStyle = "#6ee7b7";
+      }
+      ctx.strokeStyle = `rgba(52, 211, 153, ${0.82 + pulse * 0.18})`;
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = "round";
+      for (const phase of [0, Math.PI]) {
         ctx.beginPath();
-        ctx.arc(head.x, head.y, 4, 0, Math.PI * 2);
+        for (let i = 0; i <= 26; i++) {
+          const h = 0.3 + (i / 26) * 2.55;
+          const wrap = Math.sin(i * 0.62 + t * 2.2 + phase) * 0.34;
+          const pt = isoPoint(cx, cy, wrap, 0, h);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.stroke();
+        const headH = 2.72 + Math.sin(t * 3 + phase) * 0.1;
+        const headWrap = Math.sin(26 * 0.62 + t * 2.2 + phase) * 0.34;
+        const head = isoPoint(cx, cy, headWrap, 0, headH);
+        ctx.fillStyle = "#34d399";
+        ctx.beginPath();
+        ctx.ellipse(head.x, head.y, 5.5, 4.2, 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#064e3b";
+        ctx.beginPath();
+        ctx.arc(head.x + 2, head.y - 1, 1.3, 0, Math.PI * 2);
         ctx.fill();
       }
-      const wingL = isoPoint(cx, cy, -0.9, -0.2, 2.5);
-      const wingR = isoPoint(cx, cy, 0.9, -0.2, 2.5);
-      const wingC = isoPoint(cx, cy, 0, -0.5, 2.7);
-      ctx.fillStyle = "rgba(253, 230, 138, 0.85)";
+      const knot = isoPoint(cx, cy, 0, 0, 1.55);
+      ctx.fillStyle = `rgba(251, 191, 36, ${0.75 + pulse * 0.2})`;
       ctx.beginPath();
-      ctx.moveTo(wingC.x, wingC.y);
-      ctx.lineTo(wingL.x, wingL.y);
-      ctx.lineTo(isoPoint(cx, cy, -0.5, 0.1, 2.4).x, isoPoint(cx, cy, -0.5, 0.1, 2.4).y);
-      ctx.closePath();
+      ctx.arc(knot.x, knot.y, 4 + pulse * 2, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    function drawJesusCrossFigure(cx, cy, t) {
+      const pulse = 0.5 + Math.sin(t * 2) * 0.22;
+      ctx.strokeStyle = `rgba(253, 224, 138, ${0.4 + pulse * 0.3})`;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(wingC.x, wingC.y);
-      ctx.lineTo(wingR.x, wingR.y);
-      ctx.lineTo(isoPoint(cx, cy, 0.5, 0.1, 2.4).x, isoPoint(cx, cy, 0.5, 0.1, 2.4).y);
-      ctx.closePath();
+      ctx.arc(cx, cy - 22, 20 + pulse * 6, 0, Math.PI * 2);
+      ctx.stroke();
+      const vTop = isoPoint(cx, cy, 0, 0, 2.95);
+      const vBot = isoPoint(cx, cy, 0, 0, 0.05);
+      ctx.strokeStyle = "#a16207";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(vTop.x, vTop.y);
+      ctx.lineTo(vBot.x, vBot.y);
+      ctx.stroke();
+      const hL = isoPoint(cx, cy, -0.62, 0, 1.95);
+      const hR = isoPoint(cx, cy, 0.62, 0, 1.95);
+      ctx.strokeStyle = "#ca8a04";
+      ctx.lineWidth = 4.2;
+      ctx.beginPath();
+      ctx.moveTo(hL.x, hL.y);
+      ctx.lineTo(hR.x, hR.y);
+      ctx.stroke();
+      const center = isoPoint(cx, cy, 0, 0, 1.95);
+      const grd = ctx.createRadialGradient(center.x, center.y, 1, center.x, center.y, 16 + pulse * 8);
+      grd.addColorStop(0, "rgba(255,255,255,0.95)");
+      grd.addColorStop(0.35, "rgba(253,224,138,0.75)");
+      grd.addColorStop(1, "rgba(253,224,138,0)");
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, 16 + pulse * 8, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = `rgba(254, 243, 199, ${0.55 + pulse * 0.25})`;
+      ctx.fillRect(hL.x, hL.y - 2, hR.x - hL.x, 4);
+      ctx.fillRect(vTop.x - 2, vTop.y, 4, vBot.y - vTop.y);
     }
 
     function drawLunaFigure(cx, cy, t) {
@@ -3895,7 +3956,7 @@
         caduceus: drawCaduceusFigure,
         sentinel: drawSentinelFigure,
         dionysus: drawDionysusFigure,
-        jesus: drawHeavenFigure,
+        jesus: drawJesusCrossFigure,
         michael: drawHeavenFigure,
         gabriel: drawHeavenFigure,
         raphael: drawHeavenFigure,
@@ -4954,11 +5015,15 @@
         setTimeout(() => runCampConverse(forcedPair), 28000);
         return;
       }
+      if (forcedPair && forcedPair.some((id) => ARCHANGEL_IDS.includes(id)) && !campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving)) {
+        setTimeout(() => runCampConverse(forcedPair), 28000);
+        return;
+      }
       if (chatterPaused || dialogueBackdrop.classList.contains("open")) {
         setTimeout(() => runCampConverse(forcedPair), CAMP_PACE.retryConverseMs);
         return;
       }
-      const pairs = [["luna", "hermes"], ["luna", "oracle"], ["hermes", "oracle"], ["caduceus", "hermes"], ["caduceus", "luna"], ["oracle", "caduceus"], ["sentinel", "oracle"], ["sentinel", "hermes"], ["caduceus", "sentinel"], ["dionysus", "luna"], ["dionysus", "hermes"], ["dionysus", "oracle"]];
+      const pairs = [["luna", "hermes"], ["luna", "oracle"], ["hermes", "oracle"], ["caduceus", "hermes"], ["caduceus", "luna"], ["oracle", "caduceus"], ["sentinel", "oracle"], ["sentinel", "hermes"], ["caduceus", "sentinel"], ["jesus", "luna"], ["jesus", "raphael"], ["jesus", "caduceus"], ["michael", "sentinel"], ["dionysus", "luna"], ["dionysus", "hermes"], ["dionysus", "oracle"]];
       const topics = [
         "The aurora over camp — Luna wants warmth, Hermes wants the glowing orbs.",
         "Psychic ripples from Sentinel — what are you sensing?",
@@ -4969,6 +5034,8 @@
         "Hermes felt a ripple — Luna, does your intuition agree?",
         "Someone left beer by the cooler — who speaks first?",
         "Caduceus glowed — is the camp energy shifting?",
+        "Jesus is walking the meadow — what do weary travelers need to hear tonight?",
+        "Raphael and Jesus notice someone tired at the far edge of camp.",
         "Say something curious and warm — like friends chatting unprompted at camp.",
         "Someone passed weed at camp — react mellow, spaced out, a little cosmic.",
         "Take your time answering — you're lounging far from the campfire under the aurora.",
@@ -4976,7 +5043,10 @@
       ];
       let pool = pairs;
       if (!campGuests.some((g) => g.id === "dionysus")) {
-        pool = pairs.filter((p) => !p.includes("dionysus"));
+        pool = pool.filter((p) => !p.includes("dionysus"));
+      }
+      if (!campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving)) {
+        pool = pool.filter((p) => !p.some((id) => ARCHANGEL_IDS.includes(id)));
       }
       const pick = forcedPair || pool[Math.floor(Math.random() * pool.length)];
       const topic = topics[Math.floor(Math.random() * topics.length)];
@@ -5091,6 +5161,7 @@
           body: JSON.stringify({ pack_id: "aurora_playground" }),
         }).catch(() => {});
         setTimeout(() => runCampConverse(["luna", "hermes"]), 18000);
+        setTimeout(() => runCampConverse(["jesus", "luna"]), 42000);
         setTimeout(() => spawnDionysusVisit(), 38000);
         scheduleDionysusVisits();
       }

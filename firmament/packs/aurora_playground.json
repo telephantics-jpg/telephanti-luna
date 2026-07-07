@@ -37,17 +37,17 @@
     "texture_overlay": "starfield_veil"
   },
   "agents": [
-    { "id": "luna", "spawn": [0.35, 0.25, 100], "bubble_color": "#c9a87c" },
-    { "id": "oracle", "spawn": [0.65, 0.4, 110], "bubble_color": "#9f7aea" },
-    { "id": "hermes", "spawn": [0.5, 0.55, 95], "bubble_color": "#60a5fa" },
-    { "id": "sentinel", "spawn": [0.5, 0.35, 105], "bubble_color": "#22d3ee" },
-    { "id": "caduceus", "spawn": [0.42, 0.32, 98], "bubble_color": "#34d399" },
-    { "id": "dionysus", "spawn": [0.78, 0.62, 100], "bubble_color": "#e11d48" },
-    { "id": "jesus", "spawn": [0.5, 0.48, 108], "bubble_color": "#fde68a" },
-    { "id": "michael", "spawn": [0.22, 0.38, 112], "bubble_color": "#60a5fa" },
-    { "id": "gabriel", "spawn": [0.72, 0.28, 106], "bubble_color": "#f0abfc" },
-    { "id": "raphael", "spawn": [0.28, 0.58, 102], "bubble_color": "#6ee7b7" },
-    { "id": "uriel", "spawn": [0.62, 0.52, 104], "bubble_color": "#fb923c" }
+    { "id": "luna", "spawn": [0.18, 0.22, 100], "bubble_color": "#c9a87c" },
+    { "id": "oracle", "spawn": [0.82, 0.24, 110], "bubble_color": "#9f7aea" },
+    { "id": "hermes", "spawn": [0.5, 0.12, 95], "bubble_color": "#60a5fa" },
+    { "id": "sentinel", "spawn": [0.78, 0.58, 105], "bubble_color": "#22d3ee" },
+    { "id": "caduceus", "spawn": [0.14, 0.62, 98], "bubble_color": "#34d399" },
+    { "id": "dionysus", "spawn": [0.88, 0.68, 100], "bubble_color": "#e11d48" },
+    { "id": "jesus", "spawn": [0.5, 0.52, 108], "bubble_color": "#fde68a" },
+    { "id": "michael", "spawn": [0.12, 0.48, 112], "bubble_color": "#60a5fa" },
+    { "id": "gabriel", "spawn": [0.88, 0.38, 106], "bubble_color": "#f0abfc" },
+    { "id": "raphael", "spawn": [0.22, 0.78, 102], "bubble_color": "#6ee7b7" },
+    { "id": "uriel", "spawn": [0.72, 0.72, 104], "bubble_color": "#fb923c" }
   ],
   "hallucination": {
     "enabled": true,

@@ -763,6 +763,14 @@
         left: var(--vv-offset-left, 0px);
         right: var(--vv-offset-right, 0px);
         width: auto;
+        transition: bottom 0.22s ease;
+      }
+      html.ios-camp.camp-keyboard-open #dialogue-backdrop.open {
+        padding-bottom: max(12px, calc(var(--keyboard-inset, 0px) + 12px));
+        align-items: flex-end;
+      }
+      html.ios-camp #dialogue-input {
+        font-size: 16px !important;
       }
       html.ios-camp body.camp-focus #convo-log,
       html.ios-camp body.camp-focus.speech-expanded #convo-log:not(.collapsed),
@@ -1496,7 +1504,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ios-keyboard-smooth";
+    const CAMP_BUILD = "2026-07-06-ios-dock-lift";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1569,6 +1577,40 @@
       document.documentElement.style.setProperty("--vv-offset-right", `${right}px`);
     }
 
+    function isTypingInCamp() {
+      const el = document.activeElement;
+      if (!el) return false;
+      const id = el.id || "";
+      return id === "camp-talk-input"
+        || id === "camp-talk-target"
+        || id === "dialogue-input"
+        || id === "camp-ouija-question";
+    }
+
+    function syncKeyboardDock() {
+      if (!isIOS()) return;
+      const vv = window.visualViewport;
+      const dock = document.getElementById("action-bar");
+      syncViewportOffset();
+      if (!vv || !dock) return;
+
+      const keyboardInset = Math.max(0, Math.round(
+        layoutViewportHeight() - vv.height - vv.offsetTop,
+      ));
+      const typing = isTypingInCamp();
+      const lift = typing && keyboardInset > 48;
+
+      if (lift) {
+        dock.style.bottom = `${keyboardInset}px`;
+        document.documentElement.style.setProperty("--keyboard-inset", `${keyboardInset}px`);
+        document.documentElement.classList.add("camp-keyboard-open");
+      } else {
+        dock.style.bottom = "";
+        document.documentElement.style.setProperty("--keyboard-inset", "0px");
+        document.documentElement.classList.remove("camp-keyboard-open");
+      }
+    }
+
     function getCampCanvasSizeFromLayout() {
       const style = getComputedStyle(document.documentElement);
       const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
@@ -1623,7 +1665,7 @@
       if (input && document.activeElement === input) input.blur();
       if (targetSel && document.activeElement === targetSel) targetSel.blur();
       window.scrollTo(0, 0);
-      syncViewportOffset();
+      syncKeyboardDock();
     }
 
     function clearCampStageOverrides() {
@@ -2669,11 +2711,12 @@
       }, isIOS() ? 80 : 30);
     }
     function onVisualViewportChange() {
-      syncViewportOffset();
       if (isIOS()) {
+        syncKeyboardDock();
         window.scrollTo(0, 0);
         return;
       }
+      syncViewportOffset();
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
@@ -5125,17 +5168,28 @@
         sendCampTalk();
       }
     });
-    document.getElementById("camp-talk-input")?.addEventListener("focus", () => {
-      if (isCampMobile() && !isIOS()) minimizeSpeechBubble();
-    });
-    document.getElementById("camp-talk-input")?.addEventListener("blur", () => {
+    function onCampInputFocus() {
       if (isIOS()) {
-        window.scrollTo(0, 0);
-        syncViewportOffset();
-      } else {
-        setTimeout(() => recenterCampView({ blurInput: false }), 80);
+        setTimeout(syncKeyboardDock, 60);
+        setTimeout(syncKeyboardDock, 280);
+        return;
       }
-    });
+      if (isCampMobile()) minimizeSpeechBubble();
+    }
+    function onCampInputBlur() {
+      if (isIOS()) {
+        setTimeout(syncKeyboardDock, 80);
+        window.scrollTo(0, 0);
+        return;
+      }
+      setTimeout(() => recenterCampView({ blurInput: false }), 80);
+    }
+    document.getElementById("camp-talk-input")?.addEventListener("focus", onCampInputFocus);
+    document.getElementById("camp-talk-target")?.addEventListener("focus", onCampInputFocus);
+    document.getElementById("dialogue-input")?.addEventListener("focus", onCampInputFocus);
+    document.getElementById("camp-talk-input")?.addEventListener("blur", onCampInputBlur);
+    document.getElementById("camp-talk-target")?.addEventListener("blur", onCampInputBlur);
+    document.getElementById("dialogue-input")?.addEventListener("blur", onCampInputBlur);
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();
       const el = document.getElementById("convo-log");

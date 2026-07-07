@@ -1366,7 +1366,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-jesus-cross-wide-roam";
+    const CAMP_BUILD = "2026-07-06-camp-init-fix";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1571,6 +1571,11 @@
       { id: "jesus", name: "Jesus" },
       { id: "dionysus", name: "Dionysus" },
     ];
+    const KNOWN_MOODS = new Set(["happy", "neutral", "think", "alert", "afraid", "urgent", "love", "flirt"]);
+    function moodClass(mood) {
+      const m = (mood || "neutral").toLowerCase().replace(/[^a-z]/g, "") || "neutral";
+      return KNOWN_MOODS.has(m) ? `mood-${m}` : "mood-neutral";
+    }
     const npcs = [
       { id: "luna", name: "Luna", color: "#d946ef", x: -278, y: -78, tx: -278, ty: -78, speed: 2.5, roam: 195, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
       { id: "oracle", name: "Oracle", color: "#8b5cf6", x: 288, y: -68, tx: 288, ty: -68, speed: 2.3, roam: 190, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
@@ -3671,12 +3676,6 @@
       speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
     }
 
-    const KNOWN_MOODS = new Set(["happy", "neutral", "think", "alert", "afraid", "urgent", "love", "flirt"]);
-    function moodClass(mood) {
-      const m = (mood || "neutral").toLowerCase().replace(/[^a-z]/g, "") || "neutral";
-      return KNOWN_MOODS.has(m) ? `mood-${m}` : "mood-neutral";
-    }
-
     const AGENT_COLORS = {
       luna: "#d946ef", hermes: "#fbbf24", oracle: "#8b5cf6",
       caduceus: "#34d399", sentinel: "#67e8f9", dionysus: "#e11d48",
@@ -4164,6 +4163,7 @@
 
     function renderMoodPanel() {
       const rows = document.getElementById("mood-rows");
+      if (!rows) return;
       rows.innerHTML = moodAgents.map((a) => {
         const m = agentMoods[a.id] || "neutral";
         const npc = npcs.find((n) => n.id === a.id);

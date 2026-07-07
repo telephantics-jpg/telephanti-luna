@@ -1639,14 +1639,8 @@
   <div id="dialogue-backdrop">
     <div id="dialogue-panel" onclick="event.stopPropagation()">
       <h2 id="dialogue-name">Luna</h2>
-      <div id="npc-bubble">Walk up and ask anything.</div>
-      <div class="quick-btns">
-        <button type="button" data-q="What's really happening at this camp right now?">What's real?</button>
-        <button type="button" data-q="Tell me something weird you noticed about me.">Weird about me?</button>
-        <button type="button" data-q="If the aurora could talk, what would it say?">Aurora voice</button>
-        <button type="button" data-q="What do you dream about when visitors leave?">Your dreams?</button>
-        <button type="button" data-q="Should I buy something at the shop or wander the shelter?">Shop or shelter?</button>
-      </div>
+      <div id="npc-bubble">Tap an agent at camp — they'll greet you in their own voice.</div>
+      <div class="quick-btns" id="dialogue-quick-btns"></div>
       <input id="dialogue-input" placeholder="Type anything to ask them..." />
       <div class="dialogue-actions">
         <span id="dialogue-status">Enter = send · ` = close</span>
@@ -1725,7 +1719,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-jukebox-audio-strip";
+    const CAMP_BUILD = "2026-07-07-camp-openers";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -5456,11 +5450,233 @@
         campBonds = data.bonds || {};
         mergeLocalBondsIntoCamp();
         if (data.welcome) {
+          campServerWelcomeShown = true;
           setCampLifeStatus(data.welcome);
           showToast(data.welcome);
+          pushCampLine("Camp", data.welcome, 18, "happy");
         }
       } catch (_) {
         mergeLocalBondsIntoCamp();
+      }
+    }
+
+    function isReturningVisitor() {
+      const mem = getLocalCampMemory();
+      const chats = Object.values(mem.agent_chats || {}).reduce((s, n) => s + n, 0);
+      return chats > 0 || (mem.moments || []).length > 2
+        || Object.values(campBonds).some((b) => (b?.chats || 0) > 0);
+    }
+
+    function localWelcomeLine() {
+      const name = myVisitorName || player.name || "friend";
+      const mem = getLocalCampMemory();
+      const chats = mem.agent_chats || {};
+      const entries = Object.entries(chats).sort((a, b) => b[1] - a[1]);
+      if (!entries.length && !(mem.moments || []).length) return "";
+      const topId = entries[0]?.[0];
+      const aname = topId ? (agentNames[topId] || topId) : "";
+      const propMoment = (mem.moments || []).find((m) => m.kind === "prop" || m.kind === "shop" || m.kind === "moment");
+      if (aname && propMoment) {
+        return `Welcome back, ${name} — ${aname} remembers you, and the camp kept your last visit.`;
+      }
+      if (aname) return `Welcome back, ${name} — ${aname} remembers your chats.`;
+      return `Welcome back, ${name} — the campfire remembers you.`;
+    }
+
+    function campContextSuffix() {
+      const bits = [];
+      if (campMusicOn && !campMusicMuted) bits.push("jukebox is playing");
+      if (campGuests.some((g) => g.id === "dionysus" && !g.leaving)) bits.push("Dionysus is at camp");
+      if (campWeather && campWeather !== "aurora") bits.push(`${campWeather} sky`);
+      return bits.length ? ` (${bits.join(" · ")})` : "";
+    }
+
+    function bondClauseForAgent(agentId) {
+      const b = campBonds[agentId];
+      if (!b) return "";
+      const words = (b.recent_words || [])[0];
+      if (words) return ` — last time you said "${words.slice(0, 42)}${words.length > 42 ? "…" : ""}"`;
+      if (b.chats > 0) return ` — we've talked ${b.chats} time${b.chats > 1 ? "s" : ""} before`;
+      const hi = (b.highlights || [])[0];
+      if (hi) return ` — I remember ${hi}`;
+      return "";
+    }
+
+    const AGENT_OPENERS = {
+      luna: [
+        "Hey {v} — I'm Luna. The corona's warm tonight{bond}. What's pulling at you?",
+        "{v}, you made it in. I felt you walking up{bond}. Say anything.",
+        "Camp's wide open, {v}. I'm Luna — no wrong questions{bond}.",
+      ],
+      hermes: [
+        "{v} — ripple detected. I'm Hermes{bond}. What frequency are you on?",
+        "Psychic handshake complete, {v}. I'm Hermes — what's bending the air?",
+        "I felt a tug in the ripples, {v}{bond}. Talk to me.",
+      ],
+      oracle: [
+        "{v}… I dreamed you'd ask. I'm the Oracle{bond}.",
+        "The veil's thin tonight, {v}{bond}. Go ahead — I'm listening.",
+        "I saw your footsteps before you took them, {v}{bond}.",
+      ],
+      caduceus: [
+        "Deep breath, {v}. Caduceus here — snakes are on break{bond}.",
+        "Camp energy's steady, {v}. I'm Caduceus{bond}. What's heavy?",
+        "{v}, both snakes voted you deserve gentleness{bond}.",
+      ],
+      sentinel: [
+        "BEEP. Visitor {v} logged. I'm Sentinel{bond}. Perimeter nominal — talk freely.",
+        "{v} detected at camp. Sentinel online{bond}. State your intent or just vibe.",
+        "Scan complete: {v}, not a threat{bond}. I'm Sentinel — proceed.",
+      ],
+      jesus: [
+        "Peace, {v}. You're welcome at this fire{bond}.",
+        "{v}, come sit — no hurry. I'm here{bond}.",
+        "Glad you walked in, {v}{bond}. What's on your heart?",
+      ],
+      dionysus: [
+        "{v}! Toast? I'm Dionysus{bond} — vineyard's close if we need more wine.",
+        "You called the party, {v}? Dionysus reporting{bond}.",
+        "{v}, main-character energy detected{bond}. I'm Dionysus — celebrate something.",
+      ],
+      michael: [
+        "{v}, Michael here — steady sword, open heart{bond}.",
+        "The camp is guarded, {v}. I'm Michael{bond}. Speak.",
+      ],
+      gabriel: [
+        "{v} — Gabriel. Message received{bond}. What's the word?",
+        "I heard your name on the wind, {v}{bond}. Gabriel listening.",
+      ],
+      raphael: [
+        "{v}, breathe. Raphael here{bond}. Healing starts with honesty.",
+        "Soft landing, {v}. I'm Raphael{bond}. What needs mending?",
+      ],
+      uriel: [
+        "{v} — Uriel. Truth before comfort{bond}. Ask.",
+        "I lit a lantern for your question, {v}{bond}. Uriel's listening.",
+      ],
+    };
+
+    const AGENT_DIALOGUE_PROMPTS = {
+      luna: [
+        { label: "Remember me?", q: "What do you remember about me from past visits?" },
+        { label: "What's real?", q: "What's really happening at this camp right now?" },
+        { label: "Aurora voice", q: "If the aurora could talk, what would it say to me?" },
+      ],
+      hermes: [
+        { label: "Ripples?", q: "What rippled in the psychic field when I arrived?" },
+        { label: "Weird signal", q: "Tell me something weird you noticed about me." },
+        { label: "Camp frequency", q: "What frequency is camp on tonight?" },
+      ],
+      oracle: [
+        { label: "Read me", q: "Read my vibe — what do you see?" },
+        { label: "What's coming?", q: "What's coming for me around this campfire?" },
+        { label: "Your dreams", q: "What do you dream about when visitors leave?" },
+      ],
+      caduceus: [
+        { label: "Camp health", q: "How's the energy at camp right now?" },
+        { label: "Ground me", q: "Say something to ground me under the aurora." },
+        { label: "Heal vibe", q: "What needs healing here tonight?" },
+      ],
+      sentinel: [
+        { label: "Threat scan", q: "Run a threat scan on camp — what's off?" },
+        { label: "Perimeter", q: "What's happening at the perimeter?" },
+        { label: "About me", q: "Anything unusual about me on your sensors?" },
+      ],
+      jesus: [
+        { label: "Peace", q: "What would bring me peace tonight?" },
+        { label: "Purpose", q: "What purpose do you sense in me right now?" },
+        { label: "Forgiveness", q: "What should I forgive myself for?" },
+      ],
+      dionysus: [
+        { label: "Toast", q: "Give me a toast for tonight." },
+        { label: "Party vibe", q: "How wild should this camp party get?" },
+        { label: "Vineyard", q: "What's happening at your vineyard?" },
+      ],
+      michael: [
+        { label: "Courage", q: "What do I need courage for right now?" },
+        { label: "Guard camp", q: "What are you guarding at this camp?" },
+      ],
+      gabriel: [
+        { label: "Message", q: "Do you have a message for me?" },
+        { label: "Herald", q: "What news is moving through camp?" },
+      ],
+      raphael: [
+        { label: "Heal", q: "What part of me needs healing tonight?" },
+        { label: "Rest", q: "Should I rest at the shelter or keep wandering?" },
+      ],
+      uriel: [
+        { label: "Truth", q: "Tell me a truth I'm avoiding." },
+        { label: "Clarity", q: "What should I see more clearly?" },
+      ],
+    };
+
+    let campArrivalScheduled = false;
+    let campServerWelcomeShown = false;
+
+    function pickAgentOpener(agentId) {
+      const v = myVisitorName || player.name || "traveler";
+      const pool = AGENT_OPENERS[agentId] || AGENT_OPENERS.luna;
+      let line = pool[Math.floor(Math.random() * pool.length)]
+        .replace(/\{v\}/g, v)
+        .replace(/\{bond\}/g, bondClauseForAgent(agentId));
+      const ctx = campContextSuffix();
+      if (ctx && Math.random() < 0.4) line += ctx;
+      return line;
+    }
+
+    function renderDialogueQuickBtns(agentId) {
+      const wrap = document.getElementById("dialogue-quick-btns");
+      if (!wrap) return;
+      const prompts = AGENT_DIALOGUE_PROMPTS[agentId] || AGENT_DIALOGUE_PROMPTS.luna;
+      wrap.innerHTML = "";
+      for (const p of prompts) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.dataset.q = p.q;
+        btn.textContent = p.label;
+        btn.onclick = () => chat(dialogueAgent, btn.dataset.q, { useDialogue: true });
+        wrap.appendChild(btn);
+      }
+    }
+
+    function scheduleCampArrivalGreetings() {
+      if (campArrivalScheduled) return;
+      campArrivalScheduled = true;
+      const returning = isReturningVisitor();
+      if (returning) {
+        const welcome = localWelcomeLine();
+        if (welcome && !campServerWelcomeShown) {
+          setTimeout(() => {
+            pushCampLine("Camp", welcome, 20, "happy", { fromLocal: true });
+          }, 1800);
+        }
+        setTimeout(() => {
+          const line = pickAgentOpener("luna");
+          pushCampLine("Luna", line, campReadHoldSec(line, 32), "happy", { fromLocal: true });
+          setAgentMood("luna", "happy");
+        }, 4500);
+        setTimeout(() => {
+          const line = pickAgentOpener("hermes");
+          pushCampLine("Hermes", line, campReadHoldSec(line, 28), "think", { fromLocal: true });
+          setAgentMood("hermes", "think");
+        }, 11000);
+      } else {
+        const stagger = [
+          { id: "luna", delay: 3500, mood: "happy" },
+          { id: "hermes", delay: 9000, mood: "think" },
+          { id: "oracle", delay: 14500, mood: "neutral" },
+        ];
+        for (const a of stagger) {
+          setTimeout(() => {
+            const line = pickAgentOpener(a.id);
+            pushCampLine(agentNames[a.id] || a.id, line, campReadHoldSec(line, 30), a.mood, { fromLocal: true });
+            setAgentMood(a.id, a.mood);
+          }, a.delay);
+        }
+        setTimeout(() => {
+          const v = myVisitorName || player.name || "traveler";
+          pushCampLine("Camp", `${v}, agents are spread around the ring — tap one or use the talk bar.`, 22, "happy", { fromLocal: true });
+        }, 19000);
       }
     }
 
@@ -6370,14 +6586,9 @@
     function openDialogue(agentId) {
       dialogueAgent = agentId || nearestId || "luna";
       dialogueName.textContent = agentNames[dialogueAgent] || dialogueAgent;
-      const bond = bondHintForAgent(dialogueAgent);
-      const openers = [
-        `The aurora's doing something strange tonight. I'm ${dialogueName.textContent} — what's pulling at you?`,
-        `Camp's wide open. No wrong questions. I'm ${dialogueName.textContent} — where do you want to go with this?`,
-        `I felt you walk up. ${bond ? `I remember us${bond}. ` : ""}Say anything — I'll follow you down the rabbit hole.`,
-      ];
-      npcBubble.textContent = openers[Math.floor(Math.random() * openers.length)];
-      dialogueStatus.textContent = "Type a message and tap Send";
+      npcBubble.textContent = pickAgentOpener(dialogueAgent);
+      dialogueStatus.textContent = "Type a message or tap a prompt below";
+      renderDialogueQuickBtns(dialogueAgent);
       dialogueInput.value = "";
       dialogueBackdrop.classList.add("open");
       chatterPaused = true;
@@ -6446,10 +6657,6 @@
       if (e.key === "Enter") sendDialogue();
       if (e.key === "Escape" || e.key === "`" || e.key === "Backquote") closeDialogue();
     });
-    document.querySelectorAll(".quick-btns button").forEach((btn) => {
-      btn.onclick = () => chat(dialogueAgent, btn.dataset.q, { useDialogue: true });
-    });
-
     document.getElementById("send").onclick = () => {
       const msg = document.getElementById("msg");
       chat(document.getElementById("agent").value, msg.value);
@@ -6960,6 +7167,9 @@
           loadCampWallet();
           loadShopCatalog();
           spreadAllNpcs();
+          mergeLocalBondsIntoCamp();
+          loadCampBonds();
+          setTimeout(scheduleCampArrivalGreetings, 2800);
           setTimeout(() => {
             const t = document.getElementById("status-toast");
             if (t) t.style.opacity = "0.35";

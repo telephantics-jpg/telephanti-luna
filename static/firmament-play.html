@@ -1375,7 +1375,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-mobile-layout-lock";
+    const CAMP_BUILD = "2026-07-06-enter-recenter";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -2316,7 +2316,7 @@
       }
     }
 
-    function resetCampUILayout(opts = {}) {
+    function recenterCampView(opts = {}) {
       const blurInput = opts.blurInput !== false;
       const input = document.getElementById("camp-talk-input");
       const targetSel = document.getElementById("camp-talk-target");
@@ -2328,13 +2328,24 @@
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       document.body.style.top = "0px";
+      document.body.style.left = "0px";
+      document.body.style.transform = "none";
+      document.documentElement.style.transform = "none";
       document.documentElement.classList.remove("camp-input-focus");
+      document.documentElement.style.setProperty("--tilt-x", "0deg");
+      document.documentElement.style.setProperty("--tilt-y", "0deg");
       if (isCampMobile()) minimizeSpeechBubble();
-      const run = () => { resize(); syncUILayout(); };
+      const run = () => {
+        syncUILayout();
+        resize();
+      };
       run();
       requestAnimationFrame(run);
-      setTimeout(run, 120);
+      setTimeout(run, 80);
+      setTimeout(run, 280);
+      setTimeout(run, 520);
     }
+    const resetCampUILayout = recenterCampView;
 
     let campSpreadInit = false;
     function resize() {
@@ -3080,6 +3091,7 @@
       const targetSel = document.getElementById("camp-talk-target");
       const text = (input?.value || "").trim();
       if (!text || campTalkBusy) return;
+      recenterCampView({ blurInput: true });
       campTalkBusy = true;
       bar?.classList.add("busy");
       if (sendBtn) sendBtn.disabled = true;
@@ -3138,7 +3150,7 @@
       campTalkBusy = false;
       bar?.classList.remove("busy");
       if (sendBtn) sendBtn.disabled = false;
-      resetCampUILayout({ collapseSpeech: isCampMobile() });
+      recenterCampView({ blurInput: true });
     }
 
     let conjureBusy = false;
@@ -4772,14 +4784,18 @@
     });
     document.getElementById("camp-talk-send").onclick = () => sendCampTalk();
     document.getElementById("camp-talk-input").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); sendCampTalk(); }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        recenterCampView({ blurInput: true });
+        sendCampTalk();
+      }
     });
     document.getElementById("camp-talk-input")?.addEventListener("focus", () => {
       if (isCampMobile()) minimizeSpeechBubble();
       setTimeout(resize, 50);
     });
     document.getElementById("camp-talk-input")?.addEventListener("blur", () => {
-      setTimeout(() => resetCampUILayout({ blurInput: false }), 80);
+      setTimeout(() => recenterCampView({ blurInput: false }), 80);
     });
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();

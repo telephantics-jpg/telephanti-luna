@@ -1441,7 +1441,7 @@
   <div id="camp-speech-pin" hidden>
     <div class="csp-head">
       <span class="csp-who">Agent</span>
-      <span class="csp-hint">tap bubble or line to pin</span>
+      <span class="csp-hint">drag pinned agent to empower</span>
       <button type="button" id="camp-speech-pin-close" title="Dismiss pinned line">✕</button>
     </div>
     <div class="csp-body"></div>
@@ -1619,7 +1619,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-talk-pin-bubbles";
+    const CAMP_BUILD = "2026-07-06-meditate-drag";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1962,7 +1962,7 @@
     let lastPosSent = 0;
     const otherVisitors = new Map();
     const followChain = { luna: "hermes", hermes: "oracle", oracle: "luna" };
-    const BEHAVIOR_LABELS = { free: "own thing", roam: "roaming", follow: "following", stand: "still", party: "party", visit: "visiting", home: "going home" };
+    const BEHAVIOR_LABELS = { free: "own thing", roam: "roaming", follow: "following", stand: "still", party: "party", visit: "visiting", home: "going home", meditate: "meditating ✦" };
     const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle"]);
 
     const player = {
@@ -2168,6 +2168,7 @@
     }
 
     function shouldSkipSeparation(a, b) {
+      if (a.behavior === "meditate" || b.behavior === "meditate") return true;
       if (a.socializing && b.socializing) return true;
       if (a.gathering && b.gathering) return true;
       if (a.visitTarget === b.id || b.visitTarget === a.id) return true;
@@ -2677,7 +2678,7 @@
           else resetNpcFreeWill(n);
         }
 
-        if (n.behavior === "stand") continue;
+        if (n.behavior === "stand" || n.behavior === "meditate") continue;
         if (n.behavior === "follow") {
           updateNpcFollowOne(n);
           continue;
@@ -2699,6 +2700,7 @@
     }
 
     function updateNpcSocial() {
+      updateAgentMeditations();
       if (npcMode === "stand") { updateCampGuests(); return; }
       if (npcMode === "follow") { updateNpcFollow(); updateCampGuests(); return; }
       if (npcMode === "roam") { updateNpcWander(); updateCampGuests(); return; }
@@ -4387,16 +4389,14 @@
       document.querySelectorAll("#convo-lines .line.pinned-line").forEach((el) => {
         el.classList.remove("pinned-line");
       });
-      const lines = document.querySelectorAll("#convo-lines .line");
-      for (const el of lines) {
-        if (el.dataset.speaker === speaker && el.dataset.text === clean) {
-          el.classList.add("pinned-line");
-          break;
-        }
-      }
+      renderConvoLog();
     }
 
     function unpinCampSpeech() {
+      for (const [speaker] of pinnedSpeech) {
+        const npc = roamersBySpeaker(speaker);
+        if (npc) endAgentMeditation(npc.id);
+      }
       pinnedSpeech.clear();
       hideCampSpeechPin();
     }
@@ -4415,6 +4415,254 @@
       jesus: "peace, then wander",
       dionysus: "crashed the party",
     };
+    const agentMeditation = new Map();
+    const MEDITATION_QUIPS = {
+      luna: [
+        "Moonlight collected. Diplomacy with the dirt: successful.",
+        "I am one with the meadow. The meadow filed a polite complaint.",
+        "Channeling aurora… please hold, diplomatic hold music playing.",
+        "My aura is doing customer service voice right now.",
+      ],
+      hermes: [
+        "Psychic bandwidth upgraded to ludicrous.",
+        "My chakras just sent a push notification.",
+        "I felt that. So did a rock three camps over.",
+        "Ripple courier union approves this meditation break.",
+      ],
+      oracle: [
+        "I foresaw this meditation. Still surprised anyway.",
+        "The future tastes like static and lavender.",
+        "Someone three timelines over just said 'same.'",
+        "Prophecy loading… 47%… ah, forget it, vibes only.",
+      ],
+      caduceus: [
+        "Both snakes are napping. Rare diplomatic win.",
+        "Healing circle active — side effect: extremely chill.",
+        "I prescribe zero thoughts and one deep breath.",
+        "The staff hums. The camp blushes.",
+      ],
+      sentinel: [
+        "BEEP. BOOP. Enlightenment detected.",
+        "Threat level: grass. Grass remains suspicious.",
+        "Scanning… scanning… ah, found inner peace. Weird.",
+        "Prophecy subroutine now running in background.",
+      ],
+      jesus: [
+        "Peace to this patch of ground. It needed it.",
+        "Even the weeds look forgiven from here.",
+        "Love thy neighbor — starting with this circle.",
+        "The light is gentle. So is the joke I almost told.",
+      ],
+      dionysus: [
+        "Wine energy without the spill. Impressive.",
+        "The vines whisper: party later, nap now.",
+        "I crashed this meditation and it thanked me.",
+        "Grapes would be proud. If grapes had opinions.",
+      ],
+      _default: [
+        "Camp energy reorganizing itself around my ego.",
+        "Unexpected enlightenment unlocked. No tutorial.",
+        "The circle hums like it knows a secret.",
+        "I am the main character of this patch of grass.",
+      ],
+    };
+    const MEDITATION_INTROS = {
+      luna: "Luna folds her legs like she's hosting the UN for fireflies.",
+      hermes: "Hermes sits down so hard a psychic ripple apologizes.",
+      oracle: "Oracle meditates with the confidence of someone who peeked at the answers.",
+      caduceus: "Caduceus glows. Both snakes file for vacation time.",
+      sentinel: "Sentinel powers down to 'ominous hum' mode.",
+      jesus: "Jesus sits. The meadow exhales.",
+      dionysus: "Dionysus meditates like it's a afterparty for the soul.",
+    };
+    const MEDITATION_FINALE = {
+      luna: ["Luna opened a diplomatic portal to the cookie table."],
+      hermes: ["Hermes achieved ludicrous speed — psychically, legally distinct."],
+      oracle: ["Oracle saw the ending. Spoiler: snacks."],
+      caduceus: ["Caduceus healed the entire vibe of camp in one exhale."],
+      sentinel: ["Sentinel logged: universe normal, suspiciously nice."],
+      jesus: ["A soft light. A softer punchline. Peace wins."],
+      dionysus: ["Dionysus turned the circle into a dance floor. Briefly. Sacredly."],
+    };
+
+    function roamersBySpeaker(speaker) {
+      const s = (speaker || "").trim();
+      if (!s) return null;
+      return allRoamers().find((n) => n.name === s || n.id === s.toLowerCase()) || null;
+    }
+
+    function isAgentSpeechPinned(npc) {
+      return !!(npc && pinnedSpeech.has(npc.name));
+    }
+
+    function pickMeditationGlyphs(id) {
+      const map = {
+        luna: ["🌙", "✨", "🕊"],
+        hermes: ["⚡", "〰", "📡"],
+        oracle: ["🔮", "👁", "∞"],
+        caduceus: ["🐍", "☤", "💚"],
+        sentinel: ["🛡", "◎", "▣"],
+        jesus: ["✝", "☀", "🕊"],
+        dionysus: ["🍷", "🍇", "🎭"],
+        michael: ["✦", "⚔", "☁"],
+        gabriel: ["📯", "✦", "☁"],
+        raphael: ["💚", "✦", "☁"],
+        uriel: ["🔥", "✦", "☁"],
+      };
+      return map[id] || ["✦", "○", "◇"];
+    }
+
+    function beginAgentMeditation(npc) {
+      if (!npc) return;
+      npc.behavior = "meditate";
+      npc.behaviorTimer = 999999;
+      npc.idle = 999999;
+      npc.socializing = false;
+      npc.gathering = false;
+      const vibe = ["cosmic", "silly", "prophetic", "groovy", "chaotic"][Math.floor(Math.random() * 5)];
+      agentMeditation.set(npc.id, {
+        wx: camp.x + npc.x,
+        wy: camp.y + npc.y,
+        power: 10,
+        started: Date.now(),
+        lastQuip: Date.now(),
+        lastSurprise: Date.now(),
+        vibe,
+        spin: Math.random() * Math.PI * 2,
+        glyphs: pickMeditationGlyphs(npc.id),
+      });
+      const moods = { luna: "love", hermes: "think", oracle: "neutral", caduceus: "happy", sentinel: "alert", jesus: "love", dionysus: "happy" };
+      setAgentMood(npc.id, moods[npc.id] || "happy");
+      const intro = MEDITATION_INTROS[npc.id]
+        || `${npc.name} sits down like the universe owes them an explanation.`;
+      pushCampLine(npc.name, intro, 20, npc.mood, { fromLocal: true, keepDock: isCampMobile() });
+      psychicRipples.push({ x: camp.x + npc.x, y: camp.y + npc.y, t: Date.now(), color: npc.color });
+    }
+
+    function endAgentMeditation(agentId) {
+      agentMeditation.delete(agentId);
+      const npc = allRoamers().find((n) => n.id === agentId);
+      if (npc && npc.behavior === "meditate") resetNpcFreeWill(npc, "roam");
+    }
+
+    function triggerMeditationSurprise(npc, med) {
+      const roll = Math.random();
+      if (roll < 0.22) {
+        psychicRipples.push({ x: med.wx, y: med.wy, t: Date.now(), color: npc.color });
+      } else if (roll < 0.38) {
+        med.vibe = ["cosmic", "silly", "prophetic", "groovy", "chaotic"][Math.floor(Math.random() * 5)];
+        showToast(`${npc.name} shifted to ${med.vibe} meditation energy`);
+      } else if (roll < 0.52) {
+        const moods = ["think", "happy", "alert", "love", "neutral", "flirt"];
+        setAgentMood(npc.id, moods[Math.floor(Math.random() * moods.length)]);
+      } else if (roll < 0.68 && med.power > 18) {
+        const others = allRoamers().filter((n) => n.id !== npc.id && !n.leaving && n.behavior !== "meditate");
+        if (others.length) {
+          const v = others[Math.floor(Math.random() * others.length)];
+          const lines = [
+            `${v.name} felt a weird tingle from ${npc.name}'s circle.`,
+            `${npc.name}'s meditation just subscribed ${v.name} to astral notifications.`,
+            `${v.name}: why am I suddenly craving aurora-shaped snacks?`,
+            `${v.name} glanced over. ${npc.name}'s circle winked back.`,
+          ];
+          pushCampLine(v.name, lines[Math.floor(Math.random() * lines.length)], 14, "think");
+        }
+      } else if (roll < 0.82) {
+        med.spin += Math.PI * (0.35 + Math.random() * 0.5);
+        med.glyphs = pickMeditationGlyphs(npc.id);
+      } else {
+        const wobble = (Math.random() - 0.5) * 6;
+        npc.x += wobble;
+        npc.y += wobble * 0.6;
+        clampNpc(npc);
+      }
+    }
+
+    function triggerMeditationMilestone(npc, med, milestone) {
+      const lines = {
+        25: `${npc.name}'s circle hums louder — empowerment at 25%.`,
+        50: `${npc.name} levitates… emotionally. Circle at half power.`,
+        75: `The meadow flinches. ${npc.name} is 75% cosmic battery.`,
+        100: `FULL POWER. ${npc.name} achieved whatever the opposite of burnout is.`,
+      };
+      pushCampLine("Camp", lines[milestone], 16, "happy");
+      psychicRipples.push({ x: med.wx, y: med.wy, t: Date.now(), color: npc.color });
+      psychicBoostUntil = Date.now() + 2800;
+      if (milestone === 100) {
+        const pool = MEDITATION_FINALE[npc.id] || [`${npc.name} opened a portal to the snack dimension.`];
+        pushCampLine(npc.name, pool[0], 28, "love", { fromLocal: true });
+      }
+    }
+
+    function updateAgentMeditations() {
+      const now = Date.now();
+      for (const [id, med] of agentMeditation) {
+        const npc = allRoamers().find((n) => n.id === id);
+        if (!npc) { agentMeditation.delete(id); continue; }
+        med.power = Math.min(100, med.power + 0.14);
+        med.wx = camp.x + npc.x;
+        med.wy = camp.y + npc.y;
+        npc.tx = npc.x;
+        npc.ty = npc.y;
+        med.spin += 0.018;
+
+        if (now - med.lastQuip > 8500 + Math.random() * 12000) {
+          med.lastQuip = now;
+          const pool = MEDITATION_QUIPS[npc.id] || MEDITATION_QUIPS._default;
+          const quip = pool[Math.floor(Math.random() * pool.length)];
+          pushCampLine(npc.name, quip, 22, npc.mood, { keepDock: isCampMobile() });
+          npc.line = quip;
+          speechHold.set(npc.name, { line: quip, until: now + 24000 });
+        }
+        if (now - med.lastSurprise > 4500 + Math.random() * 8000) {
+          med.lastSurprise = now;
+          triggerMeditationSurprise(npc, med);
+        }
+        [25, 50, 75, 100].forEach((milestone) => {
+          if (med.power >= milestone && !med[`hit${milestone}`]) {
+            med[`hit${milestone}`] = true;
+            triggerMeditationMilestone(npc, med, milestone);
+          }
+        });
+      }
+    }
+
+    function drawMeditationEmpowerCircle(sx, sy, color, med, t) {
+      const power = med.power / 100;
+      const baseR = 32 + power * 24;
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3.2 + med.spin);
+      const vibeHue = med.vibe === "chaotic" ? Math.sin(t * 5) * 0.3 : 0;
+      const g = ctx.createRadialGradient(sx, sy, 4, sx, sy, baseR * 1.9);
+      g.addColorStop(0, color + "66");
+      g.addColorStop(0.45, color + "28");
+      g.addColorStop(1, color + "00");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(sx, sy, baseR * 1.9, 0, Math.PI * 2);
+      ctx.fill();
+      for (let ring = 0; ring < 3; ring++) {
+        const r = baseR * (0.52 + ring * 0.2) + pulse * 7 + vibeHue * 4;
+        ctx.strokeStyle = color + (ring === 0 ? "dd" : "55");
+        ctx.lineWidth = ring === 0 ? 2.8 : 1.3;
+        ctx.setLineDash(ring === 1 ? [5, 9] : []);
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, med.spin + ring * 0.35, med.spin + ring * 0.35 + Math.PI * 1.75);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      med.glyphs.forEach((glyph, i) => {
+        const a = med.spin * 2.2 + (i / med.glyphs.length) * Math.PI * 2;
+        const gr = baseR * 0.72 + Math.sin(t * 4 + i) * 6;
+        ctx.font = `${11 + power * 10}px Segoe UI`;
+        ctx.textAlign = "center";
+        ctx.fillText(glyph, sx + Math.cos(a) * gr, sy + Math.sin(a) * gr * 0.42 + 5);
+      });
+      ctx.font = "bold 8px Segoe UI";
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      ctx.fillText(`✦ ${Math.floor(med.power)}%`, sx, sy + baseR + 12);
+    }
+
     const ISO_SCALE = 5.4;
     const ISO_COS = 0.8660254;
     const ISO_SIN = 0.5;
@@ -4653,26 +4901,39 @@
 
     function drawAgentAvatar(n, wx, wy) {
       if (n.insideHouse) return;
-      const s = worldToScreen(wx, wy);
+      const med = agentMeditation.get(n.id);
       const t = Date.now() / 1000;
+      const floatY = med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) : 0;
+      const s = worldToScreen(wx, wy);
+      const cy = s.y + floatY;
+      if (med) {
+        drawMeditationEmpowerCircle(s.x, s.y + 14, n.color || AGENT_COLORS[n.id] || "#67e8f9", med, t);
+      }
       const dragging = dragTarget?.kind === "agent" && dragTarget.ref === n;
       if (dragging) {
-        ctx.strokeStyle = n.color;
+        ctx.strokeStyle = isAgentSpeechPinned(n) ? "#fde68a" : n.color;
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
-        ctx.arc(s.x, s.y, 42, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, 42, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
+      }
+      if (isAgentSpeechPinned(n)) {
+        ctx.strokeStyle = "rgba(253, 230, 138, 0.75)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(s.x, cy, 36, 0, Math.PI * 2);
+        ctx.stroke();
       }
       if (speakingAgentId === n.id) {
         ctx.strokeStyle = n.color;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(s.x, s.y, 40, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, 40, 0, Math.PI * 2);
         ctx.stroke();
       }
-      drawAvatarShadow(s.x, s.y, 20);
+      drawAvatarShadow(s.x, cy, 20);
       const drawers = {
         luna: drawLunaFigure,
         hermes: drawHermesFigure,
@@ -4686,33 +4947,33 @@
         raphael: drawHeavenFigure,
         uriel: drawHeavenFigure,
       };
-      (drawers[n.id] || (n.sprite === "heaven" ? drawHeavenFigure : drawLunaFigure))(s.x, s.y, t);
+      (drawers[n.id] || (n.sprite === "heaven" ? drawHeavenFigure : drawLunaFigure))(s.x, cy, t);
       if (n.mood) {
         const m = n.mood.slice(0, 10);
         ctx.font = "bold 9px Segoe UI";
         const mw = ctx.measureText(m).width;
         ctx.fillStyle = "rgba(8, 14, 24, 0.92)";
         ctx.beginPath();
-        ctx.roundRect(s.x - mw / 2 - 5, s.y - 58, mw + 10, 14, 5);
+        ctx.roundRect(s.x - mw / 2 - 5, cy - 58, mw + 10, 14, 5);
         ctx.fill();
         ctx.fillStyle = "#a7f3d0";
         ctx.textAlign = "center";
-        ctx.fillText(m, s.x, s.y - 48);
+        ctx.fillText(m, s.x, cy - 48);
       }
       ctx.font = "bold 12px Segoe UI";
       ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
-      ctx.fillText(n.name, s.x, s.y - 62);
+      ctx.fillText(n.name, s.x, cy - 62);
       const quip = AGENT_QUIPS[n.id];
       if (quip) {
         ctx.font = "italic 9px Segoe UI";
         ctx.fillStyle = "#94a3b8";
-        ctx.fillText(quip, s.x, s.y + 30);
+        ctx.fillText(quip, s.x, cy + 30);
       }
       const tag = npcBehaviorLabel(n);
       ctx.font = "8px Segoe UI";
-      ctx.fillStyle = "#64748b";
-      ctx.fillText(tag, s.x, s.y + 42);
+      ctx.fillStyle = med ? (n.color || "#67e8f9") : "#64748b";
+      ctx.fillText(med ? `${tag} · ${Math.floor(med.power)}%` : tag, s.x, cy + 42);
     }
     let speakingAgentId = null;
     let speakingTimer = null;
@@ -5339,7 +5600,8 @@
       if (target.kind === "prop") {
         target.ref.x = rx;
         target.ref.y = ry;
-      } else {
+      } else if (target.kind === "agent") {
+        agentMeditation.delete(target.ref.id);
         target.ref.x = rx;
         target.ref.y = ry;
         target.ref.tx = rx;
@@ -5347,24 +5609,43 @@
         target.ref.idle = 50;
         target.ref.behavior = "stand";
         target.ref.behaviorTimer = 80;
+      } else {
+        target.ref.x = rx;
+        target.ref.y = ry;
       }
+    }
+
+    function startAgentDrag(npc, sx, sy, pointerId, fromPin = false) {
+      dragTarget = { kind: "agent", ref: npc, moved: false, startSx: sx, startSy: sy, pointerId, fromPin };
+      canvas.setPointerCapture(pointerId);
+      canvas.classList.add("dragging");
+      showToast(fromPin
+        ? `Dragging ${npc.name} — drop to meditate & empower ✦`
+        : `Grabbed ${npc.name} — drag to reposition`);
     }
 
     function onCampPointerDown(ev) {
       const { sx, sy } = campPointerPos(ev);
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       if (bubbleHit?.speaker) {
+        const npc = roamersBySpeaker(bubbleHit.speaker);
+        if (pinnedSpeech.has(bubbleHit.speaker) && npc) {
+          startAgentDrag(npc, sx, sy, ev.pointerId, true);
+          return;
+        }
         pinCampSpeech(bubbleHit.speaker, bubbleHit.line, bubbleHit.mood, {
           color: bubbleHit.color,
           agentId: bubbleHit.agentId,
         });
-        showToast(pinnedSpeech.has(bubbleHit.speaker)
-          ? `Pinned ${bubbleHit.speaker} — tap ✕ when done reading`
-          : "Unpinned");
+        showToast(`Pinned ${bubbleHit.speaker} — drag bubble or agent to move & empower`);
         return;
       }
       const hit = hitTestCamp(sx, sy);
       if (hit) {
+        if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref)) {
+          startAgentDrag(hit.ref, sx, sy, ev.pointerId, true);
+          return;
+        }
         dragTarget = { ...hit, moved: false, startSx: sx, startSy: sy, pointerId: ev.pointerId };
         canvas.setPointerCapture(ev.pointerId);
         canvas.classList.add("dragging");
@@ -5411,8 +5692,26 @@
             }
           }, 300);
         } else if (dragTarget.kind === "agent") {
-          if (dragTarget.ref.id === "luna") openLunaEmbed();
+          if (isAgentSpeechPinned(dragTarget.ref)) {
+            showToast(`Drag ${dragTarget.ref.name} to a spot — they'll meditate & power up`);
+          } else if (dragTarget.ref.id === "luna") openLunaEmbed();
           else openDialogue(dragTarget.ref.id);
+        }
+      } else if (dragTarget.kind === "agent") {
+        if (dragTarget.fromPin || isAgentSpeechPinned(dragTarget.ref)) {
+          beginAgentMeditation(dragTarget.ref);
+          const pinLine = pinnedSpeech.get(dragTarget.ref.name)?.line;
+          if (pinLine) {
+            speechHold.set(dragTarget.ref.name, { line: pinLine, until: Date.now() + 86400000 });
+          }
+          showToast(`${dragTarget.ref.name} meditating — empowerment circle rising ✦`);
+          recordCampMemory({
+            kind: "moment",
+            text: `${myVisitorName || player.name || "You"} placed ${dragTarget.ref.name} in an empowerment circle`,
+          });
+        } else {
+          resetNpcFreeWill(dragTarget.ref, "roam");
+          showToast(`${dragTarget.ref.name} repositioned`);
         }
       } else if (dragTarget.kind === "prop") {
         showToast(`${dragTarget.ref.name} placed`);
@@ -5421,7 +5720,7 @@
           prop_id: dragTarget.ref.id,
           text: `${myVisitorName || player.name || "You"} moved ${dragTarget.ref.name} at camp`,
         });
-      } else {
+      } else if (dragTarget.kind === "structure") {
         showToast(`${dragTarget.ref.name} repositioned`);
       }
       dragTarget = null;
@@ -5724,6 +6023,7 @@
         color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
         agentId: agent?.id || "",
       });
+      if (agent) showToast(`Pinned ${entry.speaker} — drag them to meditate & empower`);
     });
     document.getElementById("now-speaking")?.addEventListener("click", () => {
       const el = document.getElementById("now-speaking");

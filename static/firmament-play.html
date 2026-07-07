@@ -466,11 +466,137 @@
       border-color: #7dd3fc;
       box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
     }
-    .dock-compact .dock-icon.music-btn.active {
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+    .dock-compact .dock-icon.music-btn-hero {
+      width: 58px;
+      height: 58px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      font-size: 1.25rem;
+      animation: music-btn-idle 2.4s ease-in-out infinite;
+    }
+    .dock-compact .dock-icon.music-btn-hero .music-lbl {
+      font-size: 0.46rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      line-height: 1;
+      color: #e0f2fe;
+    }
+    .dock-compact .dock-icon.music-btn.active,
+    .dock-compact .dock-icon.music-btn-hero.active {
+      box-shadow: 0 0 22px rgba(56, 189, 248, 0.65);
       border-color: #e0f2fe;
+      animation: music-btn-play 1.1s ease-in-out infinite;
+    }
+    @keyframes music-btn-idle {
+      0%, 100% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.25); }
+      50% { box-shadow: 0 0 18px rgba(56, 189, 248, 0.45); }
+    }
+    @keyframes music-btn-play {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(56, 189, 248, 0.5); }
+      50% { transform: scale(1.06); box-shadow: 0 0 28px rgba(56, 189, 248, 0.75); }
     }
     .dock-compact .dock-icon:active { transform: scale(0.94); }
+    #camp-music-now {
+      display: none;
+      width: 100%;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      margin-top: 6px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, rgba(12, 74, 110, 0.97), rgba(2, 132, 199, 0.92), rgba(14, 165, 233, 0.88));
+      border: 2px solid #7dd3fc;
+      box-shadow: 0 0 22px rgba(56, 189, 248, 0.45);
+      pointer-events: auto;
+      animation: camp-music-now-glow 2s ease-in-out infinite alternate;
+    }
+    #camp-music-now.visible { display: flex; }
+    #camp-music-now.pending {
+      border-color: #fde68a;
+      background: linear-gradient(90deg, rgba(120, 53, 15, 0.95), rgba(2, 132, 199, 0.9));
+      animation: camp-music-pulse 1.4s ease-in-out infinite;
+    }
+    #camp-music-now .camp-music-now-meta {
+      display: flex; align-items: baseline; gap: 8px; flex: 1; min-width: 0;
+      line-height: 1.15;
+    }
+    #camp-music-now .camp-music-now-badge {
+      font-size: 0.62rem; font-weight: 900; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #0f172a;
+      background: #fde68a; padding: 3px 7px; border-radius: 6px; flex-shrink: 0;
+    }
+    #camp-music-now.pending .camp-music-now-badge {
+      background: #fbbf24; color: #1c1917;
+      content: "TAP";
+    }
+    #camp-music-now .camp-music-now-artist {
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em;
+      text-transform: uppercase; color: #e0f2fe; flex-shrink: 0;
+    }
+    #camp-music-now .camp-music-now-title {
+      font-size: 0.92rem; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      min-width: 0;
+    }
+    #camp-music-now .camp-music-now-ctl {
+      border: 1px solid rgba(224, 242, 254, 0.5);
+      background: rgba(15, 23, 42, 0.55); color: #f8fafc;
+      border-radius: 8px; padding: 6px 10px; font-size: 0.9rem;
+      cursor: pointer; flex-shrink: 0;
+    }
+    @keyframes camp-music-now-glow {
+      from { box-shadow: 0 0 14px rgba(56, 189, 248, 0.35); }
+      to { box-shadow: 0 0 28px rgba(56, 189, 248, 0.6); }
+    }
+    body.camp-music-on::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      z-index: 60;
+      background: linear-gradient(90deg, #0369a1, #38bdf8, #7dd3fc, #38bdf8, #0369a1);
+      background-size: 200% 100%;
+      animation: camp-music-edge 3s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes camp-music-edge {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    .camp-music-eq, .camp-music-now-eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .camp-music-eq span, .camp-music-now-eq span {
+      display: block;
+      width: 4px;
+      min-height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #e0f2fe, #0284c7);
+      animation: camp-eq-bounce 0.75s ease-in-out infinite;
+    }
+    .camp-music-eq span:nth-child(1), .camp-music-now-eq span:nth-child(1) { animation-delay: 0s; }
+    .camp-music-eq span:nth-child(2), .camp-music-now-eq span:nth-child(2) { animation-delay: 0.12s; }
+    .camp-music-eq span:nth-child(3), .camp-music-now-eq span:nth-child(3) { animation-delay: 0.24s; }
+    .camp-music-eq span:nth-child(4), .camp-music-now-eq span:nth-child(4) { animation-delay: 0.36s; }
+    .camp-music-now-eq span:nth-child(5) { animation-delay: 0.48s; }
+    @keyframes camp-eq-bounce {
+      0%, 100% { height: 6px; opacity: 0.55; }
+      50% { height: 22px; opacity: 1; }
+    }
+    body:not(.camp-music-on) .camp-music-eq span,
+    body.camp-music-pending .camp-music-eq span,
+    body.camp-music-pending .camp-music-now-eq span {
+      animation-play-state: paused;
+      height: 8px;
+      opacity: 0.45;
+    }
     #camp-music-bar {
       position: fixed;
       top: auto;
@@ -481,35 +607,34 @@
       z-index: 12;
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 8px;
-      border-radius: 10px;
-      background: rgba(8, 18, 36, 0.94);
-      border: 1px solid rgba(56, 189, 248, 0.45);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, rgba(8, 18, 36, 0.97), rgba(12, 74, 110, 0.92));
+      border: 2px solid rgba(56, 189, 248, 0.65);
+      box-shadow: 0 4px 18px rgba(56, 189, 248, 0.25);
       pointer-events: auto;
       max-width: none;
       min-height: 0;
     }
     #camp-music-bar[hidden] { display: none !important; }
-    #camp-music-bar .camp-music-eq { display: none; }
     #camp-music-bar .camp-music-meta {
-      display: flex; align-items: baseline; gap: 6px;
+      display: flex; align-items: baseline; gap: 8px;
       line-height: 1.1; min-width: 0; flex: 1;
     }
     #camp-music-bar .camp-music-artist {
-      font-size: 0.58rem; font-weight: 800; letter-spacing: 0.04em;
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em;
       text-transform: uppercase; color: #7dd3fc; flex-shrink: 0;
     }
     #camp-music-bar .camp-music-title {
-      font-size: 0.72rem; font-weight: 600; color: #f8fafc;
+      font-size: 0.88rem; font-weight: 700; color: #f8fafc;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       min-width: 0;
     }
     #camp-music-bar button, #camp-music-bar a {
-      border: 1px solid rgba(103, 232, 249, 0.35);
+      border: 1px solid rgba(103, 232, 249, 0.45);
       background: rgba(15, 23, 42, 0.9); color: #e0f2fe;
-      border-radius: 7px; padding: 4px 7px; font-size: 0.72rem;
+      border-radius: 8px; padding: 6px 10px; font-size: 0.82rem;
       cursor: pointer; text-decoration: none; flex-shrink: 0;
     }
     #camp-music-bar button:active { transform: scale(0.94); }
@@ -531,24 +656,25 @@
     #camp-music-prompt {
       position: fixed;
       left: 50%;
-      top: calc(env(safe-area-inset-top, 0px) + 12px);
+      top: calc(env(safe-area-inset-top, 0px) + 56px);
       transform: translateX(-50%);
       z-index: 45;
       display: none;
       align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
+      gap: 10px;
+      padding: 14px 24px;
       border-radius: 999px;
-      border: 2px solid #7dd3fc;
-      background: linear-gradient(135deg, #0c4a6e, #0369a1);
-      color: #f0f9ff;
-      font-size: 0.95rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
+      border: 3px solid #fde68a;
+      background: linear-gradient(135deg, #9f1239, #0369a1);
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 0.03em;
       cursor: pointer;
-      box-shadow: 0 4px 24px rgba(56, 189, 248, 0.45);
-      animation: camp-music-pulse 1.6s ease-in-out infinite;
+      box-shadow: 0 6px 32px rgba(251, 191, 36, 0.5);
+      animation: camp-music-pulse 1.2s ease-in-out infinite;
       pointer-events: auto;
+      text-transform: uppercase;
     }
     #camp-music-prompt.visible { display: flex; }
     @keyframes camp-music-pulse {
@@ -964,9 +1090,11 @@
       #camp-music-bar {
         left: 6px; right: 6px;
         bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 2px);
-        padding: 3px 6px;
+        padding: 7px 10px;
       }
-      #camp-music-bar .camp-music-title { font-size: 0.68rem; }
+      #camp-music-bar .camp-music-title { font-size: 0.8rem; }
+      #camp-music-now .camp-music-now-title { font-size: 0.82rem; }
+      .dock-compact .dock-icon.music-btn-hero { width: 54px; height: 54px; }
       #camp-keyboard-reply .ckr-who {
         color: #67e8f9;
         font-weight: 800;
@@ -1541,6 +1669,16 @@
     </div>
     <div id="unreal-hint">PC &amp; phone share this camp — free Ollama/aether brains, memory, and chatter. Unreal 3D is optional on your PC.</div>
     <div id="camp-life-status" class="live">Waking Luna, Hermes, Oracle &amp; Caduceus…</div>
+    <div id="camp-music-now" aria-live="polite">
+      <div class="camp-music-now-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="camp-music-now-meta">
+        <span class="camp-music-now-badge" id="camp-music-now-badge">ON AIR</span>
+        <span class="camp-music-now-artist">Telephantix</span>
+        <span class="camp-music-now-title" id="camp-music-now-title">Flowing Free</span>
+      </div>
+      <button type="button" class="camp-music-now-ctl" id="camp-music-now-mute" title="Mute jukebox">🔇</button>
+      <button type="button" class="camp-music-now-ctl" id="camp-music-now-next" title="Next track">⏭</button>
+    </div>
   </header>
   <div class="hud">
     <div id="launcher-dock"></div>
@@ -1600,7 +1738,7 @@
       <button type="button" id="camp-talk-send" title="Send">➤</button>
     </div>
     <div class="dock-compact">
-      <button type="button" class="dock-icon music-btn" id="btn-camp-music" title="Telephantix camp music — Flowing Free &amp; more">🎵</button>
+      <button type="button" class="dock-icon music-btn music-btn-hero" id="btn-camp-music" title="Telephantix camp music — Flowing Free &amp; more"><span class="music-glyph">🎵</span><span class="music-lbl">MUSIC</span></button>
       <button type="button" class="dock-icon" id="btn-lucid-tv" title="Lucid Mind TV — real mysterious feeds" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
       <button type="button" class="dock-icon" id="btn-camp-shop" title="Aurora shop — spend tokens" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917">✦</button>
@@ -1612,12 +1750,12 @@
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
       <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
-    <div id="dock-tip" class="dock-tip">🎵 Telephantix music · talk · 🍷 Dionysus · drag pinned agents to empower</div>
+    <div id="dock-tip" class="dock-tip">🎵 Tap MUSIC for Telephantix · talk · 🍷 Dionysus · drag pinned agents to empower</div>
   </footer>
   <div id="camp-music-bar" hidden aria-live="polite">
-    <div class="camp-music-eq" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="camp-music-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
     <div class="camp-music-meta">
-      <span class="camp-music-artist">Telephantix</span>
+      <span class="camp-music-artist">♫ ON AIR</span>
       <span class="camp-music-title" id="camp-music-title">Flowing Free</span>
     </div>
     <button type="button" id="camp-music-mute" title="Mute jukebox">🔇 MUTE</button>
@@ -1740,7 +1878,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-audio-fix";
+    const CAMP_BUILD = "2026-07-07-camp-music-visible";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -4491,13 +4629,30 @@
 
     function updateCampMusicPrompt() {
       const prompt = document.getElementById("camp-music-prompt");
-      if (!prompt) return;
+      const nowBar = document.getElementById("camp-music-now");
+      const nowBadge = document.getElementById("camp-music-now-badge");
+      const nowTitle = document.getElementById("camp-music-now-title");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
-      const show = campMusicOn && (campMusicPlayPending || campMusicMuted);
-      prompt.classList.toggle("visible", show);
-      prompt.textContent = campMusicMuted
-        ? "🔊 Tap to hear Telephantix"
-        : `🔊 Tap to play — ${track?.title || "Telephantix"}`;
+      const pending = campMusicOn && (campMusicPlayPending || campMusicMuted);
+      if (prompt) {
+        prompt.classList.toggle("visible", pending);
+        prompt.textContent = campMusicMuted
+          ? "🔊 Tap to hear Telephantix"
+          : `🔊 Tap to play — ${track?.title || "Telephantix"}`;
+      }
+      if (nowBar) {
+        nowBar.classList.toggle("visible", campMusicOn);
+        nowBar.classList.toggle("pending", pending);
+      }
+      if (nowBadge) {
+        nowBadge.textContent = pending ? "TAP TO HEAR" : "ON AIR";
+      }
+      if (nowTitle && track) {
+        nowTitle.textContent = campMusicBoost
+          ? `${track.title} · BASS BLOOM`
+          : track.title;
+      }
+      document.body.classList.toggle("camp-music-pending", pending);
     }
 
     function campMusicPlaySucceeded() {
@@ -4685,25 +4840,35 @@
       const titleEl = document.getElementById("camp-music-title");
       const openEl = document.getElementById("camp-music-open");
       const dockBtn = document.getElementById("btn-camp-music");
+      const dockGlyph = dockBtn?.querySelector(".music-glyph");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
+      const trackLabel = campMusicBoost ? `${track.title} · BASS BLOOM` : track.title;
       if (bar) bar.hidden = !campMusicOn;
-      if (titleEl) {
-        titleEl.textContent = campMusicBoost ? `${track.title} · BASS BLOOM` : track.title;
-      }
+      if (titleEl) titleEl.textContent = trackLabel;
       if (openEl) openEl.href = `https://www.youtube.com/watch?v=${track.id}`;
       if (dockBtn) {
         dockBtn.classList.toggle("active", campMusicOn);
-        dockBtn.textContent = campMusicOn ? "🎶" : "🎵";
+        if (dockGlyph) dockGlyph.textContent = campMusicOn ? "🎶" : "🎵";
         dockBtn.title = campMusicOn
           ? `Telephantix ON — ${track.title}`
           : "Telephantix jukebox — Flowing Free & more";
       }
-      const muteBtn = document.getElementById("camp-music-mute");
       const muteLabel = campMusicMuted ? "🔊 UNMUTE" : "🔇 MUTE";
-      if (muteBtn) {
-        muteBtn.textContent = muteLabel;
+      for (const id of ["camp-music-mute", "camp-music-now-mute"]) {
+        const muteBtn = document.getElementById(id);
+        if (!muteBtn) continue;
+        muteBtn.textContent = id === "camp-music-now-mute"
+          ? (campMusicMuted ? "🔊" : "🔇")
+          : muteLabel;
         muteBtn.classList.toggle("muted", campMusicMuted);
         muteBtn.title = campMusicMuted ? "Turn jukebox sound back on" : "Mute jukebox";
+      }
+      const tip = document.getElementById("dock-tip");
+      if (tip) {
+        tip.textContent = campMusicOn
+          ? `🎶 ${track.title} ON AIR · talk · 🍷 Dionysus · drag pinned agents`
+          : "🎵 Tap MUSIC for Telephantix · talk · 🍷 Dionysus · drag pinned agents";
+        tip.classList.toggle("flash", campMusicOn);
       }
       document.body.classList.toggle("camp-music-on", campMusicOn);
       updateCampMusicPrompt();
@@ -4780,16 +4945,27 @@
 
     function drawMusicWaves(wx, wy) {
       if (!campMusicOn) return;
-      campMusicPhase += 0.04;
+      campMusicPhase += 0.05;
       const s = worldToScreen(wx, wy);
-      for (let i = 0; i < 3; i++) {
-        const rad = 22 + i * 12 + Math.sin(campMusicPhase + i) * 3;
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.28 - i * 0.07})`;
-        ctx.lineWidth = 1.6;
+      const beam = ctx.createLinearGradient(s.x, s.y - 80, s.x, s.y - 20);
+      beam.addColorStop(0, "rgba(56, 189, 248, 0)");
+      beam.addColorStop(0.5, `rgba(125, 211, 252, ${0.22 + Math.sin(campMusicPhase) * 0.08})`);
+      beam.addColorStop(1, "rgba(56, 189, 248, 0)");
+      ctx.fillStyle = beam;
+      ctx.fillRect(s.x - 8, s.y - 82, 16, 64);
+      for (let i = 0; i < 5; i++) {
+        const rad = 18 + i * 14 + Math.sin(campMusicPhase + i * 0.8) * 5;
+        const alpha = 0.42 - i * 0.06;
+        ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
+        ctx.lineWidth = 2.2 - i * 0.2;
         ctx.beginPath();
-        ctx.arc(s.x, s.y - 12, rad, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y - 14, rad, 0, Math.PI * 2);
         ctx.stroke();
       }
+      ctx.font = "bold 9px Segoe UI";
+      ctx.fillStyle = "#7dd3fc";
+      ctx.textAlign = "center";
+      ctx.fillText("♫ ON AIR", s.x, s.y - 48);
     }
 
     function drawTrippyOrbs(sx, sy, _color, t) {
@@ -6274,9 +6450,14 @@
         ctx.font = "9px Segoe UI";
         ctx.fillText("drop anywhere", s.x, s.y + 32);
       } else if (nearPlayer) {
-        ctx.fillStyle = "#6ee7b7";
+        ctx.fillStyle = prop.id === "stereo" && campMusicOn ? "#7dd3fc" : "#6ee7b7";
         ctx.font = "9px Segoe UI";
-        ctx.fillText(prop.id === "ouija" ? "tap — open veil" : "tap to use", s.x, s.y + 32);
+        const nearTxt = prop.id === "ouija"
+          ? "tap — open veil"
+          : prop.id === "stereo"
+            ? (campMusicOn ? "♫ Telephantix playing" : "tap — start jukebox")
+            : "tap to use";
+        ctx.fillText(nearTxt, s.x, s.y + 32);
       } else {
         ctx.fillStyle = "#64748b";
         ctx.font = "8px Segoe UI";
@@ -6608,8 +6789,14 @@
     document.getElementById("btn-camp-music").onclick = () => toggleCampMusic();
     document.getElementById("camp-music-prompt").onclick = () => resumeCampMusicPlayback();
     document.getElementById("camp-music-mute").onclick = () => toggleCampJukeboxMute();
+    document.getElementById("camp-music-now-mute").onclick = () => toggleCampJukeboxMute();
+    document.getElementById("camp-music-now").onclick = (ev) => {
+      if (ev.target.closest("button")) return;
+      if (campMusicPlayPending || campMusicMuted) resumeCampMusicPlayback();
+    };
     document.getElementById("camp-music-stop").onclick = () => toggleCampMusic();
     document.getElementById("camp-music-next").onclick = () => nextCampMusicTrack();
+    document.getElementById("camp-music-now-next").onclick = () => nextCampMusicTrack();
     document.getElementById("btn-lucid-tv").onclick = () => openLucidTv();
     document.getElementById("btn-camp-shop").onclick = () => openCampShop();
     document.getElementById("camp-token-badge").onclick = () => openCampShop();

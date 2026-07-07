@@ -346,6 +346,35 @@
       cursor: pointer; flex-shrink: 0; touch-action: manipulation;
     }
     #convo-dock-toggle:active { transform: scale(0.94); }
+    #convo-mobile-hide {
+      display: none;
+      pointer-events: auto;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.92); color: #94a3b8;
+      border-radius: 8px; width: 28px; height: 26px;
+      font-size: 0.78rem; cursor: pointer; flex-shrink: 0;
+      touch-action: manipulation;
+    }
+    #camp-chatter-fab {
+      position: fixed;
+      z-index: 16;
+      right: max(10px, env(safe-area-inset-right, 0px));
+      top: calc(var(--header-h) + 8px);
+      display: none;
+      align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 999px;
+      border: 2px solid rgba(103, 232, 249, 0.5);
+      background: rgba(4, 10, 18, 0.94);
+      color: #a5f3fc; font-size: 1rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      cursor: pointer; touch-action: manipulation;
+    }
+    #camp-chatter-fab.visible { display: flex; }
+    body.chatter-hidden #convo-log { display: none !important; }
+    .dock-compact .dock-icon.chatter-btn.active {
+      border-color: #67e8f9;
+      box-shadow: 0 0 12px rgba(103, 232, 249, 0.35);
+    }
     #now-speaking {
       flex-shrink: 0; padding: 5px 8px;
       background: rgba(103, 232, 249, 0.08);
@@ -1589,10 +1618,26 @@
       }
       body.camp-focus #convo-log #convo-lines,
       body.camp-focus #convo-log .sub,
-      body.camp-focus #convo-log header .convo-head-row h3,
-      body.camp-focus #convo-log #convo-dock-toggle {
+      body.camp-focus #convo-log header .convo-head-row h3 {
         display: none !important;
       }
+      body.camp-focus.chatter-expanded #convo-log {
+        max-height: min(44vh, 300px) !important;
+        z-index: 18;
+      }
+      body.camp-focus.chatter-expanded #convo-log #convo-lines,
+      body.camp-focus.chatter-expanded #convo-log .sub,
+      body.camp-focus.chatter-expanded #convo-log header .convo-head-row h3 {
+        display: block !important;
+      }
+      body.camp-focus.chatter-expanded #convo-log header .convo-head-row {
+        display: flex !important;
+      }
+      body.camp-focus.chatter-expanded #convo-log #convo-dock-toggle {
+        display: inline-flex !important;
+      }
+      #convo-mobile-hide { display: inline-flex; align-items: center; justify-content: center; }
+      #convo-dock-toggle { display: inline-flex !important; align-items: center; justify-content: center; width: 30px; height: 26px; font-size: 0.72rem; }
       body.camp-focus #convo-log header {
         padding: 0;
         border: none;
@@ -2143,12 +2188,14 @@
     </div>
     <div class="csp-body"></div>
   </div>
+  <button type="button" id="camp-chatter-fab" title="Show camp chatter" aria-label="Show camp chatter">💬</button>
   <div id="convo-log">
     <header>
       <div class="convo-head-row">
         <h3 id="convo-log-title-full">💬 Camp chatter</h3>
         <h3 id="convo-log-title-short">💬</h3>
         <span class="convo-read-hint">held</span>
+        <button type="button" id="convo-mobile-hide" title="Hide chatter bar">✕</button>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
       <div class="sub">Press &amp; hold chatter to freeze the line · scroll up without getting yanked · ▼/▲</div>
@@ -2195,7 +2242,8 @@
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
-      <button type="button" class="dock-icon talk" id="btn-talk-near" title="Talk to nearest">💬</button>
+      <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Hide/show camp chatter">💬</button>
+      <button type="button" class="dock-icon talk" id="btn-talk-near" title="Talk to nearest">🗣️</button>
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
       <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
@@ -2415,7 +2463,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-spotify-playlist";
+    const CAMP_BUILD = "2026-07-07-camp-chatter-hide";
     const CAMP_SPOTIFY_PLAYLIST = "1UfrZNrliP4h7dCjQfEk6E";
     const CAMP_SPOTIFY_TITLE = "New Metal, Rock, rap, and country";
     const CAMP_SPOTIFY_URL = `https://open.spotify.com/playlist/${CAMP_SPOTIFY_PLAYLIST}`;
@@ -3907,7 +3955,13 @@
       }
       groundPattern = ctx.createPattern(t, "repeat");
     }
-    buildGroundTexture();
+    if (isSlowDevice()) {
+      const buildGround = () => { try { buildGroundTexture(); } catch (_) {} };
+      if ("requestIdleCallback" in window) requestIdleCallback(buildGround, { timeout: 2200 });
+      else setTimeout(buildGround, 600);
+    } else {
+      buildGroundTexture();
+    }
 
     function syncUILayout() {
       syncViewportOffset();
@@ -4861,26 +4915,80 @@
 
     let conjureBusy = false;
 
+    let mobileChatterMode = "mini";
+
+    function syncChatterFab() {
+      const fab = document.getElementById("camp-chatter-fab");
+      const dockBtn = document.getElementById("btn-chatter-toggle");
+      const hidden = mobileChatterMode === "hidden";
+      document.body.classList.toggle("chatter-hidden", hidden);
+      document.body.classList.toggle("chatter-expanded", mobileChatterMode === "expanded");
+      if (fab) fab.classList.toggle("visible", hidden && isCampMobile());
+      if (dockBtn) {
+        dockBtn.classList.toggle("active", !hidden);
+        dockBtn.title = hidden ? "Show camp chatter" : mobileChatterMode === "expanded" ? "Minimize chatter" : "Expand or hide chatter";
+      }
+    }
+
+    function applyMobileChatterMode(mode, opts = {}) {
+      if (!isCampMobile()) return;
+      mobileChatterMode = mode;
+      syncChatterFab();
+      const el = document.getElementById("convo-log");
+      if (el) {
+        el.classList.toggle("collapsed", mode !== "expanded");
+      }
+      try {
+        localStorage.setItem("luna-camp-chatter-mode", mode);
+      } catch (_) {}
+      if (!opts.quiet) {
+        const msg = mode === "hidden" ? "Chatter hidden — tap 💬 to bring back"
+          : mode === "expanded" ? "Chatter expanded — scroll the log"
+          : "Chatter mini bar";
+        showToast(msg);
+      }
+      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
+    }
+
+    function cycleMobileChatter() {
+      if (!isCampMobile()) return;
+      const order = ["mini", "hidden", "expanded"];
+      const idx = Math.max(0, order.indexOf(mobileChatterMode));
+      applyMobileChatterMode(order[(idx + 1) % order.length]);
+    }
+
     function setSpeechBubbleDock(collapsed) {
       const el = document.getElementById("convo-log");
       const btn = document.getElementById("convo-dock-toggle");
       if (!el) return;
       const mobile = isCampMobile();
-      const dockCollapsed = mobile ? true : collapsed;
-      el.classList.toggle("collapsed", dockCollapsed);
-      document.body.classList.toggle("speech-expanded", !dockCollapsed && !mobile);
+      if (mobile) {
+        applyMobileChatterMode(collapsed ? "mini" : "expanded", { quiet: true });
+        if (btn) {
+          btn.textContent = collapsed ? "▲" : "▼";
+          btn.title = collapsed ? "Expand chatter log" : "Minimize to mini bar";
+        }
+        return;
+      }
+      el.classList.toggle("collapsed", collapsed);
+      document.body.classList.toggle("speech-expanded", !collapsed);
       if (btn) {
-        btn.textContent = dockCollapsed ? "▲" : "▼";
-        btn.title = dockCollapsed ? "Expand speech bubble" : "Minimize to dock";
+        btn.textContent = collapsed ? "▲" : "▼";
+        btn.title = collapsed ? "Expand speech bubble" : "Minimize to dock";
       }
       try {
-        if (!mobile) localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
+        localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
       } catch (_) {}
       setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
     }
 
     function expandSpeechBubble() { setSpeechBubbleDock(false); }
     function minimizeSpeechBubble() { setSpeechBubbleDock(true); }
+
+    function restoreMobileChatter() {
+      if (!isCampMobile()) return;
+      applyMobileChatterMode("mini");
+    }
 
     function campContextBlurb() {
       const recent = campLines.slice(-4).map((l) => `${l.speaker}: ${l.text.slice(0, 90)}`).join(" · ");
@@ -8408,17 +8516,28 @@
       const el = document.getElementById("convo-log");
       setSpeechBubbleDock(!el?.classList.contains("collapsed"));
     };
+    document.getElementById("convo-mobile-hide").onclick = (ev) => {
+      ev.stopPropagation();
+      if (isCampMobile()) applyMobileChatterMode("hidden");
+      else minimizeSpeechBubble();
+    };
+    document.getElementById("camp-chatter-fab").onclick = () => restoreMobileChatter();
+    document.getElementById("btn-chatter-toggle").onclick = () => {
+      if (isCampMobile()) cycleMobileChatter();
+      else {
+        const el = document.getElementById("convo-log");
+        setSpeechBubbleDock(!el?.classList.contains("collapsed"));
+      }
+    };
     document.querySelector("#convo-log header").onclick = (ev) => {
-      if (ev.target.closest("#convo-dock-toggle")) return;
+      if (ev.target.closest("#convo-dock-toggle, #convo-mobile-hide")) return;
+      if (isCampMobile() && mobileChatterMode === "mini") {
+        applyMobileChatterMode("expanded");
+        return;
+      }
       const el = document.getElementById("convo-log");
       setSpeechBubbleDock(!el?.classList.contains("collapsed"));
     };
-    try {
-      const savedDock = localStorage.getItem("luna-camp-speech-dock");
-      setSpeechBubbleDock(isCampMobile() ? true : savedDock === "min");
-    } catch (_) {
-      setSpeechBubbleDock(isCampMobile());
-    }
 
     const dialogueName = document.getElementById("dialogue-name");
     const npcBubble = document.getElementById("npc-bubble");
@@ -9169,10 +9288,16 @@
       applyGlobalNpcMode("free");
       document.body.classList.add("camp-focus");
       try {
-        const savedDock = localStorage.getItem("luna-camp-speech-dock");
-        setSpeechBubbleDock(isCampMobile() ? true : savedDock === "min");
+        if (isCampMobile()) {
+          const savedMode = localStorage.getItem("luna-camp-chatter-mode");
+          applyMobileChatterMode(savedMode === "hidden" || savedMode === "expanded" ? savedMode : "mini", { quiet: true });
+        } else {
+          const savedDock = localStorage.getItem("luna-camp-speech-dock");
+          setSpeechBubbleDock(savedDock === "min");
+        }
       } catch (_) {
-        setSpeechBubbleDock(isCampMobile());
+        if (isCampMobile()) applyMobileChatterMode("mini", { quiet: true });
+        else setSpeechBubbleDock(true);
       }
       setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 💃 Aurora Velvet · 🐱 Nebula");
       initCampCat();
@@ -9257,7 +9382,14 @@
       }
       requestAnimationFrame(gameLoop);
     }
-    gameLoop();
+    function startGameLoop() { gameLoop(); }
+    if (isSlowDevice()) {
+      const kick = () => requestAnimationFrame(startGameLoop);
+      if ("requestIdleCallback" in window) requestIdleCallback(kick, { timeout: 1400 });
+      else setTimeout(kick, 500);
+    } else {
+      startGameLoop();
+    }
   </script>
 </body>
 </html>

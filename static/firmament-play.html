@@ -2162,7 +2162,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-enter-tap";
+    const CAMP_BUILD = "2026-07-07-camp-house-proximity";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -5424,11 +5424,10 @@
         ctx.fillStyle = "#6ee7b7";
         ctx.fillText(`${inside.map((n) => n.name).join(", ")} inside`, s.x, s.y + 50);
       }
-      const nearDoor = dist(player, { x: wx, y: wy }) < (house.enterRadius || 40) + 10;
-      if (nearDoor && !houseInteriorOpen) {
+      if (playerNearHouse(house) && !houseInteriorOpen) {
         ctx.font = "bold 9px Segoe UI";
         ctx.fillStyle = "#fde68a";
-        ctx.fillText(isCampMobile() ? "tap house or Enter" : "E — enter house", s.x, s.y + 62);
+        ctx.fillText(isCampMobile() ? "tap Enter to go inside" : "E or Enter — go inside", s.x, s.y + 62);
       }
     }
 
@@ -6326,12 +6325,52 @@
       return HOUSE_INTERIOR_THEMES[ownerId] || HOUSE_INTERIOR_THEMES.luna;
     }
 
+    function houseWorldDoor(house) {
+      const door = houseDoorPos(house);
+      return { x: camp.x + door.x, y: camp.y + door.y };
+    }
+
+    function playerNearHouse(house) {
+      if (!house) return false;
+      const pos = houseWorldDoor(house);
+      return dist(player, pos) < (house.enterRadius || 40) + 10;
+    }
+
+    function walkPlayerToHouseDoor(house) {
+      const pos = houseWorldDoor(house);
+      player.tx = pos.x;
+      player.ty = pos.y;
+    }
+
+    function onHouseTapped(house) {
+      if (!house) return;
+      if (!playerNearHouse(house)) {
+        walkPlayerToHouseDoor(house);
+        showToast(`Walking to ${house.emoji} ${house.name} — Enter unlocks at the door`);
+        return;
+      }
+      showToast(isCampMobile()
+        ? `At the door — tap Enter above to go inside`
+        : `At the door — press E or tap Enter`);
+    }
+
+    function tryEnterCampHouse(house) {
+      if (!house) return;
+      if (!playerNearHouse(house)) {
+        walkPlayerToHouseDoor(house);
+        showToast(`Walk to the door first`);
+        return;
+      }
+      enterCampHouse(house);
+    }
+
     function nearestHouseForPlayer() {
       let best = null;
       let bestD = Infinity;
       for (const h of campHouses) {
-        const d = dist(player, { x: camp.x + h.x, y: camp.y + h.y });
-        const reach = (h.enterRadius || 40) + 14;
+        const pos = houseWorldDoor(h);
+        const d = dist(player, pos);
+        const reach = (h.enterRadius || 40) + 10;
         if (d < reach && d < bestD) {
           bestD = d;
           best = h;
@@ -6401,6 +6440,11 @@
 
     function enterCampHouse(house) {
       if (!house?.ownerId) return;
+      if (!playerNearHouse(house)) {
+        walkPlayerToHouseDoor(house);
+        showToast(`Your character must reach the door first`);
+        return;
+      }
       const ownerId = house.ownerId;
       if (ownerId === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
         showToast("Dionysus isn't home — invite him with 🍷 first");
@@ -6637,8 +6681,8 @@
     });
 
     document.getElementById("camp-enter-house").onclick = () => {
-      if (nearestHouse) enterCampHouse(nearestHouse);
-      else showToast("Walk up to a house door first");
+      if (nearestHouse) tryEnterCampHouse(nearestHouse);
+      else showToast("Walk your character to a house door first");
     };
     document.getElementById("camp-house-exit").onclick = () => closeCampHouse();
     document.getElementById("camp-house-send").onclick = () => sendHouseDialogue();
@@ -7050,7 +7094,7 @@
     function interactNearby() {
       const house = nearestHouseForPlayer();
       if (house) {
-        enterCampHouse(house);
+        tryEnterCampHouse(house);
         return;
       }
       if (nearestProp) {
@@ -7216,7 +7260,11 @@
         canvas.setPointerCapture(ev.pointerId);
         canvas.classList.add("dragging");
         if (hit.kind === "prop") showToast(`Dragging ${hit.ref.emoji} ${hit.ref.name}`);
-        else if (hit.kind === "house") showToast(`${hit.ref.emoji} ${hit.ref.name} — tap to enter`);
+        else if (hit.kind === "house") {
+          showToast(playerNearHouse(hit.ref)
+            ? `${hit.ref.emoji} At the door — tap Enter to go inside`
+            : `${hit.ref.emoji} Walk to the door first`);
+        }
         else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
         return;
       }
@@ -7242,7 +7290,7 @@
       const { sx, sy } = campPointerPos(ev);
       if (!dragTarget.moved) {
         if (dragTarget.kind === "house") {
-          enterCampHouse(dragTarget.ref);
+          onHouseTapped(dragTarget.ref);
         } else if (dragTarget.kind === "prop") {
           player.tx = camp.x + dragTarget.ref.x;
           player.ty = camp.y + dragTarget.ref.y;

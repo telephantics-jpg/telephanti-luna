@@ -72,6 +72,13 @@
       from { opacity: 0.55; transform: translate3d(-1%, 0, 0) scale(1); }
       to { opacity: 0.85; transform: translate3d(1.5%, -1%, 0) scale(1.02); }
     }
+    html.ios-camp #camp-stage,
+    html.ios-camp #trippy-veil {
+      transform: none !important;
+      filter: none !important;
+      perspective: none !important;
+      transform-origin: center center !important;
+    }
     @media (min-width: 900px) {
       #camp-stage,
       #trippy-veil { right: calc(var(--sidebar-w) + var(--gap) * 2); }
@@ -729,10 +736,39 @@
         mix-blend-mode: normal;
         opacity: 0.55;
       }
+      html.ios-camp,
+      html.ios-camp body {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+      html.ios-camp #camp-header {
+        left: var(--vv-offset-left, 0px);
+        right: var(--vv-offset-right, 0px);
+        top: var(--vv-offset-top, 0px);
+        width: auto;
+      }
       html.ios-camp #camp-stage,
       html.ios-camp #trippy-veil {
-        -webkit-transform: translateZ(0);
-        transform: translateZ(0);
+        left: var(--vv-offset-left, 0px);
+        right: var(--vv-offset-right, 0px);
+        top: calc(var(--header-h) + var(--vv-offset-top, 0px));
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+      html.ios-camp #action-bar {
+        left: var(--vv-offset-left, 0px);
+        right: var(--vv-offset-right, 0px);
+        width: auto;
+      }
+      html.ios-camp body.camp-focus #convo-log,
+      html.ios-camp body.camp-focus.speech-expanded #convo-log:not(.collapsed),
+      html.ios-camp body.camp-focus #convo-log.collapsed {
+        left: calc(var(--gap) + var(--vv-offset-left, 0px));
+        right: calc(var(--gap) + var(--vv-offset-right, 0px));
       }
       #free-tools-row,
       #unreal-hint,
@@ -1455,7 +1491,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ios-orient-res";
+    const CAMP_BUILD = "2026-07-06-ios-center-zoom";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1517,6 +1553,23 @@
       return vv.height < layoutViewportHeight() * 0.82;
     }
 
+    function syncViewportOffset() {
+      if (!isIOS()) return;
+      const vv = window.visualViewport;
+      if (!vv) {
+        document.documentElement.style.setProperty("--vv-offset-left", "0px");
+        document.documentElement.style.setProperty("--vv-offset-top", "0px");
+        document.documentElement.style.setProperty("--vv-offset-right", "0px");
+        return;
+      }
+      const left = Math.max(0, Math.round(vv.offsetLeft));
+      const top = Math.max(0, Math.round(vv.offsetTop));
+      const right = Math.max(0, Math.round(layoutViewportWidth() - vv.width - vv.offsetLeft));
+      document.documentElement.style.setProperty("--vv-offset-left", `${left}px`);
+      document.documentElement.style.setProperty("--vv-offset-top", `${top}px`);
+      document.documentElement.style.setProperty("--vv-offset-right", `${right}px`);
+    }
+
     function getCampCanvasSizeFromLayout() {
       const style = getComputedStyle(document.documentElement);
       const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
@@ -1525,19 +1578,6 @@
       const vw = Math.round(vv?.width || layoutViewportWidth());
       const vh = Math.round(vv?.height || layoutViewportHeight());
       return { w: vw, h: Math.max(120, vh - headerH - dockH) };
-    }
-
-    function readIOSStageRect() {
-      if (!campStage) return null;
-      const r = campStage.getBoundingClientRect();
-      const headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) || 56;
-      const w = Math.round(r.width);
-      const h = Math.round(r.height);
-      if (w < 80 || h < 80) return null;
-      if (Math.abs(r.top - headerH) > 24) return null;
-      const layout = getCampCanvasSizeFromLayout();
-      if (w < layout.w * 0.72 || h < layout.h * 0.72) return null;
-      return { w, h };
     }
 
     function commitStableCampSize(w, h) {
@@ -1578,11 +1618,6 @@
         || isKeyboardLikelyOpen();
       if (keyboardOpen && stableMatchesOrientation()) {
         return { w: stableCampW, h: stableCampH };
-      }
-      const stageRect = readIOSStageRect();
-      if (stageRect) {
-        if (!keyboardOpen) commitStableCampSize(stageRect.w, stageRect.h);
-        return stageRect;
       }
       const sz = getCampCanvasSizeFromLayout();
       if (!keyboardOpen) commitStableCampSize(sz.w, sz.h);
@@ -1654,20 +1689,20 @@
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
     const WORLD_ZOOM_DESKTOP = 0.38;
     const WORLD_ZOOM_MOBILE = 0.34;
-    const WORLD_ZOOM_IOS_PORTRAIT = 0.28;
-    const WORLD_ZOOM_IOS_LANDSCAPE = 0.20;
+    const WORLD_ZOOM_IOS_PORTRAIT = 0.16;
+    const WORLD_ZOOM_IOS_LANDSCAPE = 0.12;
     function getWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
       if (isCampMobile()) return WORLD_ZOOM_MOBILE;
       return WORLD_ZOOM_DESKTOP;
     }
     function getCampAnchorY() {
-      if (isIOS()) return isLandscape() ? 0.50 : 0.46;
+      if (isIOS()) return 0.50;
       if (isCampMobile()) return 0.42;
       return 0.36;
     }
     function getCamYOffset() {
-      if (isIOS()) return isLandscape() ? 0 : -20;
+      if (isIOS()) return -80;
       if (isCampMobile()) return -50;
       return -80;
     }
@@ -2512,6 +2547,7 @@
     buildGroundTexture();
 
     function syncUILayout() {
+      syncViewportOffset();
       const vvh = (isIOS() && window.visualViewport)
         ? Math.round(window.visualViewport.height)
         : layoutViewportHeight();
@@ -2633,6 +2669,7 @@
       }, isIOS() ? 80 : 30);
     }
     function onVisualViewportChange() {
+      syncViewportOffset();
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;

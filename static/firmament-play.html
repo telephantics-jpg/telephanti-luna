@@ -1110,6 +1110,101 @@
       background: linear-gradient(135deg, #6d28d9, #d946ef) !important;
     }
     #camp-house-status { flex: 1; font-size: 0.78rem; color: #94a3b8; }
+    #camp-club-layer {
+      display: none; position: fixed; inset: 0; z-index: 43;
+      background: rgba(4, 2, 12, 0.92);
+      align-items: center; justify-content: center;
+      padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+        max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      backdrop-filter: blur(10px);
+    }
+    #camp-club-layer.open { display: flex; }
+    #camp-club-panel {
+      width: min(720px, 100%); max-height: min(88vh, 640px);
+      display: flex; flex-direction: column; gap: 10px;
+      background: linear-gradient(165deg, rgba(24, 4, 28, 0.98), rgba(8, 4, 18, 0.99));
+      border: 2px solid rgba(236, 72, 153, 0.55);
+      border-radius: 18px; padding: 14px;
+      box-shadow: 0 0 48px rgba(236, 72, 153, 0.35), 0 24px 60px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+    }
+    #camp-club-head {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    #camp-club-head h2 {
+      flex: 1; margin: 0; font-size: 1.1rem; color: #fbcfe8;
+      text-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+    }
+    #camp-club-close {
+      border: 1px solid rgba(251, 113, 133, 0.5);
+      background: rgba(88, 28, 80, 0.6); color: #fce7f3;
+      border-radius: 10px; padding: 8px 14px; font-weight: 700; cursor: pointer;
+    }
+    #camp-club-stage {
+      position: relative; min-height: 160px; border-radius: 14px; overflow: hidden;
+      background: linear-gradient(180deg, #1a0520 0%, #0f0214 55%, #2a0a1e 100%);
+      border: 1px solid rgba(236, 72, 153, 0.35);
+    }
+    #camp-club-stage .club-neon {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      font-size: 1.05rem; font-weight: 900; letter-spacing: 0.14em;
+      text-transform: uppercase; color: #f9a8d4;
+      text-shadow: 0 0 8px #ec4899, 0 0 18px #db2777, 0 0 32px #be185d;
+      animation: club-neon-flicker 2.4s ease-in-out infinite;
+    }
+    @keyframes club-neon-flicker {
+      0%, 100% { opacity: 1; }
+      48% { opacity: 0.82; }
+      50% { opacity: 0.55; }
+      52% { opacity: 0.9; }
+    }
+    #camp-club-stage .club-spot {
+      position: absolute; left: 50%; bottom: 0; width: 120px; height: 100%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, transparent, rgba(251, 191, 36, 0.12) 40%, rgba(236, 72, 153, 0.2));
+      clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
+    }
+    #camp-club-stage .club-disco {
+      position: absolute; top: 18px; right: 16px; font-size: 1.6rem;
+      animation: club-disco-spin 6s linear infinite;
+      filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.8));
+    }
+    @keyframes club-disco-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    #camp-club-stage .club-silhouette {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      font-size: 3.2rem; opacity: 0.75;
+      filter: drop-shadow(0 0 16px rgba(236, 72, 153, 0.5));
+      animation: club-dance 1.8s ease-in-out infinite alternate;
+    }
+    @keyframes club-dance {
+      from { transform: translateX(-50%) rotate(-4deg); }
+      to { transform: translateX(-46%) rotate(5deg); }
+    }
+    #camp-club-vibe {
+      font-size: 0.88rem; color: #f9a8d4; font-style: italic; line-height: 1.45;
+      padding: 8px 10px; border-radius: 10px;
+      background: rgba(136, 19, 75, 0.25); border: 1px solid rgba(244, 114, 182, 0.25);
+    }
+    #camp-club-log {
+      flex: 1; min-height: 72px; max-height: 140px; overflow-y: auto;
+      padding: 10px 12px; border-radius: 10px;
+      background: rgba(15, 8, 22, 0.9); color: #fce7f3;
+      font-size: 0.9rem; line-height: 1.45;
+      border: 1px solid rgba(236, 72, 153, 0.28);
+    }
+    .camp-club-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .camp-club-actions button {
+      flex: 1; min-width: 120px; border: 1px solid rgba(244, 114, 182, 0.4);
+      background: rgba(30, 10, 36, 0.9); color: #fce7f3;
+      border-radius: 10px; padding: 10px 12px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer;
+    }
+    .camp-club-actions button.primary {
+      background: linear-gradient(135deg, #9d174d, #ec4899); border-color: #fbcfe8;
+    }
     #dialogue-panel {
       width: min(920px, 100%); max-height: min(88vh, 720px);
       background: rgba(8, 12, 22, 0.98);
@@ -2100,6 +2195,28 @@
       </div>
     </div>
   </div>
+  <div id="camp-club-layer" role="dialog" aria-label="Aurora Velvet lounge">
+    <div id="camp-club-panel" onclick="event.stopPropagation()">
+      <div id="camp-club-head">
+        <h2>💃 Aurora Velvet</h2>
+        <button type="button" id="camp-club-close">← Back to camp</button>
+      </div>
+      <div id="camp-club-stage" aria-hidden="true">
+        <span class="club-neon">Aurora Velvet</span>
+        <span class="club-disco">🪩</span>
+        <div class="club-spot"></div>
+        <span class="club-silhouette">💃</span>
+      </div>
+      <p id="camp-club-vibe">Neon under the aurora — bass from the jukebox leaks through the walls. Nebula the cat watches from the velvet couch.</p>
+      <div id="camp-club-log">The lounge hums. Tap a vibe below.</div>
+      <div class="camp-club-actions">
+        <button type="button" class="primary" id="camp-club-show">✨ Catch the show</button>
+        <button type="button" id="camp-club-cat">🐱 Pet Nebula</button>
+        <button type="button" id="camp-club-adopt">🐾 Adopt Nebula</button>
+        <button type="button" id="camp-club-drink">🍸 Aurora fizz</button>
+      </div>
+    </div>
+  </div>
   <div id="camp-house-layer" role="dialog" aria-label="Agent house interior">
     <div id="camp-house-panel" onclick="event.stopPropagation()">
       <div id="camp-house-head">
@@ -2162,7 +2279,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-house-proximity";
+    const CAMP_BUILD = "2026-07-07-camp-club-cat";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -2704,6 +2821,35 @@
       { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -148, y: 288,
         color: "#6366f1", roof: "#4338ca", wall: "#312e81", enterRadius: 46,
         doorOffset: { x: 0, y: -0.28 }, interior: { x: 0, y: 0.05 } },
+      { id: "aurora-velvet", type: "club", name: "Aurora Velvet", emoji: "💃", x: -418, y: -48,
+        color: "#ec4899", roof: "#9d174d", wall: "#831843", enterRadius: 48,
+        doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.08 } },
+    ];
+    let stripClubOpen = false;
+    const campCat = {
+      name: "Nebula",
+      emoji: "🐱",
+      x: 0,
+      y: 0,
+      tx: 0,
+      ty: 0,
+      speed: 2.4,
+      following: false,
+      purrUntil: 0,
+      phase: 0,
+    };
+    const CAMP_CAT_PURRS = [
+      "Nebula purrs like a tiny aurora engine.",
+      "Nebula headbutts your shin — ownership established.",
+      "Nebula's tail flickers violet in the camp light.",
+      "Nebula kneads the velvet like it owes her tokens.",
+    ];
+    const STRIP_CLUB_LINES = [
+      { who: "Dionysus", line: "Welcome to the velvet — even the shadows dance politely here.", mood: "happy" },
+      { who: "Hermes", line: "Psychic ripples bounce off the neon — fascinating acoustics.", mood: "think" },
+      { who: "Luna", line: "The lights look like corona ribbons. I'm not mad about it.", mood: "happy" },
+      { who: "Oracle", line: "I dreamed this lounge before the camp had walls.", mood: "neutral" },
+      { who: "Camp", line: "Nebula yawns on the couch — she runs this place, officially.", mood: "happy" },
     ];
     let lucidTvOpen = false;
     let lucidTvMuted = true;
@@ -4473,7 +4619,10 @@
       const visitor = myVisitorName || player.name || "Traveler";
       const music = campMusicOn ? "camp music on" : "camp music off";
       const tok = campWallet?.tokens ?? 0;
-      return `Visitor ${visitor} has ${tok} aurora tokens. Sun corona hearth at camp center. Houses: ${homes}. Structures: ${structs}. ${music}. Agents: ${agents}. Props: ${propList}. Recent chatter: ${recent || "quiet aurora night"}.`;
+      const catNote = campCat.following
+        ? "Nebula the cat follows the visitor"
+        : "Nebula the cat lounges at Aurora Velvet strip club";
+      return `Visitor ${visitor} has ${tok} aurora tokens. Sun corona hearth at camp center. Houses: ${homes}. Structures: ${structs}. ${catNote}. ${music}. Agents: ${agents}. Props: ${propList}. Recent chatter: ${recent || "quiet aurora night"}.`;
     }
 
     function updateTokenUI() {
@@ -4744,6 +4893,157 @@
         : "You lean in the shelter doorway — cozy even without a key.", 18, "happy", { fromLocal: true });
       setTimeout(() => { shelterResting = false; }, 45000);
       recordCampMemory({ kind: "shelter", text: `${myVisitorName || "Visitor"} rested at the camp shelter` });
+    }
+
+    function appendClubLog(text) {
+      const el = document.getElementById("camp-club-log");
+      if (el) el.textContent = text;
+    }
+
+    function refreshClubAdoptBtn() {
+      const btn = document.getElementById("camp-club-adopt");
+      if (!btn) return;
+      if (campCat.following) {
+        btn.textContent = "🐾 Nebula follows you";
+        btn.disabled = true;
+      } else {
+        btn.textContent = "🐾 Adopt Nebula";
+        btn.disabled = false;
+      }
+    }
+
+    function spawnCampCatAtClub() {
+      const club = campStructures.find((s) => s.id === "aurora-velvet");
+      if (!club) return;
+      if (!campCat.following) {
+        campCat.x = camp.x + club.x + 32;
+        campCat.y = camp.y + club.y + 26;
+      } else {
+        campCat.x = player.x - 20;
+        campCat.y = player.y + 14;
+      }
+      campCat.tx = campCat.x;
+      campCat.ty = campCat.y;
+    }
+
+    function initCampCat() {
+      try {
+        campCat.following = localStorage.getItem("luna-camp-cat-adopted") === "1";
+      } catch (_) {}
+      spawnCampCatAtClub();
+    }
+
+    function campCatNearPlayer() {
+      return dist(player, campCat) < 44;
+    }
+
+    function petCampCat() {
+      const purr = CAMP_CAT_PURRS[Math.floor(Math.random() * CAMP_CAT_PURRS.length)];
+      campCat.purrUntil = Date.now() + 2400;
+      pushCampLine(campCat.name, purr, campReadHoldSec(purr, 28), "happy", { fromLocal: true });
+      if (stripClubOpen) appendClubLog(purr);
+      showToast(`🐱 ${purr}`);
+      psychicRipples.push({ x: campCat.x, y: campCat.y, t: Date.now(), color: "#c084fc" });
+    }
+
+    function adoptCampCat() {
+      if (campCat.following) {
+        appendClubLog("Nebula already claimed you — she follows you everywhere.");
+        return;
+      }
+      campCat.following = true;
+      try { localStorage.setItem("luna-camp-cat-adopted", "1"); } catch (_) {}
+      refreshClubAdoptBtn();
+      const msg = "Nebula hops off the velvet couch — she's yours now. She'll trail you around camp.";
+      pushCampLine("Camp", msg, 18, "happy", { fromLocal: true });
+      appendClubLog(msg);
+      showToast("🐾 Nebula adopted — she follows you at camp");
+      recordCampMemory({ kind: "cat", text: `${myVisitorName || player.name || "Visitor"} adopted camp cat Nebula` });
+    }
+
+    function updateCampCat() {
+      campCat.phase += 0.04;
+      const club = campStructures.find((s) => s.id === "aurora-velvet");
+      if (campCat.following) {
+        campCat.tx = player.x - 18 + Math.sin(campCat.phase) * 6;
+        campCat.ty = player.y + 16 + Math.cos(campCat.phase * 0.7) * 4;
+      } else if (club) {
+        const homeX = camp.x + club.x + 32;
+        const homeY = camp.y + club.y + 26;
+        campCat.tx = homeX + Math.sin(campCat.phase * 0.5) * 8;
+        campCat.ty = homeY + Math.cos(campCat.phase * 0.4) * 5;
+      }
+      const dx = campCat.tx - campCat.x;
+      const dy = campCat.ty - campCat.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 1.5) {
+        const spd = campCat.following ? campCat.speed : campCat.speed * 0.55;
+        campCat.x += (dx / d) * spd;
+        campCat.y += (dy / d) * spd;
+      }
+    }
+
+    function drawCampCat() {
+      if (stripClubOpen && !campCat.following) return;
+      const s = worldToScreen(campCat.x, campCat.y);
+      const t = Date.now() / 1000;
+      const bob = Math.sin(t * 4 + campCat.phase) * 2;
+      drawAvatarShadow(s.x, s.y, 10);
+      const purring = campCat.purrUntil > Date.now();
+      if (purring) {
+        ctx.font = "12px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("💜", s.x - 10, s.y - 22 + bob);
+        ctx.fillText("💜", s.x + 12, s.y - 26 + bob);
+      }
+      ctx.font = "22px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText(campCat.emoji, s.x, s.y + bob);
+      if (campCatNearPlayer() || campCat.following) {
+        ctx.font = "bold 9px Segoe UI";
+        ctx.fillStyle = purring ? "#f9a8d4" : "#e9d5ff";
+        ctx.fillText(campCat.name, s.x, s.y - 18 + bob);
+      }
+      if (!campCat.following && !stripClubOpen) {
+        ctx.font = "8px Segoe UI";
+        ctx.fillStyle = "#f9a8d4";
+        ctx.fillText("tap to pet", s.x, s.y + 28);
+      }
+    }
+
+    function openStripClub() {
+      stripClubOpen = true;
+      document.getElementById("camp-club-layer")?.classList.add("open");
+      chatterPaused = true;
+      refreshClubAdoptBtn();
+      appendClubLog("Velvet doors part — bass, neon, and one very judgmental cat.");
+      setCampLifeStatus("💃 Aurora Velvet — neon under the aurora");
+      showToast("Welcome to Aurora Velvet");
+      recordCampMemory({ kind: "club", text: `${myVisitorName || player.name || "Visitor"} entered Aurora Velvet` });
+    }
+
+    function closeStripClub() {
+      stripClubOpen = false;
+      document.getElementById("camp-club-layer")?.classList.remove("open");
+      chatterPaused = false;
+      setCampLifeStatus("Back at camp — Nebula might follow you");
+      updateNearest();
+    }
+
+    function clubCatchShow() {
+      const line = STRIP_CLUB_LINES[Math.floor(Math.random() * STRIP_CLUB_LINES.length)];
+      appendClubLog(`${line.who}: ${line.line}`);
+      pushCampLine(line.who, line.line, campReadHoldSec(line.line, 36), line.mood || "happy");
+      campChillUntil = Date.now() + 45000;
+    }
+
+    function clubAuroraDrink() {
+      const you = player.name || "You";
+      const msg = "You sip Aurora fizz — bubbles taste like violet starlight.";
+      appendClubLog(msg);
+      pushCampLine(you, msg, 14, "happy", { fromLocal: true });
+      campChillUntil = Date.now() + 90000;
+      psychicRipples.push({ x: camp.x - 418, y: camp.y - 48, t: Date.now(), color: "#ec4899" });
     }
 
     function spiritConjurePrompt(type) {
@@ -5346,6 +5646,34 @@
         ctx.font = "8px Segoe UI";
         ctx.fillStyle = lucidTvOpen ? "#6ee7b7" : "#a5b4fc";
         ctx.fillText(lucidTvOpen ? "broadcasting lucid feed" : "tap — tune lucid minds", s.x, s.y + 40);
+        return;
+      }
+      if (struct.type === "club") {
+        const neon = 0.55 + Math.sin(t * 6) * 0.35;
+        drawIsoBox(cx, cy, -1.02 + wobble, -0.64, 0, 2.04, 1.22, 0.68,
+          { top: "#831843", left: struct.wall, right: struct.color, stroke: "#fbcfe8" });
+        drawIsoBox(cx, cy, -0.68, -0.82, 0.68, 1.36, 0.86, 0.52,
+          { top: struct.roof, left: "#9d174d", right: struct.color, stroke: "#0f172a" });
+        ctx.font = "bold 10px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillStyle = `rgba(251, 207, 232, ${0.5 + neon * 0.5})`;
+        ctx.fillText("✦ AURORA ✦", s.x, s.y - 50 + Math.sin(t * 8) * 1);
+        ctx.fillStyle = `rgba(236, 72, 153, ${neon})`;
+        ctx.fillText("VELVET", s.x, s.y - 40);
+        ctx.font = "14px Segoe UI";
+        ctx.fillText("🪩", s.x + 24, s.y - 34 + Math.sin(t * 5) * 3);
+        const door = isoPoint(cx, cy, struct.doorOffset?.x || 0, struct.doorOffset?.y || -0.34, 0.02);
+        ctx.fillStyle = "#4c0519";
+        ctx.fillRect(door.x - 9, door.y - 16, 18, 21);
+        ctx.fillStyle = `rgba(236, 72, 153, ${0.4 + neon * 0.4})`;
+        ctx.fillRect(door.x - 6, door.y - 13, 12, 8);
+        drawTrippyOrbs(s.x, s.y - 36, "#ec4899", t);
+        ctx.font = "bold 10px Segoe UI";
+        ctx.fillStyle = "#fbcfe8";
+        ctx.fillText(`${struct.emoji} ${struct.name}`, s.x, s.y - 30);
+        ctx.font = "8px Segoe UI";
+        ctx.fillStyle = stripClubOpen ? "#f9a8d4" : "#fda4af";
+        ctx.fillText(stripClubOpen ? "inside the lounge" : "tap — velvet lounge", s.x, s.y + 40);
         return;
       }
       if (struct.type === "shop") {
@@ -6702,6 +7030,12 @@
     document.getElementById("lucid-tv-next").onclick = () => tuneLucidTv("random");
     document.getElementById("lucid-tv-mute").onclick = () => toggleLucidTvMute();
     document.getElementById("lucid-tv-open").onclick = () => openLucidTvWatch();
+    document.getElementById("camp-club-close").onclick = () => closeStripClub();
+    document.getElementById("camp-club-layer").onclick = () => closeStripClub();
+    document.getElementById("camp-club-show").onclick = () => clubCatchShow();
+    document.getElementById("camp-club-cat").onclick = () => petCampCat();
+    document.getElementById("camp-club-adopt").onclick = () => adoptCampCat();
+    document.getElementById("camp-club-drink").onclick = () => clubAuroraDrink();
     document.getElementById("luna-embed-expand").onclick = () => {
       const wrap = document.getElementById("luna-embed-wrap");
       if (!wrap) return;
@@ -7047,6 +7381,7 @@
         if (prop.structure.type === "shop") openCampShop();
         else if (prop.structure.type === "shelter") useShelter();
         else if (prop.structure.type === "tv") openLucidTv();
+        else if (prop.structure.type === "club") openStripClub();
         return;
       }
       if (prop.id === "ouija") {
@@ -7099,6 +7434,10 @@
       }
       if (nearestProp) {
         useProp(nearestProp);
+        return;
+      }
+      if (campCatNearPlayer()) {
+        petCampCat();
         return;
       }
       if (nearestId) openDialogue(nearestId);
@@ -7169,6 +7508,9 @@
       } else if (nearestProp && !dialogueBackdrop.classList.contains("open")) {
         hint.textContent = `Near ${nearestProp.emoji} ${nearestProp.name} — press E or tap it`;
         hint.classList.add("show");
+      } else if (campCatNearPlayer() && !stripClubOpen && !dialogueBackdrop.classList.contains("open")) {
+        hint.textContent = `Near 🐱 ${campCat.name} — press E or tap to pet`;
+        hint.classList.add("show");
       } else {
         hint.classList.remove("show");
       }
@@ -7192,6 +7534,10 @@
       for (const p of props) {
         const ps = worldToScreen(camp.x + p.x, camp.y + p.y);
         if (Math.hypot(sx - ps.x, sy - ps.y) < 40) return { kind: "prop", ref: p };
+      }
+      if (!stripClubOpen || campCat.following) {
+        const cs = worldToScreen(campCat.x, campCat.y);
+        if (Math.hypot(sx - cs.x, sy - cs.y) < 28) return { kind: "cat", ref: campCat };
       }
       for (const n of allRoamers()) {
         const ns = worldToScreen(camp.x + n.x, camp.y + n.y);
@@ -7265,6 +7611,7 @@
             ? `${hit.ref.emoji} At the door — tap Enter to go inside`
             : `${hit.ref.emoji} Walk to the door first`);
         }
+        else if (hit.kind === "cat") showToast(`🐱 ${hit.ref.name} — tap to pet`);
         else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
         return;
       }
@@ -7308,6 +7655,8 @@
               useProp({ structure: st, name: st.name, emoji: st.emoji });
             }
           }, 300);
+        } else if (dragTarget.kind === "cat") {
+          petCampCat();
         } else if (dragTarget.kind === "agent") {
           if (isAgentSpeechPinned(dragTarget.ref)) {
             showToast(`Drag ${dragTarget.ref.name} to a spot — they'll meditate & power up`);
@@ -7924,6 +8273,10 @@
         closeCampShop();
         return;
       }
+      if (stripClubOpen && e.key === "Escape") {
+        closeStripClub();
+        return;
+      }
       if (ouijaOpen && e.key === "Escape") {
         closeCampOuija();
         return;
@@ -8187,7 +8540,8 @@
           } catch (_) {
             setSpeechBubbleDock(isCampMobile());
           }
-          setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 🍷 invite Dionysus · 🏠 homes spread wide");
+          setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 💃 Aurora Velvet · 🐱 Nebula");
+          initCampCat();
           loadCampWallet();
           loadShopCatalog();
           spreadAllNpcs();
@@ -8230,6 +8584,8 @@
         }
         drawAgentSpeechBubbles();
         drawOtherVisitors();
+        updateCampCat();
+        drawCampCat();
         drawPlayer();
         updateNearest();
         const now = Date.now();

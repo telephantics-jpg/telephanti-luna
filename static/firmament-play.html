@@ -883,6 +883,192 @@
       background: rgba(14, 116, 144, 0.55) !important;
       color: #ecfeff !important;
     }
+    #camp-house-layer {
+      display: none; position: fixed; inset: 0; z-index: 44;
+      background: rgba(2, 4, 12, 0.94);
+      align-items: center; justify-content: center;
+      padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+        max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      backdrop-filter: blur(10px);
+    }
+    #camp-house-layer.open { display: flex; }
+    body.house-interior-open #camp-stage,
+    body.house-interior-open #trippy-veil,
+    body.house-interior-open #convo-log,
+    body.house-interior-open #action-bar,
+    body.house-interior-open #camp-header,
+    body.house-interior-open #camp-music-bar,
+    body.house-interior-open #camp-music-prompt {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #camp-house-panel {
+      width: min(980px, 100%); max-height: min(94vh, 820px);
+      display: flex; flex-direction: column; gap: 10px;
+      background: linear-gradient(165deg, rgba(8, 12, 24, 0.98), rgba(4, 8, 18, 0.99));
+      border: 2px solid rgba(103, 232, 249, 0.35);
+      border-radius: 18px; padding: 12px 14px;
+      overflow: hidden;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+    }
+    #camp-house-head {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    #camp-house-exit {
+      border: 1px solid rgba(103, 232, 249, 0.45);
+      background: rgba(14, 116, 144, 0.55); color: #ecfeff;
+      border-radius: 10px; padding: 8px 14px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; touch-action: manipulation;
+    }
+    #camp-house-title { flex: 1; font-size: 1.05rem; color: #e0f2fe; margin: 0; }
+    #camp-house-sub { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; }
+    #camp-house-body {
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 12px;
+      min-height: 0; flex: 1; overflow: hidden;
+    }
+    @media (max-width: 760px) {
+      #camp-house-body { grid-template-columns: 1fr; overflow-y: auto; }
+    }
+    .house-room-scene {
+      position: relative; min-height: min(42vh, 340px); border-radius: 14px;
+      overflow: hidden; perspective: 820px; perspective-origin: 50% 38%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.45);
+    }
+    .house-room-scene .house-sky {
+      position: absolute; inset: 0 0 42% 0;
+      background: linear-gradient(180deg, var(--house-sky-top, #0c1445), var(--house-sky-bot, #1a1033));
+    }
+    .house-room-scene .house-aurora {
+      position: absolute; left: -10%; right: -10%; top: 8%; height: 38%;
+      background: linear-gradient(90deg, transparent, var(--house-accent, #38bdf8), transparent);
+      opacity: 0.35; filter: blur(18px);
+      animation: house-aurora-drift 8s ease-in-out infinite alternate;
+    }
+    @keyframes house-aurora-drift {
+      from { transform: translateX(-6%) skewX(-8deg); opacity: 0.22; }
+      to { transform: translateX(8%) skewX(6deg); opacity: 0.42; }
+    }
+    .house-room-scene .house-back-wall {
+      position: absolute; left: 8%; right: 8%; bottom: 22%; height: 58%;
+      transform: rotateX(6deg);
+      transform-origin: bottom center;
+      background: linear-gradient(180deg, var(--house-wall-mid, #312e81), var(--house-wall, #1e1b4b));
+      border-radius: 8px 8px 2px 2px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    .house-room-scene .house-window {
+      position: absolute; left: 50%; top: 18%; width: 42%; height: 36%;
+      transform: translateX(-50%);
+      border-radius: 6px;
+      background: radial-gradient(ellipse at 50% 30%, var(--house-window, #67e8f9), #0f172a 72%);
+      border: 3px solid rgba(253, 230, 138, 0.35);
+      box-shadow: 0 0 28px var(--house-accent, #38bdf8);
+    }
+    .house-room-scene .house-floor {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 30%;
+      background: linear-gradient(180deg, var(--house-floor, #1e1033), #050810);
+      transform: rotateX(52deg) scale(1.15);
+      transform-origin: bottom center;
+      border-top: 2px solid rgba(255, 255, 255, 0.06);
+    }
+    .house-room-scene .house-rug {
+      position: absolute; left: 22%; right: 22%; bottom: 6%; height: 18%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, var(--house-accent, #38bdf8), transparent 70%);
+      opacity: 0.25; transform: rotateX(58deg);
+    }
+    .house-room-scene .house-decor {
+      position: absolute; bottom: 30%; left: 12%; right: 12%;
+      text-align: center; font-size: 1.1rem; letter-spacing: 0.35em;
+      opacity: 0.55; pointer-events: none;
+    }
+    .house-room-scene .house-cube {
+      position: absolute; right: 10%; bottom: 28%; width: 56px; height: 56px;
+      transform-style: preserve-3d;
+      animation: house-cube-spin 14s linear infinite;
+    }
+    .house-cube .hc-face {
+      position: absolute; width: 56px; height: 56px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(2px);
+    }
+    .house-cube .hc-front  { transform: translateZ(28px); }
+    .house-cube .hc-back   { transform: rotateY(180deg) translateZ(28px); }
+    .house-cube .hc-right  { transform: rotateY(90deg) translateZ(28px); }
+    .house-cube .hc-left   { transform: rotateY(-90deg) translateZ(28px); }
+    .house-cube .hc-top    { transform: rotateX(90deg) translateZ(28px); }
+    .house-cube .hc-bottom { transform: rotateX(-90deg) translateZ(28px); }
+    @keyframes house-cube-spin {
+      from { transform: rotateX(-12deg) rotateY(0deg); }
+      to { transform: rotateX(-12deg) rotateY(360deg); }
+    }
+    #camp-house-host {
+      display: flex; flex-direction: column; gap: 10px; min-height: 0;
+    }
+    .house-portrait-frame {
+      position: relative; border-radius: 18px; overflow: hidden;
+      aspect-ratio: 3 / 4; max-height: min(36vh, 320px);
+      border: 3px solid var(--house-accent, #38bdf8);
+      box-shadow: 0 0 32px color-mix(in srgb, var(--house-accent, #38bdf8) 45%, transparent);
+      background: #0f172a;
+    }
+    .house-portrait-frame img,
+    .house-portrait-frame video {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .house-portrait-frame .house-portrait-aura {
+      position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(180deg, transparent 45%, color-mix(in srgb, var(--house-accent, #38bdf8) 55%, transparent));
+      mix-blend-mode: soft-light;
+    }
+    .house-portrait-frame .house-portrait-glyph {
+      position: absolute; right: 10px; bottom: 8px;
+      font-size: 2.2rem; opacity: 0.5; text-shadow: 0 0 18px var(--house-accent, #38bdf8);
+    }
+    #camp-house-host-name {
+      margin: 0; font-size: 1.25rem; color: #f8fafc; letter-spacing: 0.02em;
+    }
+    #camp-house-host-vibe {
+      margin: 0; font-size: 0.82rem; color: #94a3b8; line-height: 1.45; font-style: italic;
+    }
+    #camp-house-host-bubble {
+      flex: 1; min-height: 72px; max-height: 160px; overflow-y: auto;
+      padding: 12px 14px; border-radius: 12px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid color-mix(in srgb, var(--house-accent, #38bdf8) 40%, transparent);
+      color: #f1f5f9; font-size: 0.95rem; line-height: 1.5;
+    }
+    #camp-house-talk {
+      display: flex; flex-direction: column; gap: 8px;
+      border-top: 1px solid rgba(103, 232, 249, 0.2); padding-top: 10px;
+    }
+    #camp-house-quick-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+    #camp-house-quick-btns button {
+      border: 1px solid rgba(255, 255, 255, 0.14); background: #1a2740; color: #dbeafe;
+      border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; cursor: pointer;
+    }
+    #camp-house-input {
+      width: 100%; background: #121a2a; color: #f2f0eb;
+      border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px;
+      padding: 14px; font-size: 1.05rem;
+    }
+    .camp-house-actions {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .camp-house-actions button {
+      border: none; background: #2a3550; color: #fff; border-radius: 10px;
+      padding: 11px 16px; font-size: 0.92rem; cursor: pointer;
+    }
+    .camp-house-actions button.primary {
+      background: linear-gradient(135deg, #0e7490, #0284c7); color: #ecfeff; flex: 1;
+      font-weight: 700;
+    }
+    #camp-house-full-avatar {
+      background: linear-gradient(135deg, #6d28d9, #d946ef) !important;
+    }
+    #camp-house-status { flex: 1; font-size: 0.78rem; color: #94a3b8; }
     #dialogue-panel {
       width: min(920px, 100%); max-height: min(88vh, 720px);
       background: rgba(8, 12, 22, 0.98);
@@ -1871,6 +2057,54 @@
       </div>
     </div>
   </div>
+  <div id="camp-house-layer" role="dialog" aria-label="Agent house interior">
+    <div id="camp-house-panel" onclick="event.stopPropagation()">
+      <div id="camp-house-head">
+        <button type="button" id="camp-house-exit">← Leave house</button>
+        <h2 id="camp-house-title">Luna's House</h2>
+        <span id="camp-house-sub">private visit</span>
+      </div>
+      <div id="camp-house-body">
+        <div class="house-room-scene" id="camp-house-room" aria-hidden="true">
+          <div class="house-sky"></div>
+          <div class="house-aurora"></div>
+          <div class="house-back-wall"></div>
+          <div class="house-window"></div>
+          <div class="house-floor"></div>
+          <div class="house-rug"></div>
+          <div class="house-decor" id="camp-house-decor">✨ 🌙 ✨</div>
+          <div class="house-cube" aria-hidden="true">
+            <div class="hc-face hc-front"></div>
+            <div class="hc-face hc-back"></div>
+            <div class="hc-face hc-right"></div>
+            <div class="hc-face hc-left"></div>
+            <div class="hc-face hc-top"></div>
+            <div class="hc-face hc-bottom"></div>
+          </div>
+        </div>
+        <div id="camp-house-host">
+          <div class="house-portrait-frame" id="camp-house-portrait-frame">
+            <img id="camp-house-portrait-img" src="/static/avatars/luna-portrait.jpg" alt="" hidden />
+            <video id="camp-house-portrait-video" playsinline muted loop preload="auto" poster="/static/avatars/luna-portrait.jpg" hidden></video>
+            <div class="house-portrait-aura"></div>
+            <span class="house-portrait-glyph" id="camp-house-portrait-glyph">🌙</span>
+          </div>
+          <h3 id="camp-house-host-name">Luna</h3>
+          <p id="camp-house-host-vibe">Corona light through the windows.</p>
+          <div id="camp-house-host-bubble">Welcome in.</div>
+        </div>
+      </div>
+      <div id="camp-house-talk">
+        <div id="camp-house-quick-btns"></div>
+        <input id="camp-house-input" maxlength="400" placeholder="Talk to them inside their home…" autocomplete="off" />
+        <div class="camp-house-actions">
+          <span id="camp-house-status">Enter = send · Esc = leave</span>
+          <button type="button" id="camp-house-full-avatar" hidden>🌙 Full avatar</button>
+          <button type="button" class="primary" id="camp-house-send">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="luna-embed-wrap" aria-label="Luna full avatar at camp">
     <div id="luna-embed-header">
       <button type="button" id="luna-embed-back-camp" title="Back to aurora camp">🔥 Camp</button>
@@ -1885,7 +2119,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-music-quiet";
+    const CAMP_BUILD = "2026-07-07-camp-house-interior";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -2262,8 +2496,25 @@
     }
 
     function applyChatResult(agentId, data, opts = {}) {
-      const bubble = opts.useDialogue ? npcBubble : replyEl;
-      if (opts.useDialogue) {
+      const bubble = opts.useHouse
+        ? document.getElementById("camp-house-host-bubble")
+        : opts.useDialogue
+          ? npcBubble
+          : replyEl;
+      if (opts.useHouse) {
+        if (bubble) bubble.textContent = data.reply;
+        const st = document.getElementById("camp-house-status");
+        if (st) st.textContent = data.backend === "aether" ? "Aether brain (offline)" : "Ask another question";
+        const vid = document.getElementById("camp-house-portrait-video");
+        if (vid && !vid.hidden && vid.dataset.idleSrc) {
+          setTimeout(() => {
+            try {
+              vid.src = vid.dataset.idleSrc;
+              vid.play().catch(() => {});
+            } catch (_) {}
+          }, 2400);
+        }
+      } else if (opts.useDialogue) {
         bubble.textContent = data.reply;
         dialogueStatus.textContent = data.backend === "aether" ? "Aether brain (offline)" : "Ask another question";
       }
@@ -2355,6 +2606,33 @@
       name: myVisitorName || "you",
     };
     const camp = { x: 0, y: -80 };
+    const HOUSE_INTERIOR_THEMES = {
+      luna: {
+        accent: "#d946ef", wall: "#581c87", wallMid: "#7e22ce", floor: "#2e1065",
+        skyTop: "#1a0533", skyBot: "#3b0764", window: "#f0abfc", decor: "🌙 ✨ 🔮",
+        glyph: "🌙", portrait: "/static/avatars/luna-portrait.jpg",
+        portraitVideo: "/static/avatars/luna-idle.mp4",
+        vibe: "Warm corona light through tall windows — cedar, starlight, and Luna's quiet hearth.",
+      },
+      hermes: {
+        accent: "#fbbf24", wall: "#78350f", wallMid: "#92400e", floor: "#451a03",
+        skyTop: "#1c1917", skyBot: "#422006", window: "#fde68a", decor: "⚡ 〰️ 📡",
+        glyph: "⚡", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Ripple maps on the walls — Hermes keeps the psychic relay humming softly.",
+      },
+      oracle: {
+        accent: "#8b5cf6", wall: "#4c1d95", wallMid: "#6d28d9", floor: "#2e1065",
+        skyTop: "#0f0520", skyBot: "#312e81", window: "#c4b5fd", decor: "🔮 🕯️ ✦",
+        glyph: "🔮", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Veil-thin curtains and candle smoke — the Oracle's room dreams ahead of you.",
+      },
+      dionysus: {
+        accent: "#e11d48", wall: "#881337", wallMid: "#9f1239", floor: "#4c0519",
+        skyTop: "#1f0a12", skyBot: "#500724", window: "#fda4af", decor: "🍷 🍇 🎭",
+        glyph: "🍷", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Vine shadows on the floorboards — Dionysus pours even when the camp sleeps.",
+      },
+    };
     const campHouses = [
       { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -498, y: 148,
         color: "#d946ef", roof: "#a21caf", wall: "#581c87", enterRadius: 40,
@@ -2369,6 +2647,9 @@
         color: "#e11d48", roof: "#9f1239", wall: "#881337", enterRadius: 42,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
     ];
+    let houseInteriorOpen = false;
+    let activeHouseVisit = null;
+    let nearestHouse = null;
     const campStructures = [
       { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -308, y: 358,
         color: "#34d399", roof: "#059669", wall: "#064e3b", enterRadius: 44,
@@ -5099,6 +5380,12 @@
         ctx.fillStyle = "#6ee7b7";
         ctx.fillText(`${inside.map((n) => n.name).join(", ")} inside`, s.x, s.y + 50);
       }
+      const nearDoor = dist(player, { x: wx, y: wy }) < (house.enterRadius || 40) + 10;
+      if (nearDoor && !houseInteriorOpen) {
+        ctx.font = "bold 9px Segoe UI";
+        ctx.fillStyle = "#fde68a";
+        ctx.fillText("E — enter house", s.x, s.y + 62);
+      }
     }
 
     const speechHold = new Map();
@@ -5991,6 +6278,183 @@
       return line;
     }
 
+    function houseInteriorTheme(ownerId) {
+      return HOUSE_INTERIOR_THEMES[ownerId] || HOUSE_INTERIOR_THEMES.luna;
+    }
+
+    function nearestHouseForPlayer() {
+      let best = null;
+      let bestD = Infinity;
+      for (const h of campHouses) {
+        const d = dist(player, { x: camp.x + h.x, y: camp.y + h.y });
+        const reach = (h.enterRadius || 40) + 14;
+        if (d < reach && d < bestD) {
+          bestD = d;
+          best = h;
+        }
+      }
+      return best;
+    }
+
+    function applyHouseInteriorTheme(ownerId) {
+      const theme = houseInteriorTheme(ownerId);
+      const room = document.getElementById("camp-house-room");
+      const frame = document.getElementById("camp-house-portrait-frame");
+      if (room) {
+        room.style.setProperty("--house-accent", theme.accent);
+        room.style.setProperty("--house-wall", theme.wall);
+        room.style.setProperty("--house-wall-mid", theme.wallMid || theme.wall);
+        room.style.setProperty("--house-floor", theme.floor || theme.wall);
+        room.style.setProperty("--house-window", theme.window || theme.accent);
+        room.style.setProperty("--house-sky-top", theme.skyTop || "#0c1445");
+        room.style.setProperty("--house-sky-bot", theme.skyBot || "#1a1033");
+      }
+      if (frame) frame.style.setProperty("--house-accent", theme.accent);
+      const decor = document.getElementById("camp-house-decor");
+      if (decor) decor.textContent = theme.decor || "✨";
+      const glyph = document.getElementById("camp-house-portrait-glyph");
+      if (glyph) glyph.textContent = theme.glyph || "✨";
+    }
+
+    function renderHouseQuickBtns(agentId) {
+      const wrap = document.getElementById("camp-house-quick-btns");
+      if (!wrap) return;
+      const prompts = AGENT_DIALOGUE_PROMPTS[agentId] || AGENT_DIALOGUE_PROMPTS.luna;
+      wrap.innerHTML = "";
+      prompts.forEach((p) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = p.label;
+        btn.onclick = () => {
+          const input = document.getElementById("camp-house-input");
+          if (input) input.value = p.q;
+          sendHouseDialogue();
+        };
+        wrap.appendChild(btn);
+      });
+    }
+
+    function setHousePortrait(ownerId) {
+      const theme = houseInteriorTheme(ownerId);
+      const img = document.getElementById("camp-house-portrait-img");
+      const vid = document.getElementById("camp-house-portrait-video");
+      const src = `${theme.portrait}?v=${CAMP_BUILD}`;
+      if (vid && theme.portraitVideo) {
+        vid.hidden = false;
+        if (img) img.hidden = true;
+        vid.dataset.idleSrc = `${theme.portraitVideo}?v=${CAMP_BUILD}`;
+        vid.dataset.speakSrc = `/static/avatars/luna-speak.mp4?v=${CAMP_BUILD}`;
+        vid.poster = src;
+        if (vid.src !== vid.dataset.idleSrc) vid.src = vid.dataset.idleSrc;
+        vid.play().catch(() => {});
+      } else if (img) {
+        img.hidden = false;
+        if (vid) { vid.hidden = true; vid.pause(); vid.removeAttribute("src"); }
+        img.src = src;
+        img.alt = `${agentNames[ownerId] || ownerId} portrait`;
+      }
+    }
+
+    function enterCampHouse(house) {
+      if (!house?.ownerId) return;
+      const ownerId = house.ownerId;
+      if (ownerId === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
+        showToast("Dionysus isn't home — invite him with 🍷 first");
+        return;
+      }
+      activeHouseVisit = house;
+      houseInteriorOpen = true;
+      const layer = document.getElementById("camp-house-layer");
+      const theme = houseInteriorTheme(ownerId);
+      document.getElementById("camp-house-title").textContent = house.name;
+      document.getElementById("camp-house-sub").textContent = `${agentNames[ownerId] || ownerId} · inside`;
+      document.getElementById("camp-house-host-name").textContent = agentNames[ownerId] || ownerId;
+      document.getElementById("camp-house-host-vibe").textContent = theme.vibe;
+      document.getElementById("camp-house-host-bubble").textContent = pickAgentOpener(ownerId);
+      document.getElementById("camp-house-input").value = "";
+      document.getElementById("camp-house-status").textContent = "Enter = send · Esc = leave";
+      const fullBtn = document.getElementById("camp-house-full-avatar");
+      if (fullBtn) {
+        fullBtn.hidden = ownerId !== "luna";
+        fullBtn.textContent = "🌙 Full Luna avatar";
+      }
+      applyHouseInteriorTheme(ownerId);
+      setHousePortrait(ownerId);
+      renderHouseQuickBtns(ownerId);
+      layer?.classList.add("open");
+      document.body.classList.add("house-interior-open");
+      chatterPaused = true;
+      pushCampLine(
+        player.name || "You",
+        `You step inside ${house.name} — the air shifts, private and still.`,
+        16,
+        "happy",
+        { fromLocal: true },
+      );
+      recordCampMemory({
+        kind: "house_visit",
+        agent_id: ownerId,
+        text: `${myVisitorName || player.name || "You"} entered ${house.name}`,
+      });
+      setCampLifeStatus(`Inside ${house.name} — talking with ${agentNames[ownerId] || ownerId}`);
+      showToast(`Inside ${house.name} — E or Esc to leave`);
+      setTimeout(() => document.getElementById("camp-house-input")?.focus(), 120);
+    }
+
+    function closeCampHouse() {
+      houseInteriorOpen = false;
+      activeHouseVisit = null;
+      document.getElementById("camp-house-layer")?.classList.remove("open");
+      document.body.classList.remove("house-interior-open");
+      chatterPaused = false;
+      const vid = document.getElementById("camp-house-portrait-video");
+      if (vid) { vid.pause(); vid.removeAttribute("src"); }
+      setCampLifeStatus("Back outside — aurora camp");
+    }
+
+    async function sendHouseDialogue() {
+      const input = document.getElementById("camp-house-input");
+      const text = (input?.value || "").trim();
+      if (!text || !activeHouseVisit?.ownerId) return;
+      const agentId = activeHouseVisit.ownerId;
+      const houseName = activeHouseVisit.name;
+      const bubble = document.getElementById("camp-house-host-bubble");
+      const status = document.getElementById("camp-house-status");
+      if (chatBusy) return;
+      chatBusy = true;
+      if (bubble) bubble.textContent = "Listening…";
+      if (status) status.textContent = "Waiting for reply…";
+      const vid = document.getElementById("camp-house-portrait-video");
+      if (vid && !vid.hidden && vid.dataset.speakSrc) {
+        vid.src = vid.dataset.speakSrc;
+        vid.play().catch(() => {});
+      }
+      const houseNote = `(Visitor is inside your home — ${houseName}. Intimate one-on-one. Cozy, personal, unhurried.) `;
+      recordCampMemory({ kind: "chat", agent_id: agentId, text: `[inside ${houseName}] ${text}` });
+      try {
+        if (!campServerOnline) throw new Error("offline");
+        const res = await fetch("/api/firmament/agent/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_id: agentId,
+            message: houseNote + text,
+            speak: false,
+            ...visitorPayload(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "chat failed");
+        applyChatResult(agentId, data, { useHouse: true });
+      } catch (err) {
+        const data = aetherLocalChat(agentId, houseNote + text);
+        applyChatResult(agentId, data, { useHouse: true });
+        if (!campServerOnline) showToast("🌫 Aether brains — home visit still works");
+      }
+      if (input) input.value = "";
+      chatBusy = false;
+    }
+
     function renderDialogueQuickBtns(agentId) {
       const wrap = document.getElementById("dialogue-quick-btns");
       if (!wrap) return;
@@ -6126,6 +6590,16 @@
       if (ev.data?.type === "luna-camp:close") closeLunaEmbed();
     });
 
+    document.getElementById("camp-house-exit").onclick = () => closeCampHouse();
+    document.getElementById("camp-house-send").onclick = () => sendHouseDialogue();
+    document.getElementById("camp-house-full-avatar").onclick = () => {
+      closeCampHouse();
+      openLunaEmbed();
+    };
+    document.getElementById("camp-house-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); sendHouseDialogue(); }
+      if (e.key === "Escape") closeCampHouse();
+    });
     document.getElementById("btn-luna-avatar").onclick = () => openLunaEmbed();
     document.getElementById("luna-embed-back-camp").onclick = () => closeLunaEmbed();
     document.getElementById("luna-embed-close").onclick = () => closeLunaEmbed();
@@ -6524,6 +6998,11 @@
     }
 
     function interactNearby() {
+      const house = nearestHouseForPlayer();
+      if (house) {
+        enterCampHouse(house);
+        return;
+      }
       if (nearestProp) {
         useProp(nearestProp);
         return;
@@ -6567,6 +7046,7 @@
         }
       }
       nearestProp = bestProp;
+      nearestHouse = nearestHouseForPlayer();
 
       let best = null, bestD = 95;
       for (const n of allRoamers()) {
@@ -6577,7 +7057,10 @@
       refreshCampTalkTarget();
 
       const hint = document.getElementById("prop-hint");
-      if (nearestProp && !dialogueBackdrop.classList.contains("open")) {
+      if (nearestHouse && !houseInteriorOpen && !dialogueBackdrop.classList.contains("open")) {
+        hint.textContent = `At ${nearestHouse.emoji} ${nearestHouse.name} — press E to enter`;
+        hint.classList.add("show");
+      } else if (nearestProp && !dialogueBackdrop.classList.contains("open")) {
         hint.textContent = `Near ${nearestProp.emoji} ${nearestProp.name} — press E or tap it`;
         hint.classList.add("show");
       } else {
@@ -6591,6 +7074,10 @@
     }
 
     function hitTestCamp(sx, sy) {
+      for (const h of campHouses) {
+        const hs = worldToScreen(camp.x + h.x, camp.y + h.y);
+        if (Math.hypot(sx - hs.x, sy - hs.y) < 50) return { kind: "house", ref: h };
+      }
       for (const st of campStructures) {
         const ss = worldToScreen(camp.x + st.x, camp.y + st.y);
         if (Math.hypot(sx - ss.x, sy - ss.y) < 42) return { kind: "structure", ref: st };
@@ -6664,6 +7151,7 @@
         canvas.setPointerCapture(ev.pointerId);
         canvas.classList.add("dragging");
         if (hit.kind === "prop") showToast(`Dragging ${hit.ref.emoji} ${hit.ref.name}`);
+        else if (hit.kind === "house") showToast(`${hit.ref.emoji} ${hit.ref.name} — tap to enter`);
         else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
         return;
       }
@@ -6688,7 +7176,15 @@
       canvas.classList.remove("dragging");
       const { sx, sy } = campPointerPos(ev);
       if (!dragTarget.moved) {
-        if (dragTarget.kind === "prop") {
+        if (dragTarget.kind === "house") {
+          player.tx = camp.x + dragTarget.ref.x;
+          player.ty = camp.y + dragTarget.ref.y;
+          setTimeout(() => {
+            if (dist(player, { x: camp.x + dragTarget.ref.x, y: camp.y + dragTarget.ref.y }) < (dragTarget.ref.enterRadius || 40) + 16) {
+              enterCampHouse(dragTarget.ref);
+            }
+          }, 300);
+        } else if (dragTarget.kind === "prop") {
           player.tx = camp.x + dragTarget.ref.x;
           player.ty = camp.y + dragTarget.ref.y;
           setTimeout(() => {
@@ -7272,6 +7768,10 @@
     }
 
     window.addEventListener("keydown", (e) => {
+      if (houseInteriorOpen && e.key === "Escape") {
+        closeCampHouse();
+        return;
+      }
       if (lucidTvOpen && e.key === "Escape") {
         closeLucidTv();
         return;

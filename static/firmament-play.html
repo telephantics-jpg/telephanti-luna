@@ -430,6 +430,40 @@
     #camp-talk-target-wrap select { width: 100%; max-width: none; }
     #npc-behavior, #launcher-dock, #visitors-online, #btn-find-friends { display: none; }
     #prop-hint { display: none !important; }
+    #camp-enter-house {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 8px);
+      z-index: 24;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 999px;
+      border: 2px solid #fde68a;
+      background: linear-gradient(135deg, #7c2d12, #0e7490);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 6px 28px rgba(251, 191, 36, 0.45);
+      animation: camp-enter-pulse 1.4s ease-in-out infinite;
+      pointer-events: auto;
+    }
+    #camp-enter-house.visible { display: flex; }
+    @keyframes camp-enter-pulse {
+      0%, 100% { box-shadow: 0 6px 24px rgba(251, 191, 36, 0.35); transform: translateX(-50%) scale(1); }
+      50% { box-shadow: 0 8px 32px rgba(251, 191, 36, 0.55); transform: translateX(-50%) scale(1.04); }
+    }
+    body.camp-music-on #camp-enter-house.visible {
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 58px);
+    }
+    @media (min-width: 900px) {
+      #camp-enter-house.visible { display: none !important; }
+    }
     #convo-toggle { display: none; }
     #action-bar {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
@@ -1967,6 +2001,7 @@
   <audio id="camp-music-audio" preload="auto" playsinline></audio>
   <iframe id="camp-music-yt-fallback" title="Telephantix fallback" allow="autoplay; encrypted-media" hidden></iframe>
   <button type="button" id="camp-music-prompt" aria-live="polite">🔊 Tap to hear Telephantix</button>
+  <button type="button" id="camp-enter-house" aria-live="polite">🚪 Enter house</button>
   <div id="prop-hint"></div>
   <button type="button" id="convo-toggle"></button>
   <div id="sentinel-mini"></div>
@@ -2127,7 +2162,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-convo-read-lock";
+    const CAMP_BUILD = "2026-07-07-camp-enter-tap";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -5393,7 +5428,7 @@
       if (nearDoor && !houseInteriorOpen) {
         ctx.font = "bold 9px Segoe UI";
         ctx.fillStyle = "#fde68a";
-        ctx.fillText("E — enter house", s.x, s.y + 62);
+        ctx.fillText(isCampMobile() ? "tap house or Enter" : "E — enter house", s.x, s.y + 62);
       }
     }
 
@@ -6418,7 +6453,9 @@
       chatterPaused = false;
       const vid = document.getElementById("camp-house-portrait-video");
       if (vid) { vid.pause(); vid.removeAttribute("src"); }
+      document.getElementById("camp-enter-house")?.classList.remove("visible");
       setCampLifeStatus("Back outside — aurora camp");
+      updateNearest();
     }
 
     async function sendHouseDialogue() {
@@ -6599,6 +6636,10 @@
       if (ev.data?.type === "luna-camp:close") closeLunaEmbed();
     });
 
+    document.getElementById("camp-enter-house").onclick = () => {
+      if (nearestHouse) enterCampHouse(nearestHouse);
+      else showToast("Walk up to a house door first");
+    };
     document.getElementById("camp-house-exit").onclick = () => closeCampHouse();
     document.getElementById("camp-house-send").onclick = () => sendHouseDialogue();
     document.getElementById("camp-house-full-avatar").onclick = () => {
@@ -7065,9 +7106,21 @@
       nearestId = best;
       refreshCampTalkTarget();
 
+      const enterBtn = document.getElementById("camp-enter-house");
+      if (enterBtn) {
+        const showEnter = nearestHouse && !houseInteriorOpen && !dialogueBackdrop.classList.contains("open");
+        enterBtn.classList.toggle("visible", showEnter);
+        if (showEnter) {
+          const owner = agentNames[nearestHouse.ownerId] || nearestHouse.ownerId;
+          enterBtn.textContent = `${nearestHouse.emoji} Enter ${owner}'s home`;
+          enterBtn.title = `Step inside ${nearestHouse.name}`;
+        }
+      }
       const hint = document.getElementById("prop-hint");
       if (nearestHouse && !houseInteriorOpen && !dialogueBackdrop.classList.contains("open")) {
-        hint.textContent = `At ${nearestHouse.emoji} ${nearestHouse.name} — press E to enter`;
+        hint.textContent = isCampMobile()
+          ? `At ${nearestHouse.emoji} ${nearestHouse.name} — tap Enter above`
+          : `At ${nearestHouse.emoji} ${nearestHouse.name} — press E to enter`;
         hint.classList.add("show");
       } else if (nearestProp && !dialogueBackdrop.classList.contains("open")) {
         hint.textContent = `Near ${nearestProp.emoji} ${nearestProp.name} — press E or tap it`;
@@ -7083,9 +7136,10 @@
     }
 
     function hitTestCamp(sx, sy) {
+      const houseReach = isCampMobile() ? 62 : 50;
       for (const h of campHouses) {
         const hs = worldToScreen(camp.x + h.x, camp.y + h.y);
-        if (Math.hypot(sx - hs.x, sy - hs.y) < 50) return { kind: "house", ref: h };
+        if (Math.hypot(sx - hs.x, sy - hs.y) < houseReach) return { kind: "house", ref: h };
       }
       for (const st of campStructures) {
         const ss = worldToScreen(camp.x + st.x, camp.y + st.y);
@@ -7107,7 +7161,9 @@
       const b = getCampRelativeBounds();
       const rx = Math.max(b.xMin, Math.min(b.xMax, w.x - camp.x));
       const ry = Math.max(b.yMin, Math.min(b.yMax, w.y - camp.y));
-      if (target.kind === "prop") {
+      if (target.kind === "house") {
+        return;
+      } else if (target.kind === "prop") {
         target.ref.x = rx;
         target.ref.y = ry;
       } else if (target.kind === "agent") {
@@ -7186,13 +7242,7 @@
       const { sx, sy } = campPointerPos(ev);
       if (!dragTarget.moved) {
         if (dragTarget.kind === "house") {
-          player.tx = camp.x + dragTarget.ref.x;
-          player.ty = camp.y + dragTarget.ref.y;
-          setTimeout(() => {
-            if (dist(player, { x: camp.x + dragTarget.ref.x, y: camp.y + dragTarget.ref.y }) < (dragTarget.ref.enterRadius || 40) + 16) {
-              enterCampHouse(dragTarget.ref);
-            }
-          }, 300);
+          enterCampHouse(dragTarget.ref);
         } else if (dragTarget.kind === "prop") {
           player.tx = camp.x + dragTarget.ref.x;
           player.ty = camp.y + dragTarget.ref.y;

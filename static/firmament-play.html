@@ -694,8 +694,8 @@
       html.camp-input-focus body {
         height: var(--viewport-h, 100svh);
         overflow: hidden;
-        position: fixed;
         width: 100%;
+        overscroll-behavior: none;
       }
       html.camp-input-focus #camp-stage,
       html.camp-input-focus #trippy-veil {
@@ -1439,7 +1439,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ios-flat-zoom";
+    const CAMP_BUILD = "2026-07-06-ios-layout-lock";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1491,31 +1491,44 @@
       return vv.height < layoutViewportHeight() * 0.82;
     }
 
-    function captureStableCampRect() {
-      if (!campStage) return;
-      const r = campStage.getBoundingClientRect();
-      if (r.width < 120 || r.height < 160) return;
-      stableCampW = Math.round(r.width);
-      stableCampH = Math.round(r.height);
-      document.documentElement.style.setProperty("--camp-stable-w", `${stableCampW}px`);
-      document.documentElement.style.setProperty("--camp-stable-h", `${stableCampH}px`);
-    }
-
-    function measureStableCampSize() {
-      syncUILayout();
-      clearCampStageOverrides();
-      captureStableCampRect();
-      if (stableCampW > 0 && stableCampH > 0) return { w: stableCampW, h: stableCampH };
-      const vv = window.visualViewport;
+    function getCampCanvasSizeFromLayout() {
       const style = getComputedStyle(document.documentElement);
       const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
       const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 100;
-      const vh = vv ? Math.round(vv.height) : layoutViewportHeight();
-      stableCampW = vv ? Math.round(vv.width) : layoutViewportWidth();
-      stableCampH = Math.max(200, vh - headerH - dockH);
-      document.documentElement.style.setProperty("--camp-stable-w", `${stableCampW}px`);
-      document.documentElement.style.setProperty("--camp-stable-h", `${stableCampH}px`);
-      return { w: stableCampW, h: stableCampH };
+      const vv = window.visualViewport;
+      const vw = Math.round(vv?.width || layoutViewportWidth());
+      const vh = Math.round(vv?.height || layoutViewportHeight());
+      return { w: vw, h: Math.max(200, vh - headerH - dockH) };
+    }
+
+    function commitStableCampSize(w, h) {
+      if (w < 120 || h < 160) return;
+      stableCampW = w;
+      stableCampH = h;
+      document.documentElement.style.setProperty("--camp-stable-w", `${w}px`);
+      document.documentElement.style.setProperty("--camp-stable-h", `${h}px`);
+    }
+
+    function getCampCanvasSize() {
+      if (!isIOS()) {
+        const box = (campStage || canvas).getBoundingClientRect();
+        return {
+          w: Math.max(1, Math.round(box.width)),
+          h: Math.max(1, Math.round(box.height)),
+        };
+      }
+      const keyboardOpen = document.documentElement.classList.contains("camp-input-focus")
+        || isKeyboardLikelyOpen();
+      if (keyboardOpen && stableCampW > 0 && stableCampH > 0) {
+        return { w: stableCampW, h: stableCampH };
+      }
+      const sz = getCampCanvasSizeFromLayout();
+      if (!keyboardOpen) {
+        if (stableCampH < 1 || sz.h >= stableCampH * 0.9) commitStableCampSize(sz.w, sz.h);
+        return { w: stableCampW || sz.w, h: stableCampH || sz.h };
+      }
+      commitStableCampSize(sz.w, sz.h);
+      return sz;
     }
 
     function clearCampStageOverrides() {
@@ -1529,10 +1542,6 @@
         veil.style.height = "";
         veil.style.top = "";
       }
-    }
-
-    function applyCampStageLock(locked) {
-      document.documentElement.classList.toggle("camp-canvas-locked", !!(locked && isIOS()));
     }
     if (isIOS()) document.documentElement.classList.add("ios-camp");
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
@@ -1604,12 +1613,6 @@
       return -80;
     }
     let lastSpreadZoom = 0;
-    function maybeRespreadCamp() {
-      const z = getWorldZoom();
-      if (Math.abs(z - lastSpreadZoom) < 0.005) return;
-      lastSpreadZoom = z;
-      spreadAllNpcs();
-    }
     let campChillUntil = 0;
     const campGuests = [];
     const NPC_ANCHORS = {
@@ -2450,7 +2453,10 @@
     buildGroundTexture();
 
     function syncUILayout() {
-      document.documentElement.style.setProperty("--viewport-h", `${layoutViewportHeight()}px`);
+      const vvh = (isIOS() && window.visualViewport)
+        ? Math.round(window.visualViewport.height)
+        : layoutViewportHeight();
+      document.documentElement.style.setProperty("--viewport-h", `${vvh}px`);
       const header = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (header) {
@@ -2470,7 +2476,17 @@
       }
     }
 
-    function recenterCampView(opts = {}) {
+    let resizeRAF = 0;
+    let recenterTimer = 0;
+    function scheduleResize() {
+      if (resizeRAF) cancelAnimationFrame(resizeRAF);
+      resizeRAF = requestAnimationFrame(() => {
+        resizeRAF = 0;
+        resize();
+      });
+    }
+
+    function recenterCampViewNow(opts = {}) {
       const blurInput = opts.blurInput !== false;
       const input = document.getElementById("camp-talk-input");
       const targetSel = document.getElementById("camp-talk-target");
@@ -2482,26 +2498,26 @@
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       document.documentElement.classList.remove("camp-input-focus");
-      applyCampStageLock(false);
+      clearCampStageOverrides();
       document.documentElement.style.setProperty("--tilt-x", "0deg");
       document.documentElement.style.setProperty("--tilt-y", "0deg");
       if (isCampMobile()) minimizeSpeechBubble();
-      const run = () => {
-        syncUILayout();
-        resize();
-      };
-      run();
-      requestAnimationFrame(run);
-      const delays = isIOS() ? [80, 220, 420, 680, 920, 1180] : [80, 280, 520];
-      delays.forEach((ms) => setTimeout(run, ms));
+      scheduleResize();
       if (isIOS()) {
-        setTimeout(() => {
-          stableCampW = 0;
-          stableCampH = 0;
-          clearCampStageOverrides();
-          run();
-        }, 1250);
+        setTimeout(scheduleResize, 380);
+        setTimeout(scheduleResize, 760);
+      } else {
+        setTimeout(scheduleResize, 280);
       }
+    }
+
+    function recenterCampView(opts = {}) {
+      if (!isIOS()) {
+        recenterCampViewNow(opts);
+        return;
+      }
+      clearTimeout(recenterTimer);
+      recenterTimer = setTimeout(() => recenterCampViewNow(opts), 40);
     }
     const resetCampUILayout = recenterCampView;
 
@@ -2509,33 +2525,11 @@
     let resizeRetry = 0;
     function resize() {
       syncUILayout();
-      const iosLocked = isIOS() && (
-        document.documentElement.classList.contains("camp-input-focus")
-        || isKeyboardLikelyOpen()
-      );
-      let w = 0;
-      let h = 0;
-      if (iosLocked) {
-        if (stableCampW < 1 || stableCampH < 1) measureStableCampSize();
-        w = stableCampW;
-        h = stableCampH;
-        applyCampStageLock(true);
-      } else {
-        applyCampStageLock(false);
-        const box = (campStage || canvas).getBoundingClientRect();
-        w = Math.round(box.width);
-        h = Math.round(box.height);
-        if (isIOS() && !isKeyboardLikelyOpen() && w > 120 && h > 160) {
-          stableCampW = w;
-          stableCampH = h;
-          document.documentElement.style.setProperty("--camp-stable-w", `${w}px`);
-          document.documentElement.style.setProperty("--camp-stable-h", `${h}px`);
-        }
-      }
+      const { w, h } = getCampCanvasSize();
       if (w < 2 || h < 2) {
         if (resizeRetry < 12) {
           resizeRetry += 1;
-          requestAnimationFrame(resize);
+          scheduleResize();
         }
         return;
       }
@@ -2556,50 +2550,38 @@
         campSpreadInit = true;
         lastSpreadZoom = getWorldZoom();
         spreadAllNpcs();
-      } else if (isIOS()) {
-        maybeRespreadCamp();
       }
     }
     function onVisualViewportChange() {
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      if (isIOS()) {
-        if (isKeyboardLikelyOpen()) {
-          if (stableCampW < 1 || stableCampH < 1) {
-            captureStableCampRect();
-            if (stableCampW < 1 || stableCampH < 1) measureStableCampSize();
-          }
-          document.documentElement.classList.add("camp-input-focus");
-        } else if (!document.getElementById("camp-talk-input")?.matches(":focus")) {
-          document.documentElement.classList.remove("camp-input-focus");
-          applyCampStageLock(false);
-        }
-      }
-      resize();
+      scheduleResize();
     }
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", () => scheduleResize());
     window.addEventListener("orientationchange", () => {
       stableCampW = 0;
       stableCampH = 0;
       clearCampStageOverrides();
-      setTimeout(resize, 200);
+      setTimeout(scheduleResize, 200);
     });
-    window.addEventListener("pageshow", () => setTimeout(resize, 50));
+    window.addEventListener("pageshow", () => setTimeout(scheduleResize, 50));
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", onVisualViewportChange);
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => resize());
+      const layoutObs = new ResizeObserver(() => scheduleResize());
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (hdr) layoutObs.observe(hdr);
       if (dock) layoutObs.observe(dock);
-      if (campStage) layoutObs.observe(campStage);
-      else layoutObs.observe(canvas);
+      if (!isIOS()) {
+        if (campStage) layoutObs.observe(campStage);
+        else layoutObs.observe(canvas);
+      }
     }
-    resize();
+    scheduleResize();
 
     function setCampTilt(sx, sy) {
       if (isCampMobile()) {
@@ -3404,7 +3386,7 @@
       try {
         if (!mobile) localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
       } catch (_) {}
-      setTimeout(() => { syncUILayout(); resize(); }, 50);
+      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
     }
 
     function expandSpeechBubble() { setSpeechBubbleDock(false); }
@@ -5027,17 +5009,17 @@
     document.getElementById("camp-talk-input")?.addEventListener("focus", () => {
       if (isCampMobile()) minimizeSpeechBubble();
       if (isIOS()) {
-        document.documentElement.classList.add("camp-input-focus");
         if (stableCampW < 1 || stableCampH < 1) {
-          captureStableCampRect();
-          if (stableCampW < 1 || stableCampH < 1) measureStableCampSize();
+          const sz = getCampCanvasSizeFromLayout();
+          commitStableCampSize(sz.w, sz.h);
         }
+        document.documentElement.classList.add("camp-input-focus");
       }
-      setTimeout(resize, 40);
+      scheduleResize();
     });
     document.getElementById("camp-talk-input")?.addEventListener("blur", () => {
-      const delay = isIOS() ? 140 : 80;
-      setTimeout(() => recenterCampView({ blurInput: false }), delay);
+      if (isIOS()) recenterCampView({ blurInput: false });
+      else setTimeout(() => recenterCampView({ blurInput: false }), 80);
     });
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();

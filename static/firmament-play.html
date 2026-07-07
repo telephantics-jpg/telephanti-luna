@@ -1409,6 +1409,7 @@
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
+        <button type="button" class="agent-chip visitor-chip" id="chip-dionysus-invite" title="Invite Dionysus to camp"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">🍷 Invite Dionysus</span><span class="amood">tap when ready</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
       </div>
     </div>
@@ -1428,7 +1429,7 @@
       <button type="button" class="weather-chip" data-weather="rain">Rain</button>
       <button type="button" class="weather-chip" data-weather="night">Night</button>
     </div>
-    <div id="unreal-hint">Browser camp runs from your server alone. Unreal 3D is optional on your PC — it still needs this server for agent brains (chat/converse).</div>
+    <div id="unreal-hint">PC &amp; phone share this camp — free Ollama/aether brains, memory, and chatter. Unreal 3D is optional on your PC.</div>
     <div id="camp-life-status" class="live">Waking Luna, Hermes, Oracle &amp; Caduceus…</div>
   </header>
   <div class="hud">
@@ -1492,6 +1493,7 @@
       <button type="button" class="dock-icon" id="btn-lucid-tv" title="Lucid Mind TV — real mysterious feeds" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
       <button type="button" class="dock-icon" id="btn-camp-shop" title="Aurora shop — spend tokens" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917">✦</button>
+      <button type="button" class="dock-icon" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
@@ -1499,7 +1501,7 @@
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
       <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
-    <div id="dock-tip" class="dock-tip">Type above to talk · drag camp stuff · tap agents</div>
+    <div id="dock-tip" class="dock-tip">Type to talk · 🍷 invite Dionysus · drag pinned agents to empower circles</div>
   </footer>
   <div id="prop-hint"></div>
   <button type="button" id="convo-toggle"></button>
@@ -1619,7 +1621,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ollama-aether-memory";
+    const CAMP_BUILD = "2026-07-06-camp-spread-dionysus";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -2038,30 +2040,30 @@
     let campChillUntil = 0;
     const campGuests = [];
     const NPC_ANCHORS = {
-      luna: { x: -278, y: -78 },
-      oracle: { x: 288, y: -68 },
-      hermes: { x: 0, y: -218 },
-      dionysus: { x: 248, y: 138 },
-      caduceus: { x: -248, y: 152 },
-      sentinel: { x: 262, y: 142 },
-      jesus: { x: 0, y: 108 },
-      michael: { x: -178, y: 138 },
-      gabriel: { x: 178, y: 128 },
-      raphael: { x: -108, y: 208 },
-      uriel: { x: 108, y: 198 },
+      luna: { x: -398, y: -112 },
+      oracle: { x: 408, y: -98 },
+      hermes: { x: 0, y: -318 },
+      dionysus: { x: 368, y: 208 },
+      caduceus: { x: -372, y: 228 },
+      sentinel: { x: -358, y: -228 },
+      jesus: { x: 118, y: 178 },
+      michael: { x: -268, y: 208 },
+      gabriel: { x: 288, y: 188 },
+      raphael: { x: -178, y: 308 },
+      uriel: { x: 188, y: 298 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
       oracle: { angle: Math.PI * 0.08, bias: 1.0 },
       hermes: { angle: -Math.PI / 2, bias: 1.0 },
-      dionysus: { angle: Math.PI * 0.42, bias: 1.0 },
+      dionysus: { angle: Math.PI * 0.38, bias: 1.0 },
       caduceus: { angle: Math.PI * 0.72, bias: 1.0 },
-      sentinel: { angle: Math.PI * 0.22, bias: 1.0 },
-      jesus: { angle: Math.PI * 0.5, bias: 1.0 },
+      sentinel: { angle: Math.PI * 1.18, bias: 1.0 },
+      jesus: { angle: Math.PI * 0.52, bias: 1.0 },
       michael: { angle: Math.PI * 0.78, bias: 1.0 },
-      gabriel: { angle: Math.PI * 0.22, bias: 1.0 },
-      raphael: { angle: Math.PI * 0.62, bias: 1.0 },
-      uriel: { angle: Math.PI * 0.38, bias: 1.0 },
+      gabriel: { angle: Math.PI * 0.28, bias: 1.0 },
+      raphael: { angle: Math.PI * 0.64, bias: 1.0 },
+      uriel: { angle: Math.PI * 0.44, bias: 1.0 },
     };
     const ARCHANGEL_IDS = ["michael", "gabriel", "raphael", "uriel"];
     const HEAVEN_ROSTER = [
@@ -2072,8 +2074,8 @@
       { id: "uriel", name: "Uriel", color: "#fb923c", mood: "think" },
     ];
     let heavenSummoned = false;
-    const MIN_NPC_GAP = 52;
-    const ANCHOR_WANDER = 220;
+    const MIN_NPC_GAP = 64;
+    const ANCHOR_WANDER = 280;
     const CHAT_MEET_DIST = 40;
     const CAM_X = 0;
     const CAM_Y = -80;
@@ -2081,7 +2083,7 @@
     const otherVisitors = new Map();
     const followChain = { luna: "hermes", hermes: "oracle", oracle: "luna" };
     const BEHAVIOR_LABELS = { free: "own thing", roam: "roaming", follow: "following", stand: "still", party: "party", visit: "visiting", home: "going home", meditate: "meditating ✦" };
-    const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle"]);
+    const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus"]);
 
     const player = {
       x: 0, y: -25, tx: 0, ty: -25, speed: 2.4,
@@ -2090,24 +2092,27 @@
     };
     const camp = { x: 0, y: -80 };
     const campHouses = [
-      { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -348, y: 118,
+      { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -498, y: 148,
         color: "#d946ef", roof: "#a21caf", wall: "#581c87", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "hermes-home", ownerId: "hermes", name: "Hermes' House", emoji: "🏡", x: 348, y: 112,
+      { id: "hermes-home", ownerId: "hermes", name: "Hermes' House", emoji: "🏡", x: 498, y: 138,
         color: "#fbbf24", roof: "#d97706", wall: "#92400e", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "oracle-home", ownerId: "oracle", name: "Oracle's House", emoji: "🏚", x: 0, y: 268,
+      { id: "oracle-home", ownerId: "oracle", name: "Oracle's House", emoji: "🏚", x: 0, y: 388,
         color: "#8b5cf6", roof: "#6d28d9", wall: "#4c1d95", enterRadius: 40,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "dionysus-home", ownerId: "dionysus", name: "Dionysus' Vineyard", emoji: "🍷", x: 468, y: -278,
+        color: "#e11d48", roof: "#9f1239", wall: "#881337", enterRadius: 42,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
     ];
     const campStructures = [
-      { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -208, y: 248,
+      { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -308, y: 358,
         color: "#34d399", roof: "#059669", wall: "#064e3b", enterRadius: 44,
         doorOffset: { x: 0, y: -0.32 }, interior: { x: 0, y: 0.08 } },
-      { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 228, y: 252,
+      { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 338, y: 362,
         color: "#f59e0b", roof: "#d97706", wall: "#92400e", enterRadius: 44,
         doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.1 } },
-      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -92, y: 198,
+      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -148, y: 288,
         color: "#6366f1", roof: "#4338ca", wall: "#312e81", enterRadius: 46,
         doorOffset: { x: 0, y: -0.28 }, interior: { x: 0, y: 0.05 } },
     ];
@@ -2123,25 +2128,25 @@
     let campMusicOn = false;
     let campMusicPhase = 0;
     const props = [
-      { id: "beer", name: "Beer", emoji: "🍺", x: 158, y: -58, color: "#f59e0b", radius: 90,
+      { id: "beer", name: "Beer", emoji: "🍺", x: 228, y: -88, color: "#f59e0b", radius: 90,
         useMsg: "You crack open a cold beer from the camp cooler. Cheers!",
         npcLines: ["Cheers!", "Save me one!", "Beer tastes better under the aurora.", "Hermes wants the last one."] },
-      { id: "steaks", name: "Steaks", emoji: "🥩", x: -162, y: -52, color: "#dc2626", radius: 90,
+      { id: "steaks", name: "Steaks", emoji: "🥩", x: -238, y: -78, color: "#dc2626", radius: 90,
         useMsg: "You flip sizzling steaks on the campfire grill. Smells incredible.",
         npcLines: ["Medium rare please!", "That steak smells amazing.", "Oracle saw extra steaks in her vision.", "Pass the plate!"] },
-      { id: "herbs", name: "Herbs", emoji: "🌿", x: -68, y: -128, color: "#4ade80", radius: 85,
+      { id: "herbs", name: "Herbs", emoji: "🌿", x: -108, y: -198, color: "#4ade80", radius: 85,
         useMsg: "You share the camp herb bundle — earthy, warm, everyone gets mellow.",
         npcLines: ["Chill vibes only.", "Hermes says the herbs hum with the aurora.", "So relaxed right now.", "Oracle approves this energy."] },
-      { id: "weed", name: "Weed", emoji: "🍃", x: 172, y: 88, color: "#22c55e", radius: 88,
+      { id: "weed", name: "Weed", emoji: "🍃", x: 248, y: 128, color: "#22c55e", radius: 88,
         useMsg: "You pass the camp weed around — slow smiles, wide aurora, everyone drifts farther from the fire.",
         npcLines: ["…okay yeah I'm good.", "Hermes is seeing colors in the ripples.", "Oracle says the stars look closer.", "Luna wants to wander way out there.", "Caduceus approves the vibe."] },
-      { id: "cookies", name: "Cookies", emoji: "🍪", x: -138, y: 78, color: "#d4a05a", radius: 85,
+      { id: "cookies", name: "Cookies", emoji: "🍪", x: -208, y: 118, color: "#d4a05a", radius: 85,
         useMsg: "You grab cookies from the camp table. Caduceus glows approvingly.",
         npcLines: ["Cookie tax is real.", "Caduceus wanted one too.", "Sweet treat at camp!", "Luna loves the chocolate ones."] },
-      { id: "ouija", name: "Ouija", emoji: "🔮", x: 98, y: 118, color: "#a855f7", radius: 92,
+      { id: "ouija", name: "Ouija", emoji: "🔮", x: 148, y: 168, color: "#a855f7", radius: 92,
         useMsg: "You kneel by the spirit board — the planchette is already twitching.",
         npcLines: ["Oracle says don't look away.", "Hermes felt a ripple.", "Luna will channel — be respectful.", "Caduceus glows violet."] },
-      { id: "stereo", name: "Camp Music", emoji: "🎵", x: -218, y: -188, color: "#38bdf8", radius: 86,
+      { id: "stereo", name: "Camp Music", emoji: "🎵", x: -298, y: -258, color: "#38bdf8", radius: 86,
         useMsg: "You flip on camp music — soft aurora beats pulse under the sun corona.",
         npcLines: ["That's the vibe.", "Hermes is vibing to the ripples in the bass.", "Luna wants to dance by the corona.", "Oracle predicted this song.", "Turn it up a little."] },
     ];
@@ -2166,17 +2171,18 @@
       return KNOWN_MOODS.has(m) ? `mood-${m}` : "mood-neutral";
     }
     const npcs = [
-      { id: "luna", name: "Luna", color: "#d946ef", x: -278, y: -78, tx: -278, ty: -78, speed: 2.5, roam: 195, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
-      { id: "oracle", name: "Oracle", color: "#8b5cf6", x: 288, y: -68, tx: 288, ty: -68, speed: 2.3, roam: 190, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
-      { id: "hermes", name: "Hermes", color: "#fbbf24", x: 0, y: -218, tx: 0, ty: -218, speed: 2.7, roam: 200, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
-      { id: "caduceus", name: "Caduceus", color: "#34d399", x: -248, y: 152, tx: -248, ty: 152, speed: 2.1, roam: 185, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "caduceus" },
-      { id: "sentinel", name: "Sentinel", color: "#67e8f9", x: 262, y: 142, tx: 262, ty: 142, speed: 2.4, roam: 188, idle: 0, line: "", fullLine: "", mood: "alert", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "sentinel" },
-      { id: "jesus", name: "Jesus", color: "#fde68a", x: 0, y: 108, tx: 0, ty: 108, speed: 2.0, roam: 192, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "jesus" },
+      { id: "luna", name: "Luna", color: "#d946ef", x: -398, y: -112, tx: -398, ty: -112, speed: 2.5, roam: 220, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
+      { id: "oracle", name: "Oracle", color: "#8b5cf6", x: 408, y: -98, tx: 408, ty: -98, speed: 2.3, roam: 215, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
+      { id: "hermes", name: "Hermes", color: "#fbbf24", x: 0, y: -318, tx: 0, ty: -318, speed: 2.7, roam: 225, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
+      { id: "caduceus", name: "Caduceus", color: "#34d399", x: -372, y: 228, tx: -372, ty: 228, speed: 2.1, roam: 210, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "caduceus" },
+      { id: "sentinel", name: "Sentinel", color: "#67e8f9", x: -358, y: -228, tx: -358, ty: -228, speed: 2.4, roam: 212, idle: 0, line: "", fullLine: "", mood: "alert", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "sentinel" },
+      { id: "jesus", name: "Jesus", color: "#fde68a", x: 118, y: 178, tx: 118, ty: 178, speed: 2.0, roam: 205, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "jesus" },
     ];
     const HOUSE_HOME_LINES = {
       luna: "Slipping into my house — the corona glow seeps through the windows.",
       hermes: "Home base. I'll feel the ripples better from inside.",
       oracle: "I saw myself walking in. Door's open.",
+      dionysus: "The vineyard door's open — party starts when you say so.",
     };
     const aetherEntities = [];
     const AETHER_TYPES = [
@@ -2277,8 +2283,8 @@
       const b = getCampRelativeBounds();
       const cx = (b.xMin + b.xMax) * 0.5;
       const cy = (b.yMin + b.yMax) * 0.5;
-      const rx = (b.xMax - b.xMin) * 0.48;
-      const ry = (b.yMax - b.yMin) * 0.48;
+      const rx = (b.xMax - b.xMin) * 0.52;
+      const ry = (b.yMax - b.yMin) * 0.52;
       return {
         x: cx + Math.cos(angle) * rx,
         y: cy + Math.sin(angle) * ry,
@@ -2342,8 +2348,8 @@
     function spreadAllNpcs() {
       npcs.forEach((n) => {
         const p = sectorPosition(n.id);
-        n.x = p.x + (Math.random() - 0.5) * 52;
-        n.y = p.y + (Math.random() - 0.5) * 52;
+        n.x = p.x + (Math.random() - 0.5) * 72;
+        n.y = p.y + (Math.random() - 0.5) * 72;
         n.tx = n.x;
         n.ty = n.y;
         n.visitTarget = null;
@@ -2757,7 +2763,7 @@
           if (dist(g, { x: g.exitX, y: g.exitY }) < 10) {
             campGuests.splice(i, 1);
             setDionysusChipVisible(false);
-            setCampLifeStatus("Dionysus wandered off — he'll come by again");
+            setCampLifeStatus("Dionysus is at his vineyard — tap 🍷 when you want him");
           }
           continue;
         }
@@ -4630,6 +4636,15 @@
       return map[id] || ["✦", "○", "◇"];
     }
 
+    function meditationCircleOffset() {
+      const cAng = Math.random() * Math.PI * 2;
+      const cDist = 68 + Math.random() * 32;
+      return {
+        circleOx: Math.cos(cAng) * cDist,
+        circleOy: Math.sin(cAng) * cDist * 0.58 + 16,
+      };
+    }
+
     function beginAgentMeditation(npc) {
       if (!npc) return;
       npc.behavior = "meditate";
@@ -4638,6 +4653,7 @@
       npc.socializing = false;
       npc.gathering = false;
       const vibe = ["cosmic", "silly", "prophetic", "groovy", "chaotic"][Math.floor(Math.random() * 5)];
+      const circle = meditationCircleOffset();
       agentMeditation.set(npc.id, {
         wx: camp.x + npc.x,
         wy: camp.y + npc.y,
@@ -4648,6 +4664,8 @@
         vibe,
         spin: Math.random() * Math.PI * 2,
         glyphs: pickMeditationGlyphs(npc.id),
+        circleOx: circle.circleOx,
+        circleOy: circle.circleOy,
       });
       const moods = { luna: "love", hermes: "think", oracle: "neutral", caduceus: "happy", sentinel: "alert", jesus: "love", dionysus: "happy" };
       setAgentMood(npc.id, moods[npc.id] || "happy");
@@ -4747,19 +4765,19 @@
 
     function drawMeditationEmpowerCircle(sx, sy, color, med, t) {
       const power = med.power / 100;
-      const baseR = 32 + power * 24;
+      const baseR = 54 + power * 38;
       const pulse = 0.5 + 0.5 * Math.sin(t * 3.2 + med.spin);
       const vibeHue = med.vibe === "chaotic" ? Math.sin(t * 5) * 0.3 : 0;
-      const g = ctx.createRadialGradient(sx, sy, 4, sx, sy, baseR * 1.9);
+      const g = ctx.createRadialGradient(sx, sy, 4, sx, sy, baseR * 2.1);
       g.addColorStop(0, color + "66");
       g.addColorStop(0.45, color + "28");
       g.addColorStop(1, color + "00");
       ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(sx, sy, baseR * 1.9, 0, Math.PI * 2);
+      ctx.arc(sx, sy, baseR * 2.1, 0, Math.PI * 2);
       ctx.fill();
       for (let ring = 0; ring < 3; ring++) {
-        const r = baseR * (0.52 + ring * 0.2) + pulse * 7 + vibeHue * 4;
+        const r = baseR * (0.58 + ring * 0.18) + pulse * 9 + vibeHue * 5;
         ctx.strokeStyle = color + (ring === 0 ? "dd" : "55");
         ctx.lineWidth = ring === 0 ? 2.8 : 1.3;
         ctx.setLineDash(ring === 1 ? [5, 9] : []);
@@ -4778,7 +4796,10 @@
       ctx.font = "bold 8px Segoe UI";
       ctx.fillStyle = color;
       ctx.textAlign = "center";
-      ctx.fillText(`✦ ${Math.floor(med.power)}%`, sx, sy + baseR + 12);
+      ctx.fillText(`✦ ${Math.floor(med.power)}%`, sx, sy + baseR + 14);
+      ctx.font = "7px Segoe UI";
+      ctx.fillStyle = "rgba(148, 163, 184, 0.85)";
+      ctx.fillText("empower circle", sx, sy + baseR + 26);
     }
 
     const ISO_SCALE = 5.4;
@@ -5025,7 +5046,12 @@
       const s = worldToScreen(wx, wy);
       const cy = s.y + floatY;
       if (med) {
-        drawMeditationEmpowerCircle(s.x, s.y + 14, n.color || AGENT_COLORS[n.id] || "#67e8f9", med, t);
+        const cs = worldToScreen(wx + (med.circleOx || 0), wy + (med.circleOy || 62));
+        drawMeditationEmpowerCircle(cs.x, cs.y, n.color || AGENT_COLORS[n.id] || "#67e8f9", med, t);
+        ctx.font = "9px Segoe UI";
+        ctx.fillStyle = "rgba(253, 230, 138, 0.75)";
+        ctx.textAlign = "center";
+        ctx.fillText("◎ circle", cs.x, cs.y - (54 + med.power * 0.35));
       }
       const dragging = dragTarget?.kind === "agent" && dragTarget.ref === n;
       if (dragging) {
@@ -5910,6 +5936,8 @@
     document.getElementById("camp-shop-close").onclick = () => closeCampShop();
     document.getElementById("camp-shop-layer").onclick = () => closeCampShop();
     document.getElementById("btn-summon-heaven").onclick = () => summonArchangelCouncil();
+    document.getElementById("btn-summon-dionysus").onclick = () => toggleDionysusVisit();
+    document.getElementById("chip-dionysus-invite")?.addEventListener("click", () => toggleDionysusVisit());
     document.getElementById("btn-conjure-aether").onclick = () => conjureFromAether();
     document.getElementById("btn-camp-ouija").onclick = () => {
       if (ouijaOpen) closeCampOuija();
@@ -5981,58 +6009,82 @@
 
     function setDionysusChipVisible(show) {
       const chip = document.getElementById("chip-dionysus");
+      const invite = document.getElementById("chip-dionysus-invite");
       if (chip) chip.style.display = show ? "inline-flex" : "none";
+      if (invite) invite.style.display = show ? "none" : "inline-flex";
     }
 
-    async function spawnDionysusVisit() {
-      if (campGuests.some((g) => g.id === "dionysus")) return;
-      const dest = sectorPosition("dionysus");
-      const entry = { x: dest.x + 70, y: dest.y + 40 };
+    function dismissDionysus() {
+      const g = campGuests.find((x) => x.id === "dionysus" && !x.leaving);
+      if (!g) {
+        showToast("Dionysus isn't here — tap 🍷 to invite him");
+        return false;
+      }
+      const house = campHouses.find((h) => h.ownerId === "dionysus");
+      g.leaving = true;
+      g.exitX = house ? house.x + 80 : g.x + 90;
+      g.exitY = house ? house.y + 50 : g.y + 60;
+      pushCampLine("Dionysus", "Back to the vineyard — summon me when the party's ready. 🍷", 22, "happy");
+      setCampLifeStatus("Dionysus heading to his vineyard…");
+      return true;
+    }
+
+    function toggleDionysusVisit() {
+      if (campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
+        dismissDionysus();
+        return;
+      }
+      spawnDionysusVisit({ manual: true });
+    }
+
+    async function spawnDionysusVisit(opts = {}) {
+      if (campGuests.some((g) => g.id === "dionysus" && !g.leaving)) return;
+      const house = campHouses.find((h) => h.ownerId === "dionysus");
+      const dest = house ? { x: house.x - 42, y: house.y + 28 } : sectorPosition("dionysus");
+      const entry = { x: dest.x + 95, y: dest.y + 55 };
       campGuests.push({
         id: "dionysus", name: "Dionysus", color: "#e11d48",
         x: entry.x, y: entry.y, tx: dest.x, ty: dest.y,
-        speed: 2.5, roam: 136, idle: 0, line: "", fullLine: "", mood: "happy",
+        speed: 2.5, roam: 168, idle: 0, line: "", fullLine: "", mood: "happy",
         behavior: "roam", behaviorTimer: 0, arriving: true, leaving: false,
         visitTarget: null, socializing: false, gathering: false,
-        exitX: entry.x + 60, exitY: entry.y + 35,
+        insideHouse: null, homeTarget: null, housePhase: null,
+        exitX: house ? house.x + 80 : entry.x + 60,
+        exitY: house ? house.y + 50 : entry.y + 35,
       });
       setDionysusChipVisible(true);
       setAgentMood("dionysus", "happy");
-      pushCampLine("Camp", "🍷 Dionysus wanders in from the treeline — everyone spreads out a little more.", 24, "happy");
-      setCampLifeStatus("Dionysus is visiting camp");
+      pushCampLine("Camp", opts.manual
+        ? "🍷 You called — Dionysus strolls in from the vineyard, grinning like he planned this."
+        : "🍷 Dionysus wanders in from the treeline — everyone spreads out a little more.", 24, "happy");
+      setCampLifeStatus("Dionysus is at camp — tap 🍷 again to send him home");
+      showToast("Dionysus arrived — his vineyard is on the east ridge");
       setTimeout(() => runCampConverse(["dionysus", "luna"]), 22000);
       try {
-        const res = await fetch("/api/firmament/agent/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agent_id: "dionysus",
-            message: "(You just arrived at the aurora campfire — one short theatrical greeting for Luna and friends.)",
-            speak: false,
-            ...visitorPayload(),
-          }),
-        });
-        const data = await res.json();
-        if (res.ok && data.reply) {
+        if (campServerOnline) {
+          const res = await fetch("/api/firmament/agent/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              agent_id: "dionysus",
+              message: "(You were invited to camp — one short theatrical greeting. Mention your vineyard if you like.)",
+              speak: false,
+              ...visitorPayload(),
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.reply) {
+            pushCampLine("Dionysus", data.reply, 26, data.mood || "happy");
+            recordCampMemory({ kind: "visit", agent_id: "dionysus", text: "Dionysus visited camp and greeted everyone" });
+          }
+        } else {
+          const data = aetherLocalChat("dionysus", "(You just arrived at camp — greet everyone.)");
           pushCampLine("Dionysus", data.reply, 26, data.mood || "happy");
-          recordCampMemory({ kind: "visit", agent_id: "dionysus", text: "Dionysus visited camp and greeted everyone" });
         }
-      } catch (_) {}
-      setTimeout(() => {
-        const g = campGuests.find((x) => x.id === "dionysus");
-        if (g && !g.leaving) {
-          g.leaving = true;
-          pushCampLine("Dionysus", "The vines tug me onward — I'll come by again. Keep the fire warm.", 20, "happy");
-          setCampLifeStatus("Dionysus is heading out…");
-        }
-      }, 110000 + Math.random() * 70000);
-    }
-
-    function scheduleDionysusVisits() {
-      setTimeout(() => {
-        spawnDionysusVisit();
-        scheduleDionysusVisits();
-      }, 90000 + Math.random() * 120000);
+      } catch (_) {
+        const data = aetherLocalChat("dionysus", "(You just arrived at camp — greet everyone.)");
+        pushCampLine("Dionysus", data.reply, 26, data.mood || "happy");
+      }
     }
 
     function openDialogue(agentId) {
@@ -6451,8 +6503,6 @@
         }).catch(() => {});
         setTimeout(() => runCampConverse(["luna", "hermes"]), 18000);
         setTimeout(() => runCampConverse(["jesus", "luna"]), 42000);
-        setTimeout(() => spawnDionysusVisit(), 38000);
-        scheduleDionysusVisits();
       }
     }).catch(() => {
       campServerOnline = false;
@@ -6625,10 +6675,10 @@
           } catch (_) {
             setSpeechBubbleDock(isCampMobile());
           }
-          setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 🏠 homes · ⛺ shelter · 🏪 shop");
+          setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 🍷 invite Dionysus · 🏠 homes spread wide");
           loadCampWallet();
           loadShopCatalog();
-          huddleNpcsAtCorona(npcs);
+          spreadAllNpcs();
           setTimeout(() => {
             const t = document.getElementById("status-toast");
             if (t) t.style.opacity = "0.35";

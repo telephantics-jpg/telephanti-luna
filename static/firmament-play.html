@@ -1521,11 +1521,12 @@
       <div id="lucid-tv-thought">The screen hasn't decided what to show you yet.</div>
       <div id="lucid-tv-screen-wrap">
         <div id="lucid-tv-static">scanning frequencies…</div>
-        <iframe id="lucid-tv-frame" title="Lucid mind feed" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        <iframe id="lucid-tv-frame" title="Lucid mind feed" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen></iframe>
       </div>
       <div class="lucid-tv-actions">
         <button type="button" class="primary" id="lucid-tv-next">⟳ Next channel</button>
         <button type="button" id="lucid-tv-mute">🔇 Muted (tap for sound)</button>
+        <button type="button" id="lucid-tv-open">↗ Open feed</button>
         <button type="button" id="lucid-tv-close">← Back to camp</button>
       </div>
     </div>
@@ -1544,7 +1545,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ios-reply-bubble";
+    const CAMP_BUILD = "2026-07-06-lucid-tv-feeds";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -3789,13 +3790,50 @@
       document.getElementById("camp-shop-layer")?.classList.remove("open");
     }
 
-    function lucidTvEmbedUrl(embedBase, muted) {
-      if (!embedBase) return "";
-      const url = new URL(embedBase);
-      url.searchParams.set("mute", muted ? "1" : "0");
+    function lucidTvVideoId(channel) {
+      if (!channel) return "";
+      if (channel.video_id) return String(channel.video_id);
+      const raw = channel.embed || channel.watch || "";
+      if (!raw) return "";
+      try {
+        const u = new URL(raw);
+        if (u.pathname.includes("/embed/")) return u.pathname.split("/embed/")[1]?.split(/[?&#]/)[0] || "";
+        return u.searchParams.get("v") || "";
+      } catch (_) {
+        const m = String(raw).match(/(?:embed\/|v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+        return m ? m[1] : "";
+      }
+    }
+
+    function lucidTvWatchUrl(channel) {
+      if (!channel) return "";
+      if (channel.watch) return channel.watch;
+      const id = lucidTvVideoId(channel);
+      return id ? `https://www.youtube.com/watch?v=${id}` : "";
+    }
+
+    function lucidTvEmbedUrl(channel, muted) {
+      const id = lucidTvVideoId(channel);
+      if (!id) return channel?.embed || "";
+      const url = new URL(`https://www.youtube-nocookie.com/embed/${id}`);
       url.searchParams.set("autoplay", "1");
+      url.searchParams.set("mute", muted ? "1" : "0");
       url.searchParams.set("playsinline", "1");
+      url.searchParams.set("controls", "1");
+      url.searchParams.set("rel", "0");
+      url.searchParams.set("modestbranding", "1");
+      url.searchParams.set("iv_load_policy", "3");
+      try { url.searchParams.set("origin", window.location.origin); } catch (_) {}
       return url.toString();
+    }
+
+    function hideLucidTvStatic(delayMs = 2200) {
+      const staticEl = document.getElementById("lucid-tv-static");
+      if (!staticEl) return;
+      window.clearTimeout(hideLucidTvStatic._t);
+      hideLucidTvStatic._t = window.setTimeout(() => {
+        staticEl.style.display = "none";
+      }, delayMs);
     }
 
     async function tuneLucidTv(channelId = "random") {
@@ -3804,6 +3842,7 @@
       const title = document.getElementById("lucid-tv-title");
       const sub = document.getElementById("lucid-tv-sub");
       const thought = document.getElementById("lucid-tv-thought");
+      const openBtn = document.getElementById("lucid-tv-open");
       if (staticEl) staticEl.style.display = "flex";
       if (frame) frame.src = "about:blank";
       try {
@@ -3815,9 +3854,16 @@
         if (title) title.textContent = `${ch.emoji || "📺"} ${ch.title || "Lucid feed"}`;
         if (sub) sub.textContent = ch.subtitle || "lucid mind broadcast";
         if (thought) thought.textContent = ch.thought || "The feed is thinking…";
-        if (frame && ch.embed) {
-          frame.src = lucidTvEmbedUrl(ch.embed, lucidTvMuted);
-          frame.onload = () => { if (staticEl) staticEl.style.display = "none"; };
+        const watchUrl = lucidTvWatchUrl(ch);
+        if (openBtn) {
+          openBtn.disabled = !watchUrl;
+          openBtn.title = watchUrl ? "Open this feed in YouTube (if embed is blocked)" : "";
+        }
+        if (frame && (ch.embed || ch.video_id || ch.watch)) {
+          frame.src = lucidTvEmbedUrl(ch, lucidTvMuted);
+          hideLucidTvStatic();
+        } else if (thought) {
+          thought.textContent = "No signal on this frequency — tap Next channel or Open feed.";
         }
         const agent = ch.agent || "oracle";
         if (ch.thought) {
@@ -3855,10 +3901,19 @@
       lucidTvMuted = !lucidTvMuted;
       const btn = document.getElementById("lucid-tv-mute");
       if (btn) btn.textContent = lucidTvMuted ? "🔇 Muted (tap for sound)" : "🔊 Sound on";
-      if (lucidTvChannel?.embed) {
+      if (lucidTvChannel) {
         const frame = document.getElementById("lucid-tv-frame");
-        if (frame) frame.src = lucidTvEmbedUrl(lucidTvChannel.embed, lucidTvMuted);
+        if (frame) frame.src = lucidTvEmbedUrl(lucidTvChannel, lucidTvMuted);
       }
+    }
+
+    function openLucidTvWatch() {
+      const url = lucidTvWatchUrl(lucidTvChannel);
+      if (!url) {
+        showToast("No feed link yet — try Next channel");
+        return;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
     }
 
     function useShelter() {
@@ -4647,6 +4702,7 @@
     document.getElementById("lucid-tv-layer").onclick = () => closeLucidTv();
     document.getElementById("lucid-tv-next").onclick = () => tuneLucidTv("random");
     document.getElementById("lucid-tv-mute").onclick = () => toggleLucidTvMute();
+    document.getElementById("lucid-tv-open").onclick = () => openLucidTvWatch();
     document.getElementById("luna-embed-expand").onclick = () => {
       const wrap = document.getElementById("luna-embed-wrap");
       if (!wrap) return;

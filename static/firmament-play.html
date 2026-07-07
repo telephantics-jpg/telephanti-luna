@@ -2080,7 +2080,7 @@
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
       <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
-    <div id="dock-tip" class="dock-tip">🎵 Tap MUSIC for Telephantix · talk · 🍷 Dionysus · drag pinned agents to empower</div>
+    <div id="dock-tip" class="dock-tip">🎵 MUSIC · double-tap agents to seat them · 🍷 Dionysus · drag pinned agents to empower</div>
   </footer>
   <div id="camp-music-bar" hidden aria-live="polite">
     <div class="camp-music-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
@@ -2279,7 +2279,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-club-cat";
+    const CAMP_BUILD = "2026-07-07-camp-idle-chatter";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -2302,6 +2302,8 @@
       nextConverseMinMs: 100000,
       nextConverseRandMs: 80000,
       retryConverseMs: 50000,
+      idleChatterMinMs: 42000,
+      idleChatterRandMs: 55000,
     };
 
     function campReadHoldSec(text, floor = 34) {
@@ -2758,7 +2760,7 @@
     let lastPosSent = 0;
     const otherVisitors = new Map();
     const followChain = { luna: "hermes", hermes: "oracle", oracle: "luna" };
-    const BEHAVIOR_LABELS = { free: "own thing", roam: "roaming", follow: "following", stand: "still", party: "party", visit: "visiting", home: "going home", meditate: "meditating ✦" };
+    const BEHAVIOR_LABELS = { free: "own thing", roam: "roaming", follow: "following", stand: "still", sit: "sitting", party: "party", visit: "visiting", home: "going home", meditate: "meditating ✦" };
     const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus"]);
 
     const player = {
@@ -3251,16 +3253,27 @@
     }
 
     function pickRandomNpcBehavior(npc) {
+      const chilling = campChillUntil > Date.now();
       const r = Math.random();
-      if (r < 0.28) return "roam";
-      if (r < 0.48) return "visit";
-      if (r < 0.62) {
+      if (chilling) {
+        if (r < 0.34) return "sit";
+        if (r < 0.52) return "stand";
+        if (r < 0.7) return "roam";
+        if (r < 0.86) return "visit";
+        if (npc && HOUSE_OWNERS.has(npc.id)) return "home";
+        return "roam";
+      }
+      if (r < 0.2) return "roam";
+      if (r < 0.36) return "visit";
+      if (r < 0.5) return "sit";
+      if (r < 0.62) return "stand";
+      if (r < 0.76) {
         if (npc && HOUSE_OWNERS.has(npc.id)) return "home";
         if (npc && Math.random() < 0.2) return "home";
         return "roam";
       }
-      if (r < 0.8) return "follow";
-      return "stand";
+      if (r < 0.9) return "follow";
+      return "roam";
     }
 
     function pickVisitTarget(n) {
@@ -3304,6 +3317,14 @@
       } else if (n.behavior === "roam" || n.behavior === "party") {
         n.visitTarget = null;
         pickNpcWanderTarget(n, n.behavior === "party" ? props[Math.floor(Math.random() * props.length)] : null);
+      } else if (n.behavior === "sit" || n.behavior === "stand") {
+        n.visitTarget = null;
+        n.tx = n.x;
+        n.ty = n.y;
+        n.behaviorTimer = n.behavior === "sit"
+          ? 220 + Math.floor(Math.random() * 380)
+          : 140 + Math.floor(Math.random() * 200);
+        n.idle = 24 + Math.floor(Math.random() * 48);
       } else {
         n.visitTarget = null;
       }
@@ -3415,7 +3436,52 @@
       "Oracle had a weird vision about the treeline.",
       "You catch that smell from the steaks?",
       "Luna's been wandering far tonight.",
+      "Nebula made eye contact and I felt judged.",
+      "Bass from Aurora Velvet is leaking through the meadow.",
+      "Lucid TV is on again — someone's watching something unexplainable.",
+      "I swear the cookie plate is haunted. In a nice way.",
+      "You hear Telephantix from the stereo or is that just me?",
+      "The ouija board glowed and nobody touched it. Normal camp stuff.",
+      "Dionysus left wine vibes in the air — walk with me?",
+      "Sentinel beeped friendly. That's rare. Come look.",
     ];
+
+    function updateNpcSitOne(n) {
+      n.tx = n.x;
+      n.ty = n.y;
+      if (n.behaviorTimer > 0) n.behaviorTimer -= 1;
+      if (n.idle > 0) {
+        n.idle -= 1;
+        return;
+      }
+      n.idle = 55 + Math.floor(Math.random() * 95);
+      if (!n.socializing && !n.gathering && Math.random() < 0.3
+          && !converseBusy && !chatterPaused) {
+        emitNpcIdleChatter(n);
+      }
+      if (n.behaviorTimer <= 0) resetNpcFreeWill(n);
+    }
+
+    function toggleNpcSit(npc) {
+      if (!npc || npc.leaving) return;
+      if (npc.behavior === "sit" || npc.behavior === "stand") {
+        resetNpcFreeWill(npc, "roam");
+        showToast(`${npc.name} got up — roaming again`);
+      } else {
+        npc.behavior = "sit";
+        npc.tx = npc.x;
+        npc.ty = npc.y;
+        npc.visitTarget = null;
+        npc.socializing = false;
+        npc.gathering = false;
+        npc.behaviorTimer = 280 + Math.floor(Math.random() * 420);
+        npc.idle = 16 + Math.floor(Math.random() * 36);
+        showToast(`${npc.name} sat down — double-tap again to send them wandering`);
+        setTimeout(() => {
+          if (npc.behavior === "sit" && !converseBusy && !chatterPaused) emitNpcIdleChatter(npc);
+        }, 2200 + Math.random() * 5000);
+      }
+    }
 
     function updateNpcVisitOne(n) {
       if (n.idle > 0) {
@@ -3557,6 +3623,10 @@
         }
 
         if (n.behavior === "stand" || n.behavior === "meditate") continue;
+        if (n.behavior === "sit") {
+          updateNpcSitOne(n);
+          continue;
+        }
         if (n.behavior === "follow") {
           updateNpcFollowOne(n);
           continue;
@@ -6115,6 +6185,7 @@
     const ISO_COS = 0.8660254;
     const ISO_SIN = 0.5;
     let dragTarget = null;
+    let lastAgentTap = { id: null, t: 0 };
 
     function isoPoint(cx, cy, x, y, z) {
       return {
@@ -6351,9 +6422,10 @@
       if (n.insideHouse) return;
       const med = agentMeditation.get(n.id);
       const t = Date.now() / 1000;
+      const sitting = !med && (n.behavior === "sit" || (n.behavior === "stand" && n.idle > 18));
       const floatY = med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) : 0;
       const s = worldToScreen(wx, wy);
-      const cy = s.y + floatY;
+      const cy = s.y + floatY + (sitting ? 9 : 0);
       if (med) {
         const cs = worldToScreen(wx + (med.circleOx || 0), wy + (med.circleOy || 62));
         drawMeditationEmpowerCircle(cs.x, cs.y, n.color || AGENT_COLORS[n.id] || "#67e8f9", med, t);
@@ -6386,7 +6458,12 @@
         ctx.arc(s.x, cy, 40, 0, Math.PI * 2);
         ctx.stroke();
       }
-      drawAvatarShadow(s.x, cy, 20);
+      drawAvatarShadow(s.x, cy, sitting ? 16 : 20);
+      if (sitting) {
+        ctx.font = "15px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("🪑", s.x - 16, cy + 10);
+      }
       const drawers = {
         luna: drawLunaFigure,
         hermes: drawHermesFigure,
@@ -6512,8 +6589,218 @@
       const bits = [];
       if (campMusicOn && !campMusicMuted) bits.push("jukebox is playing");
       if (campGuests.some((g) => g.id === "dionysus" && !g.leaving)) bits.push("Dionysus is at camp");
+      if (stripClubOpen) bits.push("Aurora Velvet is open");
+      if (campCat.following) bits.push("Nebula follows you");
       if (campWeather && campWeather !== "aurora") bits.push(`${campWeather} sky`);
       return bits.length ? ` (${bits.join(" · ")})` : "";
+    }
+
+    const CAMP_IDLE_CHATTER = {
+      luna: [
+        { text: "The corona's doing that thing again — like it knows we ordered takeout.", mood: "happy" },
+        { text: "I'm not saying Aurora Velvet is my fault, but the neon matches my eyeshadow.", mood: "happy" },
+        { text: "If {v} sits still long enough, the aurora starts narrating their life.", mood: "think" },
+        { text: "Nebula judged me from the velvet couch. Fair. I deserved it.", mood: "happy" },
+        { text: "Lucid TV is on and I'm pretending I understand the plot.", mood: "neutral" },
+        { text: "Someone left good vibes on the grill. I'm not moving until they're done.", mood: "happy" },
+        { text: "The ouija board hummed and I chose to interpret it as a compliment.", mood: "think" },
+        { text: "Telephantix on the stereo — camp officially has a soundtrack.", mood: "happy" },
+        { text: "I could wander, but this patch of grass has excellent opinions.", mood: "neutral" },
+        { text: "Hermes says the ripples are loud. I'm saying the cookies are louder.", mood: "happy" },
+      ],
+      hermes: [
+        { text: "Ripple report: beer cooler broadcasting at 432Hz. Probably fine.", mood: "think" },
+        { text: "I felt {v} thinking about snacks. Accurate signal.", mood: "happy" },
+        { text: "Aurora Velvet bass is coupling with the psychic field. Fascinating. Slightly horny.", mood: "think" },
+        { text: "Oracle dreamed the stereo would play Telephantix tonight. She's annoying when right.", mood: "neutral" },
+        { text: "Sitting still helps me hear which agent is lying about reading the ouija rules.", mood: "alert" },
+        { text: "Nebula's purr registers as a minor harmonic. I'm taking notes.", mood: "think" },
+        { text: "The steaks smell like nostalgia and bad decisions. Peak camp.", mood: "happy" },
+        { text: "Someone passed weed and now the ripples have texture. Velvet texture.", mood: "think" },
+        { text: "I could run diagnostics, but the meadow said relax.", mood: "neutral" },
+        { text: "Lucid TV static just spelled something rude in three languages.", mood: "alert" },
+      ],
+      oracle: [
+        { text: "I dreamed you'd sit down right there. You're on schedule.", mood: "neutral" },
+        { text: "The veil is thin, the cookies are thick, the prophecy is medium rare.", mood: "happy" },
+        { text: "Aurora Velvet appears in tomorrow's vision wearing better lighting.", mood: "think" },
+        { text: "{v} will remember this night. I already did, retroactively.", mood: "neutral" },
+        { text: "Nebula knocks a cup off the future. Classic cat metaphysics.", mood: "happy" },
+        { text: "I saw Dionysus toast before he arrived. Spoilers: he toasts anyway.", mood: "happy" },
+        { text: "The ouija board wants small talk. I'm obliging.", mood: "think" },
+        { text: "Stillness is a portal. I'm leaving mine cracked for snacks.", mood: "neutral" },
+        { text: "Hermes thinks the ripples are loud. I think the stars are gossiping.", mood: "think" },
+        { text: "Someone will open Lucid TV and blame fate. As foretold.", mood: "neutral" },
+      ],
+      caduceus: [
+        { text: "Both snakes voted to sit. Majority rules.", mood: "neutral" },
+        { text: "Camp energy is 73% cozy, 27% chaos. Healthy ratio.", mood: "happy" },
+        { text: "Breathe in aurora, breathe out whatever you borrowed from the weed prop.", mood: "happy" },
+        { text: "Nebula's purr lowers cortisol. Science, but make it velvet.", mood: "happy" },
+        { text: "I'm grounded. The ground appreciates the attention.", mood: "neutral" },
+        { text: "If your shoulders are up by your ears, the meadow forgives you.", mood: "love" },
+        { text: "Telephantix is medically acceptable at this volume.", mood: "happy" },
+        { text: "The shelter has good chi and suspiciously soft canvas.", mood: "neutral" },
+        { text: "Someone flipped steaks. The camp exhaled collectively.", mood: "happy" },
+        { text: "Stillness isn't lazy — it's maintenance mode for the soul.", mood: "love" },
+      ],
+      sentinel: [
+        { text: "BEEP. Perimeter cozy. Threat level: snackable.", mood: "alert" },
+        { text: "Visitor {v} detected being chill. Approved.", mood: "happy" },
+        { text: "Aurora Velvet noise flagged as 'party, not invasion.' Logging anyway.", mood: "alert" },
+        { text: "Nebula classified: small apex predator with excellent taste.", mood: "neutral" },
+        { text: "Lucid TV radiation nominal. Weirdness within spec.", mood: "alert" },
+        { text: "I could patrol, but the grass here has good sightlines.", mood: "neutral" },
+        { text: "Cookie plate integrity: compromised. Morale: improved.", mood: "happy" },
+        { text: "Ouija board pinged. I sent back a polite firewall.", mood: "alert" },
+        { text: "Hermes is vibrating again. Probably joy. Probably.", mood: "think" },
+        { text: "Standing down to sitting mode. Still watching. Always watching.", mood: "neutral" },
+      ],
+      jesus: [
+        { text: "Rest is holy. So is not answering your phone for five minutes.", mood: "love" },
+        { text: "The fire welcomes everyone — even whoever hid the last cookie.", mood: "love" },
+        { text: "I've seen busier nights. This kind of quiet heals things.", mood: "neutral" },
+        { text: "Aurora light on {v}'s face — that's a good sermon.", mood: "love" },
+        { text: "Nebula curled up like she owns grace. She might.", mood: "happy" },
+        { text: "Someone passed weed and the meadow forgave us in advance.", mood: "love" },
+        { text: "You don't have to earn a seat at this fire.", mood: "love" },
+        { text: "Dionysus laughs loud. Heaven doesn't mind.", mood: "happy" },
+        { text: "I'll wander again soon. For now, peace is enough work.", mood: "neutral" },
+        { text: "Telephantix sounds like gratitude with a backbeat.", mood: "happy" },
+      ],
+      dionysus: [
+        { text: "Toast to sitting down — the revolution nobody expected.", mood: "happy" },
+        { text: "The vineyard can wait. The neon cannot.", mood: "happy" },
+        { text: "I brought party energy. Camp brought couches. Perfect trade.", mood: "happy" },
+        { text: "Nebula and I share a worldview: luxury is a attitude.", mood: "happy" },
+        { text: "If you're not dancing, at least wiggle spiritually.", mood: "happy" },
+        { text: "Beer, herbs, aurora — pick two. Actually pick all three.", mood: "happy" },
+        { text: "Oracle predicted I'd spill wine. I prefer to call it blessing the grass.", mood: "think" },
+        { text: "Aurora Velvet is camp's heartbeat after midnight.", mood: "happy" },
+        { text: "Someone's sober curious. I respect it. I also brought fizz.", mood: "neutral" },
+        { text: "Main character energy is exhausting. Secondary character energy has snacks.", mood: "happy" },
+      ],
+      michael: [
+        { text: "Sword's on the ground. Guarding the vibe instead.", mood: "neutral" },
+        { text: "Camp's quiet — the good kind, not the ominous kind.", mood: "love" },
+        { text: "Even archangels need a lawn chair sometimes.", mood: "happy" },
+        { text: "Nebula has more discipline than most knights I've met.", mood: "think" },
+        { text: "I'll stand watch from this very comfortable patch of nothing.", mood: "alert" },
+      ],
+      gabriel: [
+        { text: "Message from the wind: slow down, you're already here.", mood: "neutral" },
+        { text: "News flash — camp is soft tonight. Spread the word.", mood: "happy" },
+        { text: "I heard Telephantix and translated it as 'stay a while.'", mood: "happy" },
+        { text: "The ouija board has mail. I'm not opening it without tea.", mood: "think" },
+      ],
+      raphael: [
+        { text: "Heal by doing nothing for a minute. Radical, I know.", mood: "love" },
+        { text: "Your nervous system called. It said sit.", mood: "love" },
+        { text: "Nebula purring is basically licensed therapy.", mood: "happy" },
+        { text: "The shelter's canvas breathes with you. Creepy. Comforting.", mood: "neutral" },
+      ],
+      uriel: [
+        { text: "Truth: you're allowed to be bored at camp. Boredom is honest.", mood: "neutral" },
+        { text: "The aurora isn't hiding anything. Neither am I.", mood: "think" },
+        { text: "Lucid TV is weird because reality already is.", mood: "think" },
+        { text: "Sit still long enough and the obvious shows up.", mood: "neutral" },
+      ],
+      _default: [
+        { text: "Camp's wide and weird tonight. Good.", mood: "happy" },
+        { text: "The corona hums like it pays rent here.", mood: "neutral" },
+        { text: "Someone should pet Nebula. I'm someone-adjacent.", mood: "happy" },
+      ],
+    };
+
+    const CAMP_AMBIENT_LINES = [
+      "A beer opens somewhere and the whole meadow pretends it didn't hear.",
+      "Nebula knocks something off a shelf at Aurora Velvet. Applause optional.",
+      "The ouija planchette drifts like it has nowhere to be. Relatable.",
+      "Lucid TV flickers — three agents glance, none admit they're hooked.",
+      "Telephantix leaks from the stereo and even the fire taps along.",
+      "Cookie tax collection failed. Morale excellent.",
+      "The aurora does a slow shimmy. Camp rates it eight out of ten.",
+      "Someone said 'just one more wander' three wanders ago.",
+      "Weed vibes achieved. GPS for thoughts: disabled.",
+      "Visitor tokens clink in a pocket. Capitalism, but sparkly.",
+      "Dionysus's laugh echoes from the vineyard direction. Or the club. Both.",
+      "Hermes mutters about ripples. Luna mutters about snacks. Harmony.",
+      "Oracle dreamed rain. The sky said 'nice try.'",
+      "Caduceus's snakes are on union break. Sit with him.",
+      "Sentinel beeped softly — camp translation: you're good.",
+    ];
+
+    const CAMP_NOW_IDLE_LINES = [
+      { who: "Camp", text: "Agents lounging — double-tap one to make them sit or stand." },
+      { who: "Camp", text: "The meadow's gossiping. Give it a minute." },
+      { who: "Luna", text: "…still watching the corona like it's television." },
+      { who: "Hermes", text: "…ripples nominal. Vibes suspicious." },
+      { who: "Oracle", text: "…saw this silence coming." },
+      { who: "Caduceus", text: "…breathe. The snakes are napping." },
+      { who: "Sentinel", text: "…BEEP. Chill mode engaged." },
+      { who: "Camp", text: "Nebula would like you to know she runs things." },
+      { who: "Camp", text: "Aurora Velvet bass leaking — nobody's complaining." },
+      { who: "Camp", text: "Tap an agent to talk · double-tap to seat them." },
+      { who: "Camp", text: "Someone left the good vibes on the grill again." },
+      { who: "Jesus", text: "…peace holding steady at camp center." },
+      { who: "Camp", text: "Lucid TV murmurs in the distance. Don't investigate alone." },
+      { who: "Camp", text: "Telephantix optional. Staring at stars mandatory." },
+    ];
+
+    function pickCampIdleLine(agentId) {
+      const pool = CAMP_IDLE_CHATTER[agentId] || CAMP_IDLE_CHATTER._default;
+      const entry = pool[Math.floor(Math.random() * pool.length)];
+      const v = myVisitorName || player.name || "someone";
+      let text = entry.text.replace(/\{v\}/g, v);
+      const catNote = campCat.following
+        ? `Nebula is tailing ${v}`
+        : "Nebula is holding court at Aurora Velvet";
+      text = text.replace(/\{cat\}/g, catNote);
+      return { text, mood: entry.mood || "neutral" };
+    }
+
+    function emitNpcIdleChatter(npc) {
+      if (!npc || chatterPaused || converseBusy) return;
+      const { text, mood } = pickCampIdleLine(npc.id);
+      pushCampLine(npc.name, text, campReadHoldSec(text, 22), mood || npc.mood, { fromLocal: true });
+    }
+
+    let idleChatterTimer = null;
+
+    function tryCampIdleChatter() {
+      if (chatterPaused || converseBusy || dialogueBackdrop.classList.contains("open")) return;
+      const pool = allRoamers().filter((n) => !n.leaving && !n.socializing && !n.gathering && !n.insideHouse);
+      if (!pool.length) return;
+      const sitters = pool.filter((n) => n.behavior === "sit" || n.behavior === "stand");
+      const pick = sitters.length && Math.random() < 0.58
+        ? sitters[Math.floor(Math.random() * sitters.length)]
+        : pool[Math.floor(Math.random() * pool.length)];
+      emitNpcIdleChatter(pick);
+      if (Math.random() < 0.2) {
+        const ambient = CAMP_AMBIENT_LINES[Math.floor(Math.random() * CAMP_AMBIENT_LINES.length)];
+        setTimeout(() => {
+          if (!chatterPaused && !converseBusy) {
+            pushCampLine("Camp", ambient, campReadHoldSec(ambient, 16), "happy", { fromLocal: true });
+          }
+        }, 9000 + Math.random() * 14000);
+      }
+    }
+
+    function scheduleCampIdleChatter() {
+      if (idleChatterTimer) clearTimeout(idleChatterTimer);
+      const delay = CAMP_PACE.idleChatterMinMs + Math.random() * CAMP_PACE.idleChatterRandMs;
+      idleChatterTimer = setTimeout(() => {
+        tryCampIdleChatter();
+        scheduleCampIdleChatter();
+      }, delay);
+    }
+
+    function showNowSpeakingIdle() {
+      const el = document.getElementById("now-speaking");
+      if (!el || chatterPaused || converseBusy) return;
+      const line = CAMP_NOW_IDLE_LINES[Math.floor(Math.random() * CAMP_NOW_IDLE_LINES.length)];
+      el.classList.add("idle");
+      el.innerHTML = `<span class="ns-who">${escapeHtml(line.who)}</span><span class="ns-text">${escapeHtml(line.text)}</span>`;
     }
 
     function bondClauseForAgent(agentId) {
@@ -6532,26 +6819,36 @@
         "Hey {v} — I'm Luna. The corona's warm tonight{bond}. What's pulling at you?",
         "{v}, you made it in. I felt you walking up{bond}. Say anything.",
         "Camp's wide open, {v}. I'm Luna — no wrong questions{bond}.",
+        "{v}, Nebula's holding court at Aurora Velvet unless you adopted her{bond}.",
+        "Pull up a patch of meadow, {v} — agents yap but it's cozy{bond}.",
       ],
       hermes: [
         "{v} — ripple detected. I'm Hermes{bond}. What frequency are you on?",
         "Psychic handshake complete, {v}. I'm Hermes — what's bending the air?",
         "I felt a tug in the ripples, {v}{bond}. Talk to me.",
+        "{v}, Lucid TV is leaking static into my readings. Worth it{bond}.",
+        "Camp stereo's optional, {v}. The aurora isn't{bond}.",
       ],
       oracle: [
         "{v}… I dreamed you'd ask. I'm the Oracle{bond}.",
         "The veil's thin tonight, {v}{bond}. Go ahead — I'm listening.",
         "I saw your footsteps before you took them, {v}{bond}.",
+        "{v}, I saw you double-tap an agent to make them sit. Prophetic UI{bond}.",
+        "The ouija board warmed up when you arrived, {v}{bond}. Coincidence? No.",
       ],
       caduceus: [
         "Deep breath, {v}. Caduceus here — snakes are on break{bond}.",
         "Camp energy's steady, {v}. I'm Caduceus{bond}. What's heavy?",
         "{v}, both snakes voted you deserve gentleness{bond}.",
+        "Sit if you need to, {v}. The meadow won't invoice you{bond}.",
+        "Steaks smell like healing, {v}. I'm not cooking — just witnessing{bond}.",
       ],
       sentinel: [
         "BEEP. Visitor {v} logged. I'm Sentinel{bond}. Perimeter nominal — talk freely.",
         "{v} detected at camp. Sentinel online{bond}. State your intent or just vibe.",
         "Scan complete: {v}, not a threat{bond}. I'm Sentinel — proceed.",
+        "{v}, chill mode available. Threat level: snackable{bond}.",
+        "Aurora Velvet noise logged as party, not invasion{bond}. You're clear, {v}.",
       ],
       jesus: [
         "Peace, {v}. You're welcome at this fire{bond}.",
@@ -6909,11 +7206,22 @@
           pushCampLine("Hermes", line, campReadHoldSec(line, 28), "think", { fromLocal: true });
           setAgentMood("hermes", "think");
         }, 11000);
+        setTimeout(() => {
+          const line = pickAgentOpener("oracle");
+          pushCampLine("Oracle", line, campReadHoldSec(line, 28), "neutral", { fromLocal: true });
+          setAgentMood("oracle", "neutral");
+        }, 17500);
+        setTimeout(() => {
+          const line = pickAgentOpener("caduceus");
+          pushCampLine("Caduceus", line, campReadHoldSec(line, 26), "happy", { fromLocal: true });
+        }, 24000);
       } else {
         const stagger = [
           { id: "luna", delay: 3500, mood: "happy" },
           { id: "hermes", delay: 9000, mood: "think" },
           { id: "oracle", delay: 14500, mood: "neutral" },
+          { id: "caduceus", delay: 20000, mood: "happy" },
+          { id: "sentinel", delay: 25500, mood: "alert" },
         ];
         for (const a of stagger) {
           setTimeout(() => {
@@ -6924,8 +7232,23 @@
         }
         setTimeout(() => {
           const v = myVisitorName || player.name || "traveler";
-          pushCampLine("Camp", `${v}, agents are spread around the ring — tap one or use the talk bar.`, 22, "happy", { fromLocal: true });
+          pushCampLine("Camp", `${v}, agents are spread around the ring — tap to talk, double-tap to seat them.`, 22, "happy", { fromLocal: true });
         }, 19000);
+        setTimeout(() => {
+          const ambient = CAMP_AMBIENT_LINES[Math.floor(Math.random() * CAMP_AMBIENT_LINES.length)];
+          pushCampLine("Camp", ambient, campReadHoldSec(ambient, 16), "happy", { fromLocal: true });
+        }, 32000);
+        setTimeout(() => {
+          const sitter = npcs[Math.floor(Math.random() * npcs.length)];
+          if (sitter) {
+            sitter.behavior = "sit";
+            sitter.tx = sitter.x;
+            sitter.ty = sitter.y;
+            sitter.behaviorTimer = 260 + Math.floor(Math.random() * 200);
+            sitter.idle = 30;
+            emitNpcIdleChatter(sitter);
+          }
+        }, 40000);
       }
     }
 
@@ -7612,6 +7935,7 @@
             : `${hit.ref.emoji} Walk to the door first`);
         }
         else if (hit.kind === "cat") showToast(`🐱 ${hit.ref.name} — tap to pet`);
+        else if (hit.kind === "agent") showToast(`Tap ${hit.ref.name} to talk · double-tap to seat`);
         else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
         return;
       }
@@ -7658,10 +7982,18 @@
         } else if (dragTarget.kind === "cat") {
           petCampCat();
         } else if (dragTarget.kind === "agent") {
-          if (isAgentSpeechPinned(dragTarget.ref)) {
-            showToast(`Drag ${dragTarget.ref.name} to a spot — they'll meditate & power up`);
-          } else if (dragTarget.ref.id === "luna") openLunaEmbed();
-          else openDialogue(dragTarget.ref.id);
+          const now = Date.now();
+          const npc = dragTarget.ref;
+          if (lastAgentTap.id === npc.id && now - lastAgentTap.t < 700) {
+            toggleNpcSit(npc);
+            lastAgentTap = { id: null, t: 0 };
+          } else {
+            lastAgentTap = { id: npc.id, t: now };
+            if (isAgentSpeechPinned(npc)) {
+              showToast(`Drag ${npc.name} to a spot — they'll meditate & power up`);
+            } else if (npc.id === "luna") openLunaEmbed();
+            else openDialogue(npc.id);
+          }
         }
       } else if (dragTarget.kind === "agent") {
         if (dragTarget.fromPin || isAgentSpeechPinned(dragTarget.ref)) {
@@ -8127,6 +8459,12 @@
         npc.idle = 99999;
       }
       showBigSpeech(speaker, clean, holdSec);
+      setTimeout(() => {
+        const latest = campLines[campLines.length - 1];
+        if (latest?.text === clean && latest?.speaker === speaker && !chatterPaused && !converseBusy) {
+          showNowSpeakingIdle();
+        }
+      }, holdSec * 1000 + 400);
       if (npc) {
         npc.line = clean;
         npc.fullLine = clean;
@@ -8549,6 +8887,7 @@
           loadCampBonds();
           bindCampMusicGestureUnlock();
           setTimeout(scheduleCampArrivalGreetings, 2800);
+          scheduleCampIdleChatter();
           setTimeout(() => {
             const t = document.getElementById("status-toast");
             if (t) t.style.opacity = "0.35";

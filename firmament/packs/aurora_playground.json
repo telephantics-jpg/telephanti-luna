@@ -8,7 +8,9 @@
     "colors": ["#0d1f2e", "#4fd1c5", "#9f7aea"],
     "star_density": 0.55,
     "fog_density": 0.12,
-    "time_of_day": "dawn"
+    "time_of_day": "dawn",
+    "weather": "aurora",
+    "visual_preset": "corona"
   },
   "ground": {
     "mesh": "infinite_plane",
@@ -29,7 +31,7 @@
   "psychic_engine": {
     "enabled": true,
     "intensity": 0.75,
-    "shared_agents": ["hermes", "sentinel", "luna", "oracle", "caduceus", "dionysus"],
+    "shared_agents": ["hermes", "sentinel", "luna", "oracle", "caduceus", "dionysus", "jesus", "michael", "gabriel", "raphael", "uriel"],
     "zombie_mode": false,
     "pulse_color": "#67e8f9",
     "texture_overlay": "starfield_veil"
@@ -40,7 +42,12 @@
     { "id": "hermes", "spawn": [0.5, 0.55, 95], "bubble_color": "#60a5fa" },
     { "id": "sentinel", "spawn": [0.5, 0.35, 105], "bubble_color": "#22d3ee" },
     { "id": "caduceus", "spawn": [0.42, 0.32, 98], "bubble_color": "#34d399" },
-    { "id": "dionysus", "spawn": [0.78, 0.62, 100], "bubble_color": "#e11d48" }
+    { "id": "dionysus", "spawn": [0.78, 0.62, 100], "bubble_color": "#e11d48" },
+    { "id": "jesus", "spawn": [0.5, 0.48, 108], "bubble_color": "#fde68a" },
+    { "id": "michael", "spawn": [0.22, 0.38, 112], "bubble_color": "#60a5fa" },
+    { "id": "gabriel", "spawn": [0.72, 0.28, 106], "bubble_color": "#f0abfc" },
+    { "id": "raphael", "spawn": [0.28, 0.58, 102], "bubble_color": "#6ee7b7" },
+    { "id": "uriel", "spawn": [0.62, 0.52, 104], "bubble_color": "#fb923c" }
   ],
   "hallucination": {
     "enabled": true,

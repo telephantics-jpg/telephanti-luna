@@ -52,29 +52,81 @@
     }
     .agent-card .name { font-weight: 700; }
     .agent-card .state { color: #93c5fd; font-size: 0.68rem; }
+    #dialogue-feed {
+      position: fixed; left: 12px; right: 12px; bottom: 128px; z-index: 6;
+      max-height: min(44vh, 360px); min-height: 160px;
+      display: flex; flex-direction: column;
+      background: rgba(2, 5, 12, 0.98);
+      border: 2px solid rgba(103, 232, 249, 0.55);
+      border-radius: 14px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.06);
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+    #dialogue-feed header {
+      padding: 9px 14px; font-size: 0.82rem; font-weight: 800;
+      color: #a5f3fc; border-bottom: 1px solid rgba(103, 232, 249, 0.35);
+      background: rgba(6, 14, 26, 0.95);
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+    #dialogue-lines {
+      flex: 1; overflow-y: auto; padding: 12px 14px 14px;
+      display: flex; flex-direction: column; gap: 12px;
+      background: linear-gradient(180deg, rgba(4, 8, 18, 0.4), rgba(2, 6, 14, 0.85));
+    }
+    .feed-line {
+      padding: 12px 14px; border-radius: 11px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-left: 5px solid var(--feed-accent, #67e8f9);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+    }
+    .feed-line.you {
+      border-left-color: #fbbf24;
+      background: rgba(69, 45, 8, 0.88);
+      border-color: rgba(251, 191, 36, 0.35);
+    }
+    .feed-line.system {
+      border-left-color: #94a3b8;
+      background: rgba(30, 41, 59, 0.85);
+      border-color: rgba(148, 163, 184, 0.28);
+    }
+    .feed-line .feed-who {
+      display: block; font-size: 0.84rem; font-weight: 800;
+      color: var(--feed-accent, #a5f3fc); margin-bottom: 6px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .feed-line .feed-text {
+      font-size: 0.98rem; line-height: 1.55; color: #ffffff;
+      white-space: pre-wrap; word-break: break-word;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    }
     .chat {
-      position: fixed; left: 12px; bottom: 12px; right: 12px; z-index: 6;
-      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
-      background: rgba(10, 12, 20, 0.82);
-      border: 1px solid rgba(201, 168, 124, 0.35);
-      border-radius: 10px; padding: 8px;
+      position: fixed; left: 12px; bottom: max(12px, env(safe-area-inset-bottom)); right: 12px; z-index: 7;
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      background: rgba(6, 10, 20, 0.96);
+      border: 2px solid rgba(201, 168, 124, 0.45);
+      border-radius: 12px; padding: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5);
     }
     .chat select, .chat input {
-      background: #1a2030; color: #f2f0eb; border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 6px; padding: 6px 8px; font-size: 0.8rem;
+      background: #121a2a; color: #f8fafc; border: 1px solid rgba(103, 232, 249, 0.28);
+      border-radius: 8px; padding: 9px 10px; font-size: 0.88rem;
     }
-    .chat input { flex: 1; min-width: 180px; }
+    .chat select { max-width: 42%; min-width: 130px; }
+    .chat input { flex: 1; min-width: 140px; font-size: 0.9rem; }
     .chat button {
-      border: 1px solid rgba(255,255,255,0.14); background: #2a3550;
-      color: #f2f0eb; border-radius: 6px; padding: 6px 10px; cursor: pointer;
+      border: none; background: linear-gradient(135deg, #0e7490, #0891b2);
+      color: #ecfeff; border-radius: 8px; padding: 9px 14px; cursor: pointer;
+      font-weight: 700; font-size: 0.86rem;
     }
-    .log {
-      position: fixed; left: 12px; bottom: 64px; right: 72px; z-index: 5;
-      max-height: 100px; overflow: auto;
-      font-size: 0.68rem; color: #9aa8c8;
-      background: rgba(0,0,0,0.35);
-      border-radius: 8px; padding: 6px 8px;
+    .chat button.secondary {
+      background: linear-gradient(135deg, #6d28d9, #9333ea);
+      font-size: 0.78rem; padding: 9px 11px;
     }
+    .chat label { font-size: 0.78rem; color: #cbd5e1; }
+    .log { display: none; }
     #sentinel-float {
       position: fixed;
       right: max(10px, env(safe-area-inset-right));
@@ -131,9 +183,14 @@
         bottom: calc(86px + env(safe-area-inset-bottom));
       }
       #sentinel-canvas { width: 96px; height: 96px; }
-      .log { right: 12px; max-height: 72px; }
+      #dialogue-feed {
+        bottom: calc(108px + env(safe-area-inset-bottom));
+        max-height: min(36vh, 280px);
+        left: 8px; right: 8px;
+      }
       .agents { display: none; }
       .hud { max-width: calc(100vw - 120px); }
+      .chat select { max-width: 100%; flex: 1 1 100%; }
     }
   </style>
 </head>
@@ -151,10 +208,15 @@
       <button id="btn-hermes">Hermes Link</button>
       <button id="btn-dream">Hallucinate</button>
       <button id="btn-debate">NPC Debate</button>
+      <button id="btn-summon-heaven">✦ Summon Heaven</button>
     </div>
   </div>
   <div class="agents" id="agents"></div>
-  <div class="log" id="log"></div>
+  <div id="dialogue-feed">
+    <header>💬 Observer dialogue — all agents hear you here</header>
+    <div id="dialogue-lines"></div>
+  </div>
+  <div class="log" id="log" aria-hidden="true"></div>
   <div id="sentinel-float" title="Tap Sentinel — drag to move">
     <div class="bubble" id="sentinel-bubble">online</div>
     <canvas id="sentinel-canvas" width="96" height="96" aria-label="Sentinel flash character"></canvas>
@@ -162,20 +224,67 @@
   </div>
   <div class="chat">
     <select id="chat-agent">
+      <option value="all">📢 All agents</option>
       <option value="luna">Luna</option>
-      <option value="oracle">Oracle</option>
-      <option value="wanderer">Wanderer</option>
-      <option value="hermes">Hermes</option>
-      <option value="sentinel">Sentinel</option>
     </select>
-    <input id="chat-input" type="text" placeholder="Talk to an NPC (Grok)..." />
+    <input id="chat-input" type="text" placeholder="Talk to any agent — or all at once…" />
     <button id="chat-send">Send</button>
-    <label style="font-size:0.72rem;color:#a8b4d4"><input type="checkbox" id="chat-speak" checked /> voice</label>
+    <button type="button" class="secondary" id="chat-summon">✦ Heaven</button>
+    <label><input type="checkbox" id="chat-speak" checked /> voice</label>
   </div>
   <script>
     const statusEl = document.getElementById("status");
     const agentsEl = document.getElementById("agents");
     const logEl = document.getElementById("log");
+    const feedEl = document.getElementById("dialogue-lines");
+    const chatAgentSel = document.getElementById("chat-agent");
+
+    const AGENT_COLORS = {
+      luna: "#d946ef", oracle: "#8b5cf6", hermes: "#fbbf24", sentinel: "#67e8f9",
+      caduceus: "#34d399", dionysus: "#e11d48", wanderer: "#94a3b8",
+      jesus: "#fde68a", michael: "#60a5fa", gabriel: "#f0abfc", raphael: "#6ee7b7", uriel: "#fb923c",
+    };
+
+    function feedPush(who, text, kind = "agent", agentId = "") {
+      if (!feedEl) return;
+      const line = document.createElement("div");
+      line.className = `feed-line ${kind}`;
+      const accent = AGENT_COLORS[agentId] || AGENT_COLORS[who?.toLowerCase()] || "#67e8f9";
+      line.style.setProperty("--feed-accent", accent);
+      const whoEl = document.createElement("span");
+      whoEl.className = "feed-who";
+      whoEl.textContent = who;
+      const textEl = document.createElement("span");
+      textEl.className = "feed-text";
+      textEl.textContent = text || "…";
+      line.appendChild(whoEl);
+      line.appendChild(textEl);
+      feedEl.appendChild(line);
+      while (feedEl.children.length > 40) feedEl.firstChild.remove();
+      feedEl.scrollTop = feedEl.scrollHeight;
+    }
+
+    async function loadAgentSelect() {
+      try {
+        const res = await fetch("/api/firmament/agents");
+        const data = await res.json();
+        const agents = data.agents || {};
+        const ids = Object.keys(agents).sort((a, b) => {
+          const order = ["all", "luna", "jesus", "michael", "gabriel", "raphael", "uriel", "hermes", "oracle", "caduceus", "sentinel", "dionysus", "wanderer"];
+          return (order.indexOf(a) < 0 ? 99 : order.indexOf(a)) - (order.indexOf(b) < 0 ? 99 : order.indexOf(b));
+        });
+        chatAgentSel.innerHTML = `<option value="all">📢 All agents</option>`;
+        for (const id of ids) {
+          const a = agents[id];
+          const opt = document.createElement("option");
+          opt.value = id;
+          const emoji = id === "jesus" ? "✝ " : ["michael", "gabriel", "raphael", "uriel"].includes(id) ? "✦ " : "";
+          opt.textContent = `${emoji}${a.name || id}`;
+          chatAgentSel.appendChild(opt);
+        }
+      } catch (_) {}
+    }
+    loadAgentSelect();
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     let ws = null;
@@ -291,10 +400,7 @@
     })();
 
     function log(msg) {
-      const line = document.createElement("div");
-      line.textContent = msg;
-      logEl.prepend(line);
-      while (logEl.children.length > 8) logEl.lastChild.remove();
+      feedPush("Camp", msg, "system");
     }
 
     function resize() {
@@ -329,9 +435,15 @@
         const card = document.createElement("div");
         card.className = "agent-card";
         card.style.borderColor = a.bubble_color || "#c9a87c";
+        card.style.cursor = "pointer";
+        card.title = `Talk to ${a.name || a.id}`;
+        card.onclick = () => {
+          chatAgentSel.value = a.id;
+          document.getElementById("chat-input").focus();
+        };
         card.innerHTML = `<div class="name" style="color:${a.bubble_color || "#c9a87c"}">${a.name || a.id}</div>
           <div class="state">${a.state || "idle"} · ${a.mood || "neutral"}</div>
-          <div>${(a.last_line || "…").slice(0, 120)}</div>`;
+          <div style="line-height:1.45;color:#e2e8f0;margin-top:4px">${(a.last_line || "…").slice(0, 200)}</div>`;
         agentsEl.appendChild(card);
       });
     }
@@ -376,11 +488,24 @@
     }
     draw();
 
+    async function agentIdsForBroadcast() {
+      const snapIds = Object.keys(snapshot?.agents || {});
+      if (snapIds.length > 1) return snapIds;
+      try {
+        const res = await fetch("/api/firmament/agents");
+        const data = await res.json();
+        const apiIds = Object.keys(data.agents || {});
+        if (apiIds.length) return apiIds;
+      } catch (_) {}
+      return snapIds;
+    }
+
     function onSnapshot(data) {
       snapshot = data;
       statusEl.textContent = `Pack: ${data.pack_id} · agents: ${Object.keys(data.agents || {}).length} · clients: ${data.clients}`;
       applySky(data.pack);
       renderAgentsPanel(data.agents);
+      loadAgentSelect();
     }
 
     function connect() {
@@ -405,7 +530,8 @@
         if (msg.type === "firmament.agent.spoke") {
           if (snapshot?.agents && msg.agent) snapshot.agents[msg.agent_id] = msg.agent;
           renderAgentsPanel(snapshot?.agents);
-          log(`${msg.agent_id}: ${(msg.reply || "").slice(0, 80)}`);
+          const name = snapshot?.agents?.[msg.agent_id]?.name || msg.agent_id;
+          feedPush(name, msg.reply || "…", "agent", msg.agent_id);
           if (msg.agent_id === "sentinel") {
             sentinelMood = "speak";
             sentinelSay(msg.reply || "…");
@@ -421,44 +547,102 @@
     connect();
 
     let chatAudio = null;
+    let chatBusy = false;
+
+    async function chatOneAgent(agentId, text, speak) {
+      const res = await fetch("/api/firmament/agent/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent_id: agentId, message: text, speak: speak && agentId !== "all" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "chat failed");
+      const name = snapshot?.agents?.[agentId]?.name || agentId;
+      if (snapshot?.agents?.[agentId]) {
+        snapshot.agents[agentId].last_line = data.reply;
+        snapshot.agents[agentId].state = "speak";
+        snapshot.agents[agentId].mood = data.mood;
+        renderAgentsPanel(snapshot.agents);
+      }
+      feedPush(name, data.reply || "…", "agent", agentId);
+      if (agentId === "sentinel") {
+        sentinelMood = "speak";
+        sentinelSay(data.reply || "…");
+        setTimeout(() => { sentinelMood = "idle"; }, 4000);
+      }
+      if (speak && data.audio_b64) {
+        chatAudio?.pause();
+        chatAudio = new Audio(`data:audio/mpeg;base64,${data.audio_b64}`);
+        chatAudio.play().catch(() => {});
+      }
+      return data;
+    }
+
     async function sendChat() {
+      if (chatBusy) return;
       const input = document.getElementById("chat-input");
       const text = (input.value || "").trim();
       if (!text) return;
-      const agentId = document.getElementById("chat-agent").value;
+      const agentId = chatAgentSel.value;
       const speak = document.getElementById("chat-speak").checked;
       input.value = "";
-      log(`you → ${agentId}: ${text.slice(0, 60)}`);
+      chatBusy = true;
+      feedPush("You", text, "you");
       try {
-        const res = await fetch("/api/firmament/agent/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agent_id: agentId, message: text, speak }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "chat failed");
-        if (snapshot?.agents?.[agentId]) {
-          snapshot.agents[agentId].last_line = data.reply;
-          snapshot.agents[agentId].state = "speak";
-          snapshot.agents[agentId].mood = data.mood;
-          renderAgentsPanel(snapshot.agents);
-        }
-        log(`${agentId}: ${(data.reply || "").slice(0, 80)}`);
-        if (agentId === "sentinel") {
-          sentinelMood = "speak";
-          sentinelSay(data.reply || "…");
-          setTimeout(() => { sentinelMood = "idle"; }, 4000);
-        }
-        if (speak && data.audio_b64) {
-          chatAudio?.pause();
-          chatAudio = new Audio(`data:audio/mpeg;base64,${data.audio_b64}`);
-          chatAudio.play().catch(() => {});
+        if (agentId === "all") {
+          const ids = await agentIdsForBroadcast();
+          const heaven = ["jesus", "michael", "gabriel", "raphael", "uriel"];
+          const order = [...heaven.filter((id) => ids.includes(id)), ...ids.filter((id) => !heaven.includes(id))];
+          feedPush("Camp", `Broadcasting to ${order.length} agents…`, "system");
+          for (const id of order) {
+            await chatOneAgent(id, `(Everyone at camp hears the visitor say: "${text}" — answer in your own voice, 2-5 sentences, in character.)`, false);
+            await new Promise((r) => setTimeout(r, 400));
+          }
+        } else {
+          await chatOneAgent(agentId, text, speak);
         }
       } catch (err) {
-        log(`error: ${err.message}`);
+        feedPush("System", err.message || "chat failed", "system");
+      }
+      chatBusy = false;
+    }
+
+    async function summonHeaven() {
+      feedPush("Camp", "Summoning Jesus and the archangels into the firmament…", "system");
+      try {
+        await fetch("/api/firmament/load-pack", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pack_id: "aurora_playground" }),
+        });
+        send({ type: "firmament.load_pack", pack_id: "aurora_playground" });
+        const res = await fetch("/api/firmament/agents/converse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_a: "jesus",
+            agent_b: "michael",
+            topic: "The aurora camp has called — what do the weary travelers need to hear tonight?",
+            rounds: 2,
+          }),
+        });
+        const data = await res.json();
+        for (const line of data.lines || []) {
+          feedPush(line.name || line.agent_id, line.line, "agent", line.agent_id);
+          if (snapshot?.agents?.[line.agent_id]) {
+            snapshot.agents[line.agent_id].last_line = line.line;
+            snapshot.agents[line.agent_id].state = "speak";
+          }
+        }
+        renderAgentsPanel(snapshot?.agents);
+        loadAgentSelect();
+      } catch (err) {
+        feedPush("System", err.message || "summon failed", "system");
       }
     }
     document.getElementById("chat-send").onclick = sendChat;
+    document.getElementById("chat-summon").onclick = summonHeaven;
+    document.getElementById("btn-summon-heaven").onclick = summonHeaven;
     document.getElementById("chat-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendChat();
     });
@@ -494,7 +678,7 @@
           }),
         });
         const data = await res.json();
-        for (const line of data.lines || []) log(`${line.name}: ${line.line}`);
+        for (const line of data.lines || []) feedPush(line.name || line.agent_id, line.line, "agent", line.agent_id);
       } catch (err) {
         log(`hermes link error: ${err.message}`);
       }

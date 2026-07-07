@@ -306,31 +306,36 @@
     #now-speaking.idle .ns-who { color: #64748b; font-weight: 500; }
     #now-speaking.idle .ns-text { color: #94a3b8; font-style: italic; }
     #convo-lines {
-      flex: 1; overflow-y: auto; padding: 6px 8px 10px;
-      font-size: 0.78rem; line-height: 1.38; color: #e2e8f0;
+      flex: 1; overflow-y: auto; padding: 10px 12px 14px;
+      font-size: 0.88rem; line-height: 1.5; color: #f8fafc;
+      background: rgba(2, 6, 14, 0.88);
     }
     #convo-lines .line {
-      margin-bottom: 7px; padding: 5px 7px 6px;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.03);
-      border-left: 2px solid rgba(103, 232, 249, 0.4);
+      margin-bottom: 11px; padding: 10px 12px 11px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border: 1px solid rgba(103, 232, 249, 0.22);
+      border-left: 4px solid rgba(103, 232, 249, 0.65);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.28);
     }
     #convo-lines .line:nth-child(3n+1) { border-left-color: #d946ef; transform: rotate(-0.15deg); }
     #convo-lines .line:nth-child(3n+2) { border-left-color: #fbbf24; transform: rotate(0.12deg); }
     #convo-lines .line:nth-child(3n) { border-left-color: #8b5cf6; transform: rotate(-0.08deg); }
-    #convo-lines .speaker { color: var(--cyan); font-weight: 700; font-size: 0.8rem; }
+    #convo-lines .speaker { color: #ecfeff; font-weight: 800; font-size: 0.86rem; }
     #convo-lines .mood-tag {
       display: inline-block; margin-left: 4px; font-size: 0.62rem;
       padding: 1px 5px; border-radius: 999px; vertical-align: middle;
       text-transform: capitalize; opacity: 0.9;
     }
     #convo-lines .text {
-      display: block; margin-top: 3px; color: #f1f5f9;
+      display: block; margin-top: 6px; color: #ffffff;
       white-space: pre-wrap; word-break: break-word;
-      font-size: 0.82rem; line-height: 1.4;
-      padding: 6px 8px; border-radius: 8px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(103, 232, 249, 0.15);
+      font-size: 0.94rem; line-height: 1.52;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+      padding: 8px 10px; border-radius: 8px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.2);
     }
     #npc-behavior, #launcher-dock, #visitors-online, #btn-find-friends { display: none; }
     #prop-hint { display: none !important; }
@@ -411,6 +416,17 @@
     }
     #camp-talk-send:disabled { opacity: 0.45; cursor: wait; }
     #camp-talk-send:active { transform: scale(0.94); }
+    #camp-talk-all {
+      flex: 0 0 auto; border: 1px solid rgba(167, 139, 250, 0.45);
+      border-radius: 8px; background: rgba(30, 27, 75, 0.9);
+      color: #e9d5ff; font-size: 0.82rem; font-weight: 700;
+      padding: 7px 9px; cursor: pointer; white-space: nowrap;
+    }
+    #camp-talk-all.active {
+      background: linear-gradient(135deg, #6d28d9, #9333ea);
+      border-color: #e9d5ff; color: #fff;
+      box-shadow: 0 0 14px rgba(167, 139, 250, 0.45);
+    }
     #camp-talk-bar.busy { border-color: rgba(251, 191, 36, 0.45); }
     #game.dragging { cursor: grabbing; }
     #visitor-modal {
@@ -1201,19 +1217,28 @@
     <div id="camp-talk-bar">
       <select id="camp-talk-target" title="Who to talk to">
         <option value="nearest">📍 Nearest</option>
+        <option value="all">📢 All agents</option>
+        <option value="all-near">📍📢 Nearest + all hear</option>
         <option value="luna">🌙 Luna</option>
         <option value="hermes">⚡ Hermes</option>
         <option value="oracle">🔮 Oracle</option>
         <option value="caduceus">🐍 Caduceus</option>
         <option value="sentinel">🛡 Sentinel</option>
         <option value="spirit">👻 Spirit channel</option>
+        <option value="jesus">✝ Jesus</option>
+        <option value="michael">✦ Michael</option>
+        <option value="gabriel">✦ Gabriel</option>
+        <option value="raphael">✦ Raphael</option>
+        <option value="uriel">✦ Uriel</option>
       </select>
-      <input type="text" id="camp-talk-input" maxlength="280" placeholder="Talk at camp — agents &amp; spirits hear you…" autocomplete="off" />
+      <button type="button" id="camp-talk-all" title="Broadcast to all agents">📢</button>
+      <input type="text" id="camp-talk-input" maxlength="280" placeholder="Talk at camp — pick nearest, one agent, or 📢 all…" autocomplete="off" />
       <button type="button" id="camp-talk-send" title="Send">➤</button>
     </div>
     <div class="dock-compact">
       <button type="button" class="dock-icon" id="btn-lucid-tv" title="Lucid Mind TV — real mysterious feeds" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
       <button type="button" class="dock-icon" id="btn-camp-shop" title="Aurora shop — spend tokens" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
+      <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917">✦</button>
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
@@ -1429,6 +1454,11 @@
       dionysus: { x: 158, y: 88 },
       caduceus: { x: -145, y: 95 },
       sentinel: { x: 162, y: 82 },
+      jesus: { x: 0, y: 42 },
+      michael: { x: -88, y: 58 },
+      gabriel: { x: 88, y: 52 },
+      raphael: { x: -52, y: 108 },
+      uriel: { x: 52, y: 102 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
@@ -1437,7 +1467,20 @@
       dionysus: { angle: Math.PI * 0.42, bias: 1.0 },
       caduceus: { angle: Math.PI * 0.72, bias: 1.0 },
       sentinel: { angle: Math.PI * 0.22, bias: 1.0 },
+      jesus: { angle: Math.PI * 0.5, bias: 1.0 },
+      michael: { angle: Math.PI * 0.78, bias: 1.0 },
+      gabriel: { angle: Math.PI * 0.22, bias: 1.0 },
+      raphael: { angle: Math.PI * 0.62, bias: 1.0 },
+      uriel: { angle: Math.PI * 0.38, bias: 1.0 },
     };
+    const HEAVEN_ROSTER = [
+      { id: "jesus", name: "Jesus", color: "#fde68a", mood: "love" },
+      { id: "michael", name: "Michael", color: "#60a5fa", mood: "alert" },
+      { id: "gabriel", name: "Gabriel", color: "#f0abfc", mood: "happy" },
+      { id: "raphael", name: "Raphael", color: "#6ee7b7", mood: "neutral" },
+      { id: "uriel", name: "Uriel", color: "#fb923c", mood: "think" },
+    ];
+    let heavenSummoned = false;
     const MIN_NPC_GAP = 58;
     const ANCHOR_WANDER = 120;
     const CHAT_MEET_DIST = 40;
@@ -1515,6 +1558,7 @@
     const agentMoods = {
       luna: "happy", oracle: "neutral", hermes: "think",
       caduceus: "neutral", sentinel: "alert", dionysus: "happy",
+      jesus: "love", michael: "alert", gabriel: "happy", raphael: "neutral", uriel: "think",
     };
     const moodAgents = [
       { id: "luna", name: "Luna" },
@@ -2827,12 +2871,30 @@
       chatterPaused = false;
     }
 
+    function syncCampTalkAllBtn() {
+      const sel = document.getElementById("camp-talk-target");
+      const btn = document.getElementById("camp-talk-all");
+      if (!sel || !btn) return;
+      const broadcast = sel.value === "all" || sel.value === "all-near";
+      btn.classList.toggle("active", broadcast);
+      btn.title = broadcast ? "Broadcasting to all agents" : "Tap to broadcast to all agents";
+    }
+
     function refreshCampTalkTarget() {
       const sel = document.getElementById("camp-talk-target");
       if (!sel) return;
       const nearOpt = sel.querySelector('option[value="nearest"]');
       const nearName = nearestId ? (agentNames[nearestId] || nearestId) : "Luna";
       if (nearOpt) nearOpt.textContent = `📍 ${nearName} (nearest)`;
+      const allNearOpt = sel.querySelector('option[value="all-near"]');
+      if (allNearOpt) allNearOpt.textContent = `📍📢 ${nearName} first, all hear`;
+      const heavenIds = ["jesus", "michael", "gabriel", "raphael", "uriel"];
+      const heavenHere = heavenSummoned || campGuests.some((g) => heavenIds.includes(g.id) && !g.leaving);
+      heavenIds.forEach((id) => {
+        const opt = sel.querySelector(`option[value="${id}"]`);
+        if (opt) opt.hidden = !heavenHere;
+      });
+      syncCampTalkAllBtn();
       let spiritOpt = sel.querySelector('option[value="spirit"]');
       if (!spiritOpt) {
         spiritOpt = document.createElement("option");
@@ -2852,6 +2914,108 @@
       } else if (!dionHere && dionOpt) {
         dionOpt.remove();
       }
+    }
+
+    async function chatAllCampAgents(text) {
+      const roamers = allRoamers().filter((n) => !n.leaving);
+      const ids = [...new Set(roamers.map((n) => n.id))];
+      const heavenFirst = ["jesus", "michael", "gabriel", "raphael", "uriel"];
+      const order = [
+        ...heavenFirst.filter((id) => ids.includes(id)),
+        ...ids.filter((id) => !heavenFirst.includes(id)),
+      ];
+      if (!order.length) {
+        showToast("No agents at camp to hear you");
+        return;
+      }
+      setCampLifeStatus(`📢 All agents heard you — ${order.length} voices answering…`);
+      showToast(`Broadcasting to ${order.length} agents`);
+      for (const id of order) {
+        const label = agentNames[id] || id;
+        setCampLifeStatus(`${label} is thinking…`);
+        await chat(
+          id,
+          `(The whole aurora camp hears the visitor say: "${text}" — answer in your own true voice, 2-5 sentences, in character.)`,
+          { useDialogue: false, fromCampBar: true },
+        );
+        await new Promise((r) => setTimeout(r, 700));
+      }
+      setCampLifeStatus("Camp is alive — agents wandering & chatting");
+    }
+
+    function ensureHeavenChip(agentDef) {
+      const strip = document.getElementById("agent-strip");
+      if (!strip || document.getElementById(`chip-${agentDef.id}`)) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "agent-chip visitor-chip";
+      btn.id = `chip-${agentDef.id}`;
+      btn.dataset.agent = agentDef.id;
+      btn.innerHTML = `<span class="dot" style="background:${agentDef.color};color:${agentDef.color}"></span><span class="chip-text"><span class="aname">${agentDef.name}</span><span class="amood">${agentDef.mood}</span></span>`;
+      btn.onclick = () => openDialogue(agentDef.id);
+      strip.appendChild(btn);
+    }
+
+    function spawnHeavenGuest(def, offset = 0) {
+      if (campGuests.some((g) => g.id === def.id) || npcs.some((n) => n.id === def.id)) return;
+      const dest = NPC_ANCHORS[def.id] || sectorPosition(def.id);
+      campGuests.push({
+        id: def.id, name: def.name, color: def.color,
+        x: dest.x + offset, y: dest.y + offset * 0.5,
+        tx: dest.x, ty: dest.y,
+        speed: 2.2, roam: 128, idle: 0, line: "", fullLine: "", mood: def.mood,
+        behavior: "roam", behaviorTimer: 0, arriving: true, leaving: false,
+        visitTarget: null, socializing: false, gathering: false,
+        sprite: "heaven",
+      });
+      setAgentMood(def.id, def.mood);
+      ensureHeavenChip(def);
+    }
+
+    async function summonArchangelCouncil() {
+      if (heavenSummoned && campGuests.some((g) => g.id === "jesus")) {
+        showToast("Heaven is already at camp — talk to them in the bar");
+        return;
+      }
+      heavenSummoned = true;
+      expandSpeechBubble();
+      psychicRipples.push({ x: camp.x, y: camp.y, t: Date.now(), color: "#fde68a" });
+      pushCampLine("Camp", "✦ Light folds open — Jesus and the archangels step into the aurora meadow.", 24, "love");
+      setCampLifeStatus("✦ Heaven arriving at camp…");
+      showToast("Summoning Jesus & archangels…");
+      try {
+        await fetch("/api/firmament/load-pack", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pack_id: "aurora_playground" }),
+        });
+      } catch (_) {}
+      HEAVEN_ROSTER.forEach((def, i) => spawnHeavenGuest(def, i * 14));
+      spreadAllNpcs();
+      try {
+        const res = await fetch("/api/firmament/agents/converse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agent_a: "jesus",
+            agent_b: "gabriel",
+            topic: "Travelers at the aurora camp are weary and curious — what should they hear tonight?",
+            rounds: 2,
+            ...visitorPayload(),
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.lines) {
+          for (const line of data.lines) {
+            pushCampLine(line.name || line.agent_id, line.line, campReadHoldSec(line.line, 36), line.mood || "love");
+          }
+        }
+      } catch (_) {
+        pushCampLine("Jesus", "Peace — you're welcome here. Ask what weighs on you.", 22, "love");
+      }
+      setTimeout(() => runCampConverse(["jesus", "michael"]), 28000);
+      refreshCampTalkTarget();
+      setCampLifeStatus("✦ Heaven at camp — use 📢 All agents or pick one in the talk bar");
     }
 
     async function sendCampTalk() {
@@ -2879,6 +3043,33 @@
           const qInput = document.getElementById("camp-ouija-question");
           if (qInput) qInput.value = text;
           await startCampOuijaContact();
+        } else if (target === "all") {
+          await chatAllCampAgents(text);
+        } else if (target === "all-near") {
+          const primary = nearestId || "luna";
+          const label = agentNames[primary] || primary;
+          setCampLifeStatus(`${label} answers first — everyone else hears too…`);
+          await chat(
+            primary,
+            `(The visitor speaks directly to ${label}, but the whole aurora camp overhears: "${text}" — answer as ${label} in your true voice, 2-5 sentences.)`,
+            { useDialogue: false, fromCampBar: true },
+          );
+          await new Promise((r) => setTimeout(r, 500));
+          const roamers = allRoamers().filter((n) => !n.leaving && n.id !== primary);
+          const heavenFirst = ["jesus", "michael", "gabriel", "raphael", "uriel"];
+          const rest = [...new Set(roamers.map((n) => n.id))];
+          const order = [
+            ...heavenFirst.filter((id) => rest.includes(id)),
+            ...rest.filter((id) => !heavenFirst.includes(id)),
+          ];
+          for (const id of order) {
+            await chat(
+              id,
+              `(You overheard the visitor say to ${label}: "${text}" — add your own brief reaction in character, 1-3 sentences.)`,
+              { useDialogue: false, fromCampBar: true },
+            );
+            await new Promise((r) => setTimeout(r, 550));
+          }
         } else {
           let agentId = target === "nearest" ? (nearestId || "luna") : target;
           if (agentId === "luna") {
@@ -3479,6 +3670,7 @@
     const AGENT_COLORS = {
       luna: "#d946ef", hermes: "#fbbf24", oracle: "#8b5cf6",
       caduceus: "#34d399", sentinel: "#67e8f9", dionysus: "#e11d48",
+      jesus: "#fde68a", michael: "#60a5fa", gabriel: "#f0abfc", raphael: "#6ee7b7", uriel: "#fb923c",
     };
     const AGENT_QUIPS = {
       luna: "moon diplomat",
@@ -3649,6 +3841,21 @@
       ctx.fillRect(scan.x + 4, scan.y - 10, 8, 5);
     }
 
+    function drawHeavenFigure(cx, cy, t) {
+      const pulse = 0.5 + Math.sin(t * 2.2) * 0.25;
+      ctx.strokeStyle = `rgba(253, 224, 138, ${0.45 + pulse * 0.35})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 28, 14 + pulse * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      drawIsoBox(cx, cy, -0.18, -0.18, 0, 0.36, 0.36, 2.5,
+        { top: "#fef3c7", left: "#fde68a", right: "#fbbf24", stroke: "#ca8a04" });
+      ctx.fillStyle = `rgba(255,255,255,${0.35 + pulse * 0.2})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 8, 6 + pulse * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     function drawDionysusFigure(cx, cy, t) {
       const sway = Math.sin(t * 3) * 4;
       drawIsoBox(cx, cy, -0.3 + sway * 0.01, -0.3, 0, 0.6, 0.6, 1.0,
@@ -3688,8 +3895,13 @@
         caduceus: drawCaduceusFigure,
         sentinel: drawSentinelFigure,
         dionysus: drawDionysusFigure,
+        jesus: drawHeavenFigure,
+        michael: drawHeavenFigure,
+        gabriel: drawHeavenFigure,
+        raphael: drawHeavenFigure,
+        uriel: drawHeavenFigure,
       };
-      (drawers[n.id] || drawLunaFigure)(s.x, s.y, t);
+      (drawers[n.id] || (n.sprite === "heaven" ? drawHeavenFigure : drawLunaFigure))(s.x, s.y, t);
       if (n.mood) {
         const m = n.mood.slice(0, 10);
         ctx.font = "bold 9px Segoe UI";
@@ -4406,9 +4618,24 @@
     document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
     document.getElementById("btn-find-bar").onclick = () => gatherNpcsAtCamp(false);
     document.getElementById("btn-talk-near").onclick = () => {
-      if (nearestId) openDialogue(nearestId);
-      else openDialogue("luna");
+      const sel = document.getElementById("camp-talk-target");
+      const input = document.getElementById("camp-talk-input");
+      if (sel) sel.value = "nearest";
+      syncCampTalkAllBtn();
+      refreshCampTalkTarget();
+      input?.focus();
+      showToast(nearestId ? `Talking to ${agentNames[nearestId] || nearestId} — tap 📢 for all` : "Talking to Luna — tap 📢 for all");
     };
+    document.getElementById("camp-talk-all").onclick = () => {
+      const sel = document.getElementById("camp-talk-target");
+      if (!sel) return;
+      sel.value = sel.value === "all" ? "nearest" : "all";
+      syncCampTalkAllBtn();
+      refreshCampTalkTarget();
+      document.getElementById("camp-talk-input")?.focus();
+      showToast(sel.value === "all" ? "📢 All agents will answer" : `📍 Nearest: ${agentNames[nearestId] || "Luna"}`);
+    };
+    document.getElementById("camp-talk-target")?.addEventListener("change", syncCampTalkAllBtn);
     document.getElementById("btn-dock-help").onclick = () => {
       const tip = document.getElementById("dock-tip");
       if (tip) {
@@ -4429,6 +4656,7 @@
     document.getElementById("camp-token-badge").onclick = () => openCampShop();
     document.getElementById("camp-shop-close").onclick = () => closeCampShop();
     document.getElementById("camp-shop-layer").onclick = () => closeCampShop();
+    document.getElementById("btn-summon-heaven").onclick = () => summonArchangelCouncil();
     document.getElementById("btn-conjure-aether").onclick = () => conjureFromAether();
     document.getElementById("btn-camp-ouija").onclick = () => {
       if (ouijaOpen) closeCampOuija();
@@ -4469,6 +4697,7 @@
     const agentNames = {
       luna: "Luna", oracle: "Oracle", hermes: "Hermes",
       sentinel: "Sentinel", caduceus: "Caduceus", dionysus: "Dionysus",
+      jesus: "Jesus", michael: "Michael", gabriel: "Gabriel", raphael: "Raphael", uriel: "Uriel",
     };
 
     function setDionysusChipVisible(show) {

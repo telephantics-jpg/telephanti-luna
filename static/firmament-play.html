@@ -2286,6 +2286,7 @@
     let campMusicTrackIdx = 0;
     let campMusicBoost = false;
     let campMusicRotateTimer = null;
+    let campMusicMuted = false;
     const props = [
       { id: "beer", name: "Beer", emoji: "🍺", x: 228, y: -88, color: "#f59e0b", radius: 90,
         useMsg: "You crack open a cold beer from the camp cooler. Cheers!",
@@ -4476,7 +4477,7 @@
       url.searchParams.set("autoplay", "1");
       url.searchParams.set("mute", unmuted ? "0" : "1");
       url.searchParams.set("playsinline", "1");
-      url.searchParams.set("controls", "1");
+      url.searchParams.set("controls", "0");
       url.searchParams.set("rel", "0");
       url.searchParams.set("modestbranding", "1");
       url.searchParams.set("iv_load_policy", "3");
@@ -4488,9 +4489,11 @@
       const frame = document.getElementById("camp-jukebox-frame");
       const titleEl = document.getElementById("camp-jukebox-title");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
-      if (titleEl) titleEl.textContent = `${track.title} — Telephantix`;
+      if (titleEl) titleEl.textContent = track.title;
       if (!frame) return;
-      const unmuted = opts.unmuted !== false;
+      if (opts.unmuted === true) campMusicMuted = false;
+      if (opts.unmuted === false) campMusicMuted = true;
+      const unmuted = !campMusicMuted;
       const src = campMusicEmbedSrc(track.id, unmuted);
       window.clearTimeout(tuneCampJukebox._t);
       frame.src = "about:blank";
@@ -4500,7 +4503,7 @@
       updateCampMusicUi();
       if (!opts.quiet) {
         setCampLifeStatus(`🎶 Telephantix — ${track.title}`);
-        showToast(unmuted ? `🎶 ${track.title} — tap ▶ on player if silent` : `🎶 ${track.title}`);
+        showToast(unmuted ? `🎶 ${track.title}` : `🔇 ${track.title} muted`);
       }
     }
 
@@ -4513,7 +4516,20 @@
 
     function minimizeCampJukebox() {
       document.getElementById("camp-jukebox-panel")?.classList.add("minimized");
-      showToast("Player minimized — tap 🔊 Play to show it again");
+    }
+
+    function toggleCampJukeboxMute() {
+      if (!campMusicOn) {
+        showToast("Start jukebox first — tap 🎵");
+        return;
+      }
+      campMusicMuted = !campMusicMuted;
+      const panel = document.getElementById("camp-jukebox-panel");
+      panel?.classList.add("open");
+      panel?.classList.remove("minimized");
+      tuneCampJukebox({ quiet: true });
+      updateCampMusicUi();
+      showToast(campMusicMuted ? "🔇 Jukebox muted" : "🔊 Jukebox playing");
     }
 
     function closeCampJukebox() {
@@ -4521,15 +4537,6 @@
       panel?.classList.remove("open", "minimized");
       const frame = document.getElementById("camp-jukebox-frame");
       if (frame) frame.src = "about:blank";
-    }
-
-    function campJukeboxPlaySound() {
-      if (!campMusicOn) {
-        setCampMusic(true, { quiet: true });
-        return;
-      }
-      openCampJukebox({ unmuted: true });
-      showToast("🔊 Player open — tap ▶ if you still hear nothing");
     }
 
     function stopCampMusicPlayback() {
@@ -4551,8 +4558,16 @@
         dockBtn.classList.toggle("active", campMusicOn);
         dockBtn.textContent = campMusicOn ? "🎶" : "🎵";
         dockBtn.title = campMusicOn
-          ? `Telephantix ON — ${track.title} (tap to mute)`
-          : "Telephantix camp music — Flowing Free & more (tap to play)";
+          ? `Telephantix ON — ${track.title}`
+          : "Telephantix jukebox — Flowing Free & more";
+      }
+      const muteLabel = campMusicMuted ? "🔊 UNMUTE" : "🔇 MUTE";
+      for (const id of ["camp-music-mute", "camp-jukebox-mute"]) {
+        const btn = document.getElementById(id);
+        if (!btn) continue;
+        btn.textContent = muteLabel;
+        btn.classList.toggle("muted", campMusicMuted);
+        btn.title = campMusicMuted ? "Turn jukebox sound back on" : "Mute jukebox";
       }
       document.body.classList.toggle("camp-music-on", campMusicOn);
     }
@@ -4584,10 +4599,12 @@
       const wasOn = campMusicOn;
       campMusicOn = !!on;
       if (campMusicOn) {
-        playCampMusicTrack(campMusicTrackIdx, { quiet: opts.quiet });
+        campMusicMuted = false;
+        playCampMusicTrack(campMusicTrackIdx, { quiet: opts.quiet, unmuted: true });
         startCampMusicRotate();
         try { navigator.vibrate?.([14, 28, 14]); } catch (_) {}
       } else {
+        campMusicMuted = false;
         stopCampMusicPlayback();
         stopCampMusicRotate();
         if (!opts.quiet) setCampLifeStatus("Camp quiet — tap 🎵 for Telephantix");
@@ -6243,7 +6260,8 @@
       };
     });
     document.getElementById("btn-camp-music").onclick = () => toggleCampMusic();
-    document.getElementById("camp-music-sound").onclick = () => campJukeboxPlaySound();
+    document.getElementById("camp-music-mute").onclick = () => toggleCampJukeboxMute();
+    document.getElementById("camp-jukebox-mute").onclick = () => toggleCampJukeboxMute();
     document.getElementById("camp-music-stop").onclick = () => toggleCampMusic();
     document.getElementById("camp-music-next").onclick = () => nextCampMusicTrack();
     document.getElementById("camp-jukebox-minimize").onclick = () => minimizeCampJukebox();

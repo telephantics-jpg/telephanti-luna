@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "176-unreal-camp-fixes"
+LUNA_BUILD = "177-camp-cache-fast"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -79,10 +79,13 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-_NO_CACHE_PREFIXES = ("/static/",)
-_NO_CACHE_EXACT = {"/", "/visit", "/firmament/play", "/manifest.json", "/sw.js", "/bubble", "/api/health"}
+_NO_CACHE_EXACT = {"/", "/visit", "/firmament/play", "/camp", "/play", "/manifest.json", "/sw.js", "/bubble", "/api/health"}
+_STATIC_CACHE_EXTS = (
+    ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".ico",
+    ".mp3", ".mp4", ".webm", ".woff", ".woff2", ".mjs", ".js", ".css",
+)
 
-_CLOUD_HOSTS = frozenset({"telephanti.com", "www.telephanti.com"})
+_CLOUD_HOSTS = frozenset({"telephanti.com", "www.telephanti.com", "luna.telephanti.com"})
 
 
 def _request_is_https(request: Request) -> bool:
@@ -109,11 +112,21 @@ async def luna_https_middleware(request: Request, call_next):
 async def luna_no_cache_middleware(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path in _NO_CACHE_EXACT or path.startswith(_NO_CACHE_PREFIXES):
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    path_lower = path.lower()
+    if path.startswith("/static/"):
+        if any(path_lower.endswith(ext) for ext in _STATIC_CACHE_EXTS):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            response.headers["Cache-Control"] = "public, max-age=3600"
+    elif path in _NO_CACHE_EXACT:
+        response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
-    if is_cloud_mode() and path in ("/", "/visit", "/firmament/play"):
+    if (
+        is_cloud_mode()
+        and path in ("/", "/visit", "/firmament/play", "/camp", "/play")
+        and request.query_params.get("fresh") == "1"
+    ):
         response.headers["Clear-Site-Data"] = '"cache"'
     if is_cloud_mode() and _request_is_https(request):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -2081,6 +2094,13 @@ async def index(
     )
 
 
+@app.get("/camp")
+@app.get("/play")
+async def luna_camp_aliases():
+    """Short URLs for Beacons / link-in-bio buttons."""
+    return RedirectResponse(f"/firmament/play?v={LUNA_BUILD}", status_code=302)
+
+
 @app.get("/visit")
 async def luna_visit(request: Request):
     """Public web entry — telephanti.com opens Luna Camp."""
@@ -2262,13 +2282,7 @@ async def firmament_play_page():
     """Playable browser camp — walk, talk to NPCs, same Luna server brains."""
     path = STATIC_DIR / "firmament-play.html"
     if path.is_file():
-        return FileResponse(
-            path,
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Pragma": "no-cache",
-            },
-        )
+        return FileResponse(path)
     raise HTTPException(status_code=404, detail="firmament-play.html missing")
 
 
@@ -2993,6 +3007,8 @@ async def info():
         "luna_local_url": f"http://127.0.0.1:{PORT}/luna",
         "luna_pretty_url": "https://telephanti.com/visit",
         "secure_visit_url": "https://telephanti.com/visit",
+        "beacons_luna_url": "https://telephanti.com/visit",
+        "camp_short_urls": ["https://telephanti.com/camp", "https://telephanti.com/play", "https://telephanti.com/visit"],
         "visit_url": visit,
         "beacons_link_url": visit,
         "lan_url": None if cloud else f"http://{lan_ip}:{PORT}",

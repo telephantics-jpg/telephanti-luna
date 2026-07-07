@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Luna Camp — Play in Browser</title>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link rel="preload" as="image" href="/static/camp/aurora-corona-sky-mobile.jpg" media="(max-width: 899px)" />
+  <link rel="preload" as="image" href="/static/camp/aurora-corona-sky.jpg" media="(min-width: 900px)" />
   <style>
     :root {
       --header-h: 118px;
@@ -151,6 +152,27 @@
       color: #fde68a; font-size: 0.75rem;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+    #camp-boot-splash {
+      position: fixed; inset: 0; z-index: 9999;
+      display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+      background: radial-gradient(ellipse at 50% 30%, #1a2848 0%, #0a0c14 70%);
+      color: #c9d4e8; font-size: 0.92rem; letter-spacing: 0.04em;
+      transition: opacity 0.35s ease;
+    }
+    html.slow-device #camp-boot-splash { display: flex; }
+    #camp-boot-splash.done { opacity: 0; pointer-events: none; }
+    #camp-boot-splash .boot-glyph { font-size: 2.4rem; animation: boot-pulse 1.6s ease-in-out infinite; }
+    #camp-boot-splash .boot-bar {
+      width: min(220px, 60vw); height: 4px; border-radius: 99px;
+      background: rgba(255,255,255,0.08); overflow: hidden;
+    }
+    #camp-boot-splash .boot-bar > i {
+      display: block; height: 100%; width: 38%;
+      background: linear-gradient(90deg, #67e8f9, #a78bfa);
+      border-radius: 99px; animation: boot-slide 1.2s ease-in-out infinite;
+    }
+    @keyframes boot-pulse { 0%, 100% { opacity: 0.55; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1); } }
+    @keyframes boot-slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
     .hud {
       display: none;
     }
@@ -1971,6 +1993,11 @@
   </style>
 </head>
 <body class="camp-trippy">
+  <div id="camp-boot-splash" aria-hidden="true" aria-label="Loading camp">
+    <div class="boot-glyph">🌙</div>
+    <div>Opening Luna Camp…</div>
+    <div class="boot-bar"><i></i></div>
+  </div>
   <div id="camp-stage"><canvas id="game"></canvas></div>
   <div id="trippy-veil" aria-hidden="true"></div>
   <header id="camp-header">
@@ -2297,7 +2324,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-android-fast";
+    const CAMP_BUILD = "2026-07-07-camp-cache-fast";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -8763,9 +8790,13 @@
       } catch (_) {}
       setTimeout(pollAgentMoods, 30000);
     }
-    if (isSlowDevice()) setTimeout(pollAgentMoods, 22000);
-    else pollAgentMoods();
-    renderAgentStrip();
+    if (isSlowDevice()) {
+      setTimeout(pollAgentMoods, 22000);
+      setTimeout(renderAgentStrip, 1800);
+    } else {
+      pollAgentMoods();
+      renderAgentStrip();
+    }
 
     const serverStatusEl = document.getElementById("server-status");
     const campBuildEl = document.getElementById("camp-build-tag");
@@ -8806,26 +8837,34 @@
       });
       setTimeout(pollServerHealth, 12000);
     }
-    fetch("/api/health").then((r) => r.json()).then((h) => {
-      campServerOnline = !!h.ok;
-      if (h.ok) {
-        serverStatusEl.textContent = h.ollama_ok ? "online · ollama ✓" : "online · aether";
-        updateBrainStatusChip(h);
-        showToast(h.ollama_ok ? "🦙 Ollama brains live — free chat & memory" : "🌫 Aether brains — start Ollama for fuller AI");
-        setCampLifeStatus("Tap 🎵 for Telephantix — Flowing Free & more · Luna & Hermes talk below");
-        const convA = isSlowDevice() ? 52000 : 18000;
-        const convB = isSlowDevice() ? 130000 : 42000;
-        setTimeout(() => runCampConverse(["luna", "hermes"]), convA);
-        setTimeout(() => runCampConverse(["jesus", "luna"]), convB);
-      }
-    }).catch(() => {
-      campServerOnline = false;
-      serverStatusEl.textContent = "aether mode";
-      updateBrainStatusChip(null);
-      showToast("🌫 Aether mode — agents still roleplay offline. For Ollama: OPEN_LUNA_CAMP.bat");
-      pushCampLine("Camp", "Aether brains online in-browser — chat free. Start OPEN_LUNA_CAMP.bat for full Ollama memory sync.", 28, "think");
-    });
-    pollServerHealth();
+    const runInitialHealth = () => {
+      fetch("/api/health").then((r) => r.json()).then((h) => {
+        campServerOnline = !!h.ok;
+        if (h.ok) {
+          serverStatusEl.textContent = h.ollama_ok ? "online · ollama ✓" : "online · aether";
+          updateBrainStatusChip(h);
+          if (!isSlowDevice()) {
+            showToast(h.ollama_ok ? "🦙 Ollama brains live — free chat & memory" : "🌫 Aether brains — start Ollama for fuller AI");
+          }
+          setCampLifeStatus("Tap 🎵 for Telephantix — Flowing Free & more · Luna & Hermes talk below");
+          const convA = isSlowDevice() ? 52000 : 18000;
+          const convB = isSlowDevice() ? 130000 : 42000;
+          setTimeout(() => runCampConverse(["luna", "hermes"]), convA);
+          setTimeout(() => runCampConverse(["jesus", "luna"]), convB);
+        }
+      }).catch(() => {
+        campServerOnline = false;
+        serverStatusEl.textContent = "aether mode";
+        updateBrainStatusChip(null);
+        if (!isSlowDevice()) {
+          showToast("🌫 Aether mode — agents still roleplay offline. For Ollama: OPEN_LUNA_CAMP.bat");
+        }
+        pushCampLine("Camp", "Aether brains online in-browser — chat free. Start OPEN_LUNA_CAMP.bat for full Ollama memory sync.", 28, "think");
+      });
+      pollServerHealth();
+    };
+    if (isSlowDevice()) setTimeout(runInitialHealth, 1600);
+    else runInitialHealth();
 
     document.querySelectorAll(".weather-chip").forEach((btn) => {
       btn.onclick = () => setCampWeather(btn.dataset.weather);
@@ -9031,6 +9070,11 @@
         lastDrawAt = frameNow;
         if (!campReady) {
           campReady = true;
+          const splash = document.getElementById("camp-boot-splash");
+          if (splash) {
+            splash.classList.add("done");
+            setTimeout(() => splash.remove(), 400);
+          }
           if (isSlowDevice()) requestAnimationFrame(() => bootCampWorld());
           else bootCampWorld();
         }

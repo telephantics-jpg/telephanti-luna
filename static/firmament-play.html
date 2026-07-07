@@ -473,84 +473,61 @@
     .dock-compact .dock-icon:active { transform: scale(0.94); }
     #camp-music-bar {
       position: fixed;
-      top: calc(env(safe-area-inset-top, 0px) + 6px);
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 14;
+      top: auto;
+      left: 8px;
+      right: 8px;
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 3px);
+      transform: none;
+      z-index: 12;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 12px 8px 10px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, rgba(8, 18, 36, 0.97), rgba(30, 27, 75, 0.94));
-      border: 2px solid rgba(56, 189, 248, 0.7);
-      box-shadow: 0 0 28px rgba(56, 189, 248, 0.4), 0 6px 24px rgba(0, 0, 0, 0.45);
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 10px;
+      background: rgba(8, 18, 36, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
       pointer-events: auto;
-      max-width: min(96vw, 520px);
+      max-width: none;
+      min-height: 0;
     }
     #camp-music-bar[hidden] { display: none !important; }
-    #camp-music-bar .camp-music-eq {
-      display: flex; align-items: flex-end; gap: 3px; height: 14px; flex-shrink: 0;
-    }
-    #camp-music-bar .camp-music-eq span {
-      display: block; width: 3px; border-radius: 2px;
-      background: #7dd3fc;
-    }
-    #camp-music-bar .camp-music-eq span:nth-child(1) { height: 6px; }
-    #camp-music-bar .camp-music-eq span:nth-child(2) { height: 11px; }
-    #camp-music-bar .camp-music-eq span:nth-child(3) { height: 8px; }
-    #camp-music-bar .camp-music-eq span:nth-child(4) { height: 10px; }
+    #camp-music-bar .camp-music-eq { display: none; }
     #camp-music-bar .camp-music-meta {
-      display: flex; flex-direction: column; line-height: 1.15; min-width: 0; flex: 1;
+      display: flex; align-items: baseline; gap: 6px;
+      line-height: 1.1; min-width: 0; flex: 1;
     }
     #camp-music-bar .camp-music-artist {
-      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em;
-      text-transform: uppercase; color: #7dd3fc;
+      font-size: 0.58rem; font-weight: 800; letter-spacing: 0.04em;
+      text-transform: uppercase; color: #7dd3fc; flex-shrink: 0;
     }
     #camp-music-bar .camp-music-title {
-      font-size: 0.82rem; font-weight: 700; color: #f8fafc;
+      font-size: 0.72rem; font-weight: 600; color: #f8fafc;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      min-width: 0;
     }
     #camp-music-bar button, #camp-music-bar a {
       border: 1px solid rgba(103, 232, 249, 0.35);
       background: rgba(15, 23, 42, 0.9); color: #e0f2fe;
-      border-radius: 10px; padding: 6px 9px; font-size: 0.85rem;
+      border-radius: 7px; padding: 4px 7px; font-size: 0.72rem;
       cursor: pointer; text-decoration: none; flex-shrink: 0;
     }
     #camp-music-bar button:active { transform: scale(0.94); }
     #camp-jukebox-panel {
       display: none;
       position: fixed;
-      right: 10px;
-      left: auto;
-      width: min(228px, 44vw);
-      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 6px);
-      z-index: 13;
-      border-radius: 12px;
+      left: -9999px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
       overflow: hidden;
-      background: linear-gradient(160deg, rgba(8, 18, 36, 0.98), rgba(12, 28, 52, 0.98));
-      border: 2px solid rgba(56, 189, 248, 0.55);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-      pointer-events: auto;
+      pointer-events: none;
+      border: 0;
+      box-shadow: none;
     }
     #camp-jukebox-panel.open { display: block; }
-    #camp-jukebox-panel.minimized .camp-jukebox-screen { display: none; }
-    .camp-jukebox-head {
-      display: flex; align-items: center; justify-content: space-between; gap: 4px;
-      padding: 5px 6px; border-bottom: 1px solid rgba(56, 189, 248, 0.25);
-    }
-    #camp-jukebox-title {
-      font-size: 0.66rem; font-weight: 700; color: #e0f2fe;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      flex: 1; min-width: 0;
-    }
-    .camp-jukebox-head button {
-      border: 1px solid rgba(103, 232, 249, 0.35);
-      background: rgba(15, 23, 42, 0.9); color: #e0f2fe;
-      border-radius: 7px; padding: 4px 7px; font-size: 0.7rem; cursor: pointer;
-      flex-shrink: 0;
-    }
-    #camp-jukebox-mute, #camp-music-mute {
+    #camp-music-mute {
       font-weight: 800;
       font-size: 0.68rem !important;
       letter-spacing: 0.03em;
@@ -560,17 +537,13 @@
       color: #fff !important;
       box-shadow: 0 0 10px rgba(225, 29, 72, 0.35);
     }
-    #camp-jukebox-mute.muted, #camp-music-mute.muted {
+    #camp-music-mute.muted {
       background: linear-gradient(135deg, #0c4a6e, #0284c7) !important;
       border-color: #7dd3fc !important;
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
     }
-    .camp-jukebox-screen {
-      position: relative; width: 100%; height: 72px;
-      background: #000;
-    }
     #camp-jukebox-frame {
-      position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+      width: 1px; height: 1px; border: 0;
     }
     .dock-tip {
       font-size: 0.68rem; color: #64748b; text-align: center;
@@ -968,19 +941,11 @@
         border-color: rgba(167, 139, 250, 0.55);
       }
       #camp-music-bar {
-        top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 4px);
-        bottom: auto;
-        padding: 7px 10px;
-        gap: 6px;
-        max-width: 94vw;
+        left: 6px; right: 6px;
+        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 2px);
+        padding: 3px 6px;
       }
-      #camp-music-bar .camp-music-title { font-size: 0.76rem; }
-      #camp-jukebox-panel {
-        right: 6px; left: auto;
-        width: min(200px, 46vw);
-        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 4px);
-      }
-      .camp-jukebox-screen { height: 64px; }
+      #camp-music-bar .camp-music-title { font-size: 0.68rem; }
       #camp-keyboard-reply .ckr-who {
         color: #67e8f9;
         font-weight: 800;
@@ -1639,15 +1604,8 @@
     <a id="camp-music-open" href="https://www.youtube.com/watch?v=HbIa6PgpEaQ" target="_blank" rel="noopener" title="Open on YouTube">↗</a>
     <button type="button" id="camp-music-stop" title="Stop jukebox">✕</button>
   </div>
-  <div id="camp-jukebox-panel" aria-label="Telephantix jukebox player">
-    <div class="camp-jukebox-head">
-      <span id="camp-jukebox-title">Flowing Free</span>
-      <button type="button" id="camp-jukebox-mute" title="Mute jukebox">🔇 MUTE</button>
-      <button type="button" id="camp-jukebox-minimize" title="Hide video">▼</button>
-    </div>
-    <div class="camp-jukebox-screen">
-      <iframe id="camp-jukebox-frame" title="Telephantix jukebox" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen></iframe>
-    </div>
+  <div id="camp-jukebox-panel" aria-hidden="true">
+    <iframe id="camp-jukebox-frame" title="Telephantix jukebox audio" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media"></iframe>
   </div>
   <div id="prop-hint"></div>
   <button type="button" id="convo-toggle"></button>
@@ -1767,7 +1725,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-jukebox-compact";
+    const CAMP_BUILD = "2026-07-07-jukebox-audio-strip";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -4487,9 +4445,7 @@
 
     function tuneCampJukebox(opts = {}) {
       const frame = document.getElementById("camp-jukebox-frame");
-      const titleEl = document.getElementById("camp-jukebox-title");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
-      if (titleEl) titleEl.textContent = track.title;
       if (!frame) return;
       if (opts.unmuted === true) campMusicMuted = false;
       if (opts.unmuted === false) campMusicMuted = true;
@@ -4508,14 +4464,8 @@
     }
 
     function openCampJukebox(opts = {}) {
-      const panel = document.getElementById("camp-jukebox-panel");
-      panel?.classList.add("open");
-      panel?.classList.remove("minimized");
+      document.getElementById("camp-jukebox-panel")?.classList.add("open");
       tuneCampJukebox(opts);
-    }
-
-    function minimizeCampJukebox() {
-      document.getElementById("camp-jukebox-panel")?.classList.add("minimized");
     }
 
     function toggleCampJukeboxMute() {
@@ -4524,9 +4474,7 @@
         return;
       }
       campMusicMuted = !campMusicMuted;
-      const panel = document.getElementById("camp-jukebox-panel");
-      panel?.classList.add("open");
-      panel?.classList.remove("minimized");
+      document.getElementById("camp-jukebox-panel")?.classList.add("open");
       tuneCampJukebox({ quiet: true });
       updateCampMusicUi();
       showToast(campMusicMuted ? "🔇 Jukebox muted" : "🔊 Jukebox playing");
@@ -4534,7 +4482,7 @@
 
     function closeCampJukebox() {
       const panel = document.getElementById("camp-jukebox-panel");
-      panel?.classList.remove("open", "minimized");
+      panel?.classList.remove("open");
       const frame = document.getElementById("camp-jukebox-frame");
       if (frame) frame.src = "about:blank";
     }
@@ -4561,13 +4509,12 @@
           ? `Telephantix ON — ${track.title}`
           : "Telephantix jukebox — Flowing Free & more";
       }
+      const muteBtn = document.getElementById("camp-music-mute");
       const muteLabel = campMusicMuted ? "🔊 UNMUTE" : "🔇 MUTE";
-      for (const id of ["camp-music-mute", "camp-jukebox-mute"]) {
-        const btn = document.getElementById(id);
-        if (!btn) continue;
-        btn.textContent = muteLabel;
-        btn.classList.toggle("muted", campMusicMuted);
-        btn.title = campMusicMuted ? "Turn jukebox sound back on" : "Mute jukebox";
+      if (muteBtn) {
+        muteBtn.textContent = muteLabel;
+        muteBtn.classList.toggle("muted", campMusicMuted);
+        muteBtn.title = campMusicMuted ? "Turn jukebox sound back on" : "Mute jukebox";
       }
       document.body.classList.toggle("camp-music-on", campMusicOn);
     }
@@ -6261,10 +6208,8 @@
     });
     document.getElementById("btn-camp-music").onclick = () => toggleCampMusic();
     document.getElementById("camp-music-mute").onclick = () => toggleCampJukeboxMute();
-    document.getElementById("camp-jukebox-mute").onclick = () => toggleCampJukeboxMute();
     document.getElementById("camp-music-stop").onclick = () => toggleCampMusic();
     document.getElementById("camp-music-next").onclick = () => nextCampMusicTrack();
-    document.getElementById("camp-jukebox-minimize").onclick = () => minimizeCampJukebox();
     document.getElementById("btn-lucid-tv").onclick = () => openLucidTv();
     document.getElementById("btn-camp-shop").onclick = () => openCampShop();
     document.getElementById("camp-token-badge").onclick = () => openCampShop();

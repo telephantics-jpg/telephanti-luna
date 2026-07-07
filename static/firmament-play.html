@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Luna Camp — Play in Browser</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -770,6 +770,27 @@
         left: calc(var(--gap) + var(--vv-offset-left, 0px));
         right: calc(var(--gap) + var(--vv-offset-right, 0px));
       }
+      html.ios-camp #camp-talk-input,
+      html.ios-camp #camp-talk-target {
+        font-size: 16px !important;
+      }
+      html.ios-camp.camp-input-focus,
+      html.ios-camp.camp-input-focus body {
+        height: 100% !important;
+        min-height: 100%;
+      }
+      html.ios-camp.camp-input-focus #camp-stage,
+      html.ios-camp.camp-input-focus #trippy-veil {
+        top: calc(var(--header-h) + var(--vv-offset-top, 0px)) !important;
+        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)) !important;
+        left: var(--vv-offset-left, 0px) !important;
+        right: var(--vv-offset-right, 0px) !important;
+        height: auto !important;
+      }
+      html.ios-camp.camp-input-focus #action-bar {
+        left: var(--vv-offset-left, 0px) !important;
+        right: var(--vv-offset-right, 0px) !important;
+      }
       #free-tools-row,
       #unreal-hint,
       #camp-life-status,
@@ -1491,7 +1512,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ios-center-zoom";
+    const CAMP_BUILD = "2026-07-06-ios-keyboard-pop";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1570,14 +1591,25 @@
       document.documentElement.style.setProperty("--vv-offset-right", `${right}px`);
     }
 
-    function getCampCanvasSizeFromLayout() {
+    function isCampKeyboardActive() {
+      return document.documentElement.classList.contains("camp-input-focus")
+        || isKeyboardLikelyOpen();
+    }
+
+    function getCampCanvasSizeFromLayout(useLayoutViewport = false) {
       const style = getComputedStyle(document.documentElement);
       const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
       const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 100;
       const vv = window.visualViewport;
-      const vw = Math.round(vv?.width || layoutViewportWidth());
-      const vh = Math.round(vv?.height || layoutViewportHeight());
+      const vw = Math.round(useLayoutViewport ? layoutViewportWidth() : (vv?.width || layoutViewportWidth()));
+      const vh = Math.round(useLayoutViewport ? layoutViewportHeight() : (vv?.height || layoutViewportHeight()));
       return { w: vw, h: Math.max(120, vh - headerH - dockH) };
+    }
+
+    function ensureStableCampSize() {
+      if (stableCampW > 0 && stableCampH > 0 && stableMatchesOrientation()) return;
+      const sz = getCampCanvasSizeFromLayout(true);
+      commitStableCampSize(sz.w, sz.h);
     }
 
     function commitStableCampSize(w, h) {
@@ -1614,13 +1646,12 @@
           h: Math.max(1, Math.round(box.height)),
         };
       }
-      const keyboardOpen = document.documentElement.classList.contains("camp-input-focus")
-        || isKeyboardLikelyOpen();
-      if (keyboardOpen && stableMatchesOrientation()) {
+      if (isCampKeyboardActive()) {
+        ensureStableCampSize();
         return { w: stableCampW, h: stableCampH };
       }
-      const sz = getCampCanvasSizeFromLayout();
-      if (!keyboardOpen) commitStableCampSize(sz.w, sz.h);
+      const sz = getCampCanvasSizeFromLayout(false);
+      commitStableCampSize(sz.w, sz.h);
       return sz;
     }
 
@@ -2548,7 +2579,8 @@
 
     function syncUILayout() {
       syncViewportOffset();
-      const vvh = (isIOS() && window.visualViewport)
+      const keyboardFreeze = isIOS() && isCampKeyboardActive();
+      const vvh = (isIOS() && window.visualViewport && !keyboardFreeze)
         ? Math.round(window.visualViewport.height)
         : layoutViewportHeight();
       document.documentElement.style.setProperty("--viewport-h", `${vvh}px`);
@@ -2618,8 +2650,28 @@
 
     let resizeRetry = 0;
     let lastLayoutSig = "";
+    function applyCanvasDimensions(w, h) {
+      campDpr = Math.min(window.devicePixelRatio || 1, 3);
+      viewW = w;
+      viewH = h;
+      const bw = Math.round(w * campDpr);
+      const bh = Math.round(h * campDpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw;
+        canvas.height = bh;
+      }
+      ctx.setTransform(campDpr, 0, 0, campDpr, 0, 0);
+    }
+
     function resize() {
+      const keyboardFreeze = isIOS() && isCampKeyboardActive();
       syncUILayout();
+      if (keyboardFreeze && stableCampW > 0 && stableCampH > 0) {
+        applyCanvasDimensions(stableCampW, stableCampH);
+        return;
+      }
       const sig = campLayoutSignature();
       if (isIOS() && lastLayoutSig && sig !== lastLayoutSig) {
         resetCampLayoutState();
@@ -2634,18 +2686,7 @@
         return;
       }
       resizeRetry = 0;
-      campDpr = Math.min(window.devicePixelRatio || 1, 3);
-      viewW = w;
-      viewH = h;
-      const bw = Math.round(w * campDpr);
-      const bh = Math.round(h * campDpr);
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-      if (canvas.width !== bw || canvas.height !== bh) {
-        canvas.width = bw;
-        canvas.height = bh;
-      }
-      ctx.setTransform(campDpr, 0, 0, campDpr, 0, 0);
+      applyCanvasDimensions(w, h);
       const zoom = getWorldZoom();
       if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005) {
         campSpreadInit = true;
@@ -2673,6 +2714,7 @@
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
+      if (isIOS() && isCampKeyboardActive()) return;
       scheduleResize();
     }
     window.addEventListener("resize", () => scheduleResize());
@@ -2686,7 +2728,10 @@
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => scheduleResize());
+      const layoutObs = new ResizeObserver(() => {
+        if (isIOS() && isCampKeyboardActive()) return;
+        scheduleResize();
+      });
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (hdr) layoutObs.observe(hdr);
@@ -3501,7 +3546,10 @@
       try {
         if (!mobile) localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
       } catch (_) {}
-      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
+      setTimeout(() => {
+        syncUILayout();
+        if (!(isIOS() && isCampKeyboardActive())) scheduleResize();
+      }, 50);
     }
 
     function expandSpeechBubble() { setSpeechBubbleDock(false); }
@@ -5121,15 +5169,18 @@
         sendCampTalk();
       }
     });
+    document.getElementById("camp-talk-input")?.addEventListener("touchstart", () => {
+      if (isIOS()) ensureStableCampSize();
+    }, { passive: true });
     document.getElementById("camp-talk-input")?.addEventListener("focus", () => {
-      if (isCampMobile()) minimizeSpeechBubble();
       if (isIOS()) {
-        if (stableCampW < 1 || stableCampH < 1) {
-          const sz = getCampCanvasSizeFromLayout();
-          commitStableCampSize(sz.w, sz.h);
-        }
+        ensureStableCampSize();
         document.documentElement.classList.add("camp-input-focus");
+        syncViewportOffset();
+        if (isCampMobile()) minimizeSpeechBubble();
+        return;
       }
+      if (isCampMobile()) minimizeSpeechBubble();
       scheduleResize();
     });
     document.getElementById("camp-talk-input")?.addEventListener("blur", () => {

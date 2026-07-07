@@ -2314,6 +2314,16 @@ async def firmament_config_api(request: Request):
     stream_up = port_is_open(port, "127.0.0.1")
     game = game_load()
     backend = llm_backend()
+    ollama_ok = False
+    if backend == "ollama":
+        try:
+            import httpx
+
+            host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+            with httpx.Client(timeout=2.5) as client:
+                ollama_ok = client.get(f"{host}/api/tags").status_code == 200
+        except Exception:
+            ollama_ok = False
     return {
         "pack_id": "aurora_playground",
         "pixel_stream_url": pixel_url,
@@ -2322,6 +2332,9 @@ async def firmament_config_api(request: Request):
         "weather": game.get("weather", "aurora"),
         "time_of_day": game.get("time_of_day", "dawn"),
         "llm_backend": backend,
+        "ollama_ok": ollama_ok,
+        "chat_free": True,
+        "aether_fallback": True,
         "free_tools": {
             "browser_camp": "/firmament/play",
             "luna_avatar": "/?avatar=1&web=1",

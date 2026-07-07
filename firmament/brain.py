@@ -30,6 +30,11 @@ def llm_backend() -> str:
     return "ollama"
 
 
+def _memory_key(agent_id: str, visitor_id: str = "") -> str:
+    vid = (visitor_id or "").strip()
+    return f"{agent_id}:{vid}" if vid else agent_id
+
+
 def _load_memory() -> dict[str, list[dict[str, str]]]:
     try:
         raw = json.loads(MEMORY_PATH.read_text(encoding="utf-8"))
@@ -149,10 +154,13 @@ async def agent_chat(
 
     profile = load_agent_profile(agent_id)
     memory = _load_memory()
+    mem_key = _memory_key(agent_id, visitor_id)
     if clear_memory:
-        memory.pop(agent_id, None)
+        memory.pop(mem_key, None)
+        if not visitor_id:
+            memory.pop(agent_id, None)
 
-    history = memory.get(agent_id, [])
+    history = memory.get(mem_key) or (memory.get(agent_id, []) if visitor_id else [])
     if not game_context:
         try:
             from firmament.game_state import context_blurb
@@ -185,9 +193,24 @@ async def agent_chat(
         agent_model = profile.get("ollama_model") or os.getenv("OLLAMA_MODEL", "llama3.2")
     else:
         agent_model = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
-    raw = await asyncio.to_thread(_complete_messages, messages, model=agent_model)
-    raw = (raw or "").strip()
-    reply, mood = _parse_mood(raw)
+    used_backend = backend
+    try:
+        raw = await asyncio.to_thread(_complete_messages, messages, model=agent_model)
+        raw = (raw or "").strip()
+        reply, mood = _parse_mood(raw)
+    except Exception as exc:
+        log.warning("LLM failed for %s, aether fallback: %s", agent_id, exc)
+        from firmament.aether_offline import aether_reply
+
+        reply, mood = aether_reply(
+            agent_id,
+            message,
+            camp_context=camp_context,
+            visitor_name=visitor_name,
+            from_agent=from_agent,
+        )
+        used_backend = "aether"
+        agent_model = "aether-local"
     if not reply:
         reply = "I'm here — say that again?"
 
@@ -195,7 +218,7 @@ async def agent_chat(
         {"role": "user", "content": message},
         {"role": "assistant", "content": reply},
     ]
-    memory[agent_id] = history[-MAX_MEMORY_TURNS * 2 :]
+    memory[mem_key] = history[-MAX_MEMORY_TURNS * 2 :]
     _save_memory(memory)
 
     return {
@@ -204,7 +227,7 @@ async def agent_chat(
         "reply": reply,
         "mood": mood,
         "model": agent_model,
-        "backend": backend,
+        "backend": used_backend,
     }
 
 
@@ -244,4 +267,7 @@ async def agents_converse(
         last_line = result["reply"]
         current_speaker, listener = listener, current_speaker
 
-    return {"topic": topic, "rounds": rounds, "lines": lines, "backend": llm_backend()}
+    used = llm_backend()
+    if lines and lines[0].get("line"):
+        used = "mixed"
+    return {"topic": topic, "rounds": rounds, "lines": lines, "backend": used}

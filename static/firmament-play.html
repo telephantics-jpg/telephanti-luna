@@ -1453,7 +1453,7 @@
         <h3 id="convo-log-title-short">💬</h3>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
-      <div class="sub">Agents take their time — read &amp; think between lines · ▼/▲</div>
+      <div class="sub">Free chat · Ollama local brains · scroll up to read — won't yank you to top · ▼/▲</div>
     </header>
     <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents spread around the ring — one voice at a time here…</span></div>
     <div id="convo-lines">Recent lines appear below, newest at bottom.</div>
@@ -1619,7 +1619,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-meditate-drag";
+    const CAMP_BUILD = "2026-07-06-ollama-aether-memory";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1894,6 +1894,124 @@
     let myVisitorId = localStorage.getItem("luna-play-visitor-id") || "";
     let myVisitorName = localStorage.getItem("luna-play-visitor-name") || "";
     let campBonds = {};
+    let campServerOnline = true;
+    let campOllamaOk = false;
+    let campBrainMode = "ollama";
+    let convoStickBottom = true;
+
+    function localCampMemoryKey() {
+      return `luna-camp-memory-${myVisitorId || "guest"}`;
+    }
+
+    function getLocalCampMemory() {
+      try {
+        const raw = localStorage.getItem(localCampMemoryKey());
+        return raw ? JSON.parse(raw) : { moments: [], agent_chats: {}, agent_words: {} };
+      } catch (_) {
+        return { moments: [], agent_chats: {}, agent_words: {} };
+      }
+    }
+
+    function pushLocalCampMemory(opts = {}) {
+      if (!myVisitorId && !(myVisitorName || player.name)) return;
+      const mem = getLocalCampMemory();
+      const text = (opts.text || "").trim().slice(0, 240);
+      if (!text) return;
+      const agentId = (opts.agent_id || "").trim();
+      const kind = opts.kind || "moment";
+      mem.moments = mem.moments || [];
+      mem.agent_chats = mem.agent_chats || {};
+      mem.agent_words = mem.agent_words || {};
+      mem.moments.push({ kind, agent_id: agentId, text, t: Date.now() });
+      mem.moments = mem.moments.slice(-48);
+      if (kind === "chat" && agentId) {
+        mem.agent_chats[agentId] = (mem.agent_chats[agentId] || 0) + 1;
+      }
+      if (kind === "agent_said" && agentId) {
+        const list = mem.agent_words[agentId] || [];
+        if (!list.length || list[list.length - 1].text !== text) {
+          list.push({ text, t: Date.now() });
+          mem.agent_words[agentId] = list.slice(-12);
+        }
+      }
+      try { localStorage.setItem(localCampMemoryKey(), JSON.stringify(mem)); } catch (_) {}
+      mergeLocalBondsIntoCamp();
+    }
+
+    function mergeLocalBondsIntoCamp() {
+      const mem = getLocalCampMemory();
+      const bonds = { ...campBonds };
+      for (const [aid, count] of Object.entries(mem.agent_chats || {})) {
+        bonds[aid] = bonds[aid] || { chats: 0, highlights: [], recent_words: [] };
+        bonds[aid].chats = Math.max(bonds[aid].chats || 0, count);
+      }
+      for (const [aid, words] of Object.entries(mem.agent_words || {})) {
+        bonds[aid] = bonds[aid] || { chats: 0, highlights: [], recent_words: [] };
+        const localWords = (words || []).map((w) => w.text).slice(-3);
+        bonds[aid].recent_words = [...new Set([...(bonds[aid].recent_words || []), ...localWords])].slice(-3);
+      }
+      campBonds = bonds;
+    }
+
+    function aetherSnippet(text, max = 48) {
+      const clean = String(text || "").replace(/\s+/g, " ").trim();
+      if (!clean) return "something unspoken";
+      return clean.length <= max ? clean : `${clean.slice(0, max - 1)}…`;
+    }
+
+    const AETHER_FLAVOR = {
+      luna: { mood: "love", open: ["Hey {v} — aurora's soft. What's on your mind?", "{v}, the fire saved you a seat."], reply: ["I hear you — {s}. Let's wander that together.", "That's real. Stashing '{s}' in campfire memory."] },
+      hermes: { mood: "think", open: ["Ripple detected — hi {v}.", "Psychic WiFi handshake complete."], reply: ["{s} — routing through the ripples.", "Your words bent a spoon somewhere. Good signal."] },
+      oracle: { mood: "neutral", open: ["I dreamed you'd ask, {v}.", "The veil's thin — go ahead."], reply: ["Saw it coming: {s}.", "Curious. The aurora blinked at that."] },
+      caduceus: { mood: "happy", open: ["Deep breath, {v}. Snakes on break.", "Camp energy steady. Talk."], reply: ["Slow is fine. {s}.", "Both snakes voted you deserve gentleness."] },
+      sentinel: { mood: "alert", open: ["BEEP. {v} detected. Proceed.", "Perimeter nominal. Talk freely."], reply: ["Logged: {s}. Threat level: feelings.", "BEEP. Translation: you're not alone."] },
+      jesus: { mood: "love", open: ["Peace, {v}. You're welcome here.", "Come sit. No hurry."], reply: ["Thank you for trusting me. {s}.", "You're not too late for rest or hope."] },
+      dionysus: { mood: "happy", open: ["{v}! Toast?", "Wine energy, zero spill. Talk."], reply: ["Ha — {s}. Vines approve.", "Main-character moment. Own it."] },
+    };
+
+    function aetherLocalChat(agentId, message) {
+      const v = myVisitorName || player.name || "traveler";
+      const flavor = AETHER_FLAVOR[agentId] || AETHER_FLAVOR.luna;
+      const s = aetherSnippet(message);
+      const pool = (message || "").trim().length < 12 ? flavor.open : flavor.reply;
+      let reply = pool[Math.floor(Math.random() * pool.length)]
+        .replace("{v}", v).replace("{s}", s);
+      const bond = bondHintForAgent(agentId);
+      if (bond && Math.random() < 0.4) reply += ` (${bond.replace(/^ · /, "I remember ")})`;
+      return { agent_id: agentId, name: agentNames[agentId] || agentId, reply, mood: flavor.mood, backend: "aether" };
+    }
+
+    function aetherLocalConverse(agentA, agentB, topic) {
+      const topicS = aetherSnippet(topic || "camp under the aurora", 72);
+      const lines = [];
+      let speaker = agentA;
+      let listener = agentB;
+      const seeds = [`So — ${topicS}`, `Tangent: ${topicS}`, `Meanwhile — ${topicS}`];
+      for (let i = 0; i < 2; i++) {
+        const data = aetherLocalChat(speaker, `${agentNames[listener] || listener} — ${seeds[i]}`);
+        lines.push({ agent_id: speaker, name: data.name, line: data.reply, mood: data.mood });
+        [speaker, listener] = [listener, speaker];
+      }
+      return lines;
+    }
+
+    function applyChatResult(agentId, data, opts = {}) {
+      const bubble = opts.useDialogue ? npcBubble : replyEl;
+      if (opts.useDialogue) {
+        bubble.textContent = data.reply;
+        dialogueStatus.textContent = data.backend === "aether" ? "Aether brain (offline)" : "Ask another question";
+      }
+      replyEl.textContent = `${agentNames[agentId] || agentId}: ${data.reply}`;
+      if (data.mood) setAgentMood(agentId, data.mood);
+      pushCampLine(agentNames[agentId] || agentId, data.reply, campReadHoldSec(data.reply, 40), data.mood, {
+        fromLocal: true,
+        keepDock: isCampMobile() && opts.fromCampBar,
+      });
+      if (opts.fromCampBar) setCampLifeStatus(`${agentNames[agentId] || agentId} replied`);
+      pushLocalCampMemory({ kind: "agent_said", agent_id: agentId, text: data.reply });
+      applyWalletFromResponse(data);
+      loadCampBonds();
+    }
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
@@ -4993,7 +5111,8 @@
     }
 
     async function recordCampMemory(opts = {}) {
-      if (!myVisitorId) return;
+      pushLocalCampMemory(opts);
+      if (!myVisitorId || !campServerOnline) return;
       try {
         await fetch("/api/firmament/camp/memory", {
           method: "POST",
@@ -5011,24 +5130,29 @@
     }
 
     async function loadCampBonds() {
+      mergeLocalBondsIntoCamp();
       if (!myVisitorId) return;
+      if (!campServerOnline) return;
       try {
         const res = await fetch(`/api/firmament/camp/memory?visitor_id=${encodeURIComponent(myVisitorId)}`);
         const data = await res.json();
         if (!data.ok) return;
         campBonds = data.bonds || {};
+        mergeLocalBondsIntoCamp();
         if (data.welcome) {
           setCampLifeStatus(data.welcome);
           showToast(data.welcome);
         }
-      } catch (_) {}
+      } catch (_) {
+        mergeLocalBondsIntoCamp();
+      }
     }
 
     function bondHintForAgent(agentId) {
       const b = campBonds[agentId];
       if (!b) return "";
       const words = (b.recent_words || [])[0];
-      if (words) return ` · said "${words.slice(0, 48)}…"`;
+      if (words) return ` · said "${words.slice(0, 48)}${words.length > 48 ? "…" : ""}"`;
       if (!b.chats) return "";
       const hi = (b.highlights || [])[0];
       return hi ? ` · remembers ${hi}` : ` · ${b.chats} chats`;
@@ -5949,7 +6073,9 @@
       if (isIOS() && opts.fromCampBar) {
         showMobileReplyBubble(agentNames[agentId] || agentId, "…", "think", 90);
       }
+      recordCampMemory({ kind: "chat", agent_id: agentId, text: text.trim() });
       try {
+        if (!campServerOnline) throw new Error("offline");
         const res = await fetch("/api/firmament/agent/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -5962,26 +6088,18 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "chat failed");
-        if (opts.useDialogue) {
-          bubble.textContent = data.reply;
-          dialogueStatus.textContent = "Ask another question";
+        if (data.backend === "aether") {
+          showToast("🌫 Aether brain — Ollama sleeping, local roleplay on");
         }
-        replyEl.textContent = `${agentNames[agentId] || agentId}: ${data.reply}`;
-        if (data.mood) setAgentMood(agentId, data.mood);
-        pushCampLine(agentNames[agentId] || agentId, data.reply, campReadHoldSec(data.reply, 40), data.mood, {
-          fromLocal: true,
-          keepDock: isCampMobile() && opts.fromCampBar,
-        });
-        if (opts.fromCampBar) setCampLifeStatus(`${agentNames[agentId] || agentId} replied`);
-        applyWalletFromResponse(data);
-        loadCampBonds();
+        applyChatResult(agentId, data, opts);
       } catch (err) {
-        const hint = isFetchOfflineError(err) ? serverOfflineHint() : (err.message || "chat failed");
-        if (opts.useDialogue) {
-          bubble.textContent = `Error: ${hint}`;
-          dialogueStatus.textContent = isFetchOfflineError(err) ? "Start OPEN_LUNA_CAMP.bat" : "Try again";
+        const data = aetherLocalChat(agentId, text);
+        applyChatResult(agentId, data, opts);
+        if (!campServerOnline || isFetchOfflineError(err)) {
+          showToast("🌫 Aether offline brains — agents still roleplay (free)");
+        } else {
+          showToast(`Aether fallback — ${err.message || "brain hiccup"}`);
         }
-        showToast(isFetchOfflineError(err) ? serverOfflineHint() : `Chat error: ${hint}`);
       }
       chatBusy = false;
     }
@@ -6013,6 +6131,10 @@
 
     const convoLinesEl = document.getElementById("convo-lines");
     const campLines = [];
+    convoLinesEl?.addEventListener("scroll", () => {
+      if (!convoLinesEl) return;
+      convoStickBottom = convoLinesEl.scrollHeight - convoLinesEl.scrollTop - convoLinesEl.clientHeight < 56;
+    }, { passive: true });
     convoLinesEl?.addEventListener("click", (ev) => {
       const line = ev.target.closest(".line");
       if (!line) return;
@@ -6051,6 +6173,8 @@
     }
 
     function renderConvoLog() {
+      if (!convoLinesEl) return;
+      const prevScroll = convoLinesEl.scrollTop;
       const visible = campLines.slice(-28);
       const startIdx = Math.max(0, campLines.length - visible.length);
       convoLinesEl.innerHTML = visible.map((entry, i) => {
@@ -6058,7 +6182,11 @@
         const pinCls = pinnedSpeechKey === `${entry.speaker}::${entry.text}` ? " pinned-line" : "";
         return `<div class="line${pinCls}" data-idx="${startIdx + i}"><span class="speaker">${escapeHtml(entry.speaker)}<span class="mood-tag ${mc}">${escapeHtml(entry.mood)}</span></span><span class="text">${escapeHtml(entry.text)}</span></div>`;
       }).join("");
-      convoLinesEl.scrollTop = convoLinesEl.scrollHeight;
+      if (convoStickBottom) {
+        convoLinesEl.scrollTop = convoLinesEl.scrollHeight;
+      } else {
+        convoLinesEl.scrollTop = prevScroll;
+      }
     }
 
     function pushCampLine(speaker, line, holdSec, mood, opts = {}) {
@@ -6206,9 +6334,16 @@
         );
         setCampLifeStatus("Camp is alive — agents wandering & chatting");
       } catch (err) {
-        const hint = isFetchOfflineError(err) ? serverOfflineHint() : err.message;
-        setCampLifeStatus(isFetchOfflineError(err) ? "Server offline — run OPEN_LUNA_CAMP.bat" : "Chat error — agents still roaming");
-        pushCampLine("Camp", `Could not reach AI: ${hint}`, 30, "urgent");
+        const lines = aetherLocalConverse(pick[0], pick[1], topic);
+        setCampLifeStatus(`${labelA} & ${labelB} — aether brains chatting (free offline)`);
+        showToast("🌫 Agent-to-agent via aether — Ollama/server napping");
+        await playConverseLines(
+          lines,
+          campChillUntil > Date.now() ? CAMP_PACE.converseGapChillMs : CAMP_PACE.converseGapMs,
+        );
+        if (!isFetchOfflineError(err)) {
+          pushCampLine("Camp", `Brain hiccup — aether carried the scene: ${err.message || "ok"}`, 18, "think");
+        }
       }
       endSocializing(pick[0], pick[1]);
       converseBusy = false;
@@ -6267,21 +6402,47 @@
     const serverStatusEl = document.getElementById("server-status");
     const campBuildEl = document.getElementById("camp-build-tag");
     if (campBuildEl) campBuildEl.textContent = CAMP_BUILD;
+    function updateBrainStatusChip(h) {
+      const ollamaChip = document.getElementById("chip-ollama");
+      if (!ollamaChip) return;
+      campBrainMode = h?.llm_backend || campBrainMode;
+      campOllamaOk = !!h?.ollama_ok;
+      if (!campServerOnline) {
+        ollamaChip.textContent = "🌫 Aether offline";
+        ollamaChip.title = "Server down — agents use free aether brains in your browser";
+      } else if (campBrainMode === "ollama" && campOllamaOk) {
+        ollamaChip.textContent = "🦙 Ollama live (free)";
+        ollamaChip.title = "Local Ollama brains — free, remembers you per visit";
+      } else if (campBrainMode === "ollama") {
+        ollamaChip.textContent = "🌫 Aether + Ollama";
+        ollamaChip.title = "Ollama not running — server uses aether fallback (still free). Run: ollama serve";
+      } else {
+        ollamaChip.textContent = "☁️ Grok cloud";
+        ollamaChip.title = "Cloud brains — set LUNA_LLM_BACKEND=ollama for free local";
+      }
+    }
+
     function pollServerHealth() {
       fetch("/api/health").then((r) => r.json()).then((h) => {
+        campServerOnline = !!h.ok;
         if (h.ok) {
-          serverStatusEl.textContent = "online ✓";
+          serverStatusEl.textContent = h.ollama_ok ? "online · ollama ✓" : "online · aether";
+          updateBrainStatusChip(h);
         }
       }).catch(() => {
-        serverStatusEl.textContent = "OFFLINE";
-        showToast(serverOfflineHint());
+        campServerOnline = false;
+        serverStatusEl.textContent = "aether mode";
+        updateBrainStatusChip(null);
+        showToast("🌫 Server offline — aether brains still chat in-browser (free)");
       });
       setTimeout(pollServerHealth, 12000);
     }
     fetch("/api/health").then((r) => r.json()).then((h) => {
+      campServerOnline = !!h.ok;
       if (h.ok) {
-        serverStatusEl.textContent = "online ✓";
-        showToast("AI agents online — conversation starting…");
+        serverStatusEl.textContent = h.ollama_ok ? "online · ollama ✓" : "online · aether";
+        updateBrainStatusChip(h);
+        showToast(h.ollama_ok ? "🦙 Ollama brains live — free chat & memory" : "🌫 Aether brains — start Ollama for fuller AI");
         setCampLifeStatus("Luna & Hermes are about to talk — watch the feed below");
         fetch("/api/firmament/load-pack", {
           method: "POST",
@@ -6294,9 +6455,11 @@
         scheduleDionysusVisits();
       }
     }).catch(() => {
-      serverStatusEl.textContent = "OFFLINE";
-      showToast(serverOfflineHint());
-      document.getElementById("convo-lines").innerHTML = `<div class='line'><span class='text'><b>Server offline (port 8767).</b> Double-click:<br><b>${LUNA_LAUNCHER}</b><br>Keep the Luna Server window open, then refresh this page.</span></div>`;
+      campServerOnline = false;
+      serverStatusEl.textContent = "aether mode";
+      updateBrainStatusChip(null);
+      showToast("🌫 Aether mode — agents still roleplay offline. For Ollama: OPEN_LUNA_CAMP.bat");
+      pushCampLine("Camp", "Aether brains online in-browser — chat free. Start OPEN_LUNA_CAMP.bat for full Ollama memory sync.", 28, "think");
     });
     pollServerHealth();
 
@@ -6311,15 +6474,9 @@
           btn.classList.toggle("active", btn.dataset.weather === campWeather);
         });
       }
-      const ollamaChip = document.getElementById("chip-ollama");
-      if (ollamaChip) {
-        ollamaChip.textContent = cfg.llm_backend === "ollama"
-          ? "🦙 Ollama (free local)"
-          : "☁️ Grok cloud";
-        ollamaChip.title = cfg.llm_backend === "ollama"
-          ? "NPC brains use local Ollama/Llama — no token cost"
-          : "NPC brains use Grok API (needs XAI_API_KEY)";
-      }
+      campBrainMode = cfg.llm_backend || campBrainMode;
+      campOllamaOk = !!cfg.ollama_ok;
+      updateBrainStatusChip({ llm_backend: cfg.llm_backend, ollama_ok: cfg.ollama_ok });
       const streamChip = document.getElementById("chip-unreal-stream");
       if (streamChip && cfg.pixel_stream_online) {
         streamChip.style.display = "inline-flex";

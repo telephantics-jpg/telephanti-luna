@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "172-camp-mini-still"
+LUNA_BUILD = "176-unreal-camp-fixes"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2306,20 +2306,74 @@ async def firmament_stream_status_api(request: Request):
 @app.get("/api/firmament/config")
 async def firmament_config_api(request: Request):
     """Client config for firmament play page (optional Pixel Streaming URL)."""
+    from firmament.brain import llm_backend
+    from firmament.game_state import load as game_load
+
     port = int((os.getenv("LUNA_PIXEL_STREAM_PORT") or "8080").strip() or "8080")
     pixel_url = pixel_stream_url_for_request(request)
     stream_up = port_is_open(port, "127.0.0.1")
+    game = game_load()
+    backend = llm_backend()
     return {
         "pack_id": "aurora_playground",
         "pixel_stream_url": pixel_url,
         "pixel_stream_online": stream_up,
         "pixel_stream_port": port,
+        "weather": game.get("weather", "aurora"),
+        "time_of_day": game.get("time_of_day", "dawn"),
+        "llm_backend": backend,
+        "free_tools": {
+            "browser_camp": "/firmament/play",
+            "luna_avatar": "/?avatar=1&web=1",
+            "firmament_observer": "/firmament",
+            "ollama_offline": backend == "ollama",
+            "edge_tts": True,
+        },
         "play_urls": {
             "browser": "/firmament/play",
             "observer": "/firmament",
             "stream": "/firmament/stream",
         },
     }
+
+
+class FirmamentWeatherBody(BaseModel):
+    weather: str = "aurora"
+    time_of_day: str = ""
+
+
+@app.get("/api/firmament/weather")
+async def firmament_weather_get_api():
+    from firmament.game_state import load as game_load
+
+    game = game_load()
+    return {
+        "ok": True,
+        "weather": game.get("weather", "aurora"),
+        "time_of_day": game.get("time_of_day", "dawn"),
+    }
+
+
+@app.post("/api/firmament/weather")
+async def firmament_weather_post_api(body: FirmamentWeatherBody):
+    from firmament.core import get_hub
+    from firmament.game_state import apply_event, load as game_load
+
+    weather = (body.weather or "aurora").strip().lower()[:24]
+    if weather not in ("clear", "aurora", "corona", "rain", "night"):
+        raise HTTPException(status_code=400, detail="weather must be clear, aurora, corona, rain, or night")
+    payload: dict = {"weather": weather}
+    if body.time_of_day.strip():
+        payload["time_of_day"] = body.time_of_day.strip()[:16]
+    state = apply_event("weather_set", payload)
+    hub = get_hub()
+    await hub.broadcast({
+        "type": "firmament.weather.changed",
+        "weather": state.get("weather", weather),
+        "time_of_day": state.get("time_of_day", "dawn"),
+        "visual_preset": weather if weather in ("corona", "rain", "night") else "aurora",
+    })
+    return {"ok": True, **state}
 
 
 @app.get("/api/firmament/status")
@@ -2449,6 +2503,57 @@ async def firmament_camp_memory_post_api(body: FirmamentCampMemoryBody):
     )
 
 
+@app.get("/api/firmament/shop/catalog")
+async def firmament_shop_catalog_api():
+    from firmament.camp_economy import catalog
+
+    return {"items": catalog()}
+
+
+@app.get("/api/firmament/wallet")
+async def firmament_wallet_get_api(visitor_id: str = ""):
+    from firmament.camp_economy import get_wallet
+
+    return get_wallet(visitor_id)
+
+
+class FirmamentWalletEarnBody(BaseModel):
+    visitor_id: str = ""
+    reason: str = "chat"
+    amount: int | None = None
+
+
+@app.post("/api/firmament/wallet/earn")
+async def firmament_wallet_earn_api(body: FirmamentWalletEarnBody):
+    from firmament.camp_economy import earn_tokens
+
+    if not body.visitor_id.strip():
+        raise HTTPException(status_code=400, detail="visitor_id required")
+    try:
+        return earn_tokens(body.visitor_id.strip(), reason=body.reason, amount=body.amount)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+class FirmamentShopBuyBody(BaseModel):
+    visitor_id: str = ""
+    item_id: str = ""
+
+
+@app.post("/api/firmament/shop/buy")
+async def firmament_shop_buy_api(body: FirmamentShopBuyBody):
+    from firmament.camp_economy import buy_item
+
+    if not body.visitor_id.strip():
+        raise HTTPException(status_code=400, detail="visitor_id required")
+    if not body.item_id.strip():
+        raise HTTPException(status_code=400, detail="item_id required")
+    try:
+        return buy_item(body.visitor_id.strip(), body.item_id.strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/api/firmament/agents/converse")
 async def firmament_agents_converse_api(body: FirmamentAgentsConverseBody):
     from firmament.brain import agents_converse
@@ -2474,6 +2579,19 @@ async def firmament_agents_converse_api(body: FirmamentAgentsConverseBody):
         aid = line.get("agent_id")
         if aid and aid in hub.agents:
             hub.apply_chat_to_agent(aid, "assistant", line.get("line", ""), line.get("mood", "neutral"))
+        if body.visitor_id.strip() and aid:
+            try:
+                from firmament.camp_memory import record_moment
+
+                record_moment(
+                    body.visitor_id.strip(),
+                    visitor_name=body.visitor_name,
+                    agent_id=str(aid),
+                    kind="agent_said",
+                    text=str(line.get("line") or "")[:280],
+                )
+            except Exception:
+                pass
         await lobby.push_chatter(
             str(line.get("name") or aid or "Camp"),
             str(line.get("line") or ""),
@@ -2568,8 +2686,24 @@ async def firmament_agent_chat_api(body: FirmamentAgentChatBody):
                 kind="chat",
                 text=body.message.strip()[:200],
             )
+            record_moment(
+                body.visitor_id.strip(),
+                visitor_name=body.visitor_name,
+                agent_id=body.agent_id,
+                kind="agent_said",
+                text=str(result.get("reply") or "")[:280],
+            )
         except Exception:
             pass
+
+    wallet_earn = None
+    if body.visitor_id.strip():
+        try:
+            from firmament.camp_economy import earn_tokens
+
+            wallet_earn = earn_tokens(body.visitor_id.strip(), reason="chat")
+        except Exception:
+            wallet_earn = None
 
     hub.apply_chat_to_agent(body.agent_id, "assistant", result["reply"], result.get("mood", "happy"))
     if body.agent_id in hub.agents:
@@ -2584,6 +2718,11 @@ async def firmament_agent_chat_api(body: FirmamentAgentChatBody):
         str(result.get("mood") or "happy"),
     )
     payload = {"ok": True, **result}
+    if wallet_earn:
+        payload["wallet"] = {
+            "tokens": wallet_earn.get("tokens"),
+            "earned": wallet_earn.get("earned"),
+        }
     if body.speak:
         try:
             voice = hub.agents.get(body.agent_id, {}).get("voice") or "jenny"
@@ -2612,6 +2751,14 @@ async def firmament_load_pack_api(body: FirmamentLoadBody):
         snap = hub.reload_pack(body.pack_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    sky = (snap.get("pack") or {}).get("sky") or {}
+    if sky.get("weather"):
+        from firmament.game_state import apply_event
+
+        apply_event("weather_set", {
+            "weather": str(sky.get("weather", "aurora")),
+            "time_of_day": str(sky.get("time_of_day", "dawn")),
+        })
     await hub.broadcast({"type": "firmament.pack_loaded", "data": snap})
     return {"ok": True, **snap}
 
@@ -2719,6 +2866,8 @@ async def service_worker():
 
 @app.get("/api/health")
 async def health():
+    from firmament.brain import llm_backend
+
     configured = bool(
         os.getenv("XAI_API_KEY") and os.getenv("XAI_API_KEY") != "your_api_key_here"
     )
@@ -2727,9 +2876,24 @@ async def health():
         model = BASE_DIR / "models" / "lipsync" / "wav2lip.onnx"
         portrait = BASE_DIR / "static" / "avatars" / "luna-portrait.jpg"
         lipsync = model.is_file() and portrait.is_file()
+    backend = llm_backend()
+    ollama_ok = False
+    if backend == "ollama":
+        try:
+            import httpx
+
+            host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+            async with httpx.AsyncClient(timeout=2.5) as client:
+                resp = await client.get(f"{host}/api/tags")
+                ollama_ok = resp.status_code == 200
+        except Exception:
+            ollama_ok = False
     return {
         "ok": True,
         "api_key_configured": configured,
+        "llm_backend": backend,
+        "ollama_ok": ollama_ok,
+        "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
         "tts": "edge-tts (free)",
         "lipsync": lipsync,
         "build": LUNA_BUILD,

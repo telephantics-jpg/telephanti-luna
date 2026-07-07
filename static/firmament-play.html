@@ -699,8 +699,9 @@
       }
       html.camp-input-focus #camp-stage,
       html.camp-input-focus #trippy-veil {
-        height: var(--camp-stable-h, calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px))) !important;
         top: var(--header-h) !important;
+        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)) !important;
+        height: auto !important;
       }
       html.camp-input-focus #action-bar {
         position: fixed;
@@ -708,9 +709,30 @@
         right: 0;
         bottom: 0;
       }
-      #camp-stage, #trippy-veil {
+      #camp-stage,
+      #trippy-veil {
+        top: var(--header-h);
+        left: 0;
+        right: 0;
+        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
+        width: auto;
+        height: auto !important;
         transform: none !important;
-        filter: saturate(1.05) contrast(1.02);
+        transform-origin: center center !important;
+        filter: none !important;
+        will-change: auto !important;
+        transition: none !important;
+        perspective: none !important;
+      }
+      #trippy-veil {
+        animation: none !important;
+        mix-blend-mode: normal;
+        opacity: 0.55;
+      }
+      html.ios-camp #camp-stage,
+      html.ios-camp #trippy-veil {
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
       }
       #free-tools-row,
       #unreal-hint,
@@ -1417,7 +1439,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ios-chat-recenter";
+    const CAMP_BUILD = "2026-07-06-ios-flat-zoom";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1481,11 +1503,16 @@
 
     function measureStableCampSize() {
       syncUILayout();
+      clearCampStageOverrides();
+      captureStableCampRect();
+      if (stableCampW > 0 && stableCampH > 0) return { w: stableCampW, h: stableCampH };
+      const vv = window.visualViewport;
       const style = getComputedStyle(document.documentElement);
       const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
       const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 100;
-      stableCampW = layoutViewportWidth();
-      stableCampH = Math.max(200, layoutViewportHeight() - headerH - dockH);
+      const vh = vv ? Math.round(vv.height) : layoutViewportHeight();
+      stableCampW = vv ? Math.round(vv.width) : layoutViewportWidth();
+      stableCampH = Math.max(200, vh - headerH - dockH);
       document.documentElement.style.setProperty("--camp-stable-w", `${stableCampW}px`);
       document.documentElement.style.setProperty("--camp-stable-h", `${stableCampH}px`);
       return { w: stableCampW, h: stableCampH };
@@ -1505,16 +1532,9 @@
     }
 
     function applyCampStageLock(locked) {
-      if (!isIOS() || !campStage) return;
-      const veil = document.getElementById("trippy-veil");
-      if (locked && stableCampH > 0) {
-        campStage.style.height = `${stableCampH}px`;
-        campStage.style.width = "100%";
-        if (veil) veil.style.height = `${stableCampH}px`;
-      } else {
-        clearCampStageOverrides();
-      }
+      document.documentElement.classList.toggle("camp-canvas-locked", !!(locked && isIOS()));
     }
+    if (isIOS()) document.documentElement.classList.add("ios-camp");
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
     function serverOfflineHint() {
@@ -1566,9 +1586,29 @@
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
     const WORLD_ZOOM_DESKTOP = 0.38;
-    const WORLD_ZOOM_MOBILE = 0.55;
+    const WORLD_ZOOM_MOBILE = 0.34;
+    const WORLD_ZOOM_IOS = 0.28;
     function getWorldZoom() {
-      return isCampMobile() ? WORLD_ZOOM_MOBILE : WORLD_ZOOM_DESKTOP;
+      if (isIOS()) return WORLD_ZOOM_IOS;
+      if (isCampMobile()) return WORLD_ZOOM_MOBILE;
+      return WORLD_ZOOM_DESKTOP;
+    }
+    function getCampAnchorY() {
+      if (isIOS()) return 0.46;
+      if (isCampMobile()) return 0.42;
+      return 0.36;
+    }
+    function getCamYOffset() {
+      if (isIOS()) return -20;
+      if (isCampMobile()) return -50;
+      return -80;
+    }
+    let lastSpreadZoom = 0;
+    function maybeRespreadCamp() {
+      const z = getWorldZoom();
+      if (Math.abs(z - lastSpreadZoom) < 0.005) return;
+      lastSpreadZoom = z;
+      spreadAllNpcs();
     }
     let campChillUntil = 0;
     const campGuests = [];
@@ -2514,7 +2554,10 @@
       ctx.setTransform(campDpr, 0, 0, campDpr, 0, 0);
       if (!campSpreadInit) {
         campSpreadInit = true;
+        lastSpreadZoom = getWorldZoom();
         spreadAllNpcs();
+      } else if (isIOS()) {
+        maybeRespreadCamp();
       }
     }
     function onVisualViewportChange() {
@@ -2576,17 +2619,21 @@
 
     function worldToScreen(wx, wy) {
       const zoom = getWorldZoom();
+      const anchorY = getCampAnchorY();
+      const camY = getCamYOffset();
       return {
         x: viewW / 2 + (wx - CAM_X) * zoom,
-        y: viewH * 0.36 + (wy - CAM_Y) * zoom,
+        y: viewH * anchorY + (wy - camY) * zoom,
       };
     }
 
     function screenToWorld(sx, sy) {
       const zoom = getWorldZoom();
+      const anchorY = getCampAnchorY();
+      const camY = getCamYOffset();
       return {
         x: CAM_X + (sx - viewW / 2) / zoom,
-        y: CAM_Y + (sy - viewH * 0.36) / zoom,
+        y: camY + (sy - viewH * anchorY) / zoom,
       };
     }
 
@@ -2727,7 +2774,7 @@
 
       ctx.strokeStyle = campBgReady ? "rgba(103, 232, 249, 0.06)" : "rgba(103, 232, 249, 0.08)";
       for (let i = -20; i < 20; i++) {
-        const y = viewH * 0.36 + i * 28;
+        const y = viewH * getCampAnchorY() + i * 28;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(viewW, y);

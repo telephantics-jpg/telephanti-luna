@@ -665,6 +665,18 @@
         --talk-bar-h: 40px;
         --dock-icons-h: 52px;
         --sidebar-w: 100%;
+        --viewport-h: 100vh;
+      }
+      html.camp-input-focus,
+      html.camp-input-focus body {
+        height: var(--viewport-h, 100vh);
+        overflow: hidden;
+      }
+      html.camp-input-focus #action-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
       }
       #unreal-hint { display: none; }
       #free-tools-row { max-height: 28px; overflow: hidden; }
@@ -1366,7 +1378,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-camp-init-fix";
+    const CAMP_BUILD = "2026-07-06-chat-layout-reset";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -2288,7 +2300,16 @@
     }
     buildGroundTexture();
 
+    function viewportWidth() {
+      return Math.round(window.visualViewport?.width || window.innerWidth);
+    }
+    function viewportHeight() {
+      return Math.round(window.visualViewport?.height || window.innerHeight);
+    }
+
     function syncUILayout() {
+      const vh = viewportHeight();
+      document.documentElement.style.setProperty("--viewport-h", `${vh}px`);
       const header = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (header) {
@@ -2307,10 +2328,31 @@
       }
     }
 
+    function resetCampUILayout(opts = {}) {
+      const collapseSpeech = opts.collapseSpeech ?? isCampMobile();
+      const blurInput = opts.blurInput !== false;
+      const input = document.getElementById("camp-talk-input");
+      const targetSel = document.getElementById("camp-talk-target");
+      if (blurInput) {
+        if (input && document.activeElement === input) input.blur();
+        if (targetSel && document.activeElement === targetSel) targetSel.blur();
+      }
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      document.documentElement.classList.remove("camp-input-focus");
+      if (collapseSpeech) minimizeSpeechBubble();
+      const run = () => { resize(); syncUILayout(); };
+      run();
+      requestAnimationFrame(run);
+      setTimeout(run, 90);
+      setTimeout(run, 320);
+    }
+
     let campSpreadInit = false;
     function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = viewportWidth();
+      canvas.height = viewportHeight();
       syncUILayout();
       if (!campSpreadInit) {
         campSpreadInit = true;
@@ -2318,6 +2360,14 @@
       }
     }
     window.addEventListener("resize", resize);
+    if (window.visualViewport) {
+      const onViewportChange = () => {
+        window.scrollTo(0, 0);
+        resize();
+      };
+      window.visualViewport.addEventListener("resize", onViewportChange);
+      window.visualViewport.addEventListener("scroll", onViewportChange);
+    }
     if (typeof ResizeObserver !== "undefined") {
       const layoutObs = new ResizeObserver(() => syncUILayout());
       const hdr = document.getElementById("camp-header");
@@ -3044,8 +3094,7 @@
       bar?.classList.add("busy");
       if (sendBtn) sendBtn.disabled = true;
       const you = myVisitorName || player.name || "You";
-      pushCampLine(you, text, 12, "happy", { fromLocal: true });
-      expandSpeechBubble();
+      pushCampLine(you, text, 12, "happy", { fromLocal: true, keepDock: isCampMobile() });
       input.value = "";
       const target = targetSel?.value || "nearest";
       try {
@@ -3099,7 +3148,7 @@
       campTalkBusy = false;
       bar?.classList.remove("busy");
       if (sendBtn) sendBtn.disabled = false;
-      input?.focus();
+      resetCampUILayout({ collapseSpeech: isCampMobile() });
     }
 
     let conjureBusy = false;
@@ -4733,6 +4782,17 @@
     document.getElementById("camp-talk-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); sendCampTalk(); }
     });
+    document.getElementById("camp-talk-input")?.addEventListener("focus", () => {
+      document.documentElement.classList.add("camp-input-focus");
+      setTimeout(syncUILayout, 40);
+    });
+    document.getElementById("camp-talk-input")?.addEventListener("blur", () => {
+      document.documentElement.classList.remove("camp-input-focus");
+      setTimeout(() => resetCampUILayout({ blurInput: false, collapseSpeech: isCampMobile() }), 60);
+    });
+    document.getElementById("camp-talk-target")?.addEventListener("mousedown", () => {
+      if (isCampMobile()) minimizeSpeechBubble();
+    });
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();
       const el = document.getElementById("convo-log");
@@ -4744,9 +4804,10 @@
       setSpeechBubbleDock(!el?.classList.contains("collapsed"));
     };
     try {
-      setSpeechBubbleDock(localStorage.getItem("luna-camp-speech-dock") === "min");
+      const savedDock = localStorage.getItem("luna-camp-speech-dock");
+      setSpeechBubbleDock(isCampMobile() ? true : savedDock === "min");
     } catch (_) {
-      setSpeechBubbleDock(false);
+      setSpeechBubbleDock(isCampMobile());
     }
 
     const dialogueName = document.getElementById("dialogue-name");
@@ -4871,7 +4932,10 @@
         }
         replyEl.textContent = `${agentNames[agentId] || agentId}: ${data.reply}`;
         if (data.mood) setAgentMood(agentId, data.mood);
-        pushCampLine(agentNames[agentId] || agentId, data.reply, campReadHoldSec(data.reply, 40), data.mood, { fromLocal: true });
+        pushCampLine(agentNames[agentId] || agentId, data.reply, campReadHoldSec(data.reply, 40), data.mood, {
+          fromLocal: true,
+          keepDock: isCampMobile() && opts.fromCampBar,
+        });
         if (opts.fromCampBar) setCampLifeStatus(`${agentNames[agentId] || agentId} replied`);
         applyWalletFromResponse(data);
         loadCampBonds();
@@ -5334,7 +5398,12 @@
           showToast("Camp world live — agents talking above");
           applyGlobalNpcMode("free");
           document.body.classList.add("camp-focus");
-          setSpeechBubbleDock(localStorage.getItem("luna-camp-speech-dock") === "min");
+          try {
+            const savedDock = localStorage.getItem("luna-camp-speech-dock");
+            setSpeechBubbleDock(isCampMobile() ? true : savedDock === "min");
+          } catch (_) {
+            setSpeechBubbleDock(isCampMobile());
+          }
           setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 🏠 homes · ⛺ shelter · 🏪 shop");
           loadCampWallet();
           loadShopCatalog();

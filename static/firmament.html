@@ -69,7 +69,15 @@
       background: rgba(6, 14, 26, 0.95);
       flex-shrink: 0;
       letter-spacing: 0.02em;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
+    #dialogue-feed header .feed-read-hint {
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #fde68a;
+      opacity: 0; transition: opacity 0.2s ease;
+    }
+    #dialogue-feed.reading-paused header .feed-read-hint { opacity: 1; }
+    #dialogue-feed.reading-paused { border-color: rgba(251, 191, 36, 0.55); }
     #dialogue-lines {
       flex: 1; overflow-y: auto; padding: 12px 14px 14px;
       display: flex; flex-direction: column; gap: 12px;
@@ -213,7 +221,7 @@
   </div>
   <div class="agents" id="agents"></div>
   <div id="dialogue-feed">
-    <header>💬 Observer dialogue — all agents hear you here</header>
+    <header><span>💬 Observer dialogue — all agents hear you here</span><span class="feed-read-hint">reading — scroll frozen</span></header>
     <div id="dialogue-lines"></div>
   </div>
   <div class="log" id="log" aria-hidden="true"></div>
@@ -237,7 +245,48 @@
     const agentsEl = document.getElementById("agents");
     const logEl = document.getElementById("log");
     const feedEl = document.getElementById("dialogue-lines");
+    const dialogueFeedEl = document.getElementById("dialogue-feed");
     const chatAgentSel = document.getElementById("chat-agent");
+    let feedStickBottom = true;
+    let feedPointerDown = false;
+
+    function feedNearBottom() {
+      if (!feedEl) return true;
+      return feedEl.scrollHeight - feedEl.scrollTop - feedEl.clientHeight < 48;
+    }
+
+    function updateFeedScrollLockUi() {
+      const paused = feedPointerDown || !feedStickBottom;
+      dialogueFeedEl?.classList.toggle("reading-paused", paused);
+    }
+
+    function feedShouldAutoScroll() {
+      return feedStickBottom && !feedPointerDown;
+    }
+
+    feedEl?.addEventListener("scroll", () => {
+      if (!feedPointerDown) feedStickBottom = feedNearBottom();
+      updateFeedScrollLockUi();
+    }, { passive: true });
+
+    function bindFeedReadingHold(el) {
+      if (!el) return;
+      el.addEventListener("pointerdown", () => {
+        feedPointerDown = true;
+        feedStickBottom = false;
+        updateFeedScrollLockUi();
+      });
+      const release = () => {
+        feedPointerDown = false;
+        feedStickBottom = feedNearBottom();
+        updateFeedScrollLockUi();
+      };
+      el.addEventListener("pointerup", release);
+      el.addEventListener("pointercancel", release);
+      el.addEventListener("lostpointercapture", release);
+    }
+    bindFeedReadingHold(feedEl);
+    bindFeedReadingHold(dialogueFeedEl);
 
     const AGENT_COLORS = {
       luna: "#d946ef", oracle: "#8b5cf6", hermes: "#fbbf24", sentinel: "#67e8f9",
@@ -259,9 +308,16 @@
       textEl.textContent = text || "…";
       line.appendChild(whoEl);
       line.appendChild(textEl);
+      const prevScroll = feedEl.scrollTop;
+      const prevHeight = feedEl.scrollHeight;
       feedEl.appendChild(line);
       while (feedEl.children.length > 40) feedEl.firstChild.remove();
-      feedEl.scrollTop = feedEl.scrollHeight;
+      if (feedShouldAutoScroll()) {
+        feedEl.scrollTop = feedEl.scrollHeight;
+      } else {
+        feedEl.scrollTop = Math.max(0, prevScroll - (prevHeight - feedEl.scrollHeight));
+      }
+      updateFeedScrollLockUi();
     }
 
     async function loadAgentSelect() {

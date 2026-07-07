@@ -309,6 +309,13 @@
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
     #convo-log h3 { font-size: 0.88rem; color: var(--cyan); margin-bottom: 2px; flex: 1; }
+    #convo-log .convo-read-hint {
+      font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #fde68a; opacity: 0;
+      transition: opacity 0.2s ease; flex-shrink: 0;
+    }
+    #convo-log.reading-paused .convo-read-hint { opacity: 1; }
+    #convo-log.reading-paused { border-color: rgba(251, 191, 36, 0.45); }
     #convo-log .sub { font-size: 0.72rem; color: #94a3b8; }
     #convo-dock-toggle {
       pointer-events: auto; border: 1px solid rgba(103, 232, 249, 0.45);
@@ -1893,6 +1900,7 @@
       <div class="convo-head-row">
         <h3 id="convo-log-title-full">💬 Camp chatter</h3>
         <h3 id="convo-log-title-short">💬</h3>
+        <span class="convo-read-hint">reading</span>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
       <div class="sub">Free chat · Ollama local brains · scroll up to read — won't yank you to top · ▼/▲</div>
@@ -2119,7 +2127,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-house-interior";
+    const CAMP_BUILD = "2026-07-07-convo-read-lock";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -2398,6 +2406,7 @@
     let campOllamaOk = false;
     let campBrainMode = "ollama";
     let convoStickBottom = true;
+    let convoReadingHold = false;
 
     function localCampMemoryKey() {
       return `luna-camp-memory-${myVisitorId || "guest"}`;
@@ -7544,11 +7553,47 @@
     document.getElementById("sentinel-mini").onclick = () => openDialogue("sentinel");
 
     const convoLinesEl = document.getElementById("convo-lines");
+    const convoLogEl = document.getElementById("convo-log");
     const campLines = [];
+
+    function convoNearBottom() {
+      if (!convoLinesEl) return true;
+      return convoLinesEl.scrollHeight - convoLinesEl.scrollTop - convoLinesEl.clientHeight < 48;
+    }
+
+    function updateConvoScrollLockUi() {
+      const paused = convoReadingHold || !convoStickBottom;
+      convoLogEl?.classList.toggle("reading-paused", paused);
+    }
+
+    function convoShouldAutoScroll() {
+      return convoStickBottom && !convoReadingHold;
+    }
+
     convoLinesEl?.addEventListener("scroll", () => {
-      if (!convoLinesEl) return;
-      convoStickBottom = convoLinesEl.scrollHeight - convoLinesEl.scrollTop - convoLinesEl.clientHeight < 56;
+      if (!convoReadingHold) convoStickBottom = convoNearBottom();
+      updateConvoScrollLockUi();
     }, { passive: true });
+
+    function bindConvoReadingHold(el) {
+      if (!el) return;
+      el.addEventListener("pointerdown", () => {
+        convoReadingHold = true;
+        convoStickBottom = false;
+        updateConvoScrollLockUi();
+      });
+      const release = () => {
+        convoReadingHold = false;
+        convoStickBottom = convoNearBottom();
+        updateConvoScrollLockUi();
+      };
+      el.addEventListener("pointerup", release);
+      el.addEventListener("pointercancel", release);
+      el.addEventListener("lostpointercapture", release);
+    }
+    bindConvoReadingHold(convoLinesEl);
+    bindConvoReadingHold(convoLogEl);
+    bindConvoReadingHold(document.getElementById("now-speaking"));
     convoLinesEl?.addEventListener("click", (ev) => {
       const line = ev.target.closest(".line");
       if (!line) return;
@@ -7596,11 +7641,12 @@
         const pinCls = pinnedSpeechKey === `${entry.speaker}::${entry.text}` ? " pinned-line" : "";
         return `<div class="line${pinCls}" data-idx="${startIdx + i}"><span class="speaker">${escapeHtml(entry.speaker)}<span class="mood-tag ${mc}">${escapeHtml(entry.mood)}</span></span><span class="text">${escapeHtml(entry.text)}</span></div>`;
       }).join("");
-      if (convoStickBottom) {
+      if (convoShouldAutoScroll()) {
         convoLinesEl.scrollTop = convoLinesEl.scrollHeight;
       } else {
         convoLinesEl.scrollTop = prevScroll;
       }
+      updateConvoScrollLockUi();
     }
 
     function pushCampLine(speaker, line, holdSec, mood, opts = {}) {

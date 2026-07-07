@@ -772,6 +772,42 @@
       html.ios-camp #dialogue-input {
         font-size: 16px !important;
       }
+      #camp-keyboard-reply {
+        display: none;
+        position: fixed;
+        z-index: 18;
+        left: calc(var(--gap) + var(--vv-offset-left, 0px));
+        right: calc(var(--gap) + var(--vv-offset-right, 0px));
+        bottom: calc(var(--keyboard-inset, 0px) + var(--dock-h-live, var(--dock-h)) + 8px);
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(4, 10, 18, 0.97);
+        border: 1px solid rgba(103, 232, 249, 0.5);
+        box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.55);
+        max-height: min(34vh, 240px);
+        overflow-y: auto;
+        pointer-events: none;
+        transition: bottom 0.22s ease, opacity 0.2s ease;
+      }
+      #camp-keyboard-reply.show {
+        display: block;
+      }
+      #camp-keyboard-reply.thinking {
+        border-color: rgba(167, 139, 250, 0.55);
+      }
+      #camp-keyboard-reply .ckr-who {
+        color: #67e8f9;
+        font-weight: 800;
+        font-size: 0.82rem;
+        margin-bottom: 6px;
+      }
+      #camp-keyboard-reply .ckr-text {
+        color: #f8fafc;
+        font-size: 0.92rem;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
       html.ios-camp body.camp-focus #convo-log,
       html.ios-camp body.camp-focus.speech-expanded #convo-log:not(.collapsed),
       html.ios-camp body.camp-focus #convo-log.collapsed {
@@ -1352,6 +1388,10 @@
   </div>
   <div id="reply"></div>
   <div id="speech-now"><span class="who">Camp</span><span id="speech-text"></span></div>
+  <div id="camp-keyboard-reply" aria-live="polite" hidden>
+    <div class="ckr-who"></div>
+    <div class="ckr-text"></div>
+  </div>
   <footer id="action-bar">
     <div id="camp-talk-bar">
       <select id="camp-talk-target" title="Who to talk to">
@@ -1504,7 +1544,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ios-dock-lift";
+    const CAMP_BUILD = "2026-07-06-ios-reply-bubble";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1609,6 +1649,58 @@
         document.documentElement.style.setProperty("--keyboard-inset", "0px");
         document.documentElement.classList.remove("camp-keyboard-open");
       }
+      syncMobileReplyBubble();
+    }
+
+    let mobileReplyTimer = 0;
+
+    function isVisitorSpeaker(speaker) {
+      const s = (speaker || "").trim().toLowerCase();
+      if (!s || s === "you") return true;
+      const you = (myVisitorName || player.name || "").trim().toLowerCase();
+      return !!(you && s === you);
+    }
+
+    function syncMobileReplyBubble() {
+      const el = document.getElementById("camp-keyboard-reply");
+      const dock = document.getElementById("action-bar");
+      if (dock) {
+        document.documentElement.style.setProperty(
+          "--dock-h-live",
+          `${Math.ceil(dock.getBoundingClientRect().height)}px`,
+        );
+      }
+      if (!el || !el.classList.contains("show")) return;
+    }
+
+    function showMobileReplyBubble(speaker, text, mood, holdSec = 24) {
+      if (!isIOS()) return;
+      const el = document.getElementById("camp-keyboard-reply");
+      if (!el) return;
+      const who = el.querySelector(".ckr-who");
+      const body = el.querySelector(".ckr-text");
+      if (!who || !body) return;
+      const clean = (text || "").trim();
+      if (!clean) return;
+      who.innerHTML = `${escapeHtml(speaker)} <span class="mood-tag ${moodClass(mood || "neutral")}">${escapeHtml(mood || "neutral")}</span>`;
+      body.textContent = clean;
+      el.classList.toggle("thinking", clean === "…" || clean === "...");
+      el.classList.add("show");
+      el.hidden = false;
+      syncMobileReplyBubble();
+      clearTimeout(mobileReplyTimer);
+      mobileReplyTimer = setTimeout(() => {
+        el.classList.remove("show", "thinking");
+        el.hidden = true;
+      }, Math.max(8000, (holdSec || 24) * 1000));
+    }
+
+    function hideMobileReplyBubble() {
+      const el = document.getElementById("camp-keyboard-reply");
+      if (!el) return;
+      clearTimeout(mobileReplyTimer);
+      el.classList.remove("show", "thinking");
+      el.hidden = true;
     }
 
     function getCampCanvasSizeFromLayout() {
@@ -5310,6 +5402,9 @@
       if (npc) npc.line = "...";
       if (opts.useDialogue) dialogueStatus.textContent = "Waiting for reply...";
       else setCampLifeStatus(`${agentNames[agentId] || agentId} is thinking…`);
+      if (isIOS() && opts.fromCampBar) {
+        showMobileReplyBubble(agentNames[agentId] || agentId, "…", "think", 90);
+      }
       try {
         const res = await fetch("/api/firmament/agent/chat", {
           method: "POST",
@@ -5417,6 +5512,9 @@
         renderConvoLog();
       }
       updateNowSpeaking(speaker, clean, moodVal);
+      if (isIOS() && !isVisitorSpeaker(speaker) && speaker !== "Camp") {
+        showMobileReplyBubble(speaker, clean, moodVal, holdSec);
+      }
       if (!opts.keepDock && !isCampMobile()) expandSpeechBubble();
       notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);

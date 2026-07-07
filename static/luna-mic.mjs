@@ -696,6 +696,14 @@ export class LunaMic {
     this._stopMonitor();
     this._stopRecording();
     if (this._isIOS() || this._isAndroid()) {
+      if (this.stream?.active && this.analyser) {
+        if (this.audioCtx?.state === "suspended") {
+          try { await this.audioCtx.resume(); } catch { /* ignore */ }
+        }
+        if (!this.paused && (!this.busy || this.duplexListen)) await this._startMonitor();
+        this.onStatus("listening");
+        return;
+      }
       this._teardownAnalyser();
       if (this.stream) {
         this.stream.getTracks().forEach((t) => t.stop());
@@ -703,7 +711,7 @@ export class LunaMic {
       }
       this._trackEndedBound = false;
       this.unlocked = false;
-      await new Promise((r) => setTimeout(r, this._isAndroid() ? 520 : 320));
+      await new Promise((r) => setTimeout(r, this._isAndroid() ? 680 : 420));
       const ok = await this.unlock();
       if (!ok) {
         this._emitMicRetry();
@@ -877,7 +885,10 @@ export class LunaMic {
         } else {
           this.onStatus("no-speech");
         }
-        if (this.enabled && !this.paused && !this.busy) this.onStatus("listening");
+        if (this.enabled && !this.paused && (!this.busy || this.duplexListen)) {
+          this.onStatus("listening");
+          if (!this.monitorTimer) this._startMonitor().catch(() => {});
+        }
       };
 
       try {

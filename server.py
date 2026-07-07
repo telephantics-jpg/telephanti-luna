@@ -2510,6 +2510,13 @@ async def firmament_shop_catalog_api():
     return {"items": catalog()}
 
 
+@app.get("/api/firmament/lucid-feed")
+async def firmament_lucid_feed_api(channel: str = "random"):
+    from firmament.lucid_feed import catalog, pick_channel
+
+    return {"ok": True, "channel": pick_channel(channel), "catalog": catalog()}
+
+
 @app.get("/api/firmament/wallet")
 async def firmament_wallet_get_api(visitor_id: str = ""):
     from firmament.camp_economy import get_wallet

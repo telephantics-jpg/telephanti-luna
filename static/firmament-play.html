@@ -480,6 +480,77 @@
       color: #cbd5e1; border-radius: 8px; padding: 8px 14px; font-size: 0.8rem; cursor: pointer;
       margin-top: 10px; width: 100%;
     }
+    #lucid-tv-layer {
+      display: none; position: fixed; inset: 0; z-index: 42;
+      background: rgba(2, 2, 10, 0.88); align-items: center; justify-content: center;
+      padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+        max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      backdrop-filter: blur(8px);
+    }
+    #lucid-tv-layer.open { display: flex; }
+    #lucid-tv-panel {
+      width: min(920px, 100%); max-height: min(88vh, 720px);
+      display: flex; flex-direction: column; gap: 8px;
+      background: linear-gradient(165deg, rgba(10, 8, 28, 0.98), rgba(4, 8, 18, 0.98));
+      border: 2px solid rgba(167, 139, 250, 0.42); border-radius: 16px;
+      padding: 12px; overflow: hidden;
+      transform: perspective(820px) rotateX(1.2deg);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 36px rgba(103, 232, 249, 0.14);
+    }
+    #lucid-tv-head {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    #lucid-tv-head h2 { font-size: 1rem; color: #e9d5ff; margin: 0; }
+    #lucid-tv-sub { font-size: 0.7rem; color: #94a3b8; flex: 1; min-width: 140px; }
+    #lucid-tv-thought {
+      font-size: 0.82rem; color: #c4b5fd; font-style: italic; line-height: 1.4;
+      padding: 8px 10px; border-radius: 10px;
+      background: rgba(88, 28, 135, 0.22); border: 1px solid rgba(167, 139, 250, 0.25);
+    }
+    #lucid-tv-screen-wrap {
+      position: relative; width: 100%; aspect-ratio: 16 / 9;
+      border-radius: 12px; overflow: hidden;
+      background: #000; border: 3px solid #1e293b;
+      box-shadow: inset 0 0 40px rgba(103, 232, 249, 0.12), 0 0 24px rgba(167, 139, 250, 0.2);
+    }
+    #lucid-tv-screen-wrap::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.03) 0px,
+        rgba(255,255,255,0.03) 1px,
+        transparent 2px,
+        transparent 4px
+      );
+      mix-blend-mode: overlay;
+    }
+    #lucid-tv-frame {
+      position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+    }
+    #lucid-tv-static {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: #67e8f9; font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase;
+      background: radial-gradient(ellipse at center, rgba(30,20,50,0.9), #000);
+      animation: tv-static-pulse 1.4s ease-in-out infinite alternate;
+    }
+    @keyframes tv-static-pulse {
+      from { opacity: 0.55; }
+      to { opacity: 0.95; }
+    }
+    .lucid-tv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .lucid-tv-actions button {
+      flex: 1; min-width: 120px; border: 1px solid rgba(103, 232, 249, 0.35);
+      background: rgba(15, 40, 71, 0.9); color: #a5f3fc;
+      border-radius: 10px; padding: 9px 12px; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    }
+    .lucid-tv-actions button.primary {
+      background: linear-gradient(135deg, #6d28d9, #a78bfa); border-color: #d8b4fe; color: #fff;
+    }
+    #luna-embed-back-camp {
+      border-color: rgba(103, 232, 249, 0.45) !important;
+      background: rgba(14, 116, 144, 0.55) !important;
+      color: #ecfeff !important;
+    }
     #dialogue-panel {
       width: min(920px, 100%); max-height: min(88vh, 720px);
       background: rgba(8, 12, 22, 0.98);
@@ -636,6 +707,8 @@
       #dialogue-input { font-size: 1rem; padding: 12px; }
       .quick-btns button { padding: 8px 10px; font-size: 0.8rem; }
       #camp-shop-panel { transform: none; max-height: min(85vh, 560px); }
+      #lucid-tv-panel { transform: none; max-height: min(86vh, 620px); }
+      #lucid-tv-thought { font-size: 0.76rem; }
       .camp-ouija-board-wrap { max-height: min(28vh, 260px); }
       .camp-ouija-chat-panel { min-height: min(34vh, 200px); max-height: min(42vh, 280px); }
       .camp-ouija-msg-text { font-size: 0.94rem; }
@@ -1086,7 +1159,8 @@
     </div>
     <div class="header-row" id="free-tools-row">
       <a class="free-tool-chip native" href="/firmament/play">🌙 Camp (free)</a>
-      <a class="free-tool-chip native" href="/?avatar=1&web=1">✨ Luna avatar</a>
+      <a class="free-tool-chip native" href="/?avatar=1&web=1&from=camp">✨ Luna chat</a>
+      <a class="free-tool-chip native" href="/firmament/play">🔥 Aurora camp</a>
       <a class="free-tool-chip" href="/firmament" target="_blank" rel="noopener">🔭 Observer</a>
       <span class="free-tool-chip native" id="chip-ollama" title="Local Ollama/Llama — no API tokens">🦙 Ollama…</span>
       <span class="free-tool-chip" id="chip-tts" title="Edge TTS — free">🔊 TTS free</span>
@@ -1138,6 +1212,7 @@
       <button type="button" id="camp-talk-send" title="Send">➤</button>
     </div>
     <div class="dock-compact">
+      <button type="button" class="dock-icon" id="btn-lucid-tv" title="Lucid Mind TV — real mysterious feeds" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
       <button type="button" class="dock-icon" id="btn-camp-shop" title="Aurora shop — spend tokens" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
@@ -1233,8 +1308,27 @@
       <button type="button" id="camp-ouija-speak">Speak</button>
     </div>
   </div>
+  <div id="lucid-tv-layer" role="dialog" aria-label="Lucid mind TV">
+    <div id="lucid-tv-panel" onclick="event.stopPropagation()">
+      <div id="lucid-tv-head">
+        <h2 id="lucid-tv-title">📺 Lucid Mind TV</h2>
+        <span id="lucid-tv-sub">tuning real feeds from agent dreams…</span>
+      </div>
+      <div id="lucid-tv-thought">The screen hasn't decided what to show you yet.</div>
+      <div id="lucid-tv-screen-wrap">
+        <div id="lucid-tv-static">scanning frequencies…</div>
+        <iframe id="lucid-tv-frame" title="Lucid mind feed" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <div class="lucid-tv-actions">
+        <button type="button" class="primary" id="lucid-tv-next">⟳ Next channel</button>
+        <button type="button" id="lucid-tv-mute">🔇 Muted (tap for sound)</button>
+        <button type="button" id="lucid-tv-close">← Back to camp</button>
+      </div>
+    </div>
+  </div>
   <div id="luna-embed-wrap" aria-label="Luna full avatar at camp">
     <div id="luna-embed-header">
+      <button type="button" id="luna-embed-back-camp" title="Back to aurora camp">🔥 Camp</button>
       <span>🌙 Luna — full avatar &amp; voice</span>
       <button type="button" id="luna-embed-expand" title="Expand">⛶</button>
       <button type="button" id="luna-embed-close" title="Minimize">✕</button>
@@ -1379,7 +1473,13 @@
       { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 128, y: 168,
         color: "#f59e0b", roof: "#d97706", wall: "#92400e", enterRadius: 44,
         doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.1 } },
+      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -42, y: 118,
+        color: "#6366f1", roof: "#4338ca", wall: "#312e81", enterRadius: 46,
+        doorOffset: { x: 0, y: -0.28 }, interior: { x: 0, y: 0.05 } },
     ];
+    let lucidTvOpen = false;
+    let lucidTvMuted = true;
+    let lucidTvChannel = null;
     let campWallet = { tokens: 15, unlocks: [], cosmetics: [] };
     let shopCatalog = [];
     let shopOpen = false;
@@ -2960,6 +3060,78 @@
       document.getElementById("camp-shop-layer")?.classList.remove("open");
     }
 
+    function lucidTvEmbedUrl(embedBase, muted) {
+      if (!embedBase) return "";
+      const url = new URL(embedBase);
+      url.searchParams.set("mute", muted ? "1" : "0");
+      url.searchParams.set("autoplay", "1");
+      url.searchParams.set("playsinline", "1");
+      return url.toString();
+    }
+
+    async function tuneLucidTv(channelId = "random") {
+      const staticEl = document.getElementById("lucid-tv-static");
+      const frame = document.getElementById("lucid-tv-frame");
+      const title = document.getElementById("lucid-tv-title");
+      const sub = document.getElementById("lucid-tv-sub");
+      const thought = document.getElementById("lucid-tv-thought");
+      if (staticEl) staticEl.style.display = "flex";
+      if (frame) frame.src = "about:blank";
+      try {
+        const res = await fetch(`/api/firmament/lucid-feed?channel=${encodeURIComponent(channelId)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "feed failed");
+        lucidTvChannel = data.channel;
+        const ch = lucidTvChannel || {};
+        if (title) title.textContent = `${ch.emoji || "📺"} ${ch.title || "Lucid feed"}`;
+        if (sub) sub.textContent = ch.subtitle || "lucid mind broadcast";
+        if (thought) thought.textContent = ch.thought || "The feed is thinking…";
+        if (frame && ch.embed) {
+          frame.src = lucidTvEmbedUrl(ch.embed, lucidTvMuted);
+          frame.onload = () => { if (staticEl) staticEl.style.display = "none"; };
+        }
+        const agent = ch.agent || "oracle";
+        if (ch.thought) {
+          pushCampLine(
+            (agent === "hermes" ? "Hermes" : agent === "luna" ? "Luna" : agent === "caduceus" ? "Caduceus" : agent === "sentinel" ? "Sentinel" : "Oracle"),
+            `TV lucid: ${ch.thought}`,
+            20,
+            "think",
+          );
+        }
+        recordCampMemory({ kind: "tv", text: `Watched lucid TV — ${ch.title || "channel"}` });
+      } catch (err) {
+        if (thought) thought.textContent = `Signal lost — ${err.message || "try next channel"}`;
+      }
+    }
+
+    function openLucidTv() {
+      lucidTvOpen = true;
+      document.getElementById("lucid-tv-layer")?.classList.add("open");
+      tuneLucidTv("random");
+      setCampLifeStatus("📺 Lucid Mind TV — real mysterious feeds");
+      showToast("Tuning lucid mind TV…");
+    }
+
+    function closeLucidTv() {
+      lucidTvOpen = false;
+      const layer = document.getElementById("lucid-tv-layer");
+      const frame = document.getElementById("lucid-tv-frame");
+      layer?.classList.remove("open");
+      if (frame) frame.src = "about:blank";
+      setCampLifeStatus("Back at camp — roam the aurora meadow");
+    }
+
+    function toggleLucidTvMute() {
+      lucidTvMuted = !lucidTvMuted;
+      const btn = document.getElementById("lucid-tv-mute");
+      if (btn) btn.textContent = lucidTvMuted ? "🔇 Muted (tap for sound)" : "🔊 Sound on";
+      if (lucidTvChannel?.embed) {
+        const frame = document.getElementById("lucid-tv-frame");
+        if (frame) frame.src = lucidTvEmbedUrl(lucidTvChannel.embed, lucidTvMuted);
+      }
+    }
+
     function useShelter() {
       const shelter = campStructures.find((s) => s.type === "shelter");
       if (!shelter) return;
@@ -3184,6 +3356,32 @@
       const t = Date.now() / 1000;
       const wobble = Math.sin(t * 2.2 + struct.x * 0.01) * 0.04;
       drawAvatarShadow(s.x, s.y, 24);
+      if (struct.type === "tv") {
+        drawIsoBox(cx, cy, -0.72, -0.48, 0, 1.44, 0.42, 0.52,
+          { top: "#1e293b", left: struct.wall, right: struct.color, stroke: "#4338ca" });
+        const screen = isoPoint(cx, cy, -0.42, -0.58, 0.54);
+        const sw = 52, sh = 30;
+        const flicker = 0.65 + Math.sin(t * 8) * 0.2;
+        ctx.fillStyle = `rgba(103, 232, 249, ${0.15 + flicker * 0.25})`;
+        ctx.fillRect(screen.x - sw * 0.5, screen.y - sh * 0.5, sw, sh);
+        const scan = (t * 40) % sh;
+        ctx.fillStyle = `rgba(167, 139, 250, ${0.25 + Math.sin(t * 5) * 0.15})`;
+        ctx.fillRect(screen.x - sw * 0.5, screen.y - sh * 0.5 + scan, sw, 2);
+        ctx.strokeStyle = "#94a3b8";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(screen.x - sw * 0.5, screen.y - sh * 0.5, sw, sh);
+        drawIsoBox(cx, cy, -0.18, -0.72, 0.02, 0.36, 0.24, 0.12,
+          { top: "#475569", left: "#334155", right: "#64748b", stroke: "#0f172a" });
+        drawTrippyOrbs(s.x, s.y - 30, struct.color, t);
+        ctx.font = "bold 10px Segoe UI";
+        ctx.fillStyle = "#e9d5ff";
+        ctx.textAlign = "center";
+        ctx.fillText(`${struct.emoji} ${struct.name}`, s.x, s.y - 36);
+        ctx.font = "8px Segoe UI";
+        ctx.fillStyle = lucidTvOpen ? "#6ee7b7" : "#a5b4fc";
+        ctx.fillText(lucidTvOpen ? "broadcasting lucid feed" : "tap — tune lucid minds", s.x, s.y + 40);
+        return;
+      }
       if (struct.type === "shop") {
         drawIsoBox(cx, cy, -1.0 + wobble, -0.62, 0, 2.0, 1.2, 0.65,
           { top: "#fde68a", left: struct.wall, right: struct.color, stroke: "#fbbf24" });
@@ -3644,10 +3842,16 @@
     window.addEventListener("message", (ev) => {
       if (ev.origin !== location.origin) return;
       if (ev.data?.type === "luna-camp:ready") syncLunaEmbedVisitor();
+      if (ev.data?.type === "luna-camp:close") closeLunaEmbed();
     });
 
     document.getElementById("btn-luna-avatar").onclick = () => openLunaEmbed();
+    document.getElementById("luna-embed-back-camp").onclick = () => closeLunaEmbed();
     document.getElementById("luna-embed-close").onclick = () => closeLunaEmbed();
+    document.getElementById("lucid-tv-close").onclick = () => closeLucidTv();
+    document.getElementById("lucid-tv-layer").onclick = () => closeLucidTv();
+    document.getElementById("lucid-tv-next").onclick = () => tuneLucidTv("random");
+    document.getElementById("lucid-tv-mute").onclick = () => toggleLucidTvMute();
     document.getElementById("luna-embed-expand").onclick = () => {
       const wrap = document.getElementById("luna-embed-wrap");
       if (!wrap) return;
@@ -3967,6 +4171,7 @@
       if (prop.structure) {
         if (prop.structure.type === "shop") openCampShop();
         else if (prop.structure.type === "shelter") useShelter();
+        else if (prop.structure.type === "tv") openLucidTv();
         return;
       }
       if (prop.id === "ouija") {
@@ -4219,6 +4424,7 @@
         else openDialogue(btn.dataset.agent);
       };
     });
+    document.getElementById("btn-lucid-tv").onclick = () => openLucidTv();
     document.getElementById("btn-camp-shop").onclick = () => openCampShop();
     document.getElementById("camp-token-badge").onclick = () => openCampShop();
     document.getElementById("camp-shop-close").onclick = () => closeCampShop();
@@ -4586,6 +4792,10 @@
     }
 
     window.addEventListener("keydown", (e) => {
+      if (lucidTvOpen && e.key === "Escape") {
+        closeLucidTv();
+        return;
+      }
       if (shopOpen && e.key === "Escape") {
         closeCampShop();
         return;
@@ -4825,7 +5035,7 @@
           applyGlobalNpcMode("free");
           document.body.classList.add("camp-focus");
           setSpeechBubbleDock(localStorage.getItem("luna-camp-speech-dock") === "min");
-          setCampLifeStatus("🔮 Ouija · 🏠 homes · ⛺ shelter · 🏪 shop · iso-3D camp");
+          setCampLifeStatus("🔮 Ouija · 📺 lucid TV · 🏠 homes · ⛺ shelter · 🏪 shop");
           loadCampWallet();
           loadShopCatalog();
           huddleNpcsAtCorona(npcs);

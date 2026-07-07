@@ -2676,6 +2676,40 @@
     body.luna-camp-embed .zone-hint,
     body.luna-camp-embed .luna-memory-thread,
     body.luna-camp-embed .luna-assistant-hud { display: none !important; }
+    #camp-back-fab {
+      position: fixed;
+      z-index: 90;
+      left: max(10px, env(safe-area-inset-left));
+      top: max(10px, env(safe-area-inset-top));
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(103, 232, 249, 0.45);
+      background: rgba(6, 12, 24, 0.92);
+      color: #a5f3fc;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.45);
+      touch-action: manipulation;
+    }
+    body.web-cloud #camp-back-fab,
+    body.luna-camp-embed #camp-back-fab { display: inline-flex; }
+    body.luna-camp-embed #camp-back-fab {
+      top: auto;
+      bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px));
+      left: max(10px, env(safe-area-inset-left));
+      font-size: 0.72rem;
+      padding: 7px 12px;
+    }
+    @media (min-width: 861px) {
+      body.web-cloud:not(.luna-camp-embed) #camp-back-fab {
+        top: max(12px, env(safe-area-inset-top));
+        left: max(12px, env(safe-area-inset-left));
+      }
+    }
     body.luna-camp-embed:not(.web-roam-on) #luna-roam-buddy,
     body.luna-camp-embed:not(.web-roam-on) #luna-roam-shadow {
       display: none !important;
@@ -4018,6 +4052,7 @@
     <a class="btn" id="secure-connection-link" href="https://telephanti.com/visit">Open secure Luna</a>
     <button type="button" id="secure-connection-dismiss" title="Dismiss">✕</button>
   </div>
+  <a href="/firmament/play" id="camp-back-fab" title="Return to aurora camp">🔥 ← Aurora Camp</a>
   <header>
     <div class="brand"><span>Luna</span><span class="brand-sub"> — AI Companion</span><span class="user-count" id="luna-user-count" hidden></span></div>
     <div class="hdr-btns">
@@ -4514,7 +4549,7 @@
   </nav>
 
   <script type="module">
-    import { createLunaMic } from "/static/luna-mic.mjs?v=155";
+    import { createLunaMic } from "/static/luna-mic.mjs?v=156";
     import { LiveLunaPortrait } from "/static/luna-live.mjs?v=143";
     import { LunaVideoAvatar } from "/static/luna-video.mjs?v=143";
 
@@ -6224,12 +6259,40 @@
       }
     }
 
+    function goBackToAuroraCamp() {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "luna-camp:close" }, location.origin);
+          return;
+        }
+      } catch (_) {}
+      location.href = `/firmament/play?v=${encodeURIComponent(String(window.LUNA_BUILD || Date.now()))}`;
+    }
+
+    function setupCampBackNav() {
+      const fab = document.getElementById("camp-back-fab");
+      if (!fab) return;
+      const params = new URLSearchParams(location.search);
+      const inEmbed = params.get("camp") === "1";
+      const onWeb = isPublicWebVisit() && !isPetMode();
+      if (!onWeb && !inEmbed) {
+        fab.style.display = "none";
+        return;
+      }
+      fab.href = "/firmament/play";
+      fab.onclick = (e) => {
+        e.preventDefault();
+        goBackToAuroraCamp();
+      };
+    }
+
     function applyCampMinimalUi() {
       const params = new URLSearchParams(location.search);
       if (params.get("camp") !== "1") return;
       document.documentElement.classList.add("luna-camp-embed");
       document.body.classList.add("luna-camp-embed");
       applyCampEmbedMotionDefaults();
+      setupCampBackNav();
       const micLabel = document.querySelector("#dock-mic .dock-label");
       const voiceLabel = document.querySelector("#dock-voice .dock-label");
       const optLabel = document.querySelector("#dock-options .dock-label");
@@ -6279,6 +6342,7 @@
       if (!isPublicWebVisit() || isPetMode()) return;
       document.body.classList.add("web-cloud");
       setupCampEmbedBridge();
+      setupCampBackNav();
       document.body.classList.toggle("web-desktop", window.innerWidth > 860);
       bindCamFeedControls();
       bindWebPcDock();
@@ -7489,9 +7553,10 @@
 
     function scheduleMicResumeAfterSpeech() {
       clearTimeout(micResumeTimer);
-      const delay = isAndroid() ? 900 : isIOS() ? 520 : isMobile() ? 280 : 120;
+      const delay = isAndroid() ? 1400 : isIOS() ? 900 : isMobile() ? 480 : 120;
       micResumeTimer = setTimeout(() => {
         micResumeTimer = null;
+        if (isAndroid() && settings.alwaysListen) queueAndroidMicResume(0);
         resumeListeningAfterTurn().catch(() => {});
       }, delay);
     }
@@ -13607,12 +13672,12 @@
         }
         const live = lunaMic.enabled && lunaMic.unlocked && lunaMic.micStreamLive;
         if (!live) {
-          alwaysListening = false;
-          updateMicUi();
-          if (isIOS()) lunaMic.resetForRetry?.();
+          if (isIOS()) await resumeListeningAfterTurn().catch(() => {});
           else await resumeListeningAfterTurn().catch(() => {});
+          syncAndroidMicState();
+          updateMicUi();
         }
-      }, isIOS() ? 3500 : isAndroid() ? 14000 : 5000);
+      }, isIOS() ? 2800 : isAndroid() ? 8000 : 5000);
     }
 
     function bindMicLifecycleRecovery() {
@@ -14245,10 +14310,14 @@
               return;
             }
           }
-          alwaysListening = false;
-          updateMicUi();
-          syncMobileDockUi();
-          showPetHearBanner();
+          if (settings.alwaysListen) {
+            scheduleDebouncedMicRestart(isAndroid() ? 1200 : isIOS() ? 900 : 500);
+          } else {
+            alwaysListening = false;
+            updateMicUi();
+            syncMobileDockUi();
+            showPetHearBanner();
+          }
           if (isMobile()) {
             showLunaCaption("Tap 🎤 below (or anywhere once) — then Allow microphone. I'll wait for you to finish.");
           } else {

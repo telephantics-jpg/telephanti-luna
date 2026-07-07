@@ -334,6 +334,16 @@
     #now-speaking .ns-text { color: #f1f5f9; }
     #now-speaking.idle .ns-who { color: #64748b; font-weight: 500; }
     #now-speaking.idle .ns-text { color: #94a3b8; font-style: italic; }
+    #now-speaking.reading-held {
+      border-bottom-color: rgba(251, 191, 36, 0.55);
+      background: rgba(251, 191, 36, 0.1);
+      box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.3);
+    }
+    #now-speaking .ns-hold-hint {
+      display: none; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #fde68a; margin-top: 4px;
+    }
+    #now-speaking.reading-held .ns-hold-hint { display: block; }
     #convo-lines {
       flex: 1; overflow-y: auto; padding: 10px 12px 14px;
       font-size: 0.88rem; line-height: 1.5; color: #f8fafc;
@@ -1067,6 +1077,13 @@
     .house-portrait-frame .house-portrait-glyph {
       position: absolute; right: 10px; bottom: 8px;
       font-size: 2.2rem; opacity: 0.5; text-shadow: 0 0 18px var(--house-accent, #38bdf8);
+    }
+    .house-portrait-song {
+      position: absolute; left: 8px; bottom: 8px; right: 48px;
+      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em;
+      text-transform: uppercase; color: #fef3c7;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.85);
+      opacity: 0.92; pointer-events: none;
     }
     #camp-house-host-name {
       margin: 0; font-size: 1.25rem; color: #f8fafc; letter-spacing: 0.02em;
@@ -2029,12 +2046,12 @@
       <div class="convo-head-row">
         <h3 id="convo-log-title-full">💬 Camp chatter</h3>
         <h3 id="convo-log-title-short">💬</h3>
-        <span class="convo-read-hint">reading</span>
+        <span class="convo-read-hint">held</span>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
-      <div class="sub">Free chat · Ollama local brains · scroll up to read — won't yank you to top · ▼/▲</div>
+      <div class="sub">Press &amp; hold chatter to freeze the line · scroll up without getting yanked · ▼/▲</div>
     </header>
-    <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents spread around the ring — one voice at a time here…</span></div>
+    <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents spread around the ring — one voice at a time here…</span><span class="ns-hold-hint">held — won't switch</span></div>
     <div id="convo-lines">Recent lines appear below, newest at bottom.</div>
   </div>
   <div id="reply"></div>
@@ -2247,6 +2264,7 @@
             <img id="camp-house-portrait-img" src="/static/avatars/luna-portrait.jpg" alt="" hidden />
             <video id="camp-house-portrait-video" playsinline muted loop preload="auto" poster="/static/avatars/luna-portrait.jpg" hidden></video>
             <div class="house-portrait-aura"></div>
+            <span class="house-portrait-song" id="camp-house-portrait-song" hidden></span>
             <span class="house-portrait-glyph" id="camp-house-portrait-glyph">🌙</span>
           </div>
           <h3 id="camp-house-host-name">Luna</h3>
@@ -2279,7 +2297,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-idle-chatter";
+    const CAMP_BUILD = "2026-07-07-camp-chatter-portraits";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -2669,11 +2687,17 @@
         const st = document.getElementById("camp-house-status");
         if (st) st.textContent = data.backend === "aether" ? "Aether brain (offline)" : "Ask another question";
         const vid = document.getElementById("camp-house-portrait-video");
-        if (vid && !vid.hidden && vid.dataset.idleSrc) {
+        const img = document.getElementById("camp-house-portrait-img");
+        if (vid && !vid.hidden) {
           setTimeout(() => {
             try {
-              vid.src = vid.dataset.idleSrc;
-              vid.play().catch(() => {});
+              vid.pause();
+              vid.hidden = true;
+              vid.removeAttribute("src");
+              if (img && activeHousePortrait?.src) {
+                img.hidden = false;
+                img.src = `${activeHousePortrait.src}?v=${CAMP_BUILD}`;
+              } else if (img) img.hidden = false;
             } catch (_) {}
           }, 2400);
         }
@@ -2769,6 +2793,42 @@
       name: myVisitorName || "you",
     };
     const camp = { x: 0, y: -80 };
+    const HOUSE_SONG_PORTRAITS = [
+      { id: "flowing-free", title: "Flowing Free" },
+      { id: "loud-and-clear", title: "Loud and Clear" },
+      { id: "holy-ghosts", title: "Holy Ghosts" },
+      { id: "pull-me-under", title: "Pull Me Under" },
+      { id: "marijane", title: "Marijane" },
+      { id: "mountain-clouds", title: "Mountain Clouds" },
+      { id: "abracadabra", title: "Abracadabra" },
+      { id: "pulverised-dust", title: "Pulverised Dust" },
+    ];
+    const HOUSE_PORTRAIT_AGENTS = ["luna", "hermes", "oracle", "dionysus"];
+    let lastHousePortraitPick = { ownerId: "", songId: "" };
+    let activeHousePortrait = null;
+
+    function housePortraitPath(ownerId, songId) {
+      if (!HOUSE_PORTRAIT_AGENTS.includes(ownerId)) return null;
+      return `/static/camp/portraits/${ownerId}/${songId}.jpg`;
+    }
+
+    function pickHousePortraitVariant(ownerId) {
+      const songs = HOUSE_SONG_PORTRAITS;
+      let pool = songs;
+      if (lastHousePortraitPick.ownerId === ownerId && songs.length > 1) {
+        pool = songs.filter((s) => s.id !== lastHousePortraitPick.songId);
+      }
+      const song = pool[Math.floor(Math.random() * pool.length)] || songs[0];
+      lastHousePortraitPick = { ownerId, songId: song.id };
+      const src = housePortraitPath(ownerId, song.id);
+      activeHousePortrait = { ownerId, songId: song.id, title: song.title, src };
+      return {
+        src,
+        song,
+        fallback: HOUSE_INTERIOR_THEMES[ownerId]?.portrait || "/static/avatars/luna-portrait.jpg",
+      };
+    }
+
     const HOUSE_INTERIOR_THEMES = {
       luna: {
         accent: "#d946ef", wall: "#581c87", wallMid: "#7e22ce", floor: "#2e1065",
@@ -5843,6 +5903,7 @@
         speechHold.set(who, { line: pinnedSpeech.get(who).line, until: Date.now() + 86400000 });
         return;
       }
+      if (convoReadingHold) return;
       speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
     }
 
@@ -6797,7 +6858,7 @@
 
     function showNowSpeakingIdle() {
       const el = document.getElementById("now-speaking");
-      if (!el || chatterPaused || converseBusy) return;
+      if (!el || chatterPaused || converseBusy || convoReadingHold) return;
       const line = CAMP_NOW_IDLE_LINES[Math.floor(Math.random() * CAMP_NOW_IDLE_LINES.length)];
       el.classList.add("idle");
       el.innerHTML = `<span class="ns-who">${escapeHtml(line.who)}</span><span class="ns-text">${escapeHtml(line.text)}</span>`;
@@ -7046,20 +7107,38 @@
       const theme = houseInteriorTheme(ownerId);
       const img = document.getElementById("camp-house-portrait-img");
       const vid = document.getElementById("camp-house-portrait-video");
-      const src = `${theme.portrait}?v=${CAMP_BUILD}`;
-      if (vid && theme.portraitVideo) {
-        vid.hidden = false;
-        if (img) img.hidden = true;
-        vid.dataset.idleSrc = `${theme.portraitVideo}?v=${CAMP_BUILD}`;
-        vid.dataset.speakSrc = `/static/avatars/luna-speak.mp4?v=${CAMP_BUILD}`;
-        vid.poster = src;
-        if (vid.src !== vid.dataset.idleSrc) vid.src = vid.dataset.idleSrc;
-        vid.play().catch(() => {});
-      } else if (img) {
+      const songEl = document.getElementById("camp-house-portrait-song");
+      const pick = pickHousePortraitVariant(ownerId);
+      const portraitSrc = pick?.src
+        ? `${pick.src}?v=${CAMP_BUILD}`
+        : `${theme.portrait}?v=${CAMP_BUILD}`;
+      const fallbackSrc = `${pick?.fallback || theme.portrait}?v=${CAMP_BUILD}`;
+      if (vid) {
+        vid.hidden = true;
+        vid.pause();
+        vid.removeAttribute("src");
+        if (ownerId === "luna") {
+          vid.dataset.idleSrc = `${theme.portraitVideo}?v=${CAMP_BUILD}`;
+          vid.dataset.speakSrc = `/static/avatars/luna-speak.mp4?v=${CAMP_BUILD}`;
+        }
+      }
+      if (img) {
         img.hidden = false;
-        if (vid) { vid.hidden = true; vid.pause(); vid.removeAttribute("src"); }
-        img.src = src;
-        img.alt = `${agentNames[ownerId] || ownerId} portrait`;
+        img.onerror = () => {
+          img.onerror = null;
+          img.src = fallbackSrc;
+        };
+        img.src = portraitSrc;
+        img.alt = `${agentNames[ownerId] || ownerId} portrait — ${pick?.song?.title || "camp"}`;
+      }
+      if (songEl) {
+        if (pick?.song?.title) {
+          songEl.hidden = false;
+          songEl.textContent = `♫ ${pick.song.title}`;
+        } else {
+          songEl.hidden = true;
+          songEl.textContent = "";
+        }
       }
     }
 
@@ -7139,8 +7218,11 @@
       chatBusy = true;
       if (bubble) bubble.textContent = "Listening…";
       if (status) status.textContent = "Waiting for reply…";
+      const img = document.getElementById("camp-house-portrait-img");
       const vid = document.getElementById("camp-house-portrait-video");
-      if (vid && !vid.hidden && vid.dataset.speakSrc) {
+      if (agentId === "luna" && vid?.dataset.speakSrc) {
+        if (img) img.hidden = true;
+        vid.hidden = false;
         vid.src = vid.dataset.speakSrc;
         vid.play().catch(() => {});
       }
@@ -8343,6 +8425,7 @@
     function updateConvoScrollLockUi() {
       const paused = convoReadingHold || !convoStickBottom;
       convoLogEl?.classList.toggle("reading-paused", paused);
+      document.getElementById("now-speaking")?.classList.toggle("reading-held", convoReadingHold);
     }
 
     function convoShouldAutoScroll() {
@@ -8403,11 +8486,15 @@
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
+    function nowSpeakingHtml(speaker, text, mood) {
+      return `<span class="ns-who">${escapeHtml(speaker)} <span class="mood-tag ${moodClass(mood)}">${escapeHtml(mood)}</span></span><span class="ns-text">${escapeHtml(text)}</span><span class="ns-hold-hint">held — won't switch</span>`;
+    }
+
     function updateNowSpeaking(speaker, text, mood) {
       const el = document.getElementById("now-speaking");
-      if (!el) return;
+      if (!el || convoReadingHold) return;
       el.classList.remove("idle");
-      el.innerHTML = `<span class="ns-who">${escapeHtml(speaker)} <span class="mood-tag ${moodClass(mood)}">${escapeHtml(mood)}</span></span><span class="ns-text">${escapeHtml(text)}</span>`;
+      el.innerHTML = nowSpeakingHtml(speaker, text, mood);
     }
 
     function renderConvoLog() {
@@ -8447,7 +8534,7 @@
         while (campLines.length > 100) campLines.shift();
         renderConvoLog();
       }
-      updateNowSpeaking(speaker, clean, moodVal);
+      if (!convoReadingHold) updateNowSpeaking(speaker, clean, moodVal);
       if (isIOS() && !isVisitorSpeaker(speaker) && speaker !== "Camp") {
         showMobileReplyBubble(speaker, clean, moodVal, holdSec);
       }
@@ -8461,7 +8548,8 @@
       showBigSpeech(speaker, clean, holdSec);
       setTimeout(() => {
         const latest = campLines[campLines.length - 1];
-        if (latest?.text === clean && latest?.speaker === speaker && !chatterPaused && !converseBusy) {
+        if (latest?.text === clean && latest?.speaker === speaker
+            && !chatterPaused && !converseBusy && !convoReadingHold) {
           showNowSpeakingIdle();
         }
       }, holdSec * 1000 + 400);

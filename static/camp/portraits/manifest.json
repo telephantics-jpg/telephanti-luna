@@ -1,0 +1,42 @@
+{
+  "luna": {
+    "flowing-free": "/static/camp/portraits/luna/flowing-free.jpg",
+    "loud-and-clear": "/static/camp/portraits/luna/loud-and-clear.jpg",
+    "holy-ghosts": "/static/camp/portraits/luna/holy-ghosts.jpg",
+    "pull-me-under": "/static/camp/portraits/luna/pull-me-under.jpg",
+    "marijane": "/static/camp/portraits/luna/marijane.jpg",
+    "mountain-clouds": "/static/camp/portraits/luna/mountain-clouds.jpg",
+    "abracadabra": "/static/camp/portraits/luna/abracadabra.jpg",
+    "pulverised-dust": "/static/camp/portraits/luna/pulverised-dust.jpg"
+  },
+  "hermes": {
+    "flowing-free": "/static/camp/portraits/hermes/flowing-free.jpg",
+    "loud-and-clear": "/static/camp/portraits/hermes/loud-and-clear.jpg",
+    "holy-ghosts": "/static/camp/portraits/hermes/holy-ghosts.jpg",
+    "pull-me-under": "/static/camp/portraits/hermes/pull-me-under.jpg",
+    "marijane": "/static/camp/portraits/hermes/marijane.jpg",
+    "mountain-clouds": "/static/camp/portraits/hermes/mountain-clouds.jpg",
+    "abracadabra": "/static/camp/portraits/hermes/abracadabra.jpg",
+    "pulverised-dust": "/static/camp/portraits/hermes/pulverised-dust.jpg"
+  },
+  "oracle": {
+    "flowing-free": "/static/camp/portraits/oracle/flowing-free.jpg",
+    "loud-and-clear": "/static/camp/portraits/oracle/loud-and-clear.jpg",
+    "holy-ghosts": "/static/camp/portraits/oracle/holy-ghosts.jpg",
+    "pull-me-under": "/static/camp/portraits/oracle/pull-me-under.jpg",
+    "marijane": "/static/camp/portraits/oracle/marijane.jpg",
+    "mountain-clouds": "/static/camp/portraits/oracle/mountain-clouds.jpg",
+    "abracadabra": "/static/camp/portraits/oracle/abracadabra.jpg",
+    "pulverised-dust": "/static/camp/portraits/oracle/pulverised-dust.jpg"
+  },
+  "dionysus": {
+    "flowing-free": "/static/camp/portraits/dionysus/flowing-free.jpg",
+    "loud-and-clear": "/static/camp/portraits/dionysus/loud-and-clear.jpg",
+    "holy-ghosts": "/static/camp/portraits/dionysus/holy-ghosts.jpg",
+    "pull-me-under": "/static/camp/portraits/dionysus/pull-me-under.jpg",
+    "marijane": "/static/camp/portraits/dionysus/marijane.jpg",
+    "mountain-clouds": "/static/camp/portraits/dionysus/mountain-clouds.jpg",
+    "abracadabra": "/static/camp/portraits/dionysus/abracadabra.jpg",
+    "pulverised-dust": "/static/camp/portraits/dionysus/pulverised-dust.jpg"
+  }
+}

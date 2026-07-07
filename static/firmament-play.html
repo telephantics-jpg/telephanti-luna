@@ -686,6 +686,27 @@
         --sidebar-w: 100%;
         --tilt-x: 0deg;
         --tilt-y: 0deg;
+        --viewport-h: 100svh;
+        --camp-stable-w: 100vw;
+        --camp-stable-h: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      }
+      html.camp-input-focus,
+      html.camp-input-focus body {
+        height: var(--viewport-h, 100svh);
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+      }
+      html.camp-input-focus #camp-stage,
+      html.camp-input-focus #trippy-veil {
+        height: var(--camp-stable-h, calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px))) !important;
+        top: var(--header-h) !important;
+      }
+      html.camp-input-focus #action-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
       }
       #camp-stage, #trippy-veil {
         transform: none !important;
@@ -1396,7 +1417,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-ios-canvas-dpr";
+    const CAMP_BUILD = "2026-07-06-ios-chat-recenter";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1429,6 +1450,71 @@
       );
     }
     const isCampMobile = () => window.innerWidth < 900;
+    const isIOS = () => /iPad|iPhone|iPod/i.test(navigator.userAgent)
+      || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    let stableCampW = 0;
+    let stableCampH = 0;
+
+    function layoutViewportHeight() {
+      return Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
+    }
+
+    function layoutViewportWidth() {
+      return Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
+    }
+
+    function isKeyboardLikelyOpen() {
+      const vv = window.visualViewport;
+      if (!vv) return false;
+      return vv.height < layoutViewportHeight() * 0.82;
+    }
+
+    function captureStableCampRect() {
+      if (!campStage) return;
+      const r = campStage.getBoundingClientRect();
+      if (r.width < 120 || r.height < 160) return;
+      stableCampW = Math.round(r.width);
+      stableCampH = Math.round(r.height);
+      document.documentElement.style.setProperty("--camp-stable-w", `${stableCampW}px`);
+      document.documentElement.style.setProperty("--camp-stable-h", `${stableCampH}px`);
+    }
+
+    function measureStableCampSize() {
+      syncUILayout();
+      const style = getComputedStyle(document.documentElement);
+      const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
+      const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 100;
+      stableCampW = layoutViewportWidth();
+      stableCampH = Math.max(200, layoutViewportHeight() - headerH - dockH);
+      document.documentElement.style.setProperty("--camp-stable-w", `${stableCampW}px`);
+      document.documentElement.style.setProperty("--camp-stable-h", `${stableCampH}px`);
+      return { w: stableCampW, h: stableCampH };
+    }
+
+    function clearCampStageOverrides() {
+      if (campStage) {
+        campStage.style.height = "";
+        campStage.style.width = "";
+        campStage.style.top = "";
+      }
+      const veil = document.getElementById("trippy-veil");
+      if (veil) {
+        veil.style.height = "";
+        veil.style.top = "";
+      }
+    }
+
+    function applyCampStageLock(locked) {
+      if (!isIOS() || !campStage) return;
+      const veil = document.getElementById("trippy-veil");
+      if (locked && stableCampH > 0) {
+        campStage.style.height = `${stableCampH}px`;
+        campStage.style.width = "100%";
+        if (veil) veil.style.height = `${stableCampH}px`;
+      } else {
+        clearCampStageOverrides();
+      }
+    }
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
     function serverOfflineHint() {
@@ -2324,6 +2410,7 @@
     buildGroundTexture();
 
     function syncUILayout() {
+      document.documentElement.style.setProperty("--viewport-h", `${layoutViewportHeight()}px`);
       const header = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (header) {
@@ -2355,6 +2442,7 @@
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       document.documentElement.classList.remove("camp-input-focus");
+      applyCampStageLock(false);
       document.documentElement.style.setProperty("--tilt-x", "0deg");
       document.documentElement.style.setProperty("--tilt-y", "0deg");
       if (isCampMobile()) minimizeSpeechBubble();
@@ -2364,9 +2452,16 @@
       };
       run();
       requestAnimationFrame(run);
-      setTimeout(run, 80);
-      setTimeout(run, 280);
-      setTimeout(run, 520);
+      const delays = isIOS() ? [80, 220, 420, 680, 920, 1180] : [80, 280, 520];
+      delays.forEach((ms) => setTimeout(run, ms));
+      if (isIOS()) {
+        setTimeout(() => {
+          stableCampW = 0;
+          stableCampH = 0;
+          clearCampStageOverrides();
+          run();
+        }, 1250);
+      }
     }
     const resetCampUILayout = recenterCampView;
 
@@ -2374,9 +2469,29 @@
     let resizeRetry = 0;
     function resize() {
       syncUILayout();
-      const box = (campStage || canvas).getBoundingClientRect();
-      let w = Math.round(box.width);
-      let h = Math.round(box.height);
+      const iosLocked = isIOS() && (
+        document.documentElement.classList.contains("camp-input-focus")
+        || isKeyboardLikelyOpen()
+      );
+      let w = 0;
+      let h = 0;
+      if (iosLocked) {
+        if (stableCampW < 1 || stableCampH < 1) measureStableCampSize();
+        w = stableCampW;
+        h = stableCampH;
+        applyCampStageLock(true);
+      } else {
+        applyCampStageLock(false);
+        const box = (campStage || canvas).getBoundingClientRect();
+        w = Math.round(box.width);
+        h = Math.round(box.height);
+        if (isIOS() && !isKeyboardLikelyOpen() && w > 120 && h > 160) {
+          stableCampW = w;
+          stableCampH = h;
+          document.documentElement.style.setProperty("--camp-stable-w", `${w}px`);
+          document.documentElement.style.setProperty("--camp-stable-h", `${h}px`);
+        }
+      }
       if (w < 2 || h < 2) {
         if (resizeRetry < 12) {
           resizeRetry += 1;
@@ -2402,9 +2517,36 @@
         spreadAllNpcs();
       }
     }
+    function onVisualViewportChange() {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (isIOS()) {
+        if (isKeyboardLikelyOpen()) {
+          if (stableCampW < 1 || stableCampH < 1) {
+            captureStableCampRect();
+            if (stableCampW < 1 || stableCampH < 1) measureStableCampSize();
+          }
+          document.documentElement.classList.add("camp-input-focus");
+        } else if (!document.getElementById("camp-talk-input")?.matches(":focus")) {
+          document.documentElement.classList.remove("camp-input-focus");
+          applyCampStageLock(false);
+        }
+      }
+      resize();
+    }
     window.addEventListener("resize", resize);
-    window.addEventListener("orientationchange", () => setTimeout(resize, 200));
+    window.addEventListener("orientationchange", () => {
+      stableCampW = 0;
+      stableCampH = 0;
+      clearCampStageOverrides();
+      setTimeout(resize, 200);
+    });
     window.addEventListener("pageshow", () => setTimeout(resize, 50));
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onVisualViewportChange);
+      window.visualViewport.addEventListener("scroll", onVisualViewportChange);
+    }
     if (typeof ResizeObserver !== "undefined") {
       const layoutObs = new ResizeObserver(() => resize());
       const hdr = document.getElementById("camp-header");
@@ -4837,10 +4979,18 @@
     });
     document.getElementById("camp-talk-input")?.addEventListener("focus", () => {
       if (isCampMobile()) minimizeSpeechBubble();
-      setTimeout(resize, 50);
+      if (isIOS()) {
+        document.documentElement.classList.add("camp-input-focus");
+        if (stableCampW < 1 || stableCampH < 1) {
+          captureStableCampRect();
+          if (stableCampW < 1 || stableCampH < 1) measureStableCampSize();
+        }
+      }
+      setTimeout(resize, 40);
     });
     document.getElementById("camp-talk-input")?.addEventListener("blur", () => {
-      setTimeout(() => recenterCampView({ blurInput: false }), 80);
+      const delay = isIOS() ? 140 : 80;
+      setTimeout(() => recenterCampView({ blurInput: false }), delay);
     });
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();

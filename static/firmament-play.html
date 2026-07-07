@@ -359,6 +359,68 @@
       background: rgba(15, 23, 42, 0.65);
       border: 1px solid rgba(148, 163, 184, 0.2);
     }
+    #convo-lines .line {
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    #convo-lines .line:active,
+    #convo-lines .line.pinned-line {
+      border-color: rgba(103, 232, 249, 0.55);
+      box-shadow: 0 0 14px rgba(103, 232, 249, 0.2);
+    }
+    #now-speaking:not(.idle) { cursor: pointer; }
+    #camp-speech-pin {
+      position: fixed; z-index: 26;
+      left: max(var(--gap), env(safe-area-inset-left, 0px));
+      right: max(var(--gap), env(safe-area-inset-right, 0px));
+      top: calc(var(--header-h) + var(--gap) + 4px);
+      max-width: min(440px, 94vw);
+      margin: 0 auto;
+      display: none; flex-direction: column;
+      background: rgba(4, 10, 18, 0.98);
+      border: 2px solid rgba(103, 232, 249, 0.5);
+      border-radius: 14px;
+      box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    #camp-speech-pin.show { display: flex; }
+    #camp-speech-pin .csp-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 8px 10px 6px;
+      border-bottom: 1px solid rgba(103, 232, 249, 0.22);
+      flex-shrink: 0;
+    }
+    #camp-speech-pin .csp-who {
+      color: #67e8f9; font-weight: 800; font-size: 0.82rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #camp-speech-pin .csp-hint {
+      font-size: 0.62rem; color: #64748b; margin-left: 6px; font-weight: 500;
+    }
+    #camp-speech-pin-close {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.9); color: #cbd5e1;
+      border-radius: 8px; width: 30px; height: 28px;
+      font-size: 0.85rem; cursor: pointer; flex-shrink: 0;
+    }
+    #camp-speech-pin .csp-body {
+      max-height: 112px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 8px 12px 10px;
+      font-size: 0.8rem; line-height: 1.48; color: #f8fafc;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    @media (min-width: 900px) {
+      #camp-speech-pin {
+        left: auto;
+        right: calc(var(--sidebar-w) + var(--gap) * 2);
+        width: min(360px, 32vw);
+        max-width: none;
+        margin: 0;
+      }
+    }
+    #camp-talk-target-wrap { position: relative; flex: 0 0 auto; max-width: 38%; }
+    #camp-talk-target-wrap select { width: 100%; max-width: none; }
     #npc-behavior, #launcher-dock, #visitors-online, #btn-find-friends { display: none; }
     #prop-hint { display: none !important; }
     #convo-toggle { display: none; }
@@ -415,12 +477,12 @@
       box-shadow: 0 4px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
     }
     #camp-talk-target {
-      flex: 0 0 auto; max-width: 38%;
       background: #121a2a; color: #e2e8f0;
       border: 1px solid rgba(167, 139, 250, 0.35);
       border-radius: 8px; padding: 7px 8px; font-size: 0.76rem;
-      cursor: pointer;
+      cursor: pointer; appearance: auto;
     }
+    #camp-talk-target:focus { outline: none; border-color: rgba(167, 139, 250, 0.65); }
     #camp-talk-input {
       flex: 1; min-width: 0;
       background: #0f172a; color: #f8fafc;
@@ -892,7 +954,9 @@
     }
     @media (max-width: 480px) {
       :root { --talk-bar-h: 36px; --dock-icons-h: 46px; }
-      #camp-talk-target { font-size: 0.68rem; max-width: 36%; padding: 6px 5px; }
+      #camp-talk-target-wrap { max-width: 36%; }
+      #camp-talk-target { font-size: 0.68rem; padding: 6px 5px; }
+      #camp-speech-pin .csp-body { max-height: 96px; font-size: 0.76rem; }
       #camp-talk-input { font-size: 0.76rem; padding: 7px 8px; }
       #camp-talk-send { width: 36px; height: 34px; }
       #camp-token-badge { font-size: 0.66rem; padding: 4px 9px; }
@@ -1374,6 +1438,14 @@
     <button type="button" id="btn-find-friends"></button>
   </div>
   <div id="mood-panel"><div id="mood-rows"></div></div>
+  <div id="camp-speech-pin" hidden>
+    <div class="csp-head">
+      <span class="csp-who">Agent</span>
+      <span class="csp-hint">tap bubble or line to pin</span>
+      <button type="button" id="camp-speech-pin-close" title="Dismiss pinned line">✕</button>
+    </div>
+    <div class="csp-body"></div>
+  </div>
   <div id="convo-log">
     <header>
       <div class="convo-head-row">
@@ -1394,22 +1466,24 @@
   </div>
   <footer id="action-bar">
     <div id="camp-talk-bar">
-      <select id="camp-talk-target" title="Who to talk to">
-        <option value="nearest">📍 Nearest</option>
-        <option value="all">📢 All agents</option>
-        <option value="all-near">📍📢 Nearest + all hear</option>
-        <option value="luna">🌙 Luna</option>
-        <option value="hermes">⚡ Hermes</option>
-        <option value="oracle">🔮 Oracle</option>
-        <option value="caduceus">🐍 Caduceus</option>
-        <option value="sentinel">🛡 Sentinel</option>
-        <option value="spirit">👻 Spirit channel</option>
-        <option value="jesus">✝ Jesus</option>
-        <option value="michael">✦ Michael</option>
-        <option value="gabriel">✦ Gabriel</option>
-        <option value="raphael">✦ Raphael</option>
-        <option value="uriel">✦ Uriel</option>
-      </select>
+      <div id="camp-talk-target-wrap">
+        <select id="camp-talk-target" title="Who to talk to">
+          <option value="nearest">📍 Nearest</option>
+          <option value="all">📢 All agents</option>
+          <option value="all-near">📍📢 Nearest + all hear</option>
+          <option value="luna">🌙 Luna</option>
+          <option value="hermes">⚡ Hermes</option>
+          <option value="oracle">🔮 Oracle</option>
+          <option value="caduceus">🐍 Caduceus</option>
+          <option value="sentinel">🛡 Sentinel</option>
+          <option value="spirit">👻 Spirit channel</option>
+          <option value="jesus">✝ Jesus</option>
+          <option value="michael">✦ Michael</option>
+          <option value="gabriel">✦ Gabriel</option>
+          <option value="raphael">✦ Raphael</option>
+          <option value="uriel">✦ Uriel</option>
+        </select>
+      </div>
       <button type="button" id="camp-talk-all" title="Broadcast to all agents">📢</button>
       <input type="text" id="camp-talk-input" maxlength="280" placeholder="Talk at camp — pick nearest, one agent, or 📢 all…" autocomplete="off" />
       <button type="button" id="camp-talk-send" title="Send">➤</button>
@@ -1545,7 +1619,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-lucid-tv-feeds";
+    const CAMP_BUILD = "2026-07-06-talk-pin-bubbles";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1623,7 +1697,6 @@
       if (!el) return false;
       const id = el.id || "";
       return id === "camp-talk-input"
-        || id === "camp-talk-target"
         || id === "dialogue-input"
         || id === "camp-ouija-question";
     }
@@ -3416,15 +3489,23 @@
       btn.title = broadcast ? "Broadcasting to all agents" : "Tap to broadcast to all agents";
     }
 
-    function refreshCampTalkTarget() {
+    let campTalkTargetSig = "";
+    let campTalkPickerOpen = false;
+
+    function refreshCampTalkTarget(force = false) {
       const sel = document.getElementById("camp-talk-target");
       if (!sel) return;
+      if (!force && (campTalkPickerOpen || document.activeElement === sel)) return;
+      const heavenHere = heavenSummoned || campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving);
+      const dionHere = campGuests.some((g) => g.id === "dionysus" && !g.leaving);
+      const sig = `${nearestId || ""}|${heavenHere ? 1 : 0}|${dionHere ? 1 : 0}|${ouijaSpiritName || ""}`;
+      if (!force && sig === campTalkTargetSig) return;
+      campTalkTargetSig = sig;
       const nearOpt = sel.querySelector('option[value="nearest"]');
       const nearName = nearestId ? (agentNames[nearestId] || nearestId) : "Luna";
       if (nearOpt) nearOpt.textContent = `📍 ${nearName} (nearest)`;
       const allNearOpt = sel.querySelector('option[value="all-near"]');
       if (allNearOpt) allNearOpt.textContent = `📍📢 ${nearName} first, all hear`;
-      const heavenHere = heavenSummoned || campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving);
       ARCHANGEL_IDS.forEach((id) => {
         const opt = sel.querySelector(`option[value="${id}"]`);
         if (opt) opt.hidden = !heavenHere;
@@ -3442,7 +3523,6 @@
         ? `👻 ${ouijaSpiritName}`
         : "👻 Spirit channel";
       const dionOpt = sel.querySelector('option[value="dionysus"]');
-      const dionHere = campGuests.some((g) => g.id === "dionysus" && !g.leaving);
       if (dionHere && !dionOpt) {
         const opt = document.createElement("option");
         opt.value = "dionysus";
@@ -4245,13 +4325,80 @@
     }
 
     const speechHold = new Map();
+    const speechBubbleRects = [];
+    const pinnedSpeech = new Map();
+    let pinnedSpeechKey = "";
     const speechTextEl = document.getElementById("speech-text");
     const speechWhoEl = document.querySelector("#speech-now .who");
 
     function showBigSpeech(who, line, holdSec = 30) {
       const text = (line || "").trim();
       if (!text) return;
+      if (pinnedSpeech.has(who)) {
+        speechHold.set(who, { line: pinnedSpeech.get(who).line, until: Date.now() + 86400000 });
+        return;
+      }
       speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
+    }
+
+    function showCampSpeechPin(speaker, text, mood) {
+      const panel = document.getElementById("camp-speech-pin");
+      const whoEl = panel?.querySelector(".csp-who");
+      const bodyEl = panel?.querySelector(".csp-body");
+      if (!panel || !whoEl || !bodyEl) return;
+      const moodLabel = mood ? ` · ${mood}` : "";
+      whoEl.textContent = `${speaker}${moodLabel}`;
+      bodyEl.textContent = text;
+      panel.hidden = false;
+      panel.classList.add("show");
+      bodyEl.scrollTop = 0;
+    }
+
+    function hideCampSpeechPin() {
+      const panel = document.getElementById("camp-speech-pin");
+      if (!panel) return;
+      panel.classList.remove("show");
+      panel.hidden = true;
+      pinnedSpeechKey = "";
+      document.querySelectorAll("#convo-lines .line.pinned-line").forEach((el) => {
+        el.classList.remove("pinned-line");
+      });
+    }
+
+    function pinCampSpeech(speaker, text, mood, opts = {}) {
+      const clean = (text || "").trim();
+      if (!clean || !speaker) return;
+      const key = `${speaker}::${clean}`;
+      if (pinnedSpeechKey === key) {
+        hideCampSpeechPin();
+        pinnedSpeech.clear();
+        return;
+      }
+      pinnedSpeechKey = key;
+      pinnedSpeech.clear();
+      pinnedSpeech.set(speaker, {
+        line: clean,
+        mood: mood || "neutral",
+        color: opts.color || AGENT_COLORS[opts.agentId] || "#67e8f9",
+        agentId: opts.agentId || "",
+      });
+      speechHold.set(speaker, { line: clean, until: Date.now() + 86400000 });
+      showCampSpeechPin(speaker, clean, mood);
+      document.querySelectorAll("#convo-lines .line.pinned-line").forEach((el) => {
+        el.classList.remove("pinned-line");
+      });
+      const lines = document.querySelectorAll("#convo-lines .line");
+      for (const el of lines) {
+        if (el.dataset.speaker === speaker && el.dataset.text === clean) {
+          el.classList.add("pinned-line");
+          break;
+        }
+      }
+    }
+
+    function unpinCampSpeech() {
+      pinnedSpeech.clear();
+      hideCampSpeechPin();
     }
 
     const AGENT_COLORS = {
@@ -4779,13 +4926,14 @@
       return lines.slice(0, maxLines);
     }
 
-    function drawSpeechBubble(sx, sy, text, color, above = true) {
-      if (!text) return;
+    function drawSpeechBubble(sx, sy, text, color, above = true, meta = null) {
+      if (!text) return null;
       const mobile = isMobileView();
       const maxW = mobile ? 260 : 340;
       const fontSize = mobile ? 14 : 16;
       const lineH = fontSize + 6;
       const maxLines = mobile ? 8 : 10;
+      const pinned = !!(meta && pinnedSpeech.has(meta.speaker));
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
       const lines = wrapCanvasLines(text, maxW - 24, maxLines, fontSize);
@@ -4794,12 +4942,12 @@
       const boxH = lines.length * lineH + 22;
       const bx = sx - boxW / 2;
       const by = above ? sy - boxH - 28 : sy + 20;
-      ctx.fillStyle = "rgba(4, 10, 18, 0.94)";
+      ctx.fillStyle = pinned ? "rgba(8, 18, 32, 0.98)" : "rgba(4, 10, 18, 0.94)";
       ctx.beginPath();
       ctx.roundRect(bx, by, boxW, boxH, 14);
       ctx.fill();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = pinned ? "#fde68a" : color;
+      ctx.lineWidth = pinned ? 3 : 2.5;
       ctx.stroke();
       ctx.fillStyle = color + "33";
       ctx.beginPath();
@@ -4819,15 +4967,33 @@
         ctx.fillText(ln, bx + 14, by + 18 + i * lineH);
       });
       ctx.textAlign = "center";
+      const rect = { bx, by, boxW, boxH, speaker: meta?.speaker || "", agentId: meta?.agentId || "", line: text, color, mood: meta?.mood || "neutral" };
+      speechBubbleRects.push(rect);
+      return rect;
     }
 
     function drawAgentSpeechBubbles() {
+      speechBubbleRects.length = 0;
       for (const n of allRoamers()) {
+        const pinned = pinnedSpeech.get(n.name);
         const held = speechHold.get(n.name);
-        if (!held || held.until <= Date.now()) continue;
+        const active = pinned || (held && held.until > Date.now() ? held : null);
+        if (!active) continue;
         const s = worldToScreen(camp.x + n.x, camp.y + n.y);
-        drawSpeechBubble(s.x, s.y - 8, held.line, n.color || AGENT_COLORS[n.id] || "#67e8f9", true);
+        drawSpeechBubble(s.x, s.y - 8, active.line, n.color || AGENT_COLORS[n.id] || "#67e8f9", true, {
+          speaker: n.name,
+          agentId: n.id,
+          mood: pinned?.mood || n.mood || "neutral",
+        });
       }
+    }
+
+    function hitTestSpeechBubble(sx, sy) {
+      for (let i = speechBubbleRects.length - 1; i >= 0; i--) {
+        const r = speechBubbleRects[i];
+        if (sx >= r.bx && sx <= r.bx + r.boxW && sy >= r.by && sy <= r.by + r.boxH) return r;
+      }
+      return null;
     }
 
     function updateAetherEntities() {
@@ -5186,6 +5352,17 @@
 
     function onCampPointerDown(ev) {
       const { sx, sy } = campPointerPos(ev);
+      const bubbleHit = hitTestSpeechBubble(sx, sy);
+      if (bubbleHit?.speaker) {
+        pinCampSpeech(bubbleHit.speaker, bubbleHit.line, bubbleHit.mood, {
+          color: bubbleHit.color,
+          agentId: bubbleHit.agentId,
+        });
+        showToast(pinnedSpeech.has(bubbleHit.speaker)
+          ? `Pinned ${bubbleHit.speaker} — tap ✕ when done reading`
+          : "Unpinned");
+        return;
+      }
       const hit = hitTestCamp(sx, sy);
       if (hit) {
         dragTarget = { ...hit, moved: false, startSx: sx, startSy: sy, pointerId: ev.pointerId };
@@ -5275,7 +5452,20 @@
       document.getElementById("camp-talk-input")?.focus();
       showToast(sel.value === "all" ? "📢 All agents will answer" : `📍 Nearest: ${agentNames[nearestId] || "Luna"}`);
     };
-    document.getElementById("camp-talk-target")?.addEventListener("change", syncCampTalkAllBtn);
+    const campTalkTargetSel = document.getElementById("camp-talk-target");
+    campTalkTargetSel?.addEventListener("mousedown", () => { campTalkPickerOpen = true; });
+    campTalkTargetSel?.addEventListener("touchstart", () => { campTalkPickerOpen = true; }, { passive: true });
+    campTalkTargetSel?.addEventListener("change", () => {
+      campTalkPickerOpen = false;
+      syncCampTalkAllBtn();
+      showToast(`Talking to: ${campTalkTargetSel.selectedOptions[0]?.textContent || campTalkTargetSel.value}`);
+    });
+    campTalkTargetSel?.addEventListener("blur", () => {
+      setTimeout(() => { campTalkPickerOpen = false; }, 450);
+    });
+    campTalkTargetSel?.addEventListener("cancel", () => {
+      campTalkPickerOpen = false;
+    });
     document.getElementById("btn-dock-help").onclick = () => {
       const tip = document.getElementById("dock-tip");
       if (tip) {
@@ -5333,11 +5523,10 @@
       setTimeout(() => recenterCampView({ blurInput: false }), 80);
     }
     document.getElementById("camp-talk-input")?.addEventListener("focus", onCampInputFocus);
-    document.getElementById("camp-talk-target")?.addEventListener("focus", onCampInputFocus);
     document.getElementById("dialogue-input")?.addEventListener("focus", onCampInputFocus);
     document.getElementById("camp-talk-input")?.addEventListener("blur", onCampInputBlur);
-    document.getElementById("camp-talk-target")?.addEventListener("blur", onCampInputBlur);
     document.getElementById("dialogue-input")?.addEventListener("blur", onCampInputBlur);
+    document.getElementById("camp-speech-pin-close")?.addEventListener("click", () => unpinCampSpeech());
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();
       const el = document.getElementById("convo-log");
@@ -5525,6 +5714,28 @@
 
     const convoLinesEl = document.getElementById("convo-lines");
     const campLines = [];
+    convoLinesEl?.addEventListener("click", (ev) => {
+      const line = ev.target.closest(".line");
+      if (!line) return;
+      const entry = campLines[Number(line.dataset.idx)];
+      if (!entry?.text) return;
+      const agent = allRoamers().find((n) => n.name === entry.speaker || n.id === entry.speaker.toLowerCase());
+      pinCampSpeech(entry.speaker, entry.text, entry.mood, {
+        color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
+        agentId: agent?.id || "",
+      });
+    });
+    document.getElementById("now-speaking")?.addEventListener("click", () => {
+      const el = document.getElementById("now-speaking");
+      if (!el || el.classList.contains("idle")) return;
+      const last = campLines[campLines.length - 1];
+      if (!last) return;
+      const agent = allRoamers().find((n) => n.name === last.speaker || n.id === last.speaker.toLowerCase());
+      pinCampSpeech(last.speaker, last.text, last.mood, {
+        color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
+        agentId: agent?.id || "",
+      });
+    });
 
     let chatterPaused = false;
 
@@ -5541,9 +5752,11 @@
 
     function renderConvoLog() {
       const visible = campLines.slice(-28);
-      convoLinesEl.innerHTML = visible.map((entry) => {
+      const startIdx = Math.max(0, campLines.length - visible.length);
+      convoLinesEl.innerHTML = visible.map((entry, i) => {
         const mc = moodClass(entry.mood);
-        return `<div class="line"><span class="speaker">${escapeHtml(entry.speaker)}<span class="mood-tag ${mc}">${escapeHtml(entry.mood)}</span></span><span class="text">${escapeHtml(entry.text)}</span></div>`;
+        const pinCls = pinnedSpeechKey === `${entry.speaker}::${entry.text}` ? " pinned-line" : "";
+        return `<div class="line${pinCls}" data-idx="${startIdx + i}"><span class="speaker">${escapeHtml(entry.speaker)}<span class="mood-tag ${mc}">${escapeHtml(entry.mood)}</span></span><span class="text">${escapeHtml(entry.text)}</span></div>`;
       }).join("");
       convoLinesEl.scrollTop = convoLinesEl.scrollHeight;
     }

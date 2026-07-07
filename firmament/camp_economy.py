@@ -81,7 +81,7 @@ SHOP_CATALOG: list[dict[str, Any]] = [
         "name": "Bass bloom",
         "emoji": "🎵",
         "cost": 7,
-        "desc": "Camp music goes full aurora rave.",
+        "desc": "Telephantix goes full aurora rave — louder waves & bass bloom.",
         "kind": "effect",
         "effect": "music_boost",
     },

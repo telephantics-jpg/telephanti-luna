@@ -32,27 +32,35 @@
       color: #f2f0eb;
       touch-action: none;
     }
-    #game {
+    #camp-stage {
       position: fixed; z-index: 1;
-      display: block;
       left: 0; top: var(--header-h); right: 0;
       width: 100%;
       height: calc(100vh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
-      height: calc(100dvh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
       max-width: 100vw;
-      background: #050b14 url("/static/camp/aurora-corona-sky.jpg") center center / cover no-repeat;
+      overflow: hidden;
       transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
       transform-origin: 50% 42%;
       transition: transform 0.2s ease-out, filter 0.4s ease;
       filter: saturate(1.08) contrast(1.04);
       will-change: transform;
     }
+    #game {
+      display: block;
+      position: absolute;
+      left: 0; top: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      background: #050b14 url("/static/camp/aurora-corona-sky.jpg") center center / cover no-repeat;
+    }
     #trippy-veil {
       position: fixed; z-index: 2; pointer-events: none;
       left: 0; top: var(--header-h); right: 0;
       width: 100%;
       height: calc(100vh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
-      height: calc(100dvh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
       background:
         radial-gradient(ellipse at 18% 22%, rgba(167, 139, 250, 0.14), transparent 42%),
         radial-gradient(ellipse at 82% 68%, rgba(244, 114, 182, 0.1), transparent 45%),
@@ -65,10 +73,8 @@
       to { opacity: 0.85; transform: translate3d(1.5%, -1%, 0) scale(1.02); }
     }
     @media (min-width: 900px) {
+      #camp-stage,
       #trippy-veil { right: calc(var(--sidebar-w) + var(--gap) * 2); }
-    }
-    @media (min-width: 900px) {
-      #game { right: calc(var(--sidebar-w) + var(--gap) * 2); }
     }
     #camp-header {
       position: fixed; left: 0; right: 0; top: 0; z-index: 12;
@@ -640,11 +646,13 @@
     body.camp-focus #convo-log:not(.collapsed) #convo-log-title-short { display: none; }
     body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     @media (min-width: 900px) {
-      body.camp-focus.speech-expanded #game,
+      body.camp-focus.speech-expanded #camp-stage,
+      body.camp-focus.speech-expanded #trippy-veil,
       body.camp-focus.speech-expanded #action-bar {
         right: calc(var(--sidebar-w) + var(--gap) * 2);
       }
-      body.camp-focus #game,
+      body.camp-focus #camp-stage,
+      body.camp-focus #trippy-veil,
       body.camp-focus #action-bar {
         right: 0;
       }
@@ -679,7 +687,7 @@
         --tilt-x: 0deg;
         --tilt-y: 0deg;
       }
-      #game, #trippy-veil {
+      #camp-stage, #trippy-veil {
         transform: none !important;
         filter: saturate(1.05) contrast(1.02);
       }
@@ -1159,7 +1167,8 @@
         padding-left: max(10px, env(safe-area-inset-left));
         padding-right: max(10px, env(safe-area-inset-right));
       }
-      body.luna-embed-open #game,
+      body.luna-embed-open #camp-stage,
+      body.luna-embed-open #trippy-veil,
       body.luna-embed-open #convo-log,
       body.luna-embed-open #action-bar,
       body.luna-embed-open #camp-header {
@@ -1170,7 +1179,7 @@
   </style>
 </head>
 <body class="camp-trippy">
-  <canvas id="game"></canvas>
+  <div id="camp-stage"><canvas id="game"></canvas></div>
   <div id="trippy-veil" aria-hidden="true"></div>
   <header id="camp-header">
     <div class="header-row top">
@@ -1387,7 +1396,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-06-mobile-canvas-fill";
+    const CAMP_BUILD = "2026-07-06-ios-canvas-dpr";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
 
@@ -1432,8 +1441,12 @@
         || m.includes("load failed") || m.includes("unable to connect")
         || m.includes("network request failed");
     }
+    const campStage = document.getElementById("camp-stage");
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
+    let viewW = 300;
+    let viewH = 150;
+    let campDpr = 1;
     const replyEl = document.getElementById("reply");
 
     if (ctx && !ctx.roundRect) {
@@ -1466,7 +1479,11 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM = 0.38;
+    const WORLD_ZOOM_DESKTOP = 0.38;
+    const WORLD_ZOOM_MOBILE = 0.55;
+    function getWorldZoom() {
+      return isCampMobile() ? WORLD_ZOOM_MOBILE : WORLD_ZOOM_DESKTOP;
+    }
     let campChillUntil = 0;
     const campGuests = [];
     const NPC_ANCHORS = {
@@ -1657,12 +1674,9 @@
     ];
 
     function getCampRelativeBounds() {
-      const style = getComputedStyle(document.documentElement);
-      const headerH = parseFloat(style.getPropertyValue("--header-h")) || 88;
-      const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 124;
       const margin = 24;
-      const tl = screenToWorld(margin, headerH + margin);
-      const br = screenToWorld(canvas.width - margin, canvas.height - dockH - margin);
+      const tl = screenToWorld(margin, margin);
+      const br = screenToWorld(viewW - margin, viewH - margin);
       return {
         xMin: tl.x - camp.x,
         xMax: br.x - camp.x,
@@ -2357,14 +2371,32 @@
     const resetCampUILayout = recenterCampView;
 
     let campSpreadInit = false;
+    let resizeRetry = 0;
     function resize() {
       syncUILayout();
-      const w = Math.max(1, Math.round(canvas.clientWidth || canvas.offsetWidth || window.innerWidth));
-      const h = Math.max(1, Math.round(canvas.clientHeight || canvas.offsetHeight || window.innerHeight));
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
+      const box = (campStage || canvas).getBoundingClientRect();
+      let w = Math.round(box.width);
+      let h = Math.round(box.height);
+      if (w < 2 || h < 2) {
+        if (resizeRetry < 12) {
+          resizeRetry += 1;
+          requestAnimationFrame(resize);
+        }
+        return;
       }
+      resizeRetry = 0;
+      campDpr = Math.min(window.devicePixelRatio || 1, 3);
+      viewW = w;
+      viewH = h;
+      const bw = Math.round(w * campDpr);
+      const bh = Math.round(h * campDpr);
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw;
+        canvas.height = bh;
+      }
+      ctx.setTransform(campDpr, 0, 0, campDpr, 0, 0);
       if (!campSpreadInit) {
         campSpreadInit = true;
         spreadAllNpcs();
@@ -2372,13 +2404,15 @@
     }
     window.addEventListener("resize", resize);
     window.addEventListener("orientationchange", () => setTimeout(resize, 200));
+    window.addEventListener("pageshow", () => setTimeout(resize, 50));
     if (typeof ResizeObserver !== "undefined") {
       const layoutObs = new ResizeObserver(() => resize());
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (hdr) layoutObs.observe(hdr);
       if (dock) layoutObs.observe(dock);
-      layoutObs.observe(canvas);
+      if (campStage) layoutObs.observe(campStage);
+      else layoutObs.observe(canvas);
     }
     resize();
 
@@ -2399,16 +2433,18 @@
     }, { passive: true });
 
     function worldToScreen(wx, wy) {
+      const zoom = getWorldZoom();
       return {
-        x: canvas.width / 2 + (wx - CAM_X) * WORLD_ZOOM,
-        y: canvas.height * 0.36 + (wy - CAM_Y) * WORLD_ZOOM,
+        x: viewW / 2 + (wx - CAM_X) * zoom,
+        y: viewH * 0.36 + (wy - CAM_Y) * zoom,
       };
     }
 
     function screenToWorld(sx, sy) {
+      const zoom = getWorldZoom();
       return {
-        x: CAM_X + (sx - canvas.width / 2) / WORLD_ZOOM,
-        y: CAM_Y + (sy - canvas.height * 0.36) / WORLD_ZOOM,
+        x: CAM_X + (sx - viewW / 2) / zoom,
+        y: CAM_Y + (sy - viewH * 0.36) / zoom,
       };
     }
 
@@ -2433,8 +2469,8 @@
         { hue: 285, y: 0.1, h: 0.16, alpha: 0.2 },
       ];
       for (const band of bands) {
-        const y0 = canvas.height * band.y;
-        const y1 = y0 + canvas.height * band.h;
+        const y0 = viewH * band.y;
+        const y1 = y0 + viewH * band.h;
         const g = ctx.createLinearGradient(0, y0, 0, y1);
         g.addColorStop(0, `hsla(${band.hue}, 85%, 62%, 0)`);
         g.addColorStop(0.35, `hsla(${band.hue + Math.sin(t * 0.4) * 12}, 90%, 68%, ${band.alpha})`);
@@ -2443,19 +2479,19 @@
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.moveTo(0, y0);
-        for (let x = 0; x <= canvas.width; x += 28) {
+        for (let x = 0; x <= viewW; x += 28) {
           const wave = Math.sin(x * 0.008 + t * 0.55 + band.hue) * 18
             + Math.sin(x * 0.003 - t * 0.3) * 10;
-          ctx.lineTo(x, y0 + wave + (x / canvas.width) * (y1 - y0) * 0.35);
+          ctx.lineTo(x, y0 + wave + (x / viewW) * (y1 - y0) * 0.35);
         }
-        ctx.lineTo(canvas.width, y1);
+        ctx.lineTo(viewW, y1);
         ctx.lineTo(0, y1);
         ctx.closePath();
         ctx.fill();
       }
       for (let i = 0; i < 48; i++) {
-        const sx = (i * 97 + t * 40) % canvas.width;
-        const sy = (i * 53) % (canvas.height * 0.35);
+        const sx = (i * 97 + t * 40) % viewW;
+        const sy = (i * 53) % (viewH * 0.35);
         const tw = 0.35 + 0.65 * Math.sin(t * 2.2 + i);
         ctx.fillStyle = `rgba(255,255,255,${0.12 + tw * 0.35})`;
         ctx.beginPath();
@@ -2469,11 +2505,11 @@
       const iw = campBgImage.width;
       const ih = campBgImage.height;
       if (!iw || !ih) return false;
-      const scale = Math.max(canvas.width / iw, canvas.height / ih);
+      const scale = Math.max(viewW / iw, viewH / ih);
       const sw = iw * scale;
       const sh = ih * scale;
-      const ox = (canvas.width - sw) * 0.5;
-      const oy = (canvas.height - sh) * 0.5;
+      const ox = (viewW - sw) * 0.5;
+      const oy = (viewH - sh) * 0.5;
       ctx.drawImage(campBgImage, ox, oy, sw, sh);
       return true;
     }
@@ -2485,18 +2521,18 @@
       ctx.strokeStyle = "rgba(148, 163, 184, 0.22)";
       ctx.lineWidth = 1.2;
       for (let i = 0; i < 90; i++) {
-        const x = ((i * 137 + t * 180) % canvas.width);
-        const y = ((i * 83 + t * 420) % canvas.height);
+        const x = ((i * 137 + t * 180) % viewW);
+        const y = ((i * 83 + t * 420) % viewH);
         ctx.beginPath();
         ctx.moveTo(x, y);
         ctx.lineTo(x - 8, y + 22);
         ctx.stroke();
       }
-      const veil = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      const veil = ctx.createLinearGradient(0, 0, 0, viewH);
       veil.addColorStop(0, "rgba(30, 41, 59, 0.12)");
       veil.addColorStop(1, "rgba(15, 23, 42, 0.35)");
       ctx.fillStyle = veil;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, viewW, viewH);
       ctx.restore();
     }
 
@@ -2517,42 +2553,42 @@
 
     function drawGround() {
       if (!drawCampBackgroundImage()) {
-        const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        const sky = ctx.createLinearGradient(0, 0, 0, viewH);
         sky.addColorStop(0, "#050b14");
         sky.addColorStop(0.22, "#0c1830");
         sky.addColorStop(0.48, "#142a4a");
         sky.addColorStop(0.72, "#1a3352");
         sky.addColorStop(1, "#0b1524");
         ctx.fillStyle = sky;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, viewW, viewH);
         drawAuroraBands();
       } else {
         ctx.save();
         ctx.globalAlpha = 0.22 + Math.sin(Date.now() / 2400) * 0.04;
         drawAuroraBands();
         ctx.restore();
-        const veil = ctx.createLinearGradient(0, canvas.height * 0.42, 0, canvas.height);
+        const veil = ctx.createLinearGradient(0, viewH * 0.42, 0, viewH);
         veil.addColorStop(0, "rgba(5, 11, 20, 0)");
         veil.addColorStop(0.55, "rgba(8, 16, 30, 0.42)");
         veil.addColorStop(1, "rgba(6, 12, 22, 0.82)");
         ctx.fillStyle = veil;
-        ctx.fillRect(0, canvas.height * 0.38, canvas.width, canvas.height * 0.62);
+        ctx.fillRect(0, viewH * 0.38, viewW, viewH * 0.62);
       }
 
       if (groundPattern) {
         ctx.save();
         ctx.fillStyle = groundPattern;
         ctx.globalAlpha = campBgReady ? 0.62 : 0.88;
-        ctx.fillRect(0, canvas.height * 0.28, canvas.width, canvas.height);
+        ctx.fillRect(0, viewH * 0.28, viewW, viewH);
         ctx.restore();
       }
 
       ctx.strokeStyle = campBgReady ? "rgba(103, 232, 249, 0.06)" : "rgba(103, 232, 249, 0.08)";
       for (let i = -20; i < 20; i++) {
-        const y = canvas.height * 0.36 + i * 28;
+        const y = viewH * 0.36 + i * 28;
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.lineTo(viewW, y);
         ctx.stroke();
       }
       drawRainOverlay();

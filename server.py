@@ -3111,26 +3111,9 @@ async def tools_startup_disable():
 
 
 def _desktop_dirs() -> list[Path]:
-    dirs: list[Path] = []
-    if "USERPROFILE" in os.environ:
-        home = Path(os.environ["USERPROFILE"])
-        for p in (home / "Desktop", home / "OneDrive" / "Desktop"):
-            if p.is_dir() and p not in dirs:
-                dirs.append(p)
-    try:
-        import winreg
+    from desktop_paths import luna_artifacts_dir
 
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
-        ) as key:
-            desk, _ = winreg.QueryValueEx(key, "Desktop")
-            p = Path(desk)
-            if p.is_dir() and p not in dirs:
-                dirs.append(p)
-    except OSError:
-        pass
-    return dirs
+    return [luna_artifacts_dir()]
 
 
 def _export_phone_desktop() -> dict:
@@ -3165,7 +3148,7 @@ def _export_phone_desktop() -> dict:
         "ok": True,
         "phone_url": phone_url,
         "saved": saved,
-        "output": f"Saved QR + link to Desktop. Open on phone: {phone_url}",
+        "output": f"Saved QR + link to Desktop\\Luna-Telephanti. Open on phone: {phone_url}",
     }
 
 
@@ -3255,7 +3238,7 @@ async def tools_android_export():
             "ok": True,
             "phone_url": f"http://{lan_ip}:{PORT}{_mobile_visit_query()}",
             "saved": saved,
-            "output": out.splitlines()[-1] if out else "Luna.apk saved to Desktop",
+            "output": out.splitlines()[-1] if out else "Luna.apk saved to Desktop\\Luna-Telephanti",
         }
     except subprocess.TimeoutExpired as exc:
         raise HTTPException(status_code=504, detail="Android build timed out") from exc

@@ -3333,7 +3333,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-load-resize";
+    const CAMP_BUILD = "2026-07-08-camp-stack-fix";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3588,9 +3588,15 @@
       if (Math.abs(cw - viewW) > 4 || Math.abs(ch - viewH) > 4) return true;
       return false;
     }
+    let campLayoutPrimed = false;
     function ensureCampLayoutSized() {
-      if (!campCanvasMismatch()) return;
+      if (campLayoutPrimed) return;
+      if (!campCanvasMismatch()) {
+        campLayoutPrimed = true;
+        return;
+      }
       resize();
+      if (!campCanvasMismatch()) campLayoutPrimed = true;
     }
 
     function iosDismissKeyboard() {
@@ -5620,6 +5626,7 @@
 
     let resizeRetry = 0;
     let lastLayoutSig = "";
+    let resizeDepth = 0;
     function campDisplayDpr() {
       const dpr = window.devicePixelRatio || 1;
       if (isCampMobile()) return Math.min(dpr, isIOS() ? 2.5 : 3);
@@ -5646,33 +5653,39 @@
       ctx.setTransform(campDpr, 0, 0, campDpr, 0, 0);
     }
     function resize() {
-      syncUILayout();
-      const sig = campLayoutSignature();
-      if (isIOS() && lastLayoutSig && sig !== lastLayoutSig) {
-        resetCampLayoutState();
-      }
-      lastLayoutSig = sig;
-      const { w, h } = getCampCanvasSize();
-      if (w < 2 || h < 2) {
-        if (resizeRetry < 16) {
-          resizeRetry += 1;
-          scheduleResize();
+      if (resizeDepth > 0) return;
+      resizeDepth += 1;
+      try {
+        syncUILayout();
+        const sig = campLayoutSignature();
+        if (isIOS() && lastLayoutSig && sig !== lastLayoutSig) {
+          resetCampLayoutState();
         }
-        return;
-      }
-      resizeRetry = 0;
-      applyCanvasDimensions(w, h);
-      ensureViewCamera();
-      updateCampViewportDebug();
-      const zoom = getWorldZoom();
-      const layoutKey = getCampLayoutKey();
-      const zoomChanged = isCampMobile() && Math.abs(zoom - lastSpreadZoom) > 0.005;
-      if (!campSpreadInit || zoomChanged || layoutKey !== lastLayoutKey) {
-        campSpreadInit = true;
-        lastSpreadZoom = zoom;
-        lastLayoutKey = layoutKey;
-        spreadAllNpcs();
-        if (isCampMobile()) initMobileAgentView();
+        lastLayoutSig = sig;
+        const { w, h } = getCampCanvasSize();
+        if (w < 2 || h < 2) {
+          if (resizeRetry < 16) {
+            resizeRetry += 1;
+            scheduleResize();
+          }
+          return;
+        }
+        resizeRetry = 0;
+        applyCanvasDimensions(w, h);
+        ensureViewCamera();
+        updateCampViewportDebug();
+        const zoom = getWorldZoom();
+        const layoutKey = getCampLayoutKey();
+        const zoomChanged = isCampMobile() && Math.abs(zoom - lastSpreadZoom) > 0.005;
+        if (!campSpreadInit || zoomChanged || layoutKey !== lastLayoutKey) {
+          campSpreadInit = true;
+          lastSpreadZoom = zoom;
+          lastLayoutKey = layoutKey;
+          spreadAllNpcs();
+          if (isCampMobile()) initMobileAgentView();
+        }
+      } finally {
+        resizeDepth -= 1;
       }
     }
 
@@ -5725,21 +5738,15 @@
         else if (canvas) layoutObs.observe(canvas);
       }
     }
+    let campLayoutPrimeQueued = false;
     function primeCampLayoutOnLoad() {
       resize();
       scheduleResize();
-      requestAnimationFrame(() => {
-        resize();
-        scheduleResize();
-      });
-      [16, 50, 120, 300, 600].forEach((ms) => {
-        setTimeout(() => {
-          resize();
-          scheduleResize();
-        }, ms);
-      });
-      setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
-      setTimeout(() => window.dispatchEvent(new Event("resize")), 200);
+      if (campLayoutPrimeQueued) return;
+      campLayoutPrimeQueued = true;
+      requestAnimationFrame(() => scheduleResize());
+      [50, 150, 400].forEach((ms) => setTimeout(scheduleResize, ms));
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 80);
     }
     window.addEventListener("load", () => primeCampLayoutOnLoad());
     window.addEventListener("focus", () => scheduleResize());
@@ -10865,7 +10872,7 @@
         h = Math.max(58, Math.ceil(panel.offsetHeight) + 6);
       }
       document.documentElement.style.setProperty("--text-expand-h", `${h}px`);
-      syncUILayout();
+      measureChromeHeights();
     }
 
     function showCampTextExpand(who, text, opts = {}) {
@@ -12581,7 +12588,6 @@
       }
       initCampCat();
       initMobileAgentView();
-      resize();
       primeCampLayoutOnLoad();
       mergeLocalBondsIntoCamp();
       bindCampMusicGestureUnlock();

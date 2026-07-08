@@ -16,7 +16,7 @@
       --dock-icons-h: 58px;
       --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--talk-bar-h) + var(--dock-icons-h) + 10px);
       --speech-panel-h: 0px;
-      --sidebar-w: min(400px, 38vw);
+      --sidebar-w: min(300px, 26vw);
       --gap: 10px;
       --radius: 14px;
       --cyan: #67e8f9;
@@ -385,7 +385,26 @@
     }
     @media (min-width: 900px) {
       #camp-stage,
-      #trippy-veil { right: calc(var(--sidebar-w) + var(--gap) * 2); }
+      #trippy-veil {
+        right: calc(var(--sidebar-w) + var(--gap) * 2);
+        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
+        height: auto !important;
+        transform: none !important;
+        filter: none;
+        transition: none;
+      }
+      #camp-layer-bar { display: flex !important; }
+      #free-tools-row,
+      #weather-row,
+      #unreal-hint,
+      #camp-life-status,
+      #status-toast { display: none !important; }
+      #camp-header {
+        max-height: 80px;
+        gap: 4px;
+        padding-bottom: 4px;
+        overflow: hidden;
+      }
     }
     #camp-header {
       position: fixed; left: 0; right: 0; top: 0; z-index: 25;
@@ -1983,7 +2002,7 @@
     #dialogue-status { flex: 1; font-size: 0.88rem; color: #94a3b8; }
     .chat { display: none; }
     body.camp-focus #convo-log {
-      transition: height 0.25s ease, max-height 0.25s ease, width 0.25s ease;
+      transition: none;
       z-index: 14;
     }
     body.camp-focus #convo-log.collapsed #convo-lines { display: none; }
@@ -2011,15 +2030,13 @@
     body.camp-focus #convo-log:not(.collapsed) #convo-log-title-short { display: none; }
     body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     @media (min-width: 900px) {
+      body.camp-focus #camp-stage,
+      body.camp-focus #trippy-veil,
+      body.camp-focus #action-bar,
       body.camp-focus.speech-expanded #camp-stage,
       body.camp-focus.speech-expanded #trippy-veil,
       body.camp-focus.speech-expanded #action-bar {
         right: calc(var(--sidebar-w) + var(--gap) * 2);
-      }
-      body.camp-focus #camp-stage,
-      body.camp-focus #trippy-veil,
-      body.camp-focus #action-bar {
-        right: 0;
       }
       body.camp-focus #camp-music-bar {
         right: calc(var(--sidebar-w) + var(--gap) * 2 + 8px);
@@ -3267,7 +3284,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-simple-v2";
+    const CAMP_BUILD = "2026-07-08-camp-pc-fix";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3523,6 +3540,7 @@
       }
     }
     if (isCampMobile()) document.documentElement.classList.add("touch-camp");
+    else document.documentElement.classList.add("desktop-camp");
     if (isIOS()) document.documentElement.classList.add("ios-camp");
     if (isAndroid()) document.documentElement.classList.add("android-camp");
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
@@ -3861,11 +3879,18 @@
     let campViewCamY = null;
     const campPointers = new Map();
     let campPinchState = null;
+    function getDesktopFitZoom() {
+      if (viewW < 80 || viewH < 80) return WORLD_ZOOM_DESKTOP;
+      const ar = viewW / Math.max(viewH, 1);
+      const arScale = Math.max(0.82, Math.min(1.18, ar / 1.55));
+      const hScale = Math.max(0.78, Math.min(1.12, viewH / 720));
+      return Math.max(0.30, Math.min(0.50, WORLD_ZOOM_DESKTOP * arScale * hScale));
+    }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
       if (isAndroid()) return WORLD_ZOOM_ANDROID;
       if (isCampMobile()) return WORLD_ZOOM_MOBILE;
-      return WORLD_ZOOM_DESKTOP;
+      return getDesktopFitZoom();
     }
     function getWorldZoom() {
       return campViewZoom ?? getBaseWorldZoom();
@@ -4225,6 +4250,10 @@
     }
     let lastSpreadZoom = 0;
     let lastLayoutKey = "";
+    let lastSpreadKey = "";
+    let campFocusAgentId = null;
+    let campFocusAgentTs = 0;
+    const CAMP_FOCUS_MS = 5000;
     let campChillUntil = 0;
     const campGuests = [];
     const NPC_ANCHORS = {
@@ -5501,6 +5530,7 @@
       if (header) {
         let h = Math.ceil(header.getBoundingClientRect().height);
         if (isCampMobile()) h = Math.min(h, 64);
+        else h = Math.min(h, 80);
         document.documentElement.style.setProperty("--header-h", `${h}px`);
       }
       if (dock) {
@@ -5603,16 +5633,15 @@
       }
       resizeRetry = 0;
       applyCanvasDimensions(w, h);
-      const zoom = getBaseWorldZoom();
-      const layoutKey = getCampLayoutKey();
-      const dimChanged = Math.abs(w - lastCanvasW) > 8 || Math.abs(h - lastCanvasH) > 8;
       lastCanvasW = w;
       lastCanvasH = h;
-      const layoutChanged = layoutKey !== lastLayoutKey || Math.abs(zoom - lastSpreadZoom) > 0.005;
-      if (!campSpreadInit || (layoutChanged && dimChanged)) {
+      const zoom = getBaseWorldZoom();
+      const spreadKey = `${layoutViewportWidth()}x${layoutViewportHeight()}@${isLandscape() ? "L" : "P"}z${zoom.toFixed(3)}`;
+      if (!campSpreadInit || spreadKey !== lastSpreadKey) {
         campSpreadInit = true;
+        lastSpreadKey = spreadKey;
         lastSpreadZoom = zoom;
-        lastLayoutKey = layoutKey;
+        lastLayoutKey = getCampLayoutKey();
         spreadAllNpcs();
         if (isCampMobile()) initMobileAgentView();
       }
@@ -5657,12 +5686,12 @@
       screen.orientation.addEventListener("change", onCampOrientationChange);
     }
     window.addEventListener("pageshow", () => setTimeout(scheduleResize, 50));
-    if (window.visualViewport) {
+    if (window.visualViewport && (isIOS() || isCampMobile())) {
       window.visualViewport.addEventListener("resize", onVisualViewportChange);
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => scheduleResize({ debounceMs: 140 }));
+      const layoutObs = new ResizeObserver(() => scheduleResize({ debounceMs: isCampMobile() ? 140 : 280 }));
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (hdr) layoutObs.observe(hdr);
@@ -6517,7 +6546,7 @@
     }
 
     function focusGrokAgent(agentId) {
-      void openDialogueWindow(agentId);
+      tryOpenFocusedAgentChat(agentId);
     }
 
     async function sendCampTalk() {
@@ -6527,7 +6556,7 @@
       const targetSel = document.getElementById("camp-talk-target");
       const text = (input?.value || "").trim();
       if (!text || campTalkBusy) return;
-      recenterCampView({ blurInput: true });
+      if (isCampMobile()) recenterCampView({ blurInput: true });
       campTalkBusy = true;
       bar?.classList.add("busy");
       if (sendBtn) sendBtn.disabled = true;
@@ -6599,7 +6628,7 @@
       campTalkBusy = false;
       bar?.classList.remove("busy");
       if (sendBtn) sendBtn.disabled = false;
-      recenterCampView({ blurInput: true });
+      if (isCampMobile()) recenterCampView({ blurInput: true });
     }
 
     let conjureBusy = false;
@@ -6636,7 +6665,10 @@
           : "Chatter mini bar";
         showToast(msg);
       }
-      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
+      setTimeout(() => {
+        syncUILayout();
+        if (isCampMobile()) scheduleResize();
+      }, 50);
     }
 
     function cycleMobileChatter() {
@@ -6669,7 +6701,10 @@
       try {
         localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
       } catch (_) {}
-      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
+      setTimeout(() => {
+        syncUILayout();
+        if (isCampMobile()) scheduleResize();
+      }, 50);
     }
 
     function expandSpeechBubble() { setSpeechBubbleDock(false); }
@@ -10326,7 +10361,7 @@
         player.ty = pw.y;
         return;
       }
-      if (nearestId) openDialogue(nearestId);
+      if (nearestId) tryOpenFocusedAgentChat(nearestId);
       else {
         replyEl.textContent = "Tap meadow to walk · tap agents & objects to interact";
       }
@@ -10393,8 +10428,9 @@
         const d = dist(player, { x: camp.x + n.x, y: camp.y + n.y });
         if (d < bestD) { bestD = d; best = n.id; }
       }
+      const prevNearest = nearestId;
       nearestId = best;
-      refreshCampTalkTarget();
+      if (prevNearest !== nearestId) refreshCampTalkTarget();
 
       const enterBtn = document.getElementById("camp-enter-house");
       if (enterBtn) {
@@ -10529,6 +10565,33 @@
       player.tx = wx;
       player.ty = wy;
     }
+    function selectCampAgent(agentId, opts = {}) {
+      const id = (agentId || "").toLowerCase();
+      if (!id) return;
+      campFocusAgentId = id;
+      campFocusAgentTs = Date.now();
+      const npc = findRoamAgent(id);
+      if (npc) {
+        const pos = agentWorldPos(npc);
+        panCampCameraTo(pos.x, pos.y);
+        if (dist(player, pos) > 68) walkPlayerTo(pos.x, pos.y - 6);
+      }
+      if (!opts.quiet) {
+        showToast(`${agentNames[id] || id} selected — click again to chat`);
+      }
+    }
+    function tryOpenFocusedAgentChat(agentId) {
+      const id = (agentId || "").toLowerCase();
+      if (!id) return false;
+      const focused = campFocusAgentId === id && (Date.now() - campFocusAgentTs) < CAMP_FOCUS_MS;
+      if (!focused) {
+        selectCampAgent(id);
+        return false;
+      }
+      campFocusAgentId = null;
+      void openDialogueWindow(id);
+      return true;
+    }
     function interactCampHit(hit) {
       if (!hit?.kind) return;
       switch (hit.kind) {
@@ -10538,12 +10601,13 @@
           const pos = agentWorldPos(npc);
           if (dist(player, pos) > 68) {
             walkPlayerTo(pos.x, pos.y - 6);
-            pendingCampAction = { type: "agent", id: npc.id };
-            showToast(`→ ${npc.name}`);
+            pendingCampAction = null;
+            selectCampAgent(npc.id, { quiet: true });
+            showToast(`→ ${npc.name} — click again to talk`);
             return;
           }
           pendingCampAction = null;
-          openAgentChat(npc);
+          tryOpenFocusedAgentChat(npc.id);
           break;
         }
         case "prop": {
@@ -10679,20 +10743,19 @@
       }
       const pos = campLayerWorldPos(hit.kind, hit.ref);
       if (pos) panCampCameraTo(pos.x, pos.y);
-      interactCampHit(hit);
       if (hit.kind === "agent" && hit.ref) {
-        const sel = document.getElementById("camp-talk-target");
-        if (sel) {
-          sel.value = hit.ref.id;
-          syncCampTalkAllBtn();
-          refreshCampTalkTarget();
+        const npc = hit.ref;
+        const ap = agentWorldPos(npc);
+        walkPlayerTo(ap.x, ap.y - 6);
+        selectCampAgent(npc.id, { quiet: true });
+        if (!opts.quiet) showToast(`→ ${npc.name} — click again to talk`);
+      } else {
+        interactCampHit(hit);
+        if (!opts.quiet) {
+          const label = hit.ref?.name || hit.ref?.emoji || hit.kind;
+          showToast(`→ ${label}`);
         }
       }
-      if (!opts.quiet) {
-        const label = hit.ref?.name || hit.ref?.emoji || hit.kind;
-        showToast(`→ ${label}`);
-      }
-      recenterCampView({ blurInput: true });
       const sel = document.getElementById("camp-layer-select");
       if (sel && !opts.keepValue) {
         setTimeout(() => { sel.value = ""; }, 280);
@@ -10874,10 +10937,6 @@
           showToast("Pick someone or something from the list");
           return;
         }
-        if (val.startsWith("agent:")) {
-          openDialogueWindow(val.slice(6));
-          return;
-        }
         syncSelectTextExpand(sel, "🎯", "Walking to selection…");
         void applyCampLayerPick(val);
       };
@@ -10892,11 +10951,7 @@
           hideCampTextExpand();
           return;
         }
-        if (val.startsWith("agent:")) {
-          openDialogueWindow(val.slice(6));
-          return;
-        }
-        syncSelectTextExpand(sel, "🎯", "Tap → to walk there");
+        if (isCampMobile()) syncSelectTextExpand(sel, "🎯", "Tap → to go · tap agent twice to chat");
       });
     }
 
@@ -10907,7 +10962,6 @@
         const npc = findRoamAgent(a.id);
         if (!npc || dist(player, agentWorldPos(npc)) < 72) {
           pendingCampAction = null;
-          if (npc) openAgentChat(npc);
         }
       } else if (a.type === "prop") {
         const prop = props.find((p) => p.id === a.id);
@@ -11008,8 +11062,7 @@
             spawnDionysusVisit({ manual: true });
             return;
           }
-          const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
-          openAgentChat(npc);
+          tryOpenFocusedAgentChat(id);
         });
       });
     }
@@ -11062,7 +11115,7 @@
     function openAgentChat(npc) {
       if (!npc || npc.leaving) return;
       hideAgentActionMenu();
-      openDialogueWindow(npc.id || npc);
+      tryOpenFocusedAgentChat(npc.id || npc);
     }
 
     function placeDragAt(sx, sy, target) {
@@ -11145,7 +11198,7 @@
           color: bubbleHit.color,
           agentId: bubbleHit.agentId,
         });
-        if (npc) openAgentChat(npc);
+        if (npc) tryOpenFocusedAgentChat(npc.id);
         return;
       }
       const hit = hitTestCamp(sx, sy);
@@ -11279,7 +11332,7 @@
       const hit = hitTestCamp(sx, sy);
       if (hit?.kind === "agent") {
         clearAgentClickPending();
-        openAgentChat(hit.ref);
+        void openDialogueWindow(hit.ref.id);
         return;
       }
       if (campViewZoom != null) {
@@ -11359,8 +11412,7 @@
     document.querySelectorAll("#agent-strip .agent-chip").forEach((btn) => {
       btn.onclick = () => {
         const id = btn.dataset.agent;
-        const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
-        openAgentChat(npc);
+        if (id) tryOpenFocusedAgentChat(id);
       };
     });
     document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
@@ -12455,7 +12507,7 @@
       }
       setCampLifeStatus(isCampMobile()
         ? "🎯 dropdown — pick anyone or anything · tap meadow to walk"
-        : "🎯 Layer picker below · tap meadow to walk · type to talk");
+        : "🎯 Pick in dropdown + → to walk · click agent twice to chat");
       syncCampZoomSliderUi();
       if (isCampMobile()) {
         setTimeout(() => showToast("Tap meadow to walk · tap anyone or anything"), 2200);

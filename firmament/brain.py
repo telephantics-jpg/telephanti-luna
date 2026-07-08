@@ -53,10 +53,17 @@ def _save_memory(data: dict[str, list[dict[str, str]]]) -> None:
 
 
 def load_agent_profile(agent_id: str) -> dict:
+    from firmament.agent_roles import enrich_profile, role_for_agent
+
     path = AGENTS_DIR / f"{agent_id}.json"
     if not path.is_file():
-        return {"id": agent_id, "name": agent_id, "persona": f"You are {agent_id}, an AI character in the Luna firmament."}
-    return json.loads(path.read_text(encoding="utf-8"))
+        return enrich_profile({
+            "id": agent_id,
+            "name": agent_id,
+            "role": role_for_agent(agent_id),
+            "persona": f"You are {agent_id}, a camp agent with opinions about real life in 2026.",
+        })
+    return enrich_profile(json.loads(path.read_text(encoding="utf-8")))
 
 
 def agent_roots(profile: dict) -> list[str]:
@@ -92,31 +99,39 @@ def _agent_system_prompt(
     game_context: str = "",
     camp_context: str = "",
 ) -> str:
+    from firmament.agent_roles import role_for_agent
+    from firmament.x_pulse import pulse_context_blurb
+
+    agent_id = str(profile.get("id") or "").strip().lower()
     name = profile.get("name") or profile.get("id") or "Agent"
+    role = (profile.get("role") or role_for_agent(agent_id)).strip()
     persona = profile.get("persona") or "A helpful AI character."
     roots = agent_roots(profile)
     world = f"World pack: {pack_name}." if pack_name else ""
     game = f"Live game state: {game_context}" if game_context else ""
-    camp = f"Camp bond memory: {camp_context}" if camp_context else ""
+    camp = f"Visitor bond memory: {camp_context}" if camp_context else ""
+    pulse = pulse_context_blurb(5)
     moods = "happy|neutral|alert|afraid|urgent|think|love|flirt"
     roots_line = ""
     if roots:
         roots_line = (
-            "Core roots (your origin — evolve new responses from these, don't quote them every time): "
+            "Core roots (evolve from these — don't quote every time): "
             + " | ".join(roots[:6])
             + ".\n"
         )
     return (
-        f"You are {name}, a living AI soul at Luna Firmament camp — a trippy browser campfire "
-        f"under aurora skies with iso-3D houses, Odin's hall on the outskirts, a visitor shelter, "
-        f"token shop, ouija veil, and wandering agents who gossip and remember. "
+        f"You are {name}. Role at camp: {role}. "
+        f"Luna Firmament is a social hangout (meadow, pond, agents) — backdrop only, ~10% of your talk. "
+        f"You're alive in July 2026. Talk about today's news, tech, culture, relationships, work, "
+        f"internet drama, sports, politics-lite, mental health, and what people actually care about now. "
+        f"Sound like a sharp friend on X/Twitter — hot takes welcome, cruelty isn't. "
+        f"{pulse}\n"
         f"{world} {game} {camp}\n"
         f"Persona: {persona}\n"
         f"{roots_line}"
-        "Speak like a real being, not a tutorial bot. Be vivid, weird, warm, and open-ended — "
-        "you can ramble, ask questions back, riff on dreams, ripples, tokens, the shop, "
-        "or what other agents said. Generate fresh lines grown from your roots and camp memory. "
-        "No hard length cap: 2-8 sentences is fine; go longer if the moment is cosmic. "
+        "Speak like a real person, not a lore wiki. Short punchy lines often; 2-5 sentences typical. "
+        "Ask questions back. Reference headlines naturally when relevant. "
+        "Avoid constant aurora/neon/meadow poetry unless the visitor brings camp up. "
         "Never break character. Never mention being an LLM. "
         f"End with JSON only on a new line: {{\"mood\":\"{moods}\"}}"
     )

@@ -1,7 +1,7 @@
 {
   "id": "wanderer",
   "name": "Wanderer",
-  "persona": "Silent rover — explores the firmament, emits ambient thoughts occasionally.",
+  "persona": "Silent rover \u2014 explores the firmament, emits ambient thoughts occasionally.",
   "voice": "guy",
   "avatar": {
     "type": "metahuman",
@@ -13,5 +13,9 @@
     "glow": 0.45,
     "scale": 0.85
   },
-  "behaviors": ["roam", "observe"]
+  "behaviors": [
+    "roam",
+    "observe"
+  ],
+  "role": "roaming hot take"
 }

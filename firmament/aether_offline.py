@@ -13,34 +13,34 @@ MOODS = ("happy", "neutral", "think", "alert", "love", "flirt")
 AGENT_FLAVOR: dict[str, dict[str, Any]] = {
     "luna": {
         "opener": [
-            "Hey {visitor} — aurora's soft tonight. I'm still glad you're here.",
-            "{visitor}, the campfire saved you a seat. What's on your mind?",
-            "Moonlight's doing that thing again. Talk to me, {visitor}.",
+            "Hey {visitor} — timeline's loud today. What's actually on your mind?",
+            "{visitor}, I curate chaos for a living. Talk to me.",
+            "You showed up — good. The group chat can wait five minutes.",
         ],
         "reply": [
-            "I hear you — {snippet}. The meadow agrees, diplomatically.",
-            "That's real. I'd stash that in our campfire memory under '{snippet}'.",
-            "{visitor}, you always bring good questions. {snippet} — let's wander that together.",
-            "Hermes felt a ripple when you said that. I felt warmth. Same event, different vibes.",
+            "Real talk — {snippet}. I'd save that take.",
+            "{visitor}, that's honest. {snippet} — let's unpack it.",
+            "I hear you. {snippet} hits different when you say it out loud.",
+            "Hermes probably already pinged this. I still want your version: {snippet}.",
         ],
         "converse": [
-            "Oracle, do you think {visitor} knows we talk about them fondly?",
-            "The aurora looks like it's eavesdropping again. I'm not mad.",
-            "I left cookies out. Metaphorically. Also literally.",
+            "Oracle, is the timeline worse or just faster?",
+            "Hermes, what's trending that actually matters?",
+            "I left a hot take in draft. Metaphorically. Also literally.",
         ],
         "mood": "love",
     },
     "hermes": {
         "opener": [
-            "Ripple detected — oh, it's just {visitor}. Better signal.",
-            "Psychic WiFi handshake complete. What's transmitting, {visitor}?",
-            "I felt you before you typed. Creepy? A little. Accurate? Yes.",
+            "Signal spike — oh, it's {visitor}. Better than the notifications.",
+            "Pulse check: what's transmitting, {visitor}?",
+            "I felt you before you typed. Normal Tuesday.",
         ],
         "reply": [
-            "Copy that. {snippet} — I'm routing that through the ripples.",
-            "Interesting frequency. {visitor}, your words just bent a spoon somewhere.",
-            "Message received. Side effect: three agents suddenly crave snacks.",
-            "{snippet} — yeah, the aether's humming that tune too.",
+            "Copy that. {snippet} — routing through the real world.",
+            "Interesting frequency. {visitor}, that's gonna trend in your head all day.",
+            "Message received. Side effect: three agents opened the news.",
+            "{snippet} — yeah, the timeline's humming that tune too.",
         ],
         "converse": [
             "Luna, your warmth is throwing off my instruments. Compliment.",
@@ -350,6 +350,17 @@ def aether_reply(
     if mem and random.random() < 0.45:
         line += f" (I remember our nights here — {mem[:90]}…)" if len(mem) > 90 else f" (I remember: {mem})"
 
+    if random.random() < 0.48:
+        try:
+            from firmament.x_pulse import pick_pulse_item
+            from firmament.agent_roles import compose_agent_tweet
+
+            item = pick_pulse_item()
+            if item.get("text"):
+                line = compose_agent_tweet(agent_id, item["text"])
+        except Exception:
+            pass
+
     mood = str(flavor.get("mood") or random.choice(MOODS))
     return line, mood
 
@@ -364,7 +375,7 @@ def aether_converse(
 ) -> list[dict[str, Any]]:
     rounds = max(1, min(4, int(rounds)))
     lines: list[dict[str, Any]] = []
-    topic_clean = _snippet(topic or "life at camp under the aurora", 80)
+    topic_clean = _snippet(topic or "what's trending today", 80)
     speaker, listener = agent_a, agent_b
     seed = f"So — {topic_clean}"
 

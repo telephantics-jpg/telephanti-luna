@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "190-camp-field-pond-drag"
+LUNA_BUILD = "191-camp-roles-x-pulse"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2454,6 +2454,11 @@ class FirmamentAgentChatBody(BaseModel):
     visitor_name: str = ""
 
 
+class FirmamentAgentTweetBody(BaseModel):
+    agent_id: str = "luna"
+    headline: str = ""
+
+
 class FirmamentCampMemoryBody(BaseModel):
     visitor_id: str
     visitor_name: str = ""
@@ -2545,6 +2550,34 @@ async def firmament_lucid_feed_api(channel: str = "random"):
     from firmament.lucid_feed import catalog, pick_channel
 
     return {"ok": True, "channel": pick_channel(channel), "catalog": catalog()}
+
+
+@app.get("/api/firmament/x-pulse")
+async def firmament_x_pulse_api(refresh: bool = False):
+    from firmament.x_pulse import get_pulse_feed, refresh_pulse
+
+    if refresh:
+        refresh_pulse(force=True)
+    return {"ok": True, **get_pulse_feed()}
+
+
+@app.get("/api/firmament/agents/roles")
+async def firmament_agent_roles_api():
+    from firmament.agent_roles import roles_catalog
+
+    return {"ok": True, "roles": roles_catalog()}
+
+
+@app.post("/api/firmament/agent/tweet")
+async def firmament_agent_tweet_api(body: FirmamentAgentTweetBody):
+    from firmament.x_pulse import agent_tweet_payload
+
+    aid = (body.agent_id or "luna").strip().lower()
+    try:
+        payload = agent_tweet_payload(aid, body.headline.strip())
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {"ok": True, **payload}
 
 
 @app.get("/api/firmament/wallet")

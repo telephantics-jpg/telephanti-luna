@@ -1523,10 +1523,10 @@
     }
     @media (min-width: 900px) {
       :root {
-        --header-h: 40px;
-        --talk-bar-h: 28px;
-        --dock-icons-h: 34px;
-        --dock-h: 66px;
+        --header-h: 32px;
+        --talk-bar-h: 24px;
+        --dock-icons-h: 26px;
+        --dock-h: 52px;
         --sidebar-w: min(260px, 22vw);
         --layer-bar-h: 0px;
         --text-expand-h: 0px;
@@ -1565,13 +1565,14 @@
         gap: 2px;
       }
       .dock-compact .dock-icon {
-        width: 34px;
-        height: 34px;
-        font-size: 0.95rem;
-        border-radius: 10px;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 0.78rem !important;
+        border-radius: 8px;
         border-width: 1px;
+        padding: 0;
       }
-      .dock-compact { gap: 5px; }
+      .dock-compact { gap: 4px; }
       #camp-talk-input { font-size: 0.76rem; padding: 4px 8px; }
       #camp-talk-target { font-size: 0.68rem; }
       #camp-talk-send { padding: 4px 10px; font-size: 0.72rem; }
@@ -1585,6 +1586,13 @@
         right: calc(var(--sidebar-w) + var(--gap) * 2);
         width: min(420px, 38vw);
         bottom: calc(var(--dock-h, 120px) + env(safe-area-inset-bottom, 0px) + 8px);
+      }
+      html.desktop-camp #camp-stage,
+      html.desktop-camp #trippy-veil {
+        top: var(--header-h);
+        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
+        height: auto !important;
+        min-height: 360px;
       }
     }
     #game.dragging { cursor: grabbing; }
@@ -3342,7 +3350,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-zoomout";
+    const CAMP_BUILD = "2026-07-08-camp-pc-fitview";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3564,12 +3572,11 @@
       const box = el.getBoundingClientRect();
       let w = Math.max(1, Math.round(box.width));
       let h = Math.max(1, Math.round(box.height));
-      if (!isCampMobile() && h < 320) {
+      if (!isCampMobile()) {
         const sz = getCampCanvasSizeFromLayout();
-        if (sz.h >= 320) {
-          w = sz.w;
-          h = sz.h;
-        }
+        const layoutH = Math.max(360, Math.round(sz.h));
+        if (h < layoutH * 0.82) h = layoutH;
+        if (w < 120) w = Math.max(w, Math.round(sz.w * 0.72));
       }
       if (isIOS() && (w < 80 || h < 80)) {
         const sz = getCampCanvasSizeFromLayout();
@@ -3929,8 +3936,9 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.22;
-    const DESKTOP_WORLD_WIDTH = 5600;
+    const WORLD_ZOOM_DESKTOP = 0.14;
+    const DESKTOP_WORLD_WIDTH = 7200;
+    const DESKTOP_WORLD_HEIGHT = 4200;
     const WORLD_ZOOM_MOBILE = 0.80;
     const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
     const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
@@ -3943,11 +3951,15 @@
     let campPinchState = null;
     function getDesktopWorldZoom() {
       if (viewW < 80 || viewH < 80) return WORLD_ZOOM_DESKTOP;
-      const z = (viewW * 0.94) / DESKTOP_WORLD_WIDTH;
-      return Math.max(0.18, Math.min(0.26, z));
+      const margin = 28;
+      const zx = (viewW - margin * 2) / DESKTOP_WORLD_WIDTH;
+      const zy = (viewH - margin * 2) / DESKTOP_WORLD_HEIGHT;
+      const fit = Math.min(zx, zy) * 0.96;
+      return Math.max(0.10, Math.min(0.16, fit));
     }
     function campUnitScale() {
-      return 1;
+      if (isCampMobile()) return 1;
+      return Math.max(0.42, Math.min(0.72, getWorldZoom() / 0.38));
     }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
@@ -3958,6 +3970,11 @@
       return getBaseWorldZoom();
     }
     function ensureViewCamera() {
+      if (!isCampMobile()) {
+        campViewCamX = CAM_X;
+        campViewCamY = getCamYOffset();
+        return;
+      }
       if (campViewCamX == null) campViewCamX = CAM_X;
       if (campViewCamY == null) campViewCamY = getCamYOffset();
     }
@@ -5492,10 +5509,10 @@
       const dock = document.getElementById("action-bar");
       if (!isCampMobile()) {
         hideCampTextExpand();
-        document.documentElement.style.setProperty("--header-h", "40px");
-        document.documentElement.style.setProperty("--talk-bar-h", "28px");
-        document.documentElement.style.setProperty("--dock-icons-h", "34px");
-        document.documentElement.style.setProperty("--dock-h", "66px");
+        document.documentElement.style.setProperty("--header-h", "32px");
+        document.documentElement.style.setProperty("--talk-bar-h", "24px");
+        document.documentElement.style.setProperty("--dock-icons-h", "26px");
+        document.documentElement.style.setProperty("--dock-h", "52px");
       } else {
         if (header) {
           let h = Math.ceil(header.getBoundingClientRect().height);
@@ -5609,6 +5626,7 @@
       lastCanvasH = h;
       applyCanvasDimensions(w, h);
       ensureViewCamera();
+      updateCampViewportDebug();
       const zoom = getBaseWorldZoom();
       const layoutKey = getCampLayoutKey();
       if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005 || layoutKey !== lastLayoutKey) {
@@ -10074,7 +10092,8 @@
 
     function drawPerson(wx, wy, color, label, sub, mood, isVisitor = false) {
       const s = worldToScreen(wx, wy);
-      const r = isVisitor ? 11 : 17;
+      const u = campUnitScale();
+      const r = (isVisitor ? 11 : 17) * u;
       ctx.fillStyle = color + "44";
       ctx.beginPath();
       ctx.ellipse(s.x, s.y + 14, r + 2, 6, 0, 0, Math.PI * 2);
@@ -12106,10 +12125,16 @@
 
     const serverStatusEl = document.getElementById("server-status");
     const campBuildEl = document.getElementById("camp-build-tag");
-    if (campBuildEl) {
+    function updateCampViewportDebug() {
+      if (!campBuildEl) return;
       const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
+      if (!isCampMobile()) {
+        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)}`;
+        return;
+      }
       campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;
     }
+    updateCampViewportDebug();
     const grokBuildEl = document.getElementById("grok-term-build");
     if (grokBuildEl) grokBuildEl.textContent = CAMP_BUILD;
     if (isCampMobile()) setGrokTerminalOpen(false);

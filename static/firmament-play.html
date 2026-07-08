@@ -1504,17 +1504,11 @@
       box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
     }
     @media (min-width: 900px) {
-      :root { --layer-bar-h: 38px; }
-      #camp-text-expand.show {
-        order: -2;
-        width: 100%;
-        max-width: 100%;
-      }
+      :root { --layer-bar-h: 0px; --text-expand-h: 0px; }
+      #camp-text-expand,
       #camp-layer-bar {
-        display: flex;
-        order: -1;
-        width: 100%;
-        max-width: 100%;
+        display: none !important;
+        pointer-events: none !important;
       }
       #grok-terminal {
         left: auto;
@@ -3278,7 +3272,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-all3";
+    const CAMP_BUILD = "2026-07-08-camp-pc-revert";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5499,6 +5493,7 @@
         document.documentElement.style.setProperty("--header-h", `${h}px`);
       }
       if (dock) {
+        if (!isCampMobile()) hideCampTextExpand();
         const d = Math.ceil(dock.getBoundingClientRect().height);
         const talkBar = document.getElementById("camp-talk-bar");
         const icons = document.querySelector(".dock-compact");
@@ -10690,6 +10685,7 @@
     }
 
     function showCampTextExpand(who, text, opts = {}) {
+      if (!isCampMobile()) return;
       const panel = document.getElementById("camp-text-expand");
       if (!panel) return;
       const clean = (text || "").trim();
@@ -11608,26 +11604,30 @@
       if (!line) return;
       const entry = campLines[Number(line.dataset.idx)];
       if (!entry?.text) return;
-      showCampTextExpand(entry.speaker, entry.text, {
-        mood: entry.mood,
-        hint: "Full line — tap ✕ to collapse",
-      });
+      if (isCampMobile()) {
+        showCampTextExpand(entry.speaker, entry.text, {
+          mood: entry.mood,
+          hint: "Full line — tap ✕ to collapse",
+        });
+      }
       const agent = allRoamers().find((n) => n.name === entry.speaker || n.id === entry.speaker.toLowerCase());
       pinCampSpeech(entry.speaker, entry.text, entry.mood, {
         color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
         agentId: agent?.id || "",
       });
-      if (agent) showToast(`Full line — pinned ${entry.speaker}`);
+      if (agent) showToast(isCampMobile() ? `Full line — pinned ${entry.speaker}` : `Pinned ${entry.speaker} — tap them to chat`);
     });
     document.getElementById("now-speaking")?.addEventListener("click", () => {
       const el = document.getElementById("now-speaking");
       if (!el || el.classList.contains("idle")) return;
       const last = campLines[campLines.length - 1];
       if (!last?.text) return;
-      showCampTextExpand(last.speaker, last.text, {
-        mood: last.mood,
-        hint: "Full line — tap ✕ to collapse",
-      });
+      if (isCampMobile()) {
+        showCampTextExpand(last.speaker, last.text, {
+          mood: last.mood,
+          hint: "Full line — tap ✕ to collapse",
+        });
+      }
       const agent = allRoamers().find((n) => n.name === last.speaker || n.id === last.speaker.toLowerCase());
       pinCampSpeech(last.speaker, last.text, last.mood, {
         color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
@@ -11742,10 +11742,10 @@
         renderConvoLog();
         appendGrokTerminalLine(speaker, clean, moodVal);
       }
-      if (clean && !opts.quiet && speaker !== "Camp" && !isVisitorSpeaker(speaker)) {
+      if (isCampMobile() && clean && !opts.quiet && speaker !== "Camp" && !isVisitorSpeaker(speaker)) {
         showCampTextExpand(speaker, clean, {
           mood: moodVal,
-          hint: isCampMobile() ? "Full agent line — tap ✕ to collapse" : "Full line — click ✕ to collapse",
+          hint: "Full agent line — tap ✕ to collapse",
         });
       }
       if (!canvasCampChatOnly() && !convoReadingHold && !quiet) updateNowSpeaking(speaker, clean, moodVal);

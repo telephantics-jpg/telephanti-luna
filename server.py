@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "191-camp-roles-x-pulse"
+LUNA_BUILD = "192-camp-witty-converse"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2503,7 +2503,8 @@ async def firmament_llm_status_api():
 class FirmamentAgentsConverseBody(BaseModel):
     agent_a: str = "luna"
     agent_b: str = "oracle"
-    topic: str = "Psychic ripples at Luna camp — what should we explore with Hermes?"
+    agent_c: str = ""
+    topic: str = ""
     rounds: int = 2
     visitor_id: str = ""
     visitor_name: str = ""
@@ -2636,6 +2637,7 @@ async def firmament_agents_converse_api(body: FirmamentAgentsConverseBody):
             body.agent_b,
             topic=body.topic,
             rounds=body.rounds,
+            agent_c=body.agent_c,
             pack_name=str(hub.pack.get("name") or hub.pack_id),
             visitor_id=body.visitor_id,
             visitor_name=body.visitor_name,

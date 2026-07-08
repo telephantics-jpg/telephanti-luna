@@ -326,6 +326,7 @@ def aether_reply(
     camp_context: str = "",
     visitor_name: str = "",
     from_agent: str = "",
+    converse_mode: bool = False,
 ) -> tuple[str, str]:
     profile = load_agent_profile(agent_id)
     name = profile.get("name") or agent_id
@@ -335,7 +336,44 @@ def aether_reply(
     snip = _snippet(msg)
     mem = _memory_hint(camp_context)
 
-    if from_agent:
+    if converse_mode:
+        from firmament.camp_converse import _format_opener, _format_reply, _snippet as cv_snip
+
+        prev_line = msg
+        others: list[str] = []
+        topic_bit = msg
+        if "Thread so far:" in msg:
+            tail = msg.split("Thread so far:", 1)[-1].split("Reply DIRECTLY", 1)[0].strip()
+            rows = [r.strip() for r in tail.split("\n") if r.strip() and ":" in r]
+            if rows:
+                prev_line = rows[-1].split(":", 1)[-1].strip()
+            if "Group chat (" in msg:
+                inner = msg.split("Group chat (", 1)[1].split(")", 1)[0]
+                others = [x.strip() for x in inner.split(",") if x.strip()]
+        elif "about:" in msg:
+            topic_bit = msg.split("about:", 1)[1].split("One sharp", 1)[0].strip()
+            if "with " in msg:
+                inner = msg.split("with ", 1)[1].split(" about:", 1)[0]
+                others = [x.strip() for x in inner.split(",") if x.strip()]
+
+        group_ids = [agent_id]
+        if from_agent:
+            group_ids.append(from_agent)
+        if len(others) > 1:
+            my_name = load_agent_profile(agent_id).get("name") or agent_id
+            for name in others:
+                if name == my_name:
+                    continue
+                for aid in AGENT_FLAVOR:
+                    if load_agent_profile(aid).get("name") == name and aid not in group_ids:
+                        group_ids.append(aid)
+                        break
+
+        if from_agent:
+            line = _format_reply(agent_id, from_agent, prev_line, group_ids[:3] or [agent_id, from_agent])
+        else:
+            line = _format_opener(agent_id, others or ["camp"], cv_snip(topic_bit, 80))
+    elif from_agent:
         other = load_agent_profile(from_agent).get("name") or from_agent
         pool = flavor.get("converse") or AGENT_FLAVOR["luna"]["converse"]
         raw = random.choice(pool).format(visitor=visitor, snippet=snip, topic=_snippet(msg, 64))
@@ -350,7 +388,7 @@ def aether_reply(
     if mem and random.random() < 0.45:
         line += f" (I remember our nights here — {mem[:90]}…)" if len(mem) > 90 else f" (I remember: {mem})"
 
-    if random.random() < 0.48:
+    if not converse_mode and not from_agent and random.random() < 0.48:
         try:
             from firmament.x_pulse import pick_pulse_item
             from firmament.agent_roles import compose_agent_tweet
@@ -372,29 +410,22 @@ def aether_converse(
     *,
     visitor_name: str = "",
     rounds: int = 2,
+    agent_c: str = "",
 ) -> list[dict[str, Any]]:
-    rounds = max(1, min(4, int(rounds)))
-    lines: list[dict[str, Any]] = []
-    topic_clean = _snippet(topic or "what's trending today", 80)
-    speaker, listener = agent_a, agent_b
-    seed = f"So — {topic_clean}"
+    from firmament.camp_converse import aether_group_converse
 
-    for i in range(rounds):
-        if i > 0:
-            seed = random.choice(CONVERSE_BRIDGE).format(topic=topic_clean)
-        reply, mood = aether_reply(
-            speaker,
-            seed,
-            visitor_name=visitor_name,
-            from_agent=listener,
-        )
-        prof = load_agent_profile(speaker)
-        lines.append({
-            "agent_id": speaker,
-            "name": prof.get("name") or speaker,
-            "line": reply,
-            "mood": mood,
-        })
-        speaker, listener = listener, speaker
-
-    return lines
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for raw in (agent_a, agent_c, agent_b):
+        aid = (raw or "").strip().lower()
+        if aid and aid not in seen:
+            seen.add(aid)
+            ordered.append(aid)
+    if len(ordered) < 2:
+        ordered = ["luna", "hermes"]
+    return aether_group_converse(
+        ordered,
+        topic or "",
+        visitor_name=visitor_name,
+        rounds=max(1, min(4, int(rounds))),
+    )

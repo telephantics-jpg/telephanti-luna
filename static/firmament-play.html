@@ -2549,7 +2549,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-roles-x-pulse";
+    const CAMP_BUILD = "2026-07-08-camp-witty-converse";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2929,16 +2929,126 @@
       return { agent_id: agentId, name: agentNames[agentId] || agentId, reply, mood: flavor.mood, backend: "aether" };
     }
 
-    function aetherLocalConverse(agentA, agentB, topic) {
-      const topicS = aetherSnippet(topic || "camp under the aurora", 72);
+    const CONVERSE_WITTY_TOPICS = [
+      "That headline everyone's pretending they read the whole article on.",
+      "Whether group chats should have lawyers present.",
+      "The worst take you saw before breakfast.",
+      "AI doing everyone's job except the fun parts.",
+      "Dating apps vs. just talking to someone at the pond.",
+      "A rumor that sounds fake but feels true.",
+      "What {visitor} would post if they went viral for one day.",
+      "The difference between resting and rotting — discuss.",
+      "A tech launch that solved a problem nobody had.",
+      "Who at camp would survive a reality show and why.",
+    ];
+    const CONVERSE_PULSE_FRAMES = [
+      "So everyone's yelling about '{headline}' — what's the actual take?",
+      "Okay '{headline}' just dropped — who's being dramatic?",
+      "'{headline}' — hot take round, go.",
+    ];
+    const CONVERSE_OPENERS = [
+      "Okay {others} — {topic} And I will die on this hill.",
+      "Real question for {others}: {topic}",
+      "I wasn't gonna say anything but {topic}",
+      "{others}, hear me out — {topic}",
+      "*cracks knuckles* {topic} Fight me politely.",
+    ];
+    const CONVERSE_REPLIES = [
+      "{other}, you said \"{prev}\" — bold. Wrong, but bold.",
+      "Wait wait — {other} really went with \"{prev}\"? I need a minute.",
+      "Building on {other}: {prev} — and that's why I'm right.",
+      "{other}, respectfully… no. {prev} is giving group-chat energy.",
+      "Okay {other} has a point with \"{prev}\". Rare. Document this.",
+      "I love {other} but \"{prev}\" sounds like a podcast title.",
+      "Counterpoint to {other}: {prev} — anyway here's my actual take.",
+      "{other} said \"{prev}\" and the meadow went silent. Deserved.",
+      "Not to escalate but {other}'s \"{prev}\" keeps me up at night.",
+      "{other}, that's the funniest wrong thing I've heard today. {prev}",
+    ];
+    const CONVERSE_TRIO_CHIMES = [
+      "You two — {other_a} and {other_b} — are doing a whole thing. {prev} I'm team chaos.",
+      "Interrupting: {other} said \"{prev}\" and I'm choosing violence (verbally).",
+      "As the adult here: {prev} …jk {other}, fight on.",
+      "{other}'s \"{prev}\" — third opinion: both of you need water.",
+      "I was quiet but {other}'s \"{prev}\" activated my commentary gene.",
+      "Peacemaker? Never met her. {prev} — {other}, explain yourself.",
+    ];
+    const CONVERSE_CLOSERS = [
+      "Anyway we're never agreeing. Same time tomorrow?",
+      "Great chat. I've chosen delusion. Bye.",
+      "Truce. The visitor didn't ask for this TED talk.",
+      "We're all right. We're all annoying. Perfect.",
+    ];
+
+    function pickLocalConverseTopic() {
+      const visitor = myVisitorName || player.name || "the visitor";
+      if (campPulseItems.length && Math.random() < 0.55) {
+        const item = campPulseItems[Math.floor(Math.random() * campPulseItems.length)];
+        const headline = aetherSnippet(item.text || "", 90);
+        if (headline) {
+          const frame = CONVERSE_PULSE_FRAMES[Math.floor(Math.random() * CONVERSE_PULSE_FRAMES.length)];
+          return frame.replace("{headline}", headline);
+        }
+      }
+      const raw = CONVERSE_WITTY_TOPICS[Math.floor(Math.random() * CONVERSE_WITTY_TOPICS.length)];
+      return raw.replace("{visitor}", visitor);
+    }
+
+    function converseLocalOpener(agentId, otherIds, topic) {
+      const name = agentNames[agentId] || agentId;
+      const others = otherIds.map((id) => agentNames[id] || id).join(", ") || "camp";
+      const tpl = CONVERSE_OPENERS[Math.floor(Math.random() * CONVERSE_OPENERS.length)];
+      return tpl.replace("{others}", others).replace("{topic}", topic);
+    }
+
+    function converseLocalReply(speakerId, prevSpeakerId, prevLine, groupIds) {
+      const other = agentNames[prevSpeakerId] || prevSpeakerId;
+      const prev = aetherSnippet(prevLine, 52);
+      if (groupIds.length >= 3 && Math.random() < 0.38) {
+        const others = groupIds.filter((id) => id !== speakerId).map((id) => agentNames[id] || id);
+        const tpl = CONVERSE_TRIO_CHIMES[Math.floor(Math.random() * CONVERSE_TRIO_CHIMES.length)];
+        return tpl
+          .replace("{other}", other)
+          .replace("{other_a}", others[0] || other)
+          .replace("{other_b}", others[1] || others[0] || other)
+          .replace("{prev}", prev);
+      }
+      const tpl = CONVERSE_REPLIES[Math.floor(Math.random() * CONVERSE_REPLIES.length)];
+      return tpl.replace("{other}", other).replace("{prev}", prev);
+    }
+
+    function totalLocalConverseLines(agentCount, rounds) {
+      if (agentCount < 2) return 2;
+      if (agentCount === 2) return Math.max(2, Math.min(8, rounds * 2));
+      return Math.max(3, Math.min(9, rounds * agentCount));
+    }
+
+    function aetherLocalConverse(agentIds, topic, rounds = 2) {
+      const group = (Array.isArray(agentIds) ? agentIds : ["luna", "hermes"]).slice(0, 3);
+      const topicClean = aetherSnippet(topic || pickLocalConverseTopic(), 100);
       const lines = [];
-      let speaker = agentA;
-      let listener = agentB;
-      const seeds = [`So — ${topicS}`, `Tangent: ${topicS}`, `Meanwhile — ${topicS}`];
-      for (let i = 0; i < 2; i++) {
-        const data = aetherLocalChat(speaker, `${agentNames[listener] || listener} — ${seeds[i]}`);
-        lines.push({ agent_id: speaker, name: data.name, line: data.reply, mood: data.mood });
-        [speaker, listener] = [listener, speaker];
+      const opener = converseLocalOpener(group[0], group.slice(1), topicClean);
+      lines.push({
+        agent_id: group[0],
+        name: agentNames[group[0]] || group[0],
+        line: opener,
+        mood: opener.includes("?") ? "think" : "happy",
+      });
+      const total = totalLocalConverseLines(group.length, rounds);
+      for (let i = 1; i < total; i++) {
+        const prev = lines[lines.length - 1];
+        const prevIdx = group.indexOf(prev.agent_id);
+        const speakerId = group[(prevIdx + 1) % group.length];
+        let line = converseLocalReply(speakerId, prev.agent_id, prev.line, group);
+        if (i === total - 1 && Math.random() < 0.45) {
+          line = CONVERSE_CLOSERS[Math.floor(Math.random() * CONVERSE_CLOSERS.length)];
+        }
+        lines.push({
+          agent_id: speakerId,
+          name: agentNames[speakerId] || speakerId,
+          line,
+          mood: ["happy", "think", "love", "flirt", "neutral"][Math.floor(Math.random() * 5)],
+        });
       }
       return lines;
     }
@@ -3936,19 +4046,24 @@
       enforceNpcSeparation(0.2);
     }
 
-    function markSocializing(idA, idB) {
-      for (const id of [idA, idB]) {
+    function markSocializingGroup(ids) {
+      const group = [...new Set(ids)].filter(Boolean);
+      for (const id of group) {
         const n = findRoamAgent(id);
         if (!n) continue;
         n.socializing = true;
         n.behavior = "visit";
-        n.visitTarget = id === idA ? idB : idA;
+        n.visitTarget = group.find((g) => g !== id) || null;
         n.behaviorTimer = 9999;
       }
     }
 
-    function endSocializing(idA, idB) {
-      for (const id of [idA, idB]) {
+    function markSocializing(idA, idB) {
+      markSocializingGroup([idA, idB]);
+    }
+
+    function endSocializingGroup(ids) {
+      for (const id of [...new Set(ids)].filter(Boolean)) {
         const n = findRoamAgent(id);
         if (!n) continue;
         n.socializing = false;
@@ -3962,35 +4077,45 @@
       }
     }
 
-    function gatherForChat(agentAId, agentBId) {
+    function endSocializing(idA, idB) {
+      endSocializingGroup([idA, idB]);
+    }
+
+    function gatherForChatGroup(agentIds) {
       return new Promise((resolve) => {
-        const a = findRoamAgent(agentAId);
-        const b = findRoamAgent(agentBId);
-        if (!a || !b) { resolve(); return; }
-        markSocializing(agentAId, agentBId);
-        a.insideHouse = null;
-        b.insideHouse = null;
-        a.homeTarget = null;
-        b.homeTarget = null;
-        a.housePhase = null;
-        b.housePhase = null;
+        const ids = [...new Set(agentIds)].filter(Boolean).slice(0, 3);
+        const agents = ids.map((id) => findRoamAgent(id)).filter(Boolean);
+        if (agents.length < 2) { resolve(); return; }
+        markSocializingGroup(ids);
         const coronaA = Math.random() * Math.PI * 2;
         const meet = { x: Math.cos(coronaA) * 8, y: Math.sin(coronaA) * 5 - 4 };
-        a.gathering = true;
-        b.gathering = true;
-        a.tx = meet.x - 22;
-        a.ty = meet.y + (Math.random() - 0.5) * 10;
-        b.tx = meet.x + 22;
-        b.ty = meet.y + (Math.random() - 0.5) * 10;
-        const deadline = Date.now() + 5200;
+        const offsets = agents.length >= 3
+          ? [
+            { dx: -20, dy: -8 },
+            { dx: 20, dy: -8 },
+            { dx: 0, dy: 14 },
+          ]
+          : [
+            { dx: -22, dy: 0 },
+            { dx: 22, dy: 0 },
+          ];
+        agents.forEach((n, i) => {
+          n.insideHouse = null;
+          n.homeTarget = null;
+          n.housePhase = null;
+          n.gathering = true;
+          const off = offsets[i] || offsets[0];
+          n.tx = meet.x + off.dx + (Math.random() - 0.5) * 6;
+          n.ty = meet.y + off.dy + (Math.random() - 0.5) * 6;
+        });
+        const deadline = Date.now() + 5600;
         const check = () => {
-          const da = dist(a, { x: a.tx, y: a.ty });
-          const db = dist(b, { x: b.tx, y: b.ty });
-          if ((da < 12 && db < 12) || Date.now() > deadline) {
-            a.gathering = false;
-            b.gathering = false;
-            a.idle = 60;
-            b.idle = 60;
+          const arrived = agents.every((n) => dist(n, { x: n.tx, y: n.ty }) < 14);
+          if (arrived || Date.now() > deadline) {
+            agents.forEach((n) => {
+              n.gathering = false;
+              n.idle = 60;
+            });
             resolve();
             return;
           }
@@ -3998,6 +4123,10 @@
         };
         check();
       });
+    }
+
+    function gatherForChat(agentAId, agentBId) {
+      return gatherForChatGroup([agentAId, agentBId]);
     }
 
     function updateCampGuests() {
@@ -9635,11 +9764,51 @@
       return pairs;
     }
 
+    function campConverseTrios() {
+      const ids = campConverseAgentIds();
+      const trios = [];
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          for (let k = j + 1; k < ids.length; k++) trios.push([ids[i], ids[j], ids[k]]);
+        }
+      }
+      return trios;
+    }
+
+    function converseGroupLabel(ids) {
+      return ids.map((id) => agentNames[id] || id).join(ids.length > 2 ? " · " : " & ");
+    }
+
+    function filterConverseGroup(ids) {
+      let group = [...ids];
+      if (!campGuests.some((g) => g.id === "dionysus")) {
+        group = group.filter((id) => id !== "dionysus");
+      }
+      if (!campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving)) {
+        group = group.filter((id) => !ARCHANGEL_IDS.includes(id));
+      }
+      return group.length >= 2 ? group : null;
+    }
+
     function tryProximityAgentChatter() {
       if (Date.now() - lastProximityChatter < 38000) return;
       if (chatterPaused || converseBusy || dialogueBackdrop.classList.contains("open")) return;
       const roamers = allRoamers().filter((n) => !n.leaving && !n.socializing && !n.gathering
         && n.behavior !== "meditate" && !n.insideHouse);
+      for (let i = 0; i < roamers.length; i++) {
+        for (let j = i + 1; j < roamers.length; j++) {
+          for (let k = j + 1; k < roamers.length; k++) {
+            const d1 = dist(roamers[i], roamers[j]);
+            const d2 = dist(roamers[j], roamers[k]);
+            const d3 = dist(roamers[i], roamers[k]);
+            if (d1 < 88 && d2 < 88 && d3 < 100 && Math.random() < 0.09) {
+              lastProximityChatter = Date.now();
+              runCampConverse([roamers[i].id, roamers[j].id, roamers[k].id]);
+              return;
+            }
+          }
+        }
+      }
       for (let i = 0; i < roamers.length; i++) {
         for (let j = i + 1; j < roamers.length; j++) {
           if (dist(roamers[i], roamers[j]) < 78 && Math.random() < 0.14) {
@@ -9663,71 +9832,49 @@
       }
     }
 
-    async function runCampConverse(forcedPair) {
+    async function runCampConverse(forcedGroup) {
       if (converseBusy) return;
-      if (forcedPair && forcedPair.includes("dionysus") && !campGuests.some((g) => g.id === "dionysus")) {
-        setTimeout(() => runCampConverse(forcedPair), 28000);
-        return;
-      }
-      if (forcedPair && forcedPair.some((id) => ARCHANGEL_IDS.includes(id)) && !campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving)) {
-        setTimeout(() => runCampConverse(forcedPair), 28000);
+      const forced = forcedGroup ? filterConverseGroup(forcedGroup) : null;
+      if (forcedGroup && !forced) {
+        setTimeout(() => runCampConverse(forcedGroup), 28000);
         return;
       }
       if (chatterPaused || dialogueBackdrop.classList.contains("open")) {
-        setTimeout(() => runCampConverse(forcedPair), CAMP_PACE.retryConverseMs);
+        setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
         return;
       }
       let pool = campConversePairs();
-      if (!campGuests.some((g) => g.id === "dionysus")) {
-        pool = pool.filter((p) => !p.includes("dionysus"));
+      if (Math.random() < 0.22 && campConverseTrios().length) {
+        pool = campConverseTrios();
       }
-      if (!campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving)) {
-        pool = pool.filter((p) => !p.some((id) => ARCHANGEL_IDS.includes(id)));
+      pool = pool.map((g) => filterConverseGroup(g)).filter(Boolean);
+      if (!pool.length) {
+        setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
+        return;
       }
-      const topics = [
-        "The aurora over camp — riff on what you overheard lately.",
-        "Psychic ripples from Sentinel — what are you sensing?",
-        "The sun corona at camp center — should we huddle closer tonight?",
-        "Cookies on the table — who wants one?",
-        "Oracle, what curious thing might happen if we wander farther from the fire?",
-        "Hermes felt a ripple — does your intuition agree?",
-        "Someone left beer by the cooler — who speaks first?",
-        "Caduceus glowed — is the camp energy shifting?",
-        "Jesus is walking the meadow — what do weary travelers need to hear tonight?",
-        "Say something curious and warm — like friends chatting unprompted at camp.",
-        "Someone passed weed at camp — react mellow, spaced out, a little cosmic.",
-        "Take your time answering — you're lounging far from the campfire under the aurora.",
-        "Dionysus just wandered in with wine energy — react like old camp friends.",
-        "Aurora Velvet bass is leaking through the meadow — opinions?",
-        "Violet says the lavender static is loud tonight — agree or disagree.",
-        "Seraph noticed someone tired at the edge of camp — say something gentle.",
-        "Odin's hall creaks on the outskirts — did the ravens bring news?",
-        "Telephantix from the jukebox — who feels the bass in their bones?",
-        "Remember something another agent said recently and callback to it.",
-        "Grow a new thought from your roots — don't repeat the same line twice.",
-      ];
-      const pick = forcedPair || pool[Math.floor(Math.random() * pool.length)];
-      const topic = topics[Math.floor(Math.random() * topics.length)];
-      const rounds = Math.random() < 0.35 ? 3 : 2;
-      const labelA = agentNames[pick[0]] || pick[0];
-      const labelB = agentNames[pick[1]] || pick[1];
+      const pick = forced || pool[Math.floor(Math.random() * pool.length)];
+      const topic = pickLocalConverseTopic();
+      const rounds = pick.length >= 3 ? (Math.random() < 0.4 ? 2 : 3) : (Math.random() < 0.35 ? 3 : 2);
+      const label = converseGroupLabel(pick);
       converseBusy = true;
-      setCampLifeStatus(`${labelA} & ${labelB} are walking to chat…`);
-      showToast(`${labelA} & ${labelB} meeting up…`);
-      markSocializing(pick[0], pick[1]);
+      setCampLifeStatus(`${label} are walking to chat…`);
+      showToast(`${label} meeting up…`);
+      markSocializingGroup(pick);
       try {
-        await gatherForChat(pick[0], pick[1]);
-        setCampLifeStatus(`${labelA} & ${labelB} are talking…`);
+        await gatherForChatGroup(pick);
+        setCampLifeStatus(`${label} are talking…`);
+        const body = {
+          agent_a: pick[0],
+          agent_b: pick[pick.length - 1],
+          topic,
+          rounds,
+          ...visitorPayload(),
+        };
+        if (pick.length >= 3) body.agent_c = pick[1];
         const res = await fetch("/api/firmament/agents/converse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agent_a: pick[0],
-            agent_b: pick[1],
-            topic,
-            rounds,
-            ...visitorPayload(),
-          }),
+          body: JSON.stringify(body),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "converse failed");
@@ -9737,8 +9884,8 @@
         );
         setCampLifeStatus("Camp is alive — agents wandering & chatting");
       } catch (err) {
-        const lines = aetherLocalConverse(pick[0], pick[1], topic);
-        setCampLifeStatus(`${labelA} & ${labelB} — aether brains chatting (free offline)`);
+        const lines = aetherLocalConverse(pick, topic, rounds);
+        setCampLifeStatus(`${label} — aether brains chatting (free offline)`);
         showToast("🌫 Agent-to-agent via aether — Ollama/server napping");
         await playConverseLines(
           lines,
@@ -9748,7 +9895,7 @@
           pushCampLine("Camp", `Brain hiccup — aether carried the scene: ${err.message || "ok"}`, 18, "think");
         }
       }
-      endSocializing(pick[0], pick[1]);
+      endSocializingGroup(pick);
       converseBusy = false;
       setTimeout(
         () => runCampConverse(),

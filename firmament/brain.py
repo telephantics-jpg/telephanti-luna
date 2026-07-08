@@ -200,6 +200,7 @@ async def agent_chat(
     from_agent: str = "",
     visitor_id: str = "",
     visitor_name: str = "",
+    converse_mode: bool = False,
 ) -> dict[str, Any]:
     message = (message or "").strip()
     if len(message) < 1:
@@ -213,7 +214,10 @@ async def agent_chat(
         if not visitor_id:
             memory.pop(agent_id, None)
 
-    history = memory.get(mem_key) or (memory.get(agent_id, []) if visitor_id else [])
+    if converse_mode:
+        history: list[dict[str, str]] = []
+    else:
+        history = memory.get(mem_key) or (memory.get(agent_id, []) if visitor_id else [])
     if not game_context:
         try:
             from firmament.game_state import context_blurb
@@ -236,14 +240,25 @@ async def agent_chat(
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += f"\nYou are replying to {other_name}, another NPC at camp — talk TO them, not about them."
+        if converse_mode:
+            sys_prompt += (
+                " CONVERSE MODE: meadow chit-chat between agents. "
+                "One sharp witty sentence (two max). React to their exact words — don't change subject. "
+                "Be funny, not cruel. No hashtags, no @mentions, no lecturing."
+            )
         try:
             from firmament.camp_memory import learned_phrases_for_agent
 
             their_words = learned_phrases_for_agent(from_agent, visitor_id, limit=2)
-            if their_words:
+            if their_words and not converse_mode:
                 sys_prompt += f" {other_name} recently said: \"{their_words[-1][:100]}\"."
         except Exception:
             pass
+    elif converse_mode:
+        sys_prompt += (
+            "\nCONVERSE MODE: Start a witty group chat hook. "
+            "One sharp funny line. Be clever, warm, in character."
+        )
 
     messages = [{"role": "system", "content": sys_prompt}]
     for turn in history[-MAX_MEMORY_TURNS:]:
@@ -273,18 +288,20 @@ async def agent_chat(
             camp_context=camp_context,
             visitor_name=visitor_name,
             from_agent=from_agent,
+            converse_mode=converse_mode,
         )
         used_backend = "aether"
         agent_model = "aether-local"
     if not reply:
         reply = "I'm here — say that again?"
 
-    history = history + [
-        {"role": "user", "content": message},
-        {"role": "assistant", "content": reply},
-    ]
-    memory[mem_key] = history[-MAX_MEMORY_TURNS * 2 :]
-    _save_memory(memory)
+    if not converse_mode:
+        history = history + [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": reply},
+        ]
+        memory[mem_key] = history[-MAX_MEMORY_TURNS * 2 :]
+        _save_memory(memory)
 
     return {
         "agent_id": agent_id,
@@ -299,40 +316,93 @@ async def agent_chat(
 async def agents_converse(
     agent_a: str,
     agent_b: str,
-    topic: str = "Life at the Luna Firmament playground camp — what should we explore next?",
+    topic: str = "",
     rounds: int = 2,
     *,
+    agent_c: str = "",
     pack_name: str = "",
     visitor_id: str = "",
     visitor_name: str = "",
 ) -> dict[str, Any]:
-    """Two NPCs talk to each other (for Unreal or firmament observer)."""
+    """Threaded 2–3 agent meadow banter (Unreal, observer, or camp play)."""
+    from firmament.camp_converse import (
+        aether_group_converse,
+        converse_thread_prompt,
+        pick_converse_topic,
+        total_converse_lines,
+    )
+
     rounds = max(1, min(5, int(rounds)))
-    lines: list[dict] = []
-    last_line = topic
-    current_speaker = agent_a
-    listener = agent_b
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for raw in (agent_a, agent_c, agent_b):
+        aid = (raw or "").strip().lower()
+        if aid and aid not in seen:
+            seen.add(aid)
+            ordered.append(aid)
+    if len(ordered) < 2:
+        ordered = ["luna", "hermes"]
 
-    for _ in range(rounds):
-        result = await agent_chat(
-            current_speaker,
-            last_line,
-            pack_name=pack_name,
-            from_agent=listener,
-            visitor_id=visitor_id,
+    topic_clean = (topic or "").strip() or pick_converse_topic(visitor_name)
+    total = total_converse_lines(len(ordered), rounds)
+    lines: list[dict[str, Any]] = []
+    used_backend = llm_backend()
+    llm_ok = True
+
+    for i in range(total):
+        if i == 0:
+            speaker_id = ordered[0]
+        else:
+            prev_id = lines[-1]["agent_id"]
+            speaker_id = ordered[(ordered.index(prev_id) + 1) % len(ordered)]
+        from_agent = lines[-1]["agent_id"] if lines else ""
+        prompt = converse_thread_prompt(ordered, topic_clean, lines, speaker_id)
+        try:
+            result = await agent_chat(
+                speaker_id,
+                prompt,
+                pack_name=pack_name,
+                from_agent=from_agent,
+                visitor_id=visitor_id,
+                visitor_name=visitor_name,
+                converse_mode=True,
+            )
+            line = {
+                "agent_id": speaker_id,
+                "name": result["name"],
+                "line": result["reply"],
+                "mood": result.get("mood", "neutral"),
+            }
+            backend = str(result.get("backend") or used_backend)
+            if backend == "aether":
+                llm_ok = False
+            lines.append(line)
+        except Exception as exc:
+            log.warning("converse line %s failed: %s", speaker_id, exc)
+            llm_ok = False
+            break
+
+    if not llm_ok or len(lines) < max(2, total // 2):
+        lines = aether_group_converse(
+            ordered,
+            topic_clean,
             visitor_name=visitor_name,
+            rounds=rounds,
         )
-        line = {
-            "agent_id": current_speaker,
-            "name": result["name"],
-            "line": result["reply"],
-            "mood": result.get("mood", "neutral"),
-        }
-        lines.append(line)
-        last_line = result["reply"]
-        current_speaker, listener = listener, current_speaker
+        used_backend = "aether"
+    elif any(not (ln.get("line") or "").strip() for ln in lines):
+        lines = aether_group_converse(
+            ordered,
+            topic_clean,
+            visitor_name=visitor_name,
+            rounds=rounds,
+        )
+        used_backend = "aether"
 
-    used = llm_backend()
-    if lines and lines[0].get("line"):
-        used = "mixed"
-    return {"topic": topic, "rounds": rounds, "lines": lines, "backend": used}
+    return {
+        "topic": topic_clean,
+        "rounds": rounds,
+        "agents": ordered,
+        "lines": lines,
+        "backend": used_backend,
+    }

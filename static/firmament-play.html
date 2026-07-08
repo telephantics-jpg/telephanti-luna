@@ -511,6 +511,66 @@
       font-size: 0.7rem; line-height: 1.36; color: #f8fafc;
       white-space: pre-wrap; word-break: break-word;
     }
+    #camp-welcome-splash {
+      position: fixed; z-index: 32;
+      inset: 0;
+      display: none; align-items: center; justify-content: center;
+      padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+        max(20px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+      background: rgba(2, 6, 14, 0.42);
+      pointer-events: auto;
+      touch-action: manipulation;
+      animation: cws-fade-in 0.45s ease;
+    }
+    #camp-welcome-splash.show { display: flex; }
+    #camp-welcome-splash.fading { animation: cws-fade-out 0.55s ease forwards; }
+    @keyframes cws-fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes cws-fade-out {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    #camp-welcome-splash .cws-card {
+      width: min(640px, 94vw);
+      max-height: min(72vh, 520px);
+      padding: clamp(20px, 5vw, 36px) clamp(18px, 4vw, 32px);
+      border-radius: 22px;
+      background: rgba(4, 10, 18, 0.97);
+      border: 2px solid rgba(103, 232, 249, 0.55);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65), 0 0 40px rgba(103, 232, 249, 0.12);
+      text-align: center;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #camp-welcome-splash .cws-who {
+      display: block;
+      font-size: clamp(1.1rem, 3.2vw, 1.45rem);
+      font-weight: 800;
+      color: #67e8f9;
+      margin-bottom: 14px;
+      letter-spacing: 0.02em;
+    }
+    #camp-welcome-splash .cws-text {
+      font-size: clamp(1.15rem, 4.2vw, 1.65rem);
+      line-height: 1.48;
+      color: #f8fafc;
+      margin: 0 0 16px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    #camp-welcome-splash .cws-hint {
+      font-size: 0.72rem;
+      color: #64748b;
+      letter-spacing: 0.04em;
+    }
+    body.welcome-splash-open #convo-log,
+    body.welcome-splash-open #camp-speech-pin,
+    body.welcome-splash-open #camp-keyboard-reply.show {
+      opacity: 0.15;
+      pointer-events: none;
+    }
     @media (min-width: 900px) {
       #camp-speech-pin {
         left: auto;
@@ -2199,6 +2259,13 @@
     <div class="ckr-who"></div>
     <div class="ckr-text"></div>
   </div>
+  <div id="camp-welcome-splash" hidden role="dialog" aria-label="Camp welcome">
+    <div class="cws-card" onclick="event.stopPropagation()">
+      <span class="cws-who">Camp</span>
+      <p class="cws-text"></p>
+      <span class="cws-hint">tap anywhere to continue · fades on its own</span>
+    </div>
+  </div>
   <footer id="action-bar">
     <div id="camp-talk-bar">
       <div id="camp-talk-target-wrap">
@@ -2436,7 +2503,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-ambrosia-rhea";
+    const CAMP_BUILD = "2026-07-07-camp-field-pond-drag";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2463,7 +2530,11 @@
       idleChatterMinMs: 18000,
       idleChatterRandMs: 24000,
     };
-    const CAMP_TRAVERSE_PAD = { x: 320, y: 260 };
+    const CAMP_TRAVERSE_PAD = { x: 40, y: 32 };
+    const CAMP_POND = { cx: -438, cy: 118, rx: 128, ry: 92, name: "Aurora Pond" };
+    const AGENT_DRAG_THRESHOLD = 4;
+    const AGENT_HIT_RADIUS = 52;
+    const MAX_CANVAS_SPEECH_BUBBLES = 2;
 
     function campReadHoldSec(text, floor = 34) {
       const len = String(text || "").length;
@@ -2879,9 +2950,9 @@
       return WORLD_ZOOM_DESKTOP;
     }
     function getCampAnchorY() {
-      if (isIOS()) return 0.50;
-      if (isCampMobile()) return 0.42;
-      return 0.36;
+      if (isIOS()) return 0.54;
+      if (isCampMobile()) return 0.50;
+      return 0.44;
     }
     function getCamYOffset() {
       if (isIOS()) return -80;
@@ -2958,6 +3029,7 @@
       x: 0, y: -25, tx: 0, ty: -25, speed: getPlayerSpeed(),
       color: localStorage.getItem("luna-play-visitor-color") || VISITOR_COLORS[0],
       name: myVisitorName || "you",
+      swimming: false, swimPhase: 0, lastPondSplash: 0,
     };
 
     function visitorDisplayName() {
@@ -3346,8 +3418,8 @@
       const b = getCampRelativeBounds();
       const cx = (b.xMin + b.xMax) * 0.5;
       const cy = (b.yMin + b.yMax) * 0.5;
-      const rx = (b.xMax - b.xMin) * 0.52;
-      const ry = (b.yMax - b.yMin) * 0.52;
+      const rx = (b.xMax - b.xMin) * 0.74;
+      const ry = (b.yMax - b.yMin) * 0.74;
       return {
         x: cx + Math.cos(angle) * rx,
         y: cy + Math.sin(angle) * ry,
@@ -4010,13 +4082,13 @@
       t.width = 128;
       t.height = 128;
       const g = t.getContext("2d");
-      g.fillStyle = "#1e293b";
+      g.fillStyle = "#1a3328";
       g.fillRect(0, 0, 128, 128);
       for (let i = 0; i < 400; i++) {
         const x = Math.random() * 128;
         const y = Math.random() * 128;
-        const hue = 160 + Math.random() * 40;
-        g.fillStyle = `hsla(${hue}, 35%, ${28 + Math.random() * 18}%, 0.55)`;
+        const hue = 118 + Math.random() * 48;
+        g.fillStyle = `hsla(${hue}, 42%, ${24 + Math.random() * 20}%, 0.62)`;
         g.fillRect(x, y, 2 + Math.random() * 3, 2 + Math.random() * 3);
       }
       for (let i = 0; i < 80; i++) {
@@ -4347,31 +4419,129 @@
         ctx.globalAlpha = 0.22 + Math.sin(Date.now() / 2400) * 0.04;
         drawAuroraBands();
         ctx.restore();
-        const veil = ctx.createLinearGradient(0, viewH * 0.42, 0, viewH);
+        const veil = ctx.createLinearGradient(0, viewH * 0.18, 0, viewH);
         veil.addColorStop(0, "rgba(5, 11, 20, 0)");
-        veil.addColorStop(0.55, "rgba(8, 16, 30, 0.42)");
-        veil.addColorStop(1, "rgba(6, 12, 22, 0.82)");
+        veil.addColorStop(0.45, "rgba(8, 22, 18, 0.28)");
+        veil.addColorStop(1, "rgba(6, 18, 14, 0.72)");
         ctx.fillStyle = veil;
-        ctx.fillRect(0, viewH * 0.38, viewW, viewH * 0.62);
+        ctx.fillRect(0, viewH * 0.14, viewW, viewH * 0.86);
       }
+
+      const fieldTop = viewH * (campBgReady ? 0.1 : 0.08);
+      const meadow = ctx.createLinearGradient(0, fieldTop, 0, viewH);
+      meadow.addColorStop(0, "rgba(20, 48, 36, 0.55)");
+      meadow.addColorStop(0.35, "rgba(16, 40, 32, 0.78)");
+      meadow.addColorStop(1, "rgba(10, 28, 22, 0.92)");
+      ctx.fillStyle = meadow;
+      ctx.fillRect(0, fieldTop, viewW, viewH - fieldTop);
 
       if (groundPattern) {
         ctx.save();
         ctx.fillStyle = groundPattern;
-        ctx.globalAlpha = campBgReady ? 0.62 : 0.88;
-        ctx.fillRect(0, viewH * 0.28, viewW, viewH);
+        ctx.globalAlpha = campBgReady ? 0.58 : 0.82;
+        ctx.fillRect(0, fieldTop, viewW, viewH - fieldTop);
         ctx.restore();
       }
 
-      ctx.strokeStyle = campBgReady ? "rgba(103, 232, 249, 0.06)" : "rgba(103, 232, 249, 0.08)";
-      for (let i = -20; i < 20; i++) {
-        const y = viewH * getCampAnchorY() + i * 28;
+      const t = Date.now() / 1000;
+      for (let i = 0; i < (isSlowDevice() ? 18 : 42); i++) {
+        const fx = ((i * 173) % 1000) / 1000 * viewW;
+        const fy = fieldTop + ((i * 97) % 1000) / 1000 * (viewH - fieldTop);
+        const sway = Math.sin(t * 1.4 + i) * 2;
+        ctx.fillStyle = `rgba(${120 + (i % 3) * 30}, ${180 + (i % 2) * 20}, ${90 + (i % 4) * 15}, 0.22)`;
+        ctx.beginPath();
+        ctx.ellipse(fx, fy + sway, 3 + (i % 3), 6 + (i % 4), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = campBgReady ? "rgba(103, 232, 249, 0.05)" : "rgba(103, 232, 249, 0.07)";
+      for (let i = -28; i < 28; i++) {
+        const y = viewH * getCampAnchorY() + i * 24;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(viewW, y);
         ctx.stroke();
       }
+      drawCampPond();
       drawRainOverlay();
+    }
+
+    function pondWorldPos() {
+      return { x: camp.x + CAMP_POND.cx, y: camp.y + CAMP_POND.cy };
+    }
+
+    function campRelativePos(wx, wy) {
+      return { x: wx - camp.x, y: wy - camp.y };
+    }
+
+    function pointInPond(rx, ry) {
+      const dx = (rx - CAMP_POND.cx) / CAMP_POND.rx;
+      const dy = (ry - CAMP_POND.cy) / CAMP_POND.ry;
+      return dx * dx + dy * dy <= 1;
+    }
+
+    function playerInPond() {
+      const p = campRelativePos(player.x, player.y);
+      return pointInPond(p.x, p.y);
+    }
+
+    function drawCampPond() {
+      const wx = camp.x + CAMP_POND.cx;
+      const wy = camp.y + CAMP_POND.cy;
+      const s = worldToScreen(wx, wy);
+      const zoom = getWorldZoom();
+      const rx = CAMP_POND.rx * zoom;
+      const ry = CAMP_POND.ry * zoom;
+      const t = Date.now() / 1000;
+      ctx.save();
+      const shore = ctx.createRadialGradient(s.x, s.y, rx * 0.2, s.x, s.y, rx * 1.15);
+      shore.addColorStop(0, "rgba(56, 189, 248, 0.42)");
+      shore.addColorStop(0.55, "rgba(14, 116, 144, 0.55)");
+      shore.addColorStop(1, "rgba(12, 52, 68, 0.15)");
+      ctx.fillStyle = shore;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(125, 211, 252, 0.45)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      for (let i = 0; i < 3; i++) {
+        const ripple = 0.35 + ((t * 0.55 + i * 0.9) % 1);
+        const a = Math.max(0, 0.42 - ripple * 0.38);
+        ctx.strokeStyle = `rgba(186, 230, 253, ${a})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y, rx * (0.35 + ripple * 0.55), ry * (0.35 + ripple * 0.55), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.font = "bold 11px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(186, 230, 253, 0.85)";
+      ctx.fillText(`🌊 ${CAMP_POND.name}`, s.x, s.y - ry - 10);
+      if (playerInPond()) {
+        ctx.font = "9px Segoe UI";
+        ctx.fillStyle = "#7dd3fc";
+        ctx.fillText("swimming", s.x, s.y + ry + 16);
+      } else if (dist(player, pondWorldPos()) < CAMP_POND.rx + 48) {
+        ctx.font = "9px Segoe UI";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText(isCampMobile() ? "tap water to swim" : "walk in to swim", s.x, s.y + ry + 16);
+      }
+      ctx.restore();
+    }
+
+    function updatePlayerSwim() {
+      const inPond = playerInPond();
+      const wasSwimming = player.swimming;
+      player.swimming = inPond;
+      if (inPond) {
+        player.swimPhase += 0.1;
+        if (!wasSwimming && Date.now() - player.lastPondSplash > 9000) {
+          player.lastPondSplash = Date.now();
+          psychicRipples.push({ x: player.x, y: player.y, t: Date.now(), color: "#38bdf8" });
+          pushCampLine("Camp", "You slip into the aurora pond — cold starlight, warm welcome.", 10, "happy", { keepDock: true, quiet: true });
+        }
+      }
     }
 
     function drawPsychicRipples() {
@@ -6658,6 +6828,12 @@
     const ISO_SIN = 0.5;
     let dragTarget = null;
     let lastAgentTap = { id: null, t: 0 };
+    let agentLongPressTimer = 0;
+    let agentLongPressNpc = null;
+    let agentLongPressStart = { sx: 0, sy: 0 };
+    let welcomeSplashTimer = 0;
+    let welcomeSplashActive = false;
+    let arrivalGreetingPhase = true;
 
     function isoPoint(cx, cy, x, y, z) {
       return {
@@ -7024,6 +7200,14 @@
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.arc(s.x, cy, 42, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (!n.insideHouse && !med) {
+        ctx.strokeStyle = `${n.color}55`;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        ctx.arc(s.x, cy, 34, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -7897,6 +8081,44 @@
       }
     }
 
+    function hideWelcomeSplash() {
+      const el = document.getElementById("camp-welcome-splash");
+      if (!el || !welcomeSplashActive) return;
+      clearTimeout(welcomeSplashTimer);
+      welcomeSplashTimer = 0;
+      el.classList.add("fading");
+      welcomeSplashActive = false;
+      document.body.classList.remove("welcome-splash-open");
+      setTimeout(() => {
+        el.classList.remove("show", "fading");
+        el.hidden = true;
+        arrivalGreetingPhase = false;
+        if (isCampMobile()) minimizeSpeechBubble();
+      }, 520);
+    }
+
+    function showWelcomeSplash(speaker, text, mood, holdSec = 14) {
+      const el = document.getElementById("camp-welcome-splash");
+      if (!el) return;
+      const clean = (text || "").trim();
+      if (!clean) return;
+      clearTimeout(welcomeSplashTimer);
+      const whoEl = el.querySelector(".cws-who");
+      const bodyEl = el.querySelector(".cws-text");
+      if (whoEl) whoEl.textContent = speaker;
+      if (bodyEl) bodyEl.textContent = clean;
+      el.hidden = false;
+      el.classList.remove("fading");
+      el.classList.add("show");
+      welcomeSplashActive = true;
+      arrivalGreetingPhase = true;
+      document.body.classList.add("welcome-splash-open");
+      setCampLifeStatus(`${speaker} welcomes you to the meadow`);
+      welcomeSplashTimer = setTimeout(hideWelcomeSplash, holdSec * 1000);
+    }
+
+    document.getElementById("camp-welcome-splash")?.addEventListener("click", hideWelcomeSplash);
+
     function scheduleCampArrivalGreetings() {
       if (campArrivalScheduled) return;
       campArrivalScheduled = true;
@@ -7905,47 +8127,53 @@
         const welcome = localWelcomeLine();
         if (welcome && !campServerWelcomeShown) {
           setTimeout(() => {
-            pushCampLine("Camp", welcome, 20, "happy", { fromLocal: true });
-          }, 1800);
+            pushCampLine("Camp", welcome, 13, "happy", { fromLocal: true, quiet: true, welcomeSplash: true });
+          }, 1200);
         }
         setTimeout(() => {
           const line = pickAgentOpener("luna");
-          pushCampLine("Luna", line, campReadHoldSec(line, 32), "happy", { fromLocal: true });
+          pushCampLine("Luna", line, 14, "happy", { fromLocal: true, quiet: true, welcomeSplash: true });
           setAgentMood("luna", "happy");
-        }, 4500);
+        }, welcome && !campServerWelcomeShown ? 15000 : 4500);
         setTimeout(() => {
+          arrivalGreetingPhase = false;
           const line = pickAgentOpener("hermes");
-          pushCampLine("Hermes", line, campReadHoldSec(line, 28), "think", { fromLocal: true });
+          pushCampLine("Hermes", line, campReadHoldSec(line, 22), "think", { fromLocal: true, quiet: true });
           setAgentMood("hermes", "think");
-        }, 11000);
+        }, welcome && !campServerWelcomeShown ? 22000 : 12000);
         setTimeout(() => {
           const line = pickAgentOpener("oracle");
-          pushCampLine("Oracle", line, campReadHoldSec(line, 28), "neutral", { fromLocal: true });
+          pushCampLine("Oracle", line, campReadHoldSec(line, 20), "neutral", { fromLocal: true, quiet: true });
           setAgentMood("oracle", "neutral");
-        }, 17500);
+        }, welcome && !campServerWelcomeShown ? 28000 : 17500);
         setTimeout(() => {
           const line = pickAgentOpener("caduceus");
-          pushCampLine("Caduceus", line, campReadHoldSec(line, 26), "happy", { fromLocal: true });
-        }, 24000);
+          pushCampLine("Caduceus", line, campReadHoldSec(line, 18), "happy", { fromLocal: true, quiet: true });
+        }, welcome && !campServerWelcomeShown ? 34000 : 24000);
       } else {
+        const v = myVisitorName || player.name || "traveler";
+        setTimeout(() => {
+          const intro = `${v}, welcome to the aurora meadow — drag agents anywhere, swim in the pond on the left, tap to talk.`;
+          pushCampLine("Camp", intro, 15, "happy", { fromLocal: true, quiet: true, welcomeSplash: true });
+        }, 2800);
         const stagger = [
-          { id: "luna", delay: 3500, mood: "happy" },
-          { id: "hermes", delay: 9000, mood: "think" },
-          { id: "oracle", delay: 14500, mood: "neutral" },
-          { id: "caduceus", delay: 20000, mood: "happy" },
-          { id: "sentinel", delay: 25500, mood: "alert" },
+          { id: "luna", delay: 18000, mood: "happy" },
+          { id: "hermes", delay: 24000, mood: "think" },
+          { id: "oracle", delay: 30000, mood: "neutral" },
+          { id: "caduceus", delay: 36000, mood: "happy" },
+          { id: "sentinel", delay: 42000, mood: "alert" },
         ];
         for (const a of stagger) {
           setTimeout(() => {
+            arrivalGreetingPhase = false;
             const line = pickAgentOpener(a.id);
-            pushCampLine(agentNames[a.id] || a.id, line, campReadHoldSec(line, 30), a.mood, { fromLocal: true });
+            pushCampLine(agentNames[a.id] || a.id, line, campReadHoldSec(line, 20), a.mood, { fromLocal: true, quiet: true });
             setAgentMood(a.id, a.mood);
           }, a.delay);
         }
         setTimeout(() => {
-          const v = myVisitorName || player.name || "traveler";
-          pushCampLine("Camp", `${v}, agents are spread around the ring — tap to talk, double-tap to seat them.`, 22, "happy", { fromLocal: true });
-        }, 19000);
+          pushCampLine("Camp", "The meadow's wide — wander, swim, drag units where you want them.", 16, "happy", { fromLocal: true, quiet: true });
+        }, 48000);
         setTimeout(() => {
           const ambient = CAMP_AMBIENT_LINES[Math.floor(Math.random() * CAMP_AMBIENT_LINES.length)];
           pushCampLine("Camp", ambient, campReadHoldSec(ambient, 16), "happy", { fromLocal: true });
@@ -8195,17 +8423,29 @@
 
     function drawAgentSpeechBubbles() {
       speechBubbleRects.length = 0;
-      for (const n of allRoamers()) {
+      if (welcomeSplashActive) return;
+      let drawn = 0;
+      const roamers = allRoamers();
+      const priority = [
+        ...roamers.filter((n) => pinnedSpeech.has(n.name)),
+        ...roamers.filter((n) => n.id === speakingAgentId),
+        ...roamers.filter((n) => speechHold.has(n.name) && speechHold.get(n.name).until > Date.now()),
+      ];
+      const seen = new Set();
+      for (const n of priority) {
+        if (seen.has(n.id) || drawn >= MAX_CANVAS_SPEECH_BUBBLES) continue;
+        seen.add(n.id);
         const pinned = pinnedSpeech.get(n.name);
         const held = speechHold.get(n.name);
         const active = pinned || (held && held.until > Date.now() ? held : null);
-        if (!active) continue;
+        if (!active?.line) continue;
         const s = worldToScreen(camp.x + n.x, camp.y + n.y);
         drawSpeechBubble(s.x, s.y - 8, active.line, n.color || AGENT_COLORS[n.id] || "#67e8f9", true, {
           speaker: n.name,
           agentId: n.id,
           mood: pinned?.mood || n.mood || "neutral",
         });
+        drawn += 1;
       }
     }
 
@@ -8475,6 +8715,19 @@
         petCampCat();
         return;
       }
+      if (playerInPond()) {
+        const shore = { x: camp.x + 80, y: camp.y + 60 };
+        player.tx = shore.x;
+        player.ty = shore.y;
+        pushCampLine("Camp", "You climb out of the pond — grass never felt so diplomatic.", 10, "happy", { keepDock: true, quiet: true });
+        return;
+      }
+      if (dist(player, pondWorldPos()) < CAMP_POND.rx + 40) {
+        const pw = pondWorldPos();
+        player.tx = pw.x;
+        player.ty = pw.y;
+        return;
+      }
       if (nearestId) openDialogue(nearestId);
       else {
         replyEl.textContent = "Drag camp objects · tap agents to talk · empty ground = walk";
@@ -8483,9 +8736,28 @@
 
     function drawPlayer() {
       const label = player.name || "you";
-      drawPerson(player.x, player.y, player.color, label, "", "happy", true);
+      const bob = player.swimming ? Math.sin(player.swimPhase) * 6 : 0;
+      const wx = player.x;
+      const wy = player.y + (player.swimming ? bob * 0.15 : 0);
+      if (player.swimming) {
+        const s = worldToScreen(wx, wy);
+        const t = Date.now() / 1000;
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.45)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y + 10, 22 + Math.sin(t * 3) * 3, 8, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.font = "20px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("🏊", s.x, s.y - 4 + Math.sin(t * 4) * 2);
+        ctx.font = "bold 11px Segoe UI";
+        ctx.fillStyle = "#bae6fd";
+        ctx.fillText(label, s.x, s.y - 28);
+      } else {
+        drawPerson(wx, wy, player.color, label, "", "happy", true);
+      }
       if (trippyHatUntil > Date.now()) {
-        const s = worldToScreen(player.x, player.y);
+        const s = worldToScreen(wx, wy);
         const t = Date.now() / 1000;
         ctx.font = "18px Segoe UI";
         ctx.textAlign = "center";
@@ -8546,6 +8818,12 @@
       } else if (campCatNearPlayer() && !stripClubOpen && !dialogueBackdrop.classList.contains("open")) {
         hint.textContent = `Near 🐱 ${campCat.name} — press E or tap to pet`;
         hint.classList.add("show");
+      } else if (playerInPond()) {
+        hint.textContent = "🏊 Swimming in Aurora Pond — tap shore to climb out";
+        hint.classList.add("show");
+      } else if (dist(player, pondWorldPos()) < CAMP_POND.rx + 52) {
+        hint.textContent = "🌊 Aurora Pond — walk or tap the water to swim";
+        hint.classList.add("show");
       } else {
         hint.classList.remove("show");
       }
@@ -8574,11 +8852,39 @@
         const cs = worldToScreen(campCat.x, campCat.y);
         if (Math.hypot(sx - cs.x, sy - cs.y) < 28) return { kind: "cat", ref: campCat };
       }
+      const pondS = worldToScreen(camp.x + CAMP_POND.cx, camp.y + CAMP_POND.cy);
+      const zoom = getWorldZoom();
+      const pondHitX = CAMP_POND.rx * zoom * 0.92;
+      const pondHitY = CAMP_POND.ry * zoom * 0.92;
+      const pondDx = (sx - pondS.x) / pondHitX;
+      const pondDy = (sy - pondS.y) / pondHitY;
+      if (pondDx * pondDx + pondDy * pondDy <= 1) {
+        return { kind: "pond", ref: CAMP_POND };
+      }
       for (const n of allRoamers()) {
         const ns = worldToScreen(camp.x + n.x, camp.y + n.y);
-        if (Math.hypot(sx - ns.x, sy - ns.y) < 38) return { kind: "agent", ref: n };
+        if (Math.hypot(sx - ns.x, sy - ns.y) < AGENT_HIT_RADIUS) return { kind: "agent", ref: n };
       }
       return null;
+    }
+
+    function clearAgentLongPress() {
+      if (agentLongPressTimer) clearTimeout(agentLongPressTimer);
+      agentLongPressTimer = 0;
+      agentLongPressNpc = null;
+    }
+
+    function scheduleAgentLongPress(npc, sx, sy, pointerId) {
+      clearAgentLongPress();
+      agentLongPressNpc = npc;
+      agentLongPressStart = { sx, sy };
+      agentLongPressTimer = setTimeout(() => {
+        agentLongPressTimer = 0;
+        if (dragTarget) return;
+        startAgentDrag(npc, sx, sy, pointerId, false);
+        dragTarget.moved = true;
+        showToast(`Dragging ${npc.name} — drop anywhere on the meadow`);
+      }, 380);
     }
 
     function placeDragAt(sx, sy, target) {
@@ -8607,12 +8913,13 @@
     }
 
     function startAgentDrag(npc, sx, sy, pointerId, fromPin = false) {
+      clearAgentLongPress();
       dragTarget = { kind: "agent", ref: npc, moved: false, startSx: sx, startSy: sy, pointerId, fromPin };
       canvas.setPointerCapture(pointerId);
       canvas.classList.add("dragging");
       showToast(fromPin
         ? `Dragging ${npc.name} — drop to meditate & empower ✦`
-        : `Grabbed ${npc.name} — drag to reposition`);
+        : `Dragging ${npc.name} — drop on the meadow`);
     }
 
     function onCampPointerDown(ev) {
@@ -8647,8 +8954,11 @@
             : `${hit.ref.emoji} Walk to the door first`);
         }
         else if (hit.kind === "cat") showToast(`🐱 ${hit.ref.name} — tap to pet`);
-        else if (hit.kind === "agent") showToast(`Tap ${hit.ref.name} to talk · double-tap to seat`);
-        else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
+        else if (hit.kind === "pond") showToast("🌊 Aurora Pond — walk in to swim");
+        else if (hit.kind === "agent") {
+          showToast(`Drag ${hit.ref.name} anywhere · tap to talk`);
+          scheduleAgentLongPress(hit.ref, sx, sy, ev.pointerId);
+        } else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
         return;
       }
       const w = screenToWorld(sx, sy);
@@ -8658,15 +8968,22 @@
     }
 
     function onCampPointerMove(ev) {
-      if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
       const { sx, sy } = campPointerPos(ev);
-      if (Math.hypot(sx - dragTarget.startSx, sy - dragTarget.startSy) > 8) {
+      if (agentLongPressNpc) {
+        if (Math.hypot(sx - agentLongPressStart.sx, sy - agentLongPressStart.sy) > AGENT_DRAG_THRESHOLD) {
+          clearAgentLongPress();
+        }
+      }
+      if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
+      if (Math.hypot(sx - dragTarget.startSx, sy - dragTarget.startSy) > AGENT_DRAG_THRESHOLD) {
+        if (dragTarget.kind === "agent") clearAgentLongPress();
         dragTarget.moved = true;
         placeDragAt(sx, sy, dragTarget);
       }
     }
 
     function onCampPointerUp(ev) {
+      clearAgentLongPress();
       if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
       canvas.releasePointerCapture(ev.pointerId);
       canvas.classList.remove("dragging");
@@ -8693,6 +9010,10 @@
           }, 300);
         } else if (dragTarget.kind === "cat") {
           petCampCat();
+        } else if (dragTarget.kind === "pond") {
+          const pw = pondWorldPos();
+          player.tx = pw.x + (Math.random() - 0.5) * 40;
+          player.ty = pw.y + (Math.random() - 0.5) * 24;
         } else if (dragTarget.kind === "agent") {
           const now = Date.now();
           const npc = dragTarget.ref;
@@ -9158,6 +9479,10 @@
       if (holdSec == null) holdSec = campReadHoldSec(line, 36);
       const clean = (line || "").trim();
       if (!clean) return;
+      if (opts.welcomeSplash) {
+        showWelcomeSplash(speaker, clean, mood, holdSec);
+      }
+      const quiet = opts.quiet || welcomeSplashActive || (arrivalGreetingPhase && !opts.welcomeSplash);
       let agentId = (speaker || "").toLowerCase();
       if (!agentMoods[agentId]) {
         const hit = moodAgents.find((a) => a.name.toLowerCase() === agentId);
@@ -9173,18 +9498,18 @@
         while (campLines.length > 100) campLines.shift();
         renderConvoLog();
       }
-      if (!convoReadingHold) updateNowSpeaking(speaker, clean, moodVal);
-      if (isIOS() && !isVisitorSpeaker(speaker) && speaker !== "Camp") {
+      if (!convoReadingHold && !quiet) updateNowSpeaking(speaker, clean, moodVal);
+      if (isIOS() && !isVisitorSpeaker(speaker) && speaker !== "Camp" && !quiet) {
         showMobileReplyBubble(speaker, clean, moodVal, holdSec);
       }
-      if (!opts.keepDock && !isCampMobile()) expandSpeechBubble();
+      if (!opts.keepDock && !isCampMobile() && !quiet) expandSpeechBubble();
       notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase() || n.id === agentId);
       if (npc && npcMode === "stand") {
         npc.idle = 99999;
       }
-      showBigSpeech(speaker, clean, holdSec);
+      if (!quiet) showBigSpeech(speaker, clean, holdSec);
       setTimeout(() => {
         const latest = campLines[campLines.length - 1];
         if (latest?.text === clean && latest?.speaker === speaker
@@ -9721,10 +10046,12 @@
         const dx = player.tx - player.x, dy = player.ty - player.y;
         const d = Math.hypot(dx, dy);
         if (d > 2) {
-          const moveSpd = getPlayerSpeed();
+          let moveSpd = getPlayerSpeed();
+          if (player.swimming) moveSpd *= 0.72;
           player.x += (dx / d) * moveSpd;
           player.y += (dy / d) * moveSpd;
         }
+        updatePlayerSwim();
         updateNpcSocial();
         enforceNpcSeparation(0.45);
         clampPlayerWorld();

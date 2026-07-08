@@ -78,7 +78,6 @@
       touch-action: none;
       transform: none;
       filter: none;
-      contain: layout paint;
     }
     @media (min-width: 900px) {
       html.desktop-camp #camp-stage {
@@ -402,7 +401,10 @@
       transform-origin: center center !important;
     }
     @media (min-width: 900px) {
-      #camp-stage { right: calc(var(--sidebar-w) + var(--gap) * 2); }
+      #camp-stage {
+        right: calc(var(--sidebar-w) + var(--gap) * 2);
+        width: auto;
+      }
     }
     #camp-header {
       position: fixed; left: 0; right: 0; top: 0; z-index: 25;
@@ -3331,7 +3333,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-192-stage";
+    const CAMP_BUILD = "2026-07-08-camp-load-resize";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3559,16 +3561,36 @@
     }
 
     function getCampCanvasSize() {
-      if (!isIOS()) {
-        const box = (campStage || canvas).getBoundingClientRect();
-        return {
-          w: Math.max(1, Math.round(box.width)),
-          h: Math.max(1, Math.round(box.height)),
-        };
+      const layout = getCampCanvasSizeFromLayout();
+      if (isIOS()) {
+        commitStableCampSize(layout.w, layout.h);
+        return layout;
       }
-      const sz = getCampCanvasSizeFromLayout();
-      commitStableCampSize(sz.w, sz.h);
-      return sz;
+      const box = (campStage || canvas).getBoundingClientRect();
+      let w = Math.max(1, Math.round(box.width));
+      let h = Math.max(1, Math.round(box.height));
+      const minW = isCampMobile() ? 120 : 280;
+      const minH = isCampMobile() ? 120 : 200;
+      if (w < minW || h < minH) {
+        w = Math.max(w, layout.w);
+        h = Math.max(h, layout.h);
+      }
+      return { w, h };
+    }
+    function campCanvasMismatch() {
+      if (!canvas || !campStage) return true;
+      const cw = Math.round(canvas.clientWidth || 0);
+      const ch = Math.round(canvas.clientHeight || 0);
+      const sw = Math.round(campStage.clientWidth || 0);
+      const sh = Math.round(campStage.clientHeight || 0);
+      if (sw < 120 || sh < 120) return true;
+      if (cw < 120 || ch < 120) return true;
+      if (Math.abs(cw - viewW) > 4 || Math.abs(ch - viewH) > 4) return true;
+      return false;
+    }
+    function ensureCampLayoutSized() {
+      if (!campCanvasMismatch()) return;
+      resize();
     }
 
     function iosDismissKeyboard() {
@@ -5703,16 +5725,32 @@
         else if (canvas) layoutObs.observe(canvas);
       }
     }
-    window.addEventListener("load", () => scheduleResize());
+    function primeCampLayoutOnLoad() {
+      resize();
+      scheduleResize();
+      requestAnimationFrame(() => {
+        resize();
+        scheduleResize();
+      });
+      [16, 50, 120, 300, 600].forEach((ms) => {
+        setTimeout(() => {
+          resize();
+          scheduleResize();
+        }, ms);
+      });
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 200);
+    }
+    window.addEventListener("load", () => primeCampLayoutOnLoad());
     window.addEventListener("focus", () => scheduleResize());
     if (document.fonts?.ready) {
-      document.fonts.ready.then(() => scheduleResize()).catch(() => {});
+      document.fonts.ready.then(() => primeCampLayoutOnLoad()).catch(() => {});
     }
     if (typeof MutationObserver !== "undefined") {
       const bodyClassObs = new MutationObserver(() => scheduleResize({ debounceMs: 40 }));
       bodyClassObs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     }
-    scheduleResize();
+    primeCampLayoutOnLoad();
 
     function setCampTilt(_sx, _sy) {
       document.documentElement.style.setProperty("--tilt-x", "0deg");
@@ -12543,7 +12581,8 @@
       }
       initCampCat();
       initMobileAgentView();
-      scheduleResize();
+      resize();
+      primeCampLayoutOnLoad();
       mergeLocalBondsIntoCamp();
       bindCampMusicGestureUnlock();
       const greetDelay = isSlowDevice() ? 5200 : 2800;
@@ -12575,6 +12614,7 @@
           if (isSlowDevice()) requestAnimationFrame(() => bootCampWorld());
           else bootCampWorld();
         }
+        ensureCampLayoutSized();
         const dx = player.tx - player.x, dy = player.ty - player.y;
         const d = Math.hypot(dx, dy);
         if (d > 2) {
@@ -12631,10 +12671,12 @@
       gameLoop();
     }
     if (isSlowDevice()) {
+      resize();
       const kick = () => requestAnimationFrame(startGameLoop);
       if ("requestIdleCallback" in window) requestIdleCallback(kick, { timeout: 1400 });
       else setTimeout(kick, 500);
     } else {
+      resize();
       startGameLoop();
     }
   </script>

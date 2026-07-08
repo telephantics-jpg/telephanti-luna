@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "193-camp-agent-click-controls"
+LUNA_BUILD = "194-camp-luna-hear-lucid"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2547,10 +2547,11 @@ async def firmament_shop_catalog_api():
 
 
 @app.get("/api/firmament/lucid-feed")
-async def firmament_lucid_feed_api(channel: str = "random"):
+async def firmament_lucid_feed_api(channel: str = "random", exclude: str = ""):
     from firmament.lucid_feed import catalog, pick_channel
 
-    return {"ok": True, "channel": pick_channel(channel), "catalog": catalog()}
+    exclude_ids = [x.strip() for x in exclude.split(",") if x.strip()]
+    return {"ok": True, "channel": pick_channel(channel, exclude_ids=exclude_ids), "catalog": catalog()}
 
 
 @app.get("/api/firmament/x-pulse")

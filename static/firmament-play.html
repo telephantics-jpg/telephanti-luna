@@ -2542,14 +2542,14 @@
       <button type="button" id="luna-embed-expand" title="Expand">⛶</button>
       <button type="button" id="luna-embed-close" title="Minimize">✕</button>
     </div>
-    <iframe id="luna-embed-frame" title="Luna avatar" allow="microphone; autoplay; camera; fullscreen"></iframe>
+    <iframe id="luna-embed-frame" title="Luna avatar" allow="microphone *; autoplay *; camera *; fullscreen *"></iframe>
   </div>
   <div id="pixel-wrap">
     <button id="pixel-close" type="button">Close Unreal stream</button>
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-agent-click-controls";
+    const CAMP_BUILD = "2026-07-08-camp-luna-hear-lucid";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3379,6 +3379,7 @@
     let lucidTvOpen = false;
     let lucidTvMuted = true;
     let lucidTvChannel = null;
+    let lucidTvFailedIds = [];
     let campWallet = { tokens: 15, unlocks: [], cosmetics: [] };
     let shopCatalog = [];
     let shopOpen = false;
@@ -4047,7 +4048,7 @@
       npc.behaviorTimer = 999999;
       npc.idle = 40 + Math.floor(Math.random() * 50);
       const quip = SIT_PIN_LINES[npc.id] || SIT_PIN_LINES._default;
-      showToast(`${npc.name} sitting still — double-click to let them roam`);
+        showToast(`${npc.name} sitting still — ${isCampMobile() ? "double-tap" : "click"} again to let them roam`);
       pushCampLine(npc.name, quip, campReadHoldSec(quip, 14), npc.mood || "neutral", { fromLocal: true, quiet: true });
       setTimeout(() => {
         if (npc.sitPinned && !converseBusy && !chatterPaused) emitNpcIdleChatter(npc);
@@ -5637,6 +5638,18 @@
       }, delayMs);
     }
 
+    function scheduleLucidTvRetry(failedId) {
+      if (failedId) {
+        if (!lucidTvFailedIds.includes(failedId)) lucidTvFailedIds.push(failedId);
+        if (lucidTvFailedIds.length > 24) lucidTvFailedIds = lucidTvFailedIds.slice(-12);
+      }
+      window.clearTimeout(scheduleLucidTvRetry._t);
+      scheduleLucidTvRetry._t = window.setTimeout(() => {
+        if (!lucidTvOpen) return;
+        tuneLucidTv("random");
+      }, 1800);
+    }
+
     async function tuneLucidTv(channelId = "random") {
       const staticEl = document.getElementById("lucid-tv-static");
       const frame = document.getElementById("lucid-tv-frame");
@@ -5646,8 +5659,9 @@
       const openBtn = document.getElementById("lucid-tv-open");
       if (staticEl) staticEl.style.display = "flex";
       if (frame) frame.src = "about:blank";
+      const exclude = lucidTvFailedIds.join(",");
       try {
-        const res = await fetch(`/api/firmament/lucid-feed?channel=${encodeURIComponent(channelId)}`);
+        const res = await fetch(`/api/firmament/lucid-feed?channel=${encodeURIComponent(channelId)}&exclude=${encodeURIComponent(exclude)}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "feed failed");
         lucidTvChannel = data.channel;
@@ -5661,15 +5675,23 @@
           openBtn.title = watchUrl ? "Open this feed in YouTube (if embed is blocked)" : "";
         }
         if (frame && (ch.embed || ch.video_id || ch.watch)) {
+          const vid = lucidTvVideoId(ch);
+          frame.onload = () => hideLucidTvStatic(1200);
+          frame.onerror = () => scheduleLucidTvRetry(vid);
           frame.src = lucidTvEmbedUrl(ch, lucidTvMuted);
+          window.clearTimeout(tuneLucidTv._stall);
+          tuneLucidTv._stall = window.setTimeout(() => {
+            if (lucidTvOpen && staticEl?.style.display !== "none") scheduleLucidTvRetry(vid);
+          }, 9000);
           hideLucidTvStatic();
         } else if (thought) {
           thought.textContent = "No signal on this frequency — tap Next channel or Open feed.";
+          scheduleLucidTvRetry();
         }
         const agent = ch.agent || "oracle";
         if (ch.thought) {
           pushCampLine(
-            (agent === "hermes" ? "Hermes" : agent === "luna" ? "Luna" : agent === "caduceus" ? "Caduceus" : agent === "sentinel" ? "Sentinel" : "Oracle"),
+            agentNames[agent] || (agent === "hermes" ? "Hermes" : agent === "luna" ? "Luna" : "Oracle"),
             `TV lucid: ${ch.thought}`,
             20,
             "think",
@@ -5678,6 +5700,7 @@
         recordCampMemory({ kind: "tv", text: `Watched lucid TV — ${ch.title || "channel"}` });
       } catch (err) {
         if (thought) thought.textContent = `Signal lost — ${err.message || "try next channel"}`;
+        scheduleLucidTvRetry();
       }
     }
 
@@ -7762,7 +7785,7 @@
       { who: "Sentinel", text: "…BEEP. Chill mode engaged." },
       { who: "Camp", text: "Nebula would like you to know she runs things." },
       { who: "Camp", text: "Aurora Velvet bass leaking — nobody's complaining." },
-      { who: "Camp", text: "Click to talk · double-click to sit still · hold to drag." },
+      { who: "Camp", text: "Phone: tap chat · double-tap sit · hold drag. PC: click sit · double-click chat." },
       { who: "Camp", text: "Someone left the good vibes on the grill again." },
       { who: "Jesus", text: "…peace holding steady at camp center." },
       { who: "Camp", text: "Lucid TV murmurs in the distance. Don't investigate alone." },
@@ -8469,10 +8492,21 @@
       const want = lunaEmbedUrl();
       if (!frame.src || !frame.src.includes("camp=1")) frame.src = want;
       else syncLunaEmbedVisitor();
+      const pingHear = () => {
+        try {
+          frame.contentWindow?.postMessage({ type: "luna-camp:focus-hear" }, location.origin);
+        } catch (_) {}
+      };
+      if (opts.focusHear) {
+        pingHear();
+        frame.addEventListener("load", pingHear, { once: true });
+      }
       setCampLifeStatus(isCampMobile()
-        ? "Luna picture-in-picture — ⛶ to enlarge, camp still main"
-        : "Luna panel open — camp is still the main view");
-      showToast(isCampMobile() ? "Luna mini — camp stays main" : "Luna at camp edge");
+        ? "Luna open — tap 🎤 Listen inside Luna to talk"
+        : "Luna open — tap 🎤 Listen so she can hear you");
+      showToast(isCampMobile()
+        ? "Luna — tap 🎤 Listen, then Allow mic"
+        : "Luna — click 🎤 Listen at the bottom, Allow mic");
     }
 
     function closeLunaEmbed() {
@@ -8964,7 +8998,9 @@
       }
       if (nearestId) openDialogue(nearestId);
       else {
-        replyEl.textContent = "Click agent = chat · double-click = sit still · hold = drag";
+        replyEl.textContent = isCampMobile()
+          ? "Tap agent = chat · double-tap = sit · hold = drag"
+          : "Click agent = sit · double-click = chat · hold = drag";
       }
     }
 
@@ -9114,12 +9150,24 @@
       agentLongPressNpc = null;
     }
 
-    function onAgentClick(npc) {
+    function openAgentChat(npc) {
       if (!npc || npc.leaving) return;
+      if (isAgentSpeechPinned(npc)) {
+        showToast(`Hold ${npc.name} to drag — double-tap to sit still on phone`);
+        return;
+      }
+      if (npc.id === "luna") openLunaEmbed({ focusHear: true });
+      else openDialogue(npc.id);
+    }
+
+    function onAgentClick(npc, pointerType = "mouse") {
+      if (!npc || npc.leaving) return;
+      const touchLike = pointerType === "touch" || isCampMobile();
       const now = Date.now();
       if (agentClickPending?.id === npc.id && now - agentClickPending.t < AGENT_DOUBLE_CLICK_MS) {
         clearAgentClickPending();
-        toggleNpcSit(npc);
+        if (touchLike) toggleNpcSit(npc);
+        else openAgentChat(npc);
         return;
       }
       clearAgentClickPending();
@@ -9127,12 +9175,8 @@
       agentClickTimer = setTimeout(() => {
         agentClickTimer = 0;
         agentClickPending = null;
-        if (isAgentSpeechPinned(npc)) {
-          showToast(`Hold ${npc.name} to drag — double-click to sit still`);
-          return;
-        }
-        if (npc.id === "luna") openLunaEmbed();
-        else openDialogue(npc.id);
+        if (touchLike) openAgentChat(npc);
+        else toggleNpcSit(npc);
       }, AGENT_CLICK_DELAY_MS);
     }
 
@@ -9209,7 +9253,7 @@
           startAgentDrag(hit.ref, sx, sy, ev.pointerId, true);
           return;
         }
-        dragTarget = { ...hit, moved: false, startSx: sx, startSy: sy, pointerId: ev.pointerId };
+        dragTarget = { ...hit, moved: false, startSx: sx, startSy: sy, pointerId: ev.pointerId, pointerType: ev.pointerType || "mouse" };
         canvas.setPointerCapture(ev.pointerId);
         canvas.classList.add("dragging");
         if (hit.kind === "prop") showToast(`Dragging ${hit.ref.emoji} ${hit.ref.name}`);
@@ -9279,7 +9323,7 @@
           player.tx = pw.x + (Math.random() - 0.5) * 40;
           player.ty = pw.y + (Math.random() - 0.5) * 24;
         } else if (dragTarget.kind === "agent") {
-          onAgentClick(dragTarget.ref);
+          onAgentClick(dragTarget.ref, dragTarget.pointerType);
         }
       } else if (dragTarget.kind === "agent") {
         if (dragTarget.fromPin || isAgentSpeechPinned(dragTarget.ref)) {
@@ -9320,7 +9364,7 @@
       if (hit?.kind !== "agent") return;
       ev.preventDefault();
       clearAgentClickPending();
-      toggleNpcSit(hit.ref);
+      openAgentChat(hit.ref);
     });
 
     document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
@@ -9364,7 +9408,9 @@
         tip.textContent = "Talk · 🏪 shop · ⛺ shelter · 🔮 Ouija · ✨ conjure";
         setTimeout(() => tip.classList.remove("flash"), 2400);
       }
-      showToast("Click agent = chat · double-click = sit still · hold = drag");
+      showToast(isCampMobile()
+        ? "Tap = chat · double-tap = sit still · hold = drag"
+        : "Click = sit still · double-click = chat · hold = drag");
     };
     document.querySelectorAll("#agent-strip .agent-chip").forEach((btn) => {
       btn.onclick = () => {
@@ -10389,7 +10435,9 @@
         if (isCampMobile()) applyMobileChatterMode("mini", { quiet: true });
         else setSpeechBubbleDock(true);
       }
-      setCampLifeStatus("𝕏 Pulse · click chat · double-click sit still · hold drag");
+      setCampLifeStatus(isCampMobile()
+        ? "𝕏 Pulse · tap chat · double-tap sit · hold drag"
+        : "𝕏 Pulse · click sit · double-click chat · hold drag");
       initCampCat();
       spreadAllNpcs();
       mergeLocalBondsIntoCamp();

@@ -2676,6 +2676,37 @@
     body.luna-camp-embed .zone-hint,
     body.luna-camp-embed .luna-memory-thread,
     body.luna-camp-embed .luna-assistant-hud { display: none !important; }
+    /* Camp iframe: always show mic controls (dock + hear banner + mic fab) */
+    body.luna-camp-embed .mobile-action-dock {
+      display: flex !important;
+      justify-content: space-evenly;
+      align-items: stretch;
+      gap: 0.55rem;
+      padding: 0.45rem max(0.65rem, var(--safe-l)) calc(0.45rem + var(--safe-b)) max(0.65rem, var(--safe-r));
+      border-top: 1px solid rgba(217, 70, 239, 0.38);
+      background: rgba(6, 8, 16, 0.98);
+    }
+    body.luna-camp-embed .mobile-action-dock .dock-btn { display: none !important; }
+    body.luna-camp-embed .mobile-action-dock #dock-mic,
+    body.luna-camp-embed .mobile-action-dock #dock-voice,
+    body.luna-camp-embed .mobile-action-dock #dock-options {
+      display: flex !important;
+      flex: 1;
+      max-width: 9rem;
+      min-height: 3.25rem;
+    }
+    body.luna-camp-embed .mic-toggle-fab {
+      display: flex !important;
+      left: max(0.55rem, var(--safe-l));
+      right: auto;
+      transform: none;
+      bottom: calc(4.35rem + var(--safe-b));
+      z-index: 92;
+    }
+    body.luna-camp-embed .pet-hear-banner.visible {
+      display: flex !important;
+      bottom: calc(4.1rem + var(--safe-b));
+    }
     #camp-back-fab {
       position: fixed;
       z-index: 90;
@@ -6332,10 +6363,25 @@
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
           } catch (_) {}
         }
+        if (msg.type === "luna-camp:focus-hear") {
+          if (typeof setupMic === "function") setupMic();
+          if (typeof setupMobileDock === "function") setupMobileDock();
+          if (typeof showPetHearBanner === "function") showPetHearBanner();
+          if (typeof showToast === "function") {
+            showToast(isCampMobile()
+              ? "Tap 🎤 Listen — then Allow microphone"
+              : "Click 🎤 Listen — Allow mic when asked");
+          }
+        }
       });
       try {
         window.parent.postMessage({ type: "luna-camp:ready" }, location.origin);
       } catch (_) {}
+      setTimeout(() => {
+        if (typeof setupMic === "function") setupMic();
+        if (typeof setupMobileDock === "function") setupMobileDock();
+        if (typeof showPetHearBanner === "function") showPetHearBanner();
+      }, 1200);
     }
 
     function setupWebCloudMode() {

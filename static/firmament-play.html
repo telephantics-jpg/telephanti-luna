@@ -114,8 +114,12 @@
       user-drag: none;
     }
 
+    #camp-zoom-bar,
+    #btn-camp-zoom-toggle {
+      display: none !important;
+      pointer-events: none !important;
+    }
     #camp-zoom-bar {
-      display: flex;
       align-items: center;
       gap: 6px;
       width: 100%;
@@ -125,7 +129,6 @@
       background: rgba(4, 10, 18, 0.98);
       border: 1px solid rgba(103, 232, 249, 0.38);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-      pointer-events: auto;
       touch-action: manipulation;
       flex-shrink: 0;
     }
@@ -381,6 +384,10 @@
     @keyframes trippy-veil-drift {
       from { opacity: 0.55; transform: translate3d(-1%, 0, 0) scale(1); }
       to { opacity: 0.85; transform: translate3d(1.5%, -1%, 0) scale(1.02); }
+    }
+    html.desktop-camp #trippy-veil {
+      animation: none;
+      opacity: 0.5;
     }
     html.ios-camp #camp-stage,
     html.ios-camp #trippy-veil {
@@ -3283,7 +3290,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-no-refresh";
+    const CAMP_BUILD = "2026-07-08-camp-no-zoom";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3878,7 +3885,7 @@
       return WORLD_ZOOM_DESKTOP;
     }
     function getWorldZoom() {
-      return campViewZoom ?? getBaseWorldZoom();
+      return getBaseWorldZoom();
     }
     function ensureViewCamera() {
       if (campViewCamX == null) campViewCamX = CAM_X;
@@ -3891,7 +3898,6 @@
       campPinchState = null;
       campPointers.clear();
       document.body.classList.remove("camp-pinching");
-      syncCampZoomSliderUi();
     }
     function zoomSliderValueToWorld(pct) {
       const t = Math.max(0, Math.min(100, pct)) / 100;
@@ -3904,21 +3910,8 @@
     function campZoomCenterScreen() {
       return { sx: viewW / 2, sy: viewH * getCampAnchorY() };
     }
-    function syncCampZoomSliderUi(pct) {
-      const slider = document.getElementById("camp-zoom-slider");
-      const label = document.getElementById("camp-zoom-label");
-      const val = pct == null ? worldZoomToSliderValue(getWorldZoom()) : Math.round(pct);
-      if (slider && document.activeElement !== slider) slider.value = String(val);
-      if (label) {
-        const base = getBaseWorldZoom();
-        label.textContent = `${Math.round((getWorldZoom() / base) * 100)}%`;
-      }
-    }
-    function applyCampZoomFromSlider(pct) {
-      const { sx, sy } = campZoomCenterScreen();
-      setViewZoomAtScreen(zoomSliderValueToWorld(pct), sx, sy);
-      syncCampZoomSliderUi(pct);
-    }
+    function syncCampZoomSliderUi() {}
+    function applyCampZoomFromSlider() {}
     const CAMP_UI_SELECTOR = [
       "#action-bar", "#camp-header", "#camp-zoom-bar", "#convo-log",
       "#camp-music-bar", "#camp-enter-house", "#camp-speech-pin",
@@ -3988,68 +3981,14 @@
       const talkSel = document.getElementById("camp-talk-target");
       if (talkSel) talkSel.value = "nearest";
       if (isIOS()) syncViewportOffset();
-      const { sx, sy } = campZoomCenterScreen();
-      setViewZoomAtScreen(getBaseWorldZoom(), sx, sy);
-      syncCampZoomSliderUi();
+      ensureViewCamera();
       if (isIOS()) {
         [80, 240, 520].forEach((ms) => setTimeout(scheduleResize, ms));
       }
     }
-    function syncCampZoomBarUi() {
-      const bar = document.getElementById("camp-zoom-bar");
-      const btn = document.getElementById("btn-camp-zoom-toggle");
-      const open = !!bar?.classList.contains("open");
-      if (btn) btn.classList.toggle("active", open);
-      scheduleResize();
-    }
-    function setCampZoomBarOpen(open) {
-      const bar = document.getElementById("camp-zoom-bar");
-      if (!bar) return;
-      bar.classList.toggle("open", !!open);
-      syncCampZoomBarUi();
-      if (open) showToast("Zoom slider open — tap 🔍 again to hide");
-    }
-    function initCampZoomSlider() {
-      const slider = document.getElementById("camp-zoom-slider");
-      const reset = document.getElementById("camp-zoom-reset");
-      const zoomIn = document.getElementById("camp-zoom-in");
-      const zoomOut = document.getElementById("camp-zoom-out");
-      const panel = document.getElementById("camp-zoom-bar");
-      if (!slider) return;
-      const step = 7;
-      syncCampZoomSliderUi(worldZoomToSliderValue(getBaseWorldZoom()));
-      const nudge = (delta) => applyCampZoomFromSlider(Number(slider.value) + delta);
-      slider.addEventListener("input", () => applyCampZoomFromSlider(Number(slider.value)));
-      slider.addEventListener("change", () => applyCampZoomFromSlider(Number(slider.value)));
-      zoomIn?.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        nudge(step);
-      });
-      zoomOut?.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        nudge(-step);
-      });
-      reset?.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        resetCampViewCamera();
-        showToast("Map zoom reset");
-      });
-      const guardUi = (ev) => {
-        ev.stopPropagation();
-        if (ev.type === "pointerdown" && ev.currentTarget?.setPointerCapture) {
-          try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (_) {}
-        }
-      };
-      [slider, reset, zoomIn, zoomOut, panel].forEach((el) => {
-        if (!el) return;
-        el.addEventListener("pointerdown", guardUi);
-        el.addEventListener("mousedown", guardUi);
-        el.addEventListener("touchstart", guardUi, { passive: true });
-      });
-    }
+    function syncCampZoomBarUi() {}
+    function setCampZoomBarOpen() {}
+    function initCampZoomSlider() {}
     function clampViewCamera() {
       ensureViewCamera();
       const margin = 72;
@@ -4063,16 +4002,8 @@
       campViewCamY = wy;
       clampViewCamera();
     }
-    function setViewZoomAtScreen(targetZoom, sx, sy) {
-      ensureViewCamera();
-      const anchorY = getCampAnchorY();
-      const zoom0 = getWorldZoom();
-      const wx = campViewCamX + (sx - viewW / 2) / zoom0;
-      const wy = campViewCamY + (sy - viewH * anchorY) / zoom0;
-      campViewZoom = Math.max(CAMP_ZOOM_MIN, Math.min(CAMP_ZOOM_MAX, targetZoom));
-      campViewCamX = wx - (sx - viewW / 2) / campViewZoom;
-      campViewCamY = wy - (sy - viewH * anchorY) / campViewZoom;
-      clampViewCamera();
+    function setViewZoomAtScreen(_targetZoom, _sx, _sy) {
+      campViewZoom = null;
     }
     function campPinchMetrics() {
       const pts = [...campPointers.values()];
@@ -4107,15 +4038,7 @@
       };
       document.body.classList.add("camp-pinching");
     }
-    function updateCampPinch() {
-      const m = campPinchMetrics();
-      if (!m || !campPinchState) return;
-      const scale = m.span / campPinchState.startSpan;
-      const newZoom = campPinchState.startZoom * scale;
-      setViewZoomAtScreen(newZoom, m.midSx, m.midSy);
-      campPinchState.lastMidSx = m.midSx;
-      campPinchState.lastMidSy = m.midSy;
-    }
+    function updateCampPinch() {}
     function endCampPinch() {
       campPinchState = null;
       document.body.classList.remove("camp-pinching");
@@ -11206,15 +11129,6 @@
       campStage.addEventListener("pointercancel", onCampPointerUp);
     }
     bindCampTouchPinch();
-    canvas.addEventListener("wheel", (ev) => {
-      ev.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const sx = ev.clientX - rect.left;
-      const sy = ev.clientY - rect.top;
-      const factor = ev.deltaY < 0 ? 1.1 : 0.9;
-      setViewZoomAtScreen(getWorldZoom() * factor, sx, sy);
-      syncCampZoomSliderUi();
-    }, { passive: false });
     canvas.addEventListener("selectstart", (ev) => ev.preventDefault());
     document.getElementById("camp-stage")?.addEventListener("selectstart", (ev) => ev.preventDefault());
     bindCampUiGuards();
@@ -11222,14 +11136,6 @@
     initCampPickAgentSheet();
     initCampTextExpand();
     initCampLayerPicker();
-    initCampZoomSlider();
-    if (isCampMobile()) setCampZoomBarOpen(false);
-    document.getElementById("btn-camp-zoom-toggle")?.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const bar = document.getElementById("camp-zoom-bar");
-      setCampZoomBarOpen(!bar?.classList.contains("open"));
-    });
     initCampAgentMenu();
     ["gesturestart", "gesturechange", "gestureend"].forEach((evt) => {
       canvas.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
@@ -11242,10 +11148,6 @@
         clearAgentClickPending();
         void openDialogueWindow(hit.ref.id);
         return;
-      }
-      if (campViewZoom != null) {
-        resetCampViewCamera();
-        showToast("Map zoom reset — use Zoom bar in toolbar");
       }
     });
 
@@ -12461,11 +12363,8 @@
       setCampLifeStatus(isCampMobile()
         ? "Tap meadow to walk · tap agent twice to chat · 🎯 + → to go"
         : "Tap meadow to walk · double-tap agent to chat · type in talk bar");
-      syncCampZoomSliderUi();
       if (isCampMobile()) {
         setTimeout(() => showToast("Tap meadow to walk · tap agent twice to chat"), 2200);
-      } else {
-        setTimeout(() => showToast("Use the Zoom bar above the icons — slider or +/− buttons"), 2800);
       }
       initCampCat();
       spreadAllNpcs();

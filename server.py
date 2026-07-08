@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "226-camp-pc-zoomout-max"
+LUNA_BUILD = "227-camp-pc-meadow"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -120,7 +120,8 @@ async def luna_no_cache_middleware(request: Request, call_next):
             response.headers["Cache-Control"] = "public, max-age=3600"
     elif path in _NO_CACHE_EXACT:
         if path == "/firmament/play":
-            response.headers["Cache-Control"] = "public, max-age=180, stale-while-revalidate=86400"
+            response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
         else:
             response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"

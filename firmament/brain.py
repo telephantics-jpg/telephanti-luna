@@ -15,6 +15,7 @@ from firmament.paths import data_file
 
 MEMORY_PATH = data_file("firmament_agent_memory.json")
 MAX_MEMORY_TURNS = 12
+GROK_LINK_AGENTS = frozenset({"ara", "mika"})
 
 
 def llm_backend() -> str:
@@ -203,6 +204,7 @@ async def agent_chat(
     visitor_id: str = "",
     visitor_name: str = "",
     converse_mode: bool = False,
+    force_grok: bool = False,
 ) -> dict[str, Any]:
     message = (message or "").strip()
     if len(message) < 1:
@@ -272,10 +274,13 @@ async def agent_chat(
     import asyncio
 
     backend = llm_backend()
-    if str(profile.get("model", "")).lower() == "grok":
-        key = os.getenv("XAI_API_KEY", "").strip()
-        if key and key != "your_api_key_here":
+    key = os.getenv("XAI_API_KEY", "").strip()
+    grok_ok = bool(key and key != "your_api_key_here")
+    if force_grok or agent_id in GROK_LINK_AGENTS or str(profile.get("model", "")).lower() == "grok":
+        if grok_ok:
             backend = "grok"
+        elif agent_id in GROK_LINK_AGENTS or force_grok:
+            raise RuntimeError("Grok link needs XAI_API_KEY — set it in .env for @a / @m")
     if backend == "ollama":
         agent_model = profile.get("ollama_model") or os.getenv("OLLAMA_MODEL", "llama3.2")
     else:

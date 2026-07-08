@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "245-longer-chats"
+LUNA_BUILD = "246-grok-spawn-tx"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2453,6 +2453,7 @@ class FirmamentAgentChatBody(BaseModel):
     clear_memory: bool = False
     visitor_id: str = ""
     visitor_name: str = ""
+    force_grok: bool = False
 
 
 class FirmamentAgentTweetBody(BaseModel):
@@ -2745,6 +2746,7 @@ async def firmament_agent_chat_api(body: FirmamentAgentChatBody):
             clear_memory=body.clear_memory,
             visitor_id=body.visitor_id,
             visitor_name=body.visitor_name,
+            force_grok=body.force_grok,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

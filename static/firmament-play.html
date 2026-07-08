@@ -2272,7 +2272,6 @@
       #camp-music-now,
       #camp-music-prompt,
       #camp-agent-menu,
-      .dock-music-group,
       #btn-summon-dionysus,
       #btn-talk-near,
       #btn-dock-help,
@@ -2428,6 +2427,16 @@
         display: inline-flex !important;
         pointer-events: auto !important;
         flex-shrink: 0;
+      }
+      .dock-music-group {
+        display: inline-flex !important;
+        pointer-events: auto !important;
+        flex-shrink: 0;
+      }
+      #btn-camp-tpx,
+      #btn-camp-music-off {
+        display: inline-flex !important;
+        pointer-events: auto !important;
       }
       .dock-compact {
         max-width: none;
@@ -3160,8 +3169,8 @@
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917">✦</button>
       <button type="button" class="dock-icon" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
-      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-ara" title="Ara — double-tap agent to chat" style="background:linear-gradient(135deg,#064e3b,#16a34a);border-color:#86efac;color:#ecfdf5;font-family:monospace;font-size:0.78rem;font-weight:800">@A</button>
-      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-mika" title="Mika — double-tap agent to chat" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
+      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-ara" title="Summon Ara — Grok link (@a)" style="background:linear-gradient(135deg,#064e3b,#16a34a);border-color:#86efac;color:#ecfdf5;font-family:monospace;font-size:0.78rem;font-weight:800">@A</button>
+      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-mika" title="Summon Mika — Grok link (@m)" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
       <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Hide/show camp chatter">💬</button>
@@ -3368,7 +3377,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-longer-chats";
+    const CAMP_BUILD = "2026-07-08-grok-spawn-tx";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4317,6 +4326,8 @@
       odin: { x: -580, y: -280 },
       ambrosia: { x: 348, y: 142 },
       rhea: { x: 540, y: -258 },
+      ara: { x: -165, y: 95 },
+      mika: { x: 165, y: 95 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
@@ -4652,9 +4663,23 @@
       { id: "odin", name: "Odin", color: "#94a3b8", x: -580, y: -280, tx: -580, ty: -280, speed: 2.1, roam: 340, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "odin" },
       { id: "ambrosia", name: "Ambrosia", color: "#f59e0b", x: 348, y: 142, tx: 348, ty: 142, speed: 2.0, roam: 195, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "ambrosia" },
       { id: "rhea", name: "Rhea", color: "#d4a574", x: 540, y: -258, tx: 540, ty: -258, speed: 1.9, roam: 320, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "rhea" },
-      { id: "ara", name: "Ara", color: "#4ade80", x: -165, y: 95, tx: -165, ty: 95, speed: 1.8, roam: 120, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "grok" },
-      { id: "mika", name: "Mika", color: "#a78bfa", x: 165, y: 95, tx: 165, ty: 95, speed: 1.9, roam: 125, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "grok" },
     ];
+    const GROK_LINK_IDS = ["ara", "mika"];
+    const GROK_AGENT_DEFS = {
+      ara: {
+        id: "ara", name: "Ara", color: "#4ade80", mood: "think", sprite: "grok", tag: "@a",
+        anchor: { x: -165, y: 95 },
+        summonLine: "⚡ Ara links in via Grok — sharp signal on the meadow.",
+        greetPrompt: "(You just linked into the aurora camp via Grok — greet the visitor in 2-4 sentences. You are Ara, the @a Grok channel.)",
+      },
+      mika: {
+        id: "mika", name: "Mika", color: "#a78bfa", mood: "happy", sprite: "grok", tag: "@m",
+        anchor: { x: 165, y: 95 },
+        summonLine: "💠 Mika beams in via Grok — playful pulse at camp.",
+        greetPrompt: "(You just linked into the aurora camp via Grok — greet the visitor in 2-4 sentences. You are Mika, the @m Grok channel.)",
+      },
+    };
+    const grokAgentsSpawned = new Set();
     const HOUSE_HOME_LINES = {
       luna: "Slipping into my house — the corona glow seeps through the windows.",
       hermes: "Home base. I'll feel the ripples better from inside.",
@@ -6515,6 +6540,85 @@
       setCampLifeStatus("Camp is alive — agents wandering & chatting");
     }
 
+    function isGrokLinkAgent(agentId) {
+      return GROK_LINK_IDS.includes(String(agentId || "").toLowerCase());
+    }
+
+    function ensureGrokChip(def) {
+      const strip = document.getElementById("agent-strip");
+      if (!strip || document.getElementById(`chip-${def.id}`)) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "agent-chip visitor-chip";
+      btn.id = `chip-${def.id}`;
+      btn.dataset.agent = def.id;
+      btn.title = `${def.name} · Grok link ${def.tag}`;
+      btn.innerHTML = `<span class="dot" style="background:${def.color};color:${def.color}"></span><span class="chip-text"><span class="aname">${def.name}</span><span class="amood">${def.tag}</span></span>`;
+      btn.onclick = () => focusGrokAgent(def.id);
+      strip.appendChild(btn);
+    }
+
+    async function spawnGrokAgent(agentId, opts = {}) {
+      const id = String(agentId || "").toLowerCase();
+      const def = GROK_AGENT_DEFS[id];
+      if (!def) return null;
+      const existing = findRoamAgent(id);
+      if (existing && !existing.leaving) return existing;
+      const dest = layoutCampPoint(id, def.anchor.x, def.anchor.y);
+      const entry = clampCampCoord(dest.x + (id === "ara" ? -48 : 48), dest.y + 36);
+      campGuests.push({
+        id: def.id, name: def.name, color: def.color,
+        x: entry.x, y: entry.y, tx: dest.x, ty: dest.y,
+        speed: 2.1, roam: 145, idle: 0, line: "", fullLine: "", mood: def.mood,
+        behavior: "roam", behaviorTimer: 0, arriving: true, leaving: false,
+        visitTarget: null, socializing: false, gathering: false,
+        insideHouse: null, homeTarget: null, housePhase: null,
+        sprite: def.sprite,
+      });
+      grokAgentsSpawned.add(id);
+      setAgentMood(id, def.mood);
+      ensureGrokChip(def);
+      spreadAllNpcs();
+      refreshCampLayerPicker();
+      refreshCampTalkTarget(true);
+      psychicRipples.push({ x: camp.x, y: camp.y, t: Date.now(), color: def.color });
+      if (!opts.quiet) {
+        pushCampLine("Camp", def.summonLine, 22, def.mood);
+        setCampLifeStatus(`${def.name} linked via Grok — type @${id === "ara" ? "a" : "m"} or talk below`);
+        showToast(`${def.name} spawned — Grok brain online`);
+      }
+      try {
+        if (campServerOnline) {
+          const res = await fetch("/api/firmament/agent/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              agent_id: id,
+              message: def.greetPrompt,
+              speak: false,
+              force_grok: true,
+              ...visitorPayload(),
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.reply) {
+            pushCampLine(def.name, data.reply, campReadHoldSec(data.reply, 48), data.mood || def.mood, { fromLocal: true });
+            if (data.backend === "grok") showToast(`Grok · ${def.name} is live`);
+          } else if (!res.ok) {
+            throw new Error(data.detail || "grok spawn failed");
+          }
+        } else {
+          const data = aetherLocalChat(id, def.greetPrompt);
+          pushCampLine(def.name, data.reply, campReadHoldSec(data.reply, 44), data.mood || def.mood, { fromLocal: true });
+        }
+      } catch (err) {
+        const data = aetherLocalChat(id, def.greetPrompt);
+        pushCampLine(def.name, data.reply, campReadHoldSec(data.reply, 44), data.mood || def.mood, { fromLocal: true });
+        if (!isFetchOfflineError(err)) showToast(`${def.name}: ${err.message || "Grok hiccup — aether backup"}`);
+      }
+      return findRoamAgent(id);
+    }
+
     function ensureHeavenChip(agentDef) {
       const strip = document.getElementById("agent-strip");
       if (!strip || document.getElementById(`chip-${agentDef.id}`)) return;
@@ -6601,8 +6705,23 @@
       return { agentId, message };
     }
 
-    function focusGrokAgent(agentId) {
-      onAgentTap(findRoamAgent(agentId) || { id: agentId, name: agentNames[agentId] || agentId });
+    async function focusGrokAgent(agentId) {
+      const id = String(agentId || "").toLowerCase();
+      const npc = await spawnGrokAgent(id);
+      const targetSel = document.getElementById("camp-talk-target");
+      if (targetSel) {
+        targetSel.value = id;
+        syncCampTalkAllBtn();
+      }
+      const talkInput = document.getElementById("camp-talk-input");
+      if (npc) {
+        const pos = agentWorldPos(npc);
+        walkPlayerTo(pos.x, pos.y - 6);
+        void openDialogueWindow(id);
+      } else if (talkInput) {
+        talkInput.focus();
+        talkInput.placeholder = `Talk to ${agentNames[id] || id} via Grok…`;
+      }
     }
 
     async function sendCampTalk() {
@@ -6671,6 +6790,9 @@
           if (agentId === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
             await spawnDionysusVisit({ manual: true });
             refreshCampTalkTarget(true);
+          }
+          if (isGrokLinkAgent(agentId) && !findRoamAgent(agentId)) {
+            await spawnGrokAgent(agentId, { quiet: true });
           }
           if (agentId === "luna" && !canvasCampChatOnly()) {
             showToast("Luna hears you — check the chatter panel");
@@ -8560,6 +8682,28 @@
         { top: "#e879f9", side: "#c026d3", stroke: "#fae8ff" });
     }
 
+    function drawGrokFigure(cx, cy, t, color = "#4ade80", glyph = "G") {
+      const pulse = 0.85 + Math.sin(t * 4.2) * 0.15;
+      const g = ctx.createRadialGradient(cx, cy - 6, 0, cx, cy - 6, 22 * pulse);
+      g.addColorStop(0, color);
+      g.addColorStop(0.55, color + "cc");
+      g.addColorStop(1, "rgba(15, 23, 42, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 6, 20 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 6, 14, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.font = "bold 13px Segoe UI";
+      ctx.fillStyle = "#0f172a";
+      ctx.textAlign = "center";
+      ctx.fillText(glyph, cx, cy - 1);
+      ctx.textAlign = "center";
+    }
+
     function drawHermesFigure(cx, cy, t) {
       const wing = Math.sin(t * 6) * 3;
       drawIsoBox(cx, cy, -0.3, -0.3, 0, 0.6, 0.6, 1.0,
@@ -8827,7 +8971,15 @@
         ctx.scale(u, u);
         ctx.translate(-s.x, -cy);
       }
-      (drawers[n.id] || (n.sprite === "heaven" ? drawHeavenFigure : drawLunaFigure))(s.x, cy, t);
+      if (drawers[n.id]) {
+        drawers[n.id](s.x, cy, t);
+      } else if (n.sprite === "grok") {
+        drawGrokFigure(s.x, cy, t, n.color || "#4ade80", n.id === "mika" ? "M" : "A");
+      } else if (n.sprite === "heaven") {
+        drawHeavenFigure(s.x, cy, t);
+      } else {
+        drawLunaFigure(s.x, cy, t);
+      }
       ctx.restore();
       if (n.mood) {
         const m = n.mood.slice(0, 10);
@@ -11056,6 +11208,17 @@
       if (!heavenHere) {
         rows.push({ id: "summon-heaven", name: "✦ Summon Heaven", role: "Jesus & archangels join camp", summon: true });
       }
+      for (const gid of GROK_LINK_IDS) {
+        if (!findRoamAgent(gid)) {
+          const def = GROK_AGENT_DEFS[gid];
+          rows.push({
+            id: gid,
+            name: `${gid === "ara" ? "⚡" : "💠"} Summon ${def.name}`,
+            role: `Grok link ${def.tag}`,
+            grokSummon: true,
+          });
+        }
+      }
       for (const n of allRoamers()) {
         if (n.leaving || seen.has(n.id)) continue;
         seen.add(n.id);
@@ -11069,12 +11232,13 @@
           continue;
         }
         if (ARCHANGEL_IDS.includes(a.id) && !heavenHere && a.id !== "jesus") continue;
+        if (GROK_LINK_IDS.includes(a.id) && !findRoamAgent(a.id)) continue;
         rows.push({ id: a.id, name: a.name, role: AGENT_ROLES[a.id] || "camp agent" });
       }
       list.innerHTML = rows.map((r) => `
-        <button type="button" class="cpas-row" data-agent="${r.id}" data-invite="${r.invite ? "1" : "0"}" data-route="${r.route ? "1" : "0"}" data-summon="${r.summon ? "1" : "0"}">
+        <button type="button" class="cpas-row" data-agent="${r.id}" data-invite="${r.invite ? "1" : "0"}" data-route="${r.route ? "1" : "0"}" data-summon="${r.summon ? "1" : "0"}" data-grok-summon="${r.grokSummon ? "1" : "0"}">
           <span><span class="cpas-name">${escapeHtml(r.name)}</span><span class="cpas-role">${escapeHtml(r.role)}</span></span>
-          <span class="cpas-go">${r.summon ? "✦" : r.invite ? "🍷" : r.route ? "➤" : "💬"}</span>
+          <span class="cpas-go">${r.grokSummon ? (r.id === "ara" ? "⚡" : "💠") : r.summon ? "✦" : r.invite ? "🍷" : r.route ? "➤" : "💬"}</span>
         </button>`).join("");
       list.querySelectorAll(".cpas-row").forEach((btn) => {
         btn.addEventListener("click", (ev) => {
@@ -11082,6 +11246,10 @@
           ev.stopPropagation();
           const id = btn.dataset.agent;
           closeCampPickAgentSheet();
+          if (btn.dataset.grokSummon === "1") {
+            void focusGrokAgent(id);
+            return;
+          }
           if (btn.dataset.summon === "1") {
             summonArchangelCouncil();
             return;
@@ -11431,8 +11599,8 @@
         if (id) onAgentTap(findRoamAgent(id) || { id, name: agentNames[id] || id });
       };
     });
-    document.getElementById("btn-talk-ara")?.addEventListener("click", () => focusGrokAgent("ara"));
-    document.getElementById("btn-talk-mika")?.addEventListener("click", () => focusGrokAgent("mika"));
+    document.getElementById("btn-talk-ara")?.addEventListener("click", () => { void focusGrokAgent("ara"); });
+    document.getElementById("btn-talk-mika")?.addEventListener("click", () => { void focusGrokAgent("mika"); });
     document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
     document.getElementById("btn-camp-music-off").onclick = () => closeAllCampMusic();
     document.getElementById("camp-music-prompt").onclick = () => {
@@ -11646,6 +11814,9 @@
         await spawnDionysusVisit({ manual: true });
         id = "dionysus";
       }
+      if (isGrokLinkAgent(id) && !findRoamAgent(id)) {
+        await spawnGrokAgent(id, { quiet: true });
+      }
       const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
       hideAgentActionMenu();
       dialogueAgent = id;
@@ -11699,13 +11870,18 @@
             agent_id: agentId,
             message: text,
             speak: false,
+            force_grok: isGrokLinkAgent(agentId),
             ...visitorPayload(),
           }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "chat failed");
-        if (data.backend === "aether") {
-          showToast("🌫 Aether brain — Ollama sleeping, local roleplay on");
+        if (isGrokLinkAgent(agentId) && data.backend === "grok") {
+          showToast(`Grok · ${agentNames[agentId] || agentId} replied`);
+        } else if (data.backend === "aether") {
+          showToast(isGrokLinkAgent(agentId)
+            ? "🌫 Grok offline — aether backup for @a/@m"
+            : "🌫 Aether brain — Ollama sleeping, local roleplay on");
         }
         applyChatResult(agentId, data, opts);
       } catch (err) {

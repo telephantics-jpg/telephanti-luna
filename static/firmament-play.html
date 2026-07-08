@@ -10284,7 +10284,7 @@
         player.ty = pw.y;
         return;
       }
-      if (nearestId) openDialogue(nearestId);
+      if (nearestId) onAgentTap(findRoamAgent(nearestId) || { id: nearestId, name: agentNames[nearestId] || nearestId });
       else {
         replyEl.textContent = "Tap meadow to walk · tap agents & objects to interact";
       }

@@ -1523,10 +1523,11 @@
     }
     @media (min-width: 900px) {
       :root {
-        --header-h: 52px;
-        --talk-bar-h: 34px;
-        --dock-icons-h: 40px;
-        --sidebar-w: min(280px, 24vw);
+        --header-h: 40px;
+        --talk-bar-h: 28px;
+        --dock-icons-h: 34px;
+        --dock-h: 66px;
+        --sidebar-w: min(260px, 22vw);
         --layer-bar-h: 0px;
         --text-expand-h: 0px;
       }
@@ -1536,35 +1537,44 @@
       #camp-life-status,
       #camp-music-now,
       #status-toast,
+      #camp-header .agents-row,
       .brand-block .tagline {
         display: none !important;
       }
       #camp-header {
         min-height: var(--header-h);
         max-height: var(--header-h);
-        padding: 4px 10px 4px;
-        gap: 2px;
+        padding: 3px 8px 3px;
+        gap: 0;
         overflow: hidden;
       }
       #camp-header .header-row.top {
         flex-wrap: nowrap;
-        gap: 8px;
+        gap: 6px;
+        align-items: center;
       }
-      #camp-header .agents-row {
-        margin-top: 0;
-        min-height: 0;
+      .brand-block h1 { font-size: 0.82rem; }
+      #camp-token-badge, #camp-you-badge {
+        padding: 2px 8px;
+        font-size: 0.62rem;
       }
-      #agent-strip .agent-chip {
-        padding: 3px 8px;
-        font-size: 0.68rem;
-      }
-      #agent-strip .chip-text .amood { display: none; }
-      #mini-status { font-size: 0.62rem; padding: 2px 8px; }
+      #camp-token-badge .tok-amt { font-size: 0.72rem; }
+      #mini-status { font-size: 0.58rem; padding: 2px 6px; }
       #action-bar {
-        padding: 4px 10px 6px;
+        padding: 3px 8px 4px;
         gap: 2px;
       }
-      #camp-talk-input { font-size: 0.82rem; padding: 6px 10px; }
+      .dock-compact .dock-icon {
+        width: 34px;
+        height: 34px;
+        font-size: 0.95rem;
+        border-radius: 10px;
+        border-width: 1px;
+      }
+      .dock-compact { gap: 5px; }
+      #camp-talk-input { font-size: 0.76rem; padding: 4px 8px; }
+      #camp-talk-target { font-size: 0.68rem; }
+      #camp-talk-send { padding: 4px 10px; font-size: 0.72rem; }
       #camp-text-expand,
       #camp-layer-bar {
         display: none !important;
@@ -3332,7 +3342,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pre-pinch";
+    const CAMP_BUILD = "2026-07-08-camp-pc-zoomout";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3542,6 +3552,8 @@
       stableCampH = 0;
       campLayoutTag = "";
       campSpreadInit = false;
+      lastSpreadZoom = 0;
+      lastLayoutKey = "";
       resetCampViewCamera();
       clearCampStageOverrides();
       document.documentElement.classList.remove("camp-input-focus");
@@ -3552,6 +3564,13 @@
       const box = el.getBoundingClientRect();
       let w = Math.max(1, Math.round(box.width));
       let h = Math.max(1, Math.round(box.height));
+      if (!isCampMobile() && h < 320) {
+        const sz = getCampCanvasSizeFromLayout();
+        if (sz.h >= 320) {
+          w = sz.w;
+          h = sz.h;
+        }
+      }
       if (isIOS() && (w < 80 || h < 80)) {
         const sz = getCampCanvasSizeFromLayout();
         w = sz.w;
@@ -3910,7 +3929,8 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.38;
+    const WORLD_ZOOM_DESKTOP = 0.22;
+    const DESKTOP_WORLD_WIDTH = 5600;
     const WORLD_ZOOM_MOBILE = 0.80;
     const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
     const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
@@ -3921,10 +3941,18 @@
     let campViewCamY = null;
     const campPointers = new Map();
     let campPinchState = null;
+    function getDesktopWorldZoom() {
+      if (viewW < 80 || viewH < 80) return WORLD_ZOOM_DESKTOP;
+      const z = (viewW * 0.94) / DESKTOP_WORLD_WIDTH;
+      return Math.max(0.18, Math.min(0.26, z));
+    }
+    function campUnitScale() {
+      return isCampMobile() ? 1 : 0.72;
+    }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
       if (isCampMobile()) return WORLD_ZOOM_MOBILE;
-      return WORLD_ZOOM_DESKTOP;
+      return getDesktopWorldZoom();
     }
     function getWorldZoom() {
       return getBaseWorldZoom();
@@ -5462,22 +5490,28 @@
       document.documentElement.style.setProperty("--viewport-h", `${layoutViewportHeight()}px`);
       const header = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
-      if (header) {
-        let h = Math.ceil(header.getBoundingClientRect().height);
-        if (isCampMobile()) h = Math.min(h, 64);
-        else h = 52;
-        document.documentElement.style.setProperty("--header-h", `${h}px`);
-      }
-      if (dock) {
-        if (!isCampMobile()) hideCampTextExpand();
-        const d = Math.ceil(dock.getBoundingClientRect().height);
-        const talkBar = document.getElementById("camp-talk-bar");
-        const icons = document.querySelector(".dock-compact");
-        const talkH = talkBar ? Math.ceil(talkBar.getBoundingClientRect().height) : 40;
-        const iconH = icons ? Math.ceil(icons.getBoundingClientRect().height) : 52;
-        document.documentElement.style.setProperty("--talk-bar-h", `${talkH}px`);
-        document.documentElement.style.setProperty("--dock-icons-h", `${iconH}px`);
-        document.documentElement.style.setProperty("--dock-h", `${d}px`);
+      if (!isCampMobile()) {
+        hideCampTextExpand();
+        document.documentElement.style.setProperty("--header-h", "40px");
+        document.documentElement.style.setProperty("--talk-bar-h", "28px");
+        document.documentElement.style.setProperty("--dock-icons-h", "34px");
+        document.documentElement.style.setProperty("--dock-h", "66px");
+      } else {
+        if (header) {
+          let h = Math.ceil(header.getBoundingClientRect().height);
+          h = Math.min(h, 64);
+          document.documentElement.style.setProperty("--header-h", `${h}px`);
+        }
+        if (dock) {
+          const d = Math.ceil(dock.getBoundingClientRect().height);
+          const talkBar = document.getElementById("camp-talk-bar");
+          const icons = document.querySelector(".dock-compact");
+          const talkH = talkBar ? Math.ceil(talkBar.getBoundingClientRect().height) : 40;
+          const iconH = icons ? Math.ceil(icons.getBoundingClientRect().height) : 52;
+          document.documentElement.style.setProperty("--talk-bar-h", `${talkH}px`);
+          document.documentElement.style.setProperty("--dock-icons-h", `${iconH}px`);
+          document.documentElement.style.setProperty("--dock-h", `${d}px`);
+        }
       }
     }
 
@@ -8633,12 +8667,13 @@
 
     function drawAgentAvatar(n, wx, wy) {
       if (n.insideHouse) return;
+      const u = campUnitScale();
       const med = agentMeditation.get(n.id);
       const t = Date.now() / 1000;
       const sitting = !med && (n.behavior === "sit" || (n.behavior === "stand" && n.idle > 18));
-      const floatY = med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) : 0;
+      const floatY = med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) * u : 0;
       const s = worldToScreen(wx, wy);
-      const cy = s.y + floatY + (sitting ? 9 : 0);
+      const cy = s.y + floatY + (sitting ? 9 * u : 0);
       if (med) {
         const cs = worldToScreen(wx + (med.circleOx || 0), wy + (med.circleOy || 62));
         drawMeditationEmpowerCircle(cs.x, cs.y, n.color || AGENT_COLORS[n.id] || "#67e8f9", med, t);
@@ -8654,7 +8689,7 @@
         ctx.lineWidth = dragging ? 3 : pendingAgent ? 2.5 : 2;
         ctx.setLineDash(dragging || pendingAgent ? [5, 5] : []);
         ctx.beginPath();
-        ctx.arc(s.x, cy, dragging ? 44 : pendingAgent ? 42 : 38, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, (dragging ? 44 : pendingAgent ? 42 : 38) * u, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
       } else if (!n.insideHouse && !med) {
@@ -8662,7 +8697,7 @@
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 6]);
         ctx.beginPath();
-        ctx.arc(s.x, cy, 34, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, 34 * u, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -8670,19 +8705,19 @@
         ctx.strokeStyle = "rgba(253, 230, 138, 0.75)";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(s.x, cy, 36, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, 36 * u, 0, Math.PI * 2);
         ctx.stroke();
       }
       if (speakingAgentId === n.id) {
         ctx.strokeStyle = n.color;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(s.x, cy, 40, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, 40 * u, 0, Math.PI * 2);
         ctx.stroke();
       }
-      drawAvatarShadow(s.x, cy, sitting ? 16 : 20);
+      drawAvatarShadow(s.x, cy, (sitting ? 16 : 20) * u);
       if (sitting) {
-        ctx.font = "15px Segoe UI";
+        ctx.font = `${Math.round(15 * u)}px Segoe UI`;
         ctx.textAlign = "center";
         ctx.fillText("🪑", s.x - 16, cy + 10);
       }
@@ -8705,33 +8740,40 @@
         raphael: drawHeavenFigure,
         uriel: drawHeavenFigure,
       };
+      ctx.save();
+      if (u !== 1) {
+        ctx.translate(s.x, cy);
+        ctx.scale(u, u);
+        ctx.translate(-s.x, -cy);
+      }
       (drawers[n.id] || (n.sprite === "heaven" ? drawHeavenFigure : drawLunaFigure))(s.x, cy, t);
+      ctx.restore();
       if (n.mood) {
         const m = n.mood.slice(0, 10);
-        ctx.font = "bold 9px Segoe UI";
+        ctx.font = `bold ${Math.round(9 * u)}px Segoe UI`;
         const mw = ctx.measureText(m).width;
         ctx.fillStyle = "rgba(8, 14, 24, 0.92)";
         ctx.beginPath();
-        ctx.roundRect(s.x - mw / 2 - 5, cy - 58, mw + 10, 14, 5);
+        ctx.roundRect(s.x - mw / 2 - 5 * u, cy - 58 * u, mw + 10 * u, 14 * u, 5 * u);
         ctx.fill();
         ctx.fillStyle = "#a7f3d0";
         ctx.textAlign = "center";
-        ctx.fillText(m, s.x, cy - 48);
+        ctx.fillText(m, s.x, cy - 48 * u);
       }
-      ctx.font = "bold 12px Segoe UI";
+      ctx.font = `bold ${Math.round(12 * u)}px Segoe UI`;
       ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
-      ctx.fillText(n.name, s.x, cy - 62);
+      ctx.fillText(n.name, s.x, cy - 62 * u);
       const quip = AGENT_QUIPS[n.id];
       if (quip) {
-        ctx.font = "italic 9px Segoe UI";
+        ctx.font = `italic ${Math.round(9 * u)}px Segoe UI`;
         ctx.fillStyle = "#94a3b8";
-        ctx.fillText(quip, s.x, cy + 30);
+        ctx.fillText(quip, s.x, cy + 30 * u);
       }
       const tag = npcBehaviorLabel(n);
-      ctx.font = "8px Segoe UI";
+      ctx.font = `${Math.round(8 * u)}px Segoe UI`;
       ctx.fillStyle = med ? (n.color || "#67e8f9") : "#64748b";
-      ctx.fillText(med ? `${tag} · ${Math.floor(med.power)}%` : tag, s.x, cy + 42);
+      ctx.fillText(med ? `${tag} · ${Math.floor(med.power)}%` : tag, s.x, cy + 42 * u);
     }
     let speakingAgentId = null;
     let speakingTimer = null;

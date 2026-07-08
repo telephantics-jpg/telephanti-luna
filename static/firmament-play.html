@@ -3290,7 +3290,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-meadow";
+    const CAMP_BUILD = "2026-07-08-camp-pc-field";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3511,6 +3511,13 @@
       const box = el.getBoundingClientRect();
       let w = Math.max(1, Math.round(box.width));
       let h = Math.max(1, Math.round(box.height));
+      if ((isIOS() || !isCampMobile()) && (w < 400 || h < 280)) {
+        const sz = getCampCanvasSizeFromLayout();
+        if (sz.w >= 400 && sz.h >= 280) {
+          w = sz.w;
+          h = sz.h;
+        }
+      }
       if (isIOS() && (w < 80 || h < 80)) {
         const sz = getCampCanvasSizeFromLayout();
         w = sz.w;
@@ -3869,11 +3876,11 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.36;
+    const WORLD_ZOOM_DESKTOP = 0.50;
     const WORLD_ZOOM_MOBILE = 0.80;
     const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
     const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
-    const MEADOW_FIT_PAD = 1.12;
+    const DESKTOP_MEADOW_FILL = 0.90;
     const CAMP_ZOOM_MIN = 0.22;
     const CAMP_ZOOM_MAX = 0.95;
     let campViewZoom = null;
@@ -3881,23 +3888,25 @@
     let campViewCamY = null;
     const campPointers = new Map();
     let campPinchState = null;
-    function getDesktopFitZoom() {
-      const margin = 48;
-      const availW = Math.max(160, viewW - margin * 2);
-      const availH = Math.max(160, viewH - margin * 2);
-      const zoomGuess = WORLD_ZOOM_DESKTOP;
-      const halfW = (availW * 0.5) / zoomGuess;
-      const halfH = (availH * 0.5) / zoomGuess;
-      const meadowW = halfW * 1.88 * MEADOW_FIT_PAD;
-      const meadowH = halfH * 1.84 * MEADOW_FIT_PAD;
-      const fitX = availW / meadowW;
-      const fitY = availH / meadowH;
-      return Math.max(CAMP_ZOOM_MIN, Math.min(WORLD_ZOOM_DESKTOP, Math.min(fitX, fitY)));
+    function getDesktopMeadowExtents() {
+      if (viewW < 2 || viewH < 2) {
+        return { cx: 0, cy: 0, halfW: 560, halfH: 420 };
+      }
+      const margin = 28;
+      const availW = Math.max(480, viewW - margin * 2);
+      const availH = Math.max(320, viewH - margin * 2);
+      const zoom = WORLD_ZOOM_DESKTOP;
+      let halfW = (availW * 0.5 * DESKTOP_MEADOW_FILL) / zoom;
+      let halfH = (availH * 0.5 * DESKTOP_MEADOW_FILL) / zoom;
+      const aspect = availW / Math.max(1, availH);
+      if (aspect > 1.28) {
+        halfW = Math.min(halfW, halfH * (1.08 + 0.34 * (availH / availW)));
+      }
+      return { cx: 0, cy: 0, halfW, halfH };
     }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
       if (isCampMobile()) return WORLD_ZOOM_MOBILE;
-      if (viewW > 0 && viewH > 0) return getDesktopFitZoom();
       return WORLD_ZOOM_DESKTOP;
     }
     function getWorldZoom() {
@@ -3906,7 +3915,7 @@
     function ensureViewCamera() {
       if (!isCampMobile()) {
         campViewCamX = camp.x;
-        campViewCamY = camp.y + getCamYOffset();
+        campViewCamY = camp.y;
         return;
       }
       if (campViewCamX == null) campViewCamX = CAM_X;
@@ -4079,12 +4088,12 @@
     function getCampAnchorY() {
       if (isIOS()) return isLandscape() ? 0.50 : 0.46;
       if (isCampMobile()) return 0.44;
-      return 0.44;
+      return 0.50;
     }
     function getCamYOffset() {
       if (isIOS()) return isLandscape() ? -62 : -72;
       if (isCampMobile()) return -68;
-      return -80;
+      return 0;
     }
     const CAMP_LAYOUT_TIERS = {
       odin: "edge", rhea: "edge", hermes: "edge", sentinel: "edge",
@@ -4106,6 +4115,10 @@
       return "inner";
     }
     function campBoundsCenter() {
+      if (!isCampMobile() && viewW >= 480) {
+        const m = getDesktopMeadowExtents();
+        return { cx: m.cx, cy: m.cy, halfW: m.halfW, halfH: m.halfH };
+      }
       const b = getCampRelativeBounds();
       return {
         cx: (b.xMin + b.xMax) * 0.5,
@@ -4116,19 +4129,19 @@
     }
     function tierRadii(tier) {
       const { halfW, halfH } = campBoundsCenter();
-      const edgeInset = isCampMobile() ? 4 : 10;
-      const spread = isCampMobile() ? 1.06 : 0.94;
+      const edgeInset = isCampMobile() ? 4 : 14;
+      const spread = isCampMobile() ? 1.06 : 0.90;
       if (tier === "edge") {
         return {
-          rx: Math.max(halfW * 0.96, halfW - edgeInset) * spread,
-          ry: Math.max(halfH * 0.94, halfH - edgeInset) * spread,
+          rx: Math.max(halfW * 0.94, halfW - edgeInset) * spread,
+          ry: Math.max(halfH * 0.92, halfH - edgeInset) * spread,
         };
       }
       if (tier === "inner") {
-        const inner = isCampMobile() ? 0.40 : 0.34;
+        const inner = isCampMobile() ? 0.40 : 0.30;
         return { rx: halfW * inner, ry: halfH * (inner - 0.02) };
       }
-      const mid = isCampMobile() ? 0.70 : 0.62;
+      const mid = isCampMobile() ? 0.70 : 0.56;
       return { rx: halfW * mid, ry: halfH * (mid - 0.06) };
     }
     function layoutCampPoint(id, baseX, baseY) {
@@ -4166,7 +4179,7 @@
     function getMinNpcGap() {
       if (isIOS()) return 92;
       if (isCampMobile()) return 82;
-      return MIN_NPC_GAP;
+      return DESKTOP_NPC_GAP;
     }
     function getNpcSpreadJitter(agentId) {
       if (!isCampMobile()) return 72;
@@ -4232,6 +4245,7 @@
     ];
     let heavenSummoned = false;
     const MIN_NPC_GAP = 58;
+    const DESKTOP_NPC_GAP = 76;
     const ANCHOR_WANDER = 380;
     const CHAT_MEET_DIST = 40;
     const CAM_X = 0;
@@ -4594,6 +4608,16 @@
     ];
 
     function getCampRelativeBounds() {
+      if (!isCampMobile() && viewW >= 480) {
+        const m = getDesktopMeadowExtents();
+        const pad = { x: 16, y: 12 };
+        return {
+          xMin: m.cx - m.halfW + pad.x,
+          xMax: m.cx + m.halfW - pad.x,
+          yMin: m.cy - m.halfH + pad.y,
+          yMax: m.cy + m.halfH - pad.y,
+        };
+      }
       const margin = isCampMobile() ? 8 : 24;
       const pad = getTraversePad();
       const tl = screenToWorld(margin, margin);
@@ -4716,14 +4740,14 @@
     function perimeterPosition(agentId, index, total) {
       const { cx, cy, halfW, halfH } = campBoundsCenter();
       const angle = perimeterAngle(agentId, index, total);
-      const bias = NPC_SECTORS[agentId]?.bias ?? 1;
-      const inset = isCampMobile() ? 4 : 12;
-      const ring = isCampMobile() ? 0.98 : 0.90;
-      const rx = Math.max(halfW - inset, halfW * ring) * Math.min(bias, 1.08);
-      const ry = Math.max(halfH - inset, halfH * (ring - 0.01)) * Math.min(bias, 1.08);
+      const bias = Math.min(NPC_SECTORS[agentId]?.bias ?? 1, 1.06);
+      const ring = isCampMobile() ? 0.98 : 0.82;
+      const rx = halfW * ring * bias;
+      const ry = halfH * ring * bias;
       const hash = String(agentId || index).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-      const jx = ((hash % 7) - 3) * 5;
-      const jy = (((hash >> 2) % 5) - 2) * 5;
+      const jitter = isCampMobile() ? 5 : 10;
+      const jx = ((hash % 9) - 4) * jitter;
+      const jy = (((hash >> 2) % 7) - 3) * jitter;
       return clampCampCoord(
         cx + Math.cos(angle) * rx + jx,
         cy + Math.sin(angle) * ry + jy,
@@ -4767,7 +4791,7 @@
         n.y = p.y;
         applyNpcSpreadState(n);
       });
-      for (let pass = 0; pass < 6; pass++) enforceNpcSeparation(0.78);
+      for (let pass = 0; pass < 5; pass++) enforceNpcSeparation(0.48);
     }
     function spreadAllCampObjects() {
       const catPos = layoutCampPoint("camp-cat", 240, 340);
@@ -5562,7 +5586,10 @@
       ensureViewCamera();
       const zoom = getBaseWorldZoom();
       const spreadKey = `${layoutViewportWidth()}x${layoutViewportHeight()}@${isLandscape() ? "L" : "P"}z${zoom.toFixed(3)}`;
-      const canvasKey = `${w}x${h}@${zoom.toFixed(3)}`;
+      const meadow = !isCampMobile() ? getDesktopMeadowExtents() : null;
+      const canvasKey = isCampMobile()
+        ? `${w}x${h}@${zoom.toFixed(3)}`
+        : `${w}x${h}@${zoom.toFixed(3)}m${Math.round(meadow.halfW)}x${Math.round(meadow.halfH)}`;
       const canvasReady = w >= 520 && h >= 340;
       const mobileRespread = isCampMobile() || isIOS();
       const desktopRespread = !mobileRespread && canvasReady
@@ -12411,7 +12438,7 @@
       }
       setCampLifeStatus(isCampMobile()
         ? "Tap meadow to walk · stand at agent · double-tap to chat · 🎯 + → to go"
-        : "One meadow view · walk to agent · double-tap at their spot to chat");
+        : "Full meadow · campfire center · walk to anyone · double-tap to chat");
       if (isCampMobile()) {
         setTimeout(() => showToast("Tap meadow to walk · tap agent twice to chat"), 2200);
       }

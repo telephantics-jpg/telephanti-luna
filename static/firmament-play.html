@@ -78,10 +78,10 @@
       touch-action: none;
       transform: none;
       filter: none;
+      contain: layout paint;
     }
     @media (min-width: 900px) {
-      html.desktop-camp #camp-stage,
-      html.desktop-camp #trippy-veil {
+      html.desktop-camp #camp-stage {
         transform: none !important;
         filter: none !important;
         transition: none !important;
@@ -89,6 +89,9 @@
       }
       html.desktop-camp #game {
         background: #050b14 !important;
+      }
+      html.desktop-camp #trippy-veil {
+        display: none !important;
       }
     }
     #game {
@@ -372,11 +375,10 @@
       #camp-pick-agent-sheet { display: none !important; }
     }
     #trippy-veil {
-      position: fixed; z-index: 2; pointer-events: none;
-      left: 0; top: var(--header-h); right: 0;
-      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
-      width: auto;
-      height: auto;
+      position: absolute; z-index: 2; pointer-events: none;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       background:
         radial-gradient(ellipse at 18% 22%, rgba(167, 139, 250, 0.14), transparent 42%),
         radial-gradient(ellipse at 82% 68%, rgba(244, 114, 182, 0.1), transparent 45%),
@@ -385,23 +387,17 @@
       animation: trippy-veil-drift 14s ease-in-out infinite alternate;
     }
     @keyframes trippy-veil-drift {
-      from { opacity: 0.55; transform: translate3d(-1%, 0, 0) scale(1); }
-      to { opacity: 0.85; transform: translate3d(1.5%, -1%, 0) scale(1.02); }
+      from { opacity: 0.55; transform: translate3d(-1%, 0, 0); }
+      to { opacity: 0.85; transform: translate3d(1.5%, -1%, 0); }
     }
-    html.desktop-camp #trippy-veil {
-      animation: none;
-      opacity: 0.5;
-    }
-    html.ios-camp #camp-stage,
-    html.ios-camp #trippy-veil {
+    html.ios-camp #camp-stage {
       transform: none !important;
       filter: none !important;
       perspective: none !important;
       transform-origin: center center !important;
     }
     @media (min-width: 900px) {
-      #camp-stage,
-      #trippy-veil { right: calc(var(--sidebar-w) + var(--gap) * 2); }
+      #camp-stage { right: calc(var(--sidebar-w) + var(--gap) * 2); }
     }
     #camp-header {
       position: fixed; left: 0; right: 0; top: 0; z-index: 25;
@@ -1731,7 +1727,6 @@
     }
     #camp-house-layer.open { display: flex; }
     body.house-interior-open #camp-stage,
-    body.house-interior-open #trippy-veil,
     body.house-interior-open #convo-log,
     body.house-interior-open #action-bar,
     body.house-interior-open #camp-header,
@@ -2073,12 +2068,10 @@
     body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     @media (min-width: 900px) {
       body.camp-focus.speech-expanded #camp-stage,
-      body.camp-focus.speech-expanded #trippy-veil,
       body.camp-focus.speech-expanded #action-bar {
         right: calc(var(--sidebar-w) + var(--gap) * 2);
       }
       body.camp-focus #camp-stage,
-      body.camp-focus #trippy-veil,
       body.camp-focus #action-bar {
         right: 0;
       }
@@ -2130,8 +2123,7 @@
         width: 100%;
         overscroll-behavior: none;
       }
-      html.camp-input-focus #camp-stage,
-      html.camp-input-focus #trippy-veil {
+      html.camp-input-focus #camp-stage {
         top: var(--header-h) !important;
         bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px)) !important;
         height: auto !important;
@@ -2142,8 +2134,7 @@
         right: 0;
         bottom: 0;
       }
-      #camp-stage,
-      #trippy-veil {
+      #camp-stage {
         top: var(--header-h);
         left: 0;
         right: 0;
@@ -2177,8 +2168,7 @@
         top: var(--vv-offset-top, 0px);
         width: auto;
       }
-      html.ios-camp #camp-stage,
-      html.ios-camp #trippy-veil {
+      html.ios-camp #camp-stage {
         left: var(--vv-offset-left, 0px);
         right: var(--vv-offset-right, 0px);
         top: calc(var(--header-h) + var(--vv-offset-top, 0px));
@@ -2904,8 +2894,10 @@
 </head>
 <body class="camp-trippy">
 
-  <div id="camp-stage"><canvas id="game"></canvas></div>
-  <div id="trippy-veil" aria-hidden="true"></div>
+  <div id="camp-stage">
+    <canvas id="game"></canvas>
+    <div id="trippy-veil" aria-hidden="true"></div>
+  </div>
   <div id="camp-agent-menu" hidden aria-hidden="true" role="dialog" aria-label="Agent actions">
     <div class="cam-card">
       <div class="cam-who"></div>
@@ -3334,7 +3326,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-layout";
+    const CAMP_BUILD = "2026-07-08-camp-veil-fix";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3597,11 +3589,7 @@
         campStage.style.width = "";
         campStage.style.top = "";
       }
-      const veil = document.getElementById("trippy-veil");
-      if (veil) {
-        veil.style.height = "";
-        veil.style.top = "";
-      }
+
     }
     if (isCampMobile()) document.documentElement.classList.add("touch-camp");
     else document.documentElement.classList.add("desktop-camp");

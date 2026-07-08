@@ -87,6 +87,9 @@
         transition: none !important;
         will-change: auto;
       }
+      html.desktop-camp #game {
+        background: #050b14 !important;
+      }
     }
     #game {
       display: block;
@@ -3331,7 +3334,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-zoom-icons-b";
+    const CAMP_BUILD = "2026-07-08-camp-pc-layout";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3359,6 +3362,9 @@
       idleChatterRandMs: 24000,
     };
     const CAMP_TRAVERSE_PAD = { x: 40, y: 32 };
+    const DESKTOP_REF_W = 1280;
+    const DESKTOP_REF_H = 720;
+    const DESKTOP_WORLD_BOUNDS = { xMin: -720, xMax: 720, yMin: -400, yMax: 480 };
     const CAMP_POND = { cx: -520, cy: 160, rx: 128, ry: 92, name: "Aurora Pond" };
     const AGENT_DRAG_THRESHOLD = 10;
     const AGENT_HIT_RADIUS = 52;
@@ -3510,13 +3516,20 @@
       el.hidden = true;
     }
 
+    function desktopStageWidth() {
+      const vw = layoutViewportWidth();
+      const sidebarW = Math.min(400, vw * 0.38);
+      const gap = 10;
+      return Math.max(480, Math.round(vw - sidebarW - gap * 2));
+    }
     function getCampCanvasSizeFromLayout() {
       const style = getComputedStyle(document.documentElement);
       const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
       const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 100;
       const vw = layoutViewportWidth();
       const vh = layoutViewportHeight();
-      return { w: vw, h: Math.max(120, vh - headerH - dockH) };
+      const stageW = isCampMobile() ? vw : desktopStageWidth();
+      return { w: stageW, h: Math.max(120, vh - headerH - dockH) };
     }
 
     function commitStableCampSize(w, h) {
@@ -3553,8 +3566,13 @@
       const box = el.getBoundingClientRect();
       let w = Math.max(1, Math.round(box.width));
       let h = Math.max(1, Math.round(box.height));
-      if (isIOS()) {
-        const sz = getCampCanvasSizeFromLayout();
+      const sz = getCampCanvasSizeFromLayout();
+      if (!isCampMobile()) {
+        if (w < 200 || h < 120 || Math.abs(w - sz.w) > 36 || Math.abs(h - sz.h) > 28) {
+          w = sz.w;
+          h = sz.h;
+        }
+      } else if (isIOS()) {
         if (w < 100 || h < 100 || Math.abs(h - sz.h) > 28 || Math.abs(w - sz.w) > 16) {
           w = sz.w;
           h = sz.h;
@@ -3913,7 +3931,7 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.24;
+    const WORLD_ZOOM_DESKTOP = 0.36;
     const WORLD_ZOOM_MOBILE = 0.80;
     const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
     const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
@@ -3929,10 +3947,13 @@
     }
     function getDesktopFitZoom() {
       if (viewW < 80 || viewH < 80) return WORLD_ZOOM_DESKTOP;
+      const refAr = DESKTOP_REF_W / DESKTOP_REF_H;
       const ar = viewW / Math.max(viewH, 1);
-      const arScale = Math.max(0.82, Math.min(1.18, ar / 1.55));
-      const hScale = Math.max(0.78, Math.min(1.12, viewH / 720));
-      return Math.max(0.18, Math.min(0.28, WORLD_ZOOM_DESKTOP * arScale * hScale));
+      const arScale = Math.max(0.88, Math.min(1.12, ar / refAr));
+      const hScale = Math.max(0.82, Math.min(1.08, viewH / DESKTOP_REF_H));
+      const wScale = Math.max(0.82, Math.min(1.08, viewW / DESKTOP_REF_W));
+      const sizeScale = Math.sqrt(hScale * wScale);
+      return WORLD_ZOOM_DESKTOP * arScale * sizeScale;
     }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
@@ -4146,24 +4167,38 @@
         halfH: (b.yMax - b.yMin) * 0.5,
       };
     }
+    function campPointJitter(id, jitter = 18) {
+      const key = String(id || "");
+      const hash = key.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+      return {
+        jx: ((hash % 7) - 3) * (jitter * 0.35),
+        jy: (((hash >> 2) % 5) - 2) * (jitter * 0.35),
+      };
+    }
+    function fixedCampPoint(id, baseX, baseY) {
+      const { jx, jy } = campPointJitter(id);
+      return { x: baseX + jx, y: baseY + jy };
+    }
     function tierRadii(tier) {
       const { halfW, halfH } = campBoundsCenter();
-      const edgeInset = isCampMobile() ? 4 : 8;
-      const spread = isCampMobile() ? 1.06 : 1.0;
+      const edgeInset = isCampMobile() ? 24 : 8;
+      const spread = isCampMobile() ? 0.90 : 1.0;
       if (tier === "edge") {
+        const edgeFrac = isCampMobile() ? 0.76 : 0.98;
         return {
-          rx: Math.max(halfW * 0.98, halfW - edgeInset) * spread,
-          ry: Math.max(halfH * 0.97, halfH - edgeInset) * spread,
+          rx: Math.max(halfW * edgeFrac, halfW - edgeInset) * spread,
+          ry: Math.max(halfH * (edgeFrac - 0.02), halfH - edgeInset) * spread,
         };
       }
       if (tier === "inner") {
-        const inner = isCampMobile() ? 0.40 : 0.30;
+        const inner = isCampMobile() ? 0.36 : 0.30;
         return { rx: halfW * inner, ry: halfH * (inner - 0.02) };
       }
-      const mid = isCampMobile() ? 0.70 : 0.56;
+      const mid = isCampMobile() ? 0.62 : 0.56;
       return { rx: halfW * mid, ry: halfH * (mid - 0.06) };
     }
     function layoutCampPoint(id, baseX, baseY) {
+      if (!isCampMobile()) return fixedCampPoint(id, baseX, baseY);
       const tier = campLayoutTier(id, baseX, baseY);
       const { cx, cy } = campBoundsCenter();
       const angle = Math.atan2(baseY, baseX);
@@ -4196,8 +4231,8 @@
       return CAMP_TRAVERSE_PAD;
     }
     function getMinNpcGap() {
-      if (isIOS()) return 92;
-      if (isCampMobile()) return 82;
+      if (isIOS()) return 96;
+      if (isCampMobile()) return 90;
       return MIN_NPC_GAP;
     }
     function getNpcSpreadJitter(agentId) {
@@ -4627,7 +4662,8 @@
     ];
 
     function getCampRelativeBounds() {
-      const margin = isCampMobile() ? 8 : 24;
+      if (!isCampMobile()) return { ...DESKTOP_WORLD_BOUNDS };
+      const margin = 8;
       const pad = getTraversePad();
       const tl = screenToWorld(margin, margin);
       const br = screenToWorld(viewW - margin, viewH - margin);
@@ -4750,9 +4786,10 @@
       const { cx, cy, halfW, halfH } = campBoundsCenter();
       const angle = perimeterAngle(agentId, index, total);
       const bias = NPC_SECTORS[agentId]?.bias ?? 1;
-      const inset = isCampMobile() ? 4 : 8;
-      const rx = Math.max(halfW - inset, halfW * 0.98) * bias;
-      const ry = Math.max(halfH - inset, halfH * 0.97) * bias;
+      const inset = isCampMobile() ? 26 : 8;
+      const edgeFrac = isCampMobile() ? 0.76 : 0.98;
+      const rx = Math.max(halfW - inset, halfW * edgeFrac) * bias;
+      const ry = Math.max(halfH - inset, halfH * (edgeFrac - 0.02)) * bias;
       const hash = String(agentId || index).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
       const jx = ((hash % 7) - 3) * 5;
       const jy = (((hash >> 2) % 5) - 2) * 5;
@@ -4782,17 +4819,9 @@
       const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
       roster.forEach((n) => {
         const anchor = NPC_ANCHORS[n.id];
-        if (anchor) {
-          const hash = String(n.id).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-          const jx = ((hash % 7) - 3) * 8;
-          const jy = (((hash >> 2) % 5) - 2) * 8;
-          n.x = anchor.x + jx;
-          n.y = anchor.y + jy;
-        } else {
-          const p = sectorPosition(n.id);
-          n.x = p.x;
-          n.y = p.y;
-        }
+        const p = anchor ? layoutCampPoint(n.id, anchor.x, anchor.y) : sectorPosition(n.id);
+        n.x = p.x;
+        n.y = p.y;
         applyNpcSpreadState(n);
       });
       for (let pass = 0; pass < 6; pass++) enforceNpcSeparation(1.05);
@@ -4816,7 +4845,7 @@
         n.y = p.y;
         applyNpcSpreadState(n);
       });
-      for (let pass = 0; pass < 10; pass++) enforceNpcSeparation(1.35);
+      for (let pass = 0; pass < 12; pass++) enforceNpcSeparation(1.45);
     }
     function spreadAllCampObjects() {
       const catPos = layoutCampPoint("camp-cat", 240, 340);
@@ -9964,8 +9993,13 @@
       const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 56);
       const boxW = textW + 28;
       const boxH = lines.length * lineH + 14;
-      const bx = sx - boxW / 2;
-      const by = above ? sy - boxH - 22 : sy + 16;
+      let bx = sx - boxW / 2;
+      let by = above ? sy - boxH - 22 : sy + 16;
+      if (mobile) {
+        const pad = 8;
+        bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
+        by = Math.max(pad, Math.min(viewH - boxH - pad, by));
+      }
       ctx.fillStyle = pinned ? "rgba(8, 18, 32, 0.98)" : "rgba(4, 10, 18, 0.94)";
       ctx.beginPath();
       ctx.roundRect(bx, by, boxW, boxH, 10);
@@ -10020,6 +10054,7 @@
         if (seen.has(n.id) || drawn >= max) continue;
         seen.add(n.id);
         const s = worldToScreen(camp.x + n.x, camp.y + n.y);
+        if (isCampMobile() && (s.x < -48 || s.x > viewW + 48 || s.y < -48 || s.y > viewH + 48)) continue;
         const color = n.color || AGENT_COLORS[n.id] || "#67e8f9";
         const thinkLine = (n.line || "").trim();
         if (thinkLine === "..." || thinkLine === "…") {
@@ -12128,7 +12163,7 @@
       if (!campBuildEl) return;
       const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
       if (!isCampMobile()) {
-        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)} d${campDisplayDpr().toFixed(1)}`;
+        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)} ref${DESKTOP_REF_W} d${campDisplayDpr().toFixed(1)}`;
         return;
       }
       campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;

@@ -3290,7 +3290,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-meadow-chat";
+    const CAMP_BUILD = "2026-07-08-camp-pc-meadow";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3500,6 +3500,7 @@
       stableCampH = 0;
       campLayoutTag = "";
       campSpreadInit = false;
+      lastSpreadCanvasKey = "";
       resetCampViewCamera();
       clearCampStageOverrides();
       document.documentElement.classList.remove("camp-input-focus");
@@ -3868,11 +3869,11 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.32;
+    const WORLD_ZOOM_DESKTOP = 0.36;
     const WORLD_ZOOM_MOBILE = 0.80;
     const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
     const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
-    const MEADOW_FIT_RADIUS = 480;
+    const MEADOW_FIT_PAD = 1.12;
     const CAMP_ZOOM_MIN = 0.22;
     const CAMP_ZOOM_MAX = 0.95;
     let campViewZoom = null;
@@ -3881,11 +3882,16 @@
     const campPointers = new Map();
     let campPinchState = null;
     function getDesktopFitZoom() {
-      const margin = 56;
-      const availW = Math.max(120, viewW - margin * 2);
-      const availH = Math.max(120, viewH - margin * 2);
-      const fitX = availW / (MEADOW_FIT_RADIUS * 2.15);
-      const fitY = availH / (MEADOW_FIT_RADIUS * 2.05);
+      const margin = 48;
+      const availW = Math.max(160, viewW - margin * 2);
+      const availH = Math.max(160, viewH - margin * 2);
+      const zoomGuess = WORLD_ZOOM_DESKTOP;
+      const halfW = (availW * 0.5) / zoomGuess;
+      const halfH = (availH * 0.5) / zoomGuess;
+      const meadowW = halfW * 1.88 * MEADOW_FIT_PAD;
+      const meadowH = halfH * 1.84 * MEADOW_FIT_PAD;
+      const fitX = availW / meadowW;
+      const fitY = availH / meadowH;
       return Math.max(CAMP_ZOOM_MIN, Math.min(WORLD_ZOOM_DESKTOP, Math.min(fitX, fitY)));
     }
     function getBaseWorldZoom() {
@@ -4110,19 +4116,19 @@
     }
     function tierRadii(tier) {
       const { halfW, halfH } = campBoundsCenter();
-      const edgeInset = isCampMobile() ? 4 : 16;
-      const spread = isCampMobile() ? 1.06 : 0.78;
+      const edgeInset = isCampMobile() ? 4 : 10;
+      const spread = isCampMobile() ? 1.06 : 0.94;
       if (tier === "edge") {
         return {
-          rx: Math.max(halfW * 0.94, halfW - edgeInset) * spread,
-          ry: Math.max(halfH * 0.92, halfH - edgeInset) * spread,
+          rx: Math.max(halfW * 0.96, halfW - edgeInset) * spread,
+          ry: Math.max(halfH * 0.94, halfH - edgeInset) * spread,
         };
       }
       if (tier === "inner") {
-        const inner = isCampMobile() ? 0.40 : 0.24;
+        const inner = isCampMobile() ? 0.40 : 0.34;
         return { rx: halfW * inner, ry: halfH * (inner - 0.02) };
       }
-      const mid = isCampMobile() ? 0.70 : 0.46;
+      const mid = isCampMobile() ? 0.70 : 0.62;
       return { rx: halfW * mid, ry: halfH * (mid - 0.06) };
     }
     function layoutCampPoint(id, baseX, baseY) {
@@ -4711,9 +4717,10 @@
       const { cx, cy, halfW, halfH } = campBoundsCenter();
       const angle = perimeterAngle(agentId, index, total);
       const bias = NPC_SECTORS[agentId]?.bias ?? 1;
-      const inset = isCampMobile() ? 4 : 8;
-      const rx = Math.max(halfW - inset, halfW * 0.98) * bias;
-      const ry = Math.max(halfH - inset, halfH * 0.97) * bias;
+      const inset = isCampMobile() ? 4 : 12;
+      const ring = isCampMobile() ? 0.98 : 0.90;
+      const rx = Math.max(halfW - inset, halfW * ring) * Math.min(bias, 1.08);
+      const ry = Math.max(halfH - inset, halfH * (ring - 0.01)) * Math.min(bias, 1.08);
       const hash = String(agentId || index).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
       const jx = ((hash % 7) - 3) * 5;
       const jy = (((hash >> 2) % 5) - 2) * 5;
@@ -4751,6 +4758,17 @@
       const strength = isCampMobile() ? 1.35 : 0.92;
       for (let pass = 0; pass < passes; pass++) enforceNpcSeparation(strength);
     }
+    function spreadDesktopMeadowLayout() {
+      const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
+      const total = Math.max(1, roster.length);
+      roster.forEach((n, i) => {
+        const p = perimeterPosition(n.id, i, total);
+        n.x = p.x;
+        n.y = p.y;
+        applyNpcSpreadState(n);
+      });
+      for (let pass = 0; pass < 6; pass++) enforceNpcSeparation(0.78);
+    }
     function spreadAllCampObjects() {
       const catPos = layoutCampPoint("camp-cat", 240, 340);
       campCat.x = catPos.x;
@@ -4759,7 +4777,8 @@
       campCat.ty = catPos.y;
     }
     function spreadAllNpcs() {
-      spreadMeadowLayout();
+      if (isCampMobile()) spreadMeadowLayout();
+      else spreadDesktopMeadowLayout();
       spreadAllCampObjects();
     }
 
@@ -4793,24 +4812,13 @@
     }
 
     function gatherNpcsAtCamp(quiet) {
-      if (isCampMobile()) {
-        spreadMeadowLayout();
-        if (!quiet) {
-          pushCampLine("Camp", "Agents spread across camp — room to breathe.", 10, "happy", { quiet: true });
-          showToast("Everyone spaced out on the meadow");
-        }
-        refreshCampLayerPicker();
-        return;
-      }
-      player.x = 0;
-      player.y = -25;
-      player.tx = 0;
-      player.ty = -25;
-      huddleNpcsAtCorona(allRoamers());
+      if (isCampMobile()) spreadMeadowLayout();
+      else spreadDesktopMeadowLayout();
       if (!quiet) {
-        pushCampLine("Camp", "Everyone huddles around the sun corona — beer, steaks, herbs, weed, cookies & Telephantix stereo are here.", 10, "happy");
-        showToast("Friends huddling at the corona");
+        pushCampLine("Camp", "Everyone spread across the aurora meadow — room to breathe.", 10, "happy", { quiet: true });
+        showToast("Everyone spaced out on the meadow");
       }
+      refreshCampLayerPicker();
     }
 
     function houseDoorPos(house) {
@@ -5513,6 +5521,7 @@
     let resizeRetry = 0;
     let lastLayoutSig = "";
     let lastSpreadKey = "";
+    let lastSpreadCanvasKey = "";
     let lastCanvasW = 0;
     let lastCanvasH = 0;
     function applyCanvasDimensions(w, h) {
@@ -5553,9 +5562,17 @@
       ensureViewCamera();
       const zoom = getBaseWorldZoom();
       const spreadKey = `${layoutViewportWidth()}x${layoutViewportHeight()}@${isLandscape() ? "L" : "P"}z${zoom.toFixed(3)}`;
-      if (!campSpreadInit || (spreadKey !== lastSpreadKey && dimChanged && (isCampMobile() || isIOS()))) {
+      const canvasKey = `${w}x${h}@${zoom.toFixed(3)}`;
+      const canvasReady = w >= 520 && h >= 340;
+      const mobileRespread = isCampMobile() || isIOS();
+      const desktopRespread = !mobileRespread && canvasReady
+        && (canvasKey !== lastSpreadCanvasKey || !campSpreadInit);
+      const mobileNeedsSpread = mobileRespread
+        && (!campSpreadInit || (spreadKey !== lastSpreadKey && dimChanged));
+      if (mobileNeedsSpread || desktopRespread) {
         campSpreadInit = true;
         lastSpreadKey = spreadKey;
+        lastSpreadCanvasKey = canvasKey;
         lastSpreadZoom = zoom;
         lastLayoutKey = getCampLayoutKey();
         spreadAllNpcs();
@@ -5808,7 +5825,7 @@
       const { halfW, halfH } = campBoundsCenter();
       const pondScale = isCampMobile()
         ? Math.min(halfW / 500, halfH / 360, 1.08)
-        : Math.min(halfW / 520, halfH / 380, 0.88);
+        : Math.min(halfW / 500, halfH / 360, 0.96);
       return {
         cx: pos.x, cy: pos.y,
         rx: CAMP_POND.rx * pondScale,
@@ -12399,8 +12416,12 @@
         setTimeout(() => showToast("Tap meadow to walk · tap agent twice to chat"), 2200);
       }
       initCampCat();
-      spreadAllNpcs();
-      initMobileAgentView();
+      if (isCampMobile()) {
+        spreadAllNpcs();
+        initMobileAgentView();
+      } else {
+        scheduleResize();
+      }
       mergeLocalBondsIntoCamp();
       bindCampMusicGestureUnlock();
       const greetDelay = isSlowDevice() ? 5200 : 2800;

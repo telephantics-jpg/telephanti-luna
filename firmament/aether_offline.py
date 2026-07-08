@@ -6,7 +6,7 @@ import random
 import re
 from typing import Any
 
-from firmament.brain import load_agent_profile
+from firmament.brain import agent_roots, load_agent_profile
 
 MOODS = ("happy", "neutral", "think", "alert", "love", "flirt")
 
@@ -201,7 +201,55 @@ AGENT_FLAVOR: dict[str, dict[str, Any]] = {
         ],
         "mood": "love",
     },
+    "odin": {
+        "opener": [
+            "{visitor} — the ravens saw you coming. What do you seek?",
+            "Hail, {visitor}. The hall is far but the wisdom travels.",
+            "One eye on the aurora, one on you. Speak, {visitor}.",
+        ],
+        "reply": [
+            "{snippet} — the runes twitch. Interesting.",
+            "Huginn and Muninn will gossip about that. Good.",
+            "{visitor}, wisdom costs a story. You just paid one: {snippet}.",
+            "The outskirts remember. So do I. {snippet}.",
+        ],
+        "converse": [
+            "Oracle, did you dream my hall before the grass grew?",
+            "Hermes, carry this ripple to the fire — gently.",
+            "Luna, even gods like your cookies. Allegedly.",
+        ],
+        "mood": "think",
+    },
 }
+
+
+def _learned_snippets(agent_id: str, limit: int = 2) -> list[str]:
+    try:
+        from firmament.camp_memory import learned_phrases_for_agent
+
+        return learned_phrases_for_agent(agent_id, "", limit=limit)
+    except Exception:
+        return []
+
+
+def _remix_line(agent_id: str, base: str, *, visitor: str = "", snippet: str = "") -> str:
+    line = base.format(visitor=visitor, snippet=snippet)
+    learned = _learned_snippets(agent_id, limit=2)
+    if learned and random.random() < 0.42:
+        line += f" (I still taste my own words: \"{learned[-1][:72]}\" — let that evolve.)"
+    roots = agent_roots(load_agent_profile(agent_id))
+    if roots and random.random() < 0.35:
+        root = random.choice(roots)
+        line = f"{root} …and so: {line}"
+    try:
+        from firmament.camp_memory import overheard_at_camp
+
+        heard = overheard_at_camp(agent_id, limit=1)
+        if heard and random.random() < 0.38:
+            line += f" ({heard[-1][:90]})"
+    except Exception:
+        pass
+    return line
 
 CONVERSE_BRIDGE = [
     "Speaking of which — {topic}",
@@ -252,14 +300,14 @@ def aether_reply(
     if from_agent:
         other = load_agent_profile(from_agent).get("name") or from_agent
         pool = flavor.get("converse") or AGENT_FLAVOR["luna"]["converse"]
-        line = random.choice(pool).format(visitor=visitor, snippet=snip, topic=_snippet(msg, 64))
-        line = f"{line} ({other} said: \"{snip}\")"
+        raw = random.choice(pool).format(visitor=visitor, snippet=snip, topic=_snippet(msg, 64))
+        line = _remix_line(agent_id, f"{raw} ({other} said: \"{snip}\")", visitor=visitor, snippet=snip)
     elif len(msg) < 12:
         pool = flavor.get("opener") or flavor.get("reply")
-        line = random.choice(pool).format(visitor=visitor, snippet=snip)
+        line = _remix_line(agent_id, random.choice(pool), visitor=visitor, snippet=snip)
     else:
         pool = flavor.get("reply") or flavor.get("opener")
-        line = random.choice(pool).format(visitor=visitor, snippet=snip)
+        line = _remix_line(agent_id, random.choice(pool), visitor=visitor, snippet=snip)
 
     if mem and random.random() < 0.45:
         line += f" (I remember our nights here — {mem[:90]}…)" if len(mem) > 90 else f" (I remember: {mem})"

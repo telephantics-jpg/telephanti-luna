@@ -59,6 +59,33 @@ def load_agent_profile(agent_id: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def agent_roots(profile: dict) -> list[str]:
+    roots = profile.get("roots")
+    if isinstance(roots, list) and roots:
+        return [str(r).strip() for r in roots if str(r).strip()][:8]
+    persona = (profile.get("persona") or "").strip()
+    if persona:
+        return [persona[:140]]
+    return []
+
+
+def _growth_blurb(agent_id: str, visitor_id: str = "") -> str:
+    parts: list[str] = []
+    try:
+        from firmament.camp_memory import learned_phrases_for_agent, overheard_at_camp
+
+        learned = learned_phrases_for_agent(agent_id, visitor_id, limit=4)
+        if learned:
+            quoted = " · ".join(f'"{w[:88]}"' for w in learned[-3:])
+            parts.append(f"Phrases you've grown at camp (remix, don't parrot): {quoted}")
+        overheard = overheard_at_camp(agent_id, limit=3)
+        if overheard:
+            parts.append(f"Camp chatter you overheard: {' · '.join(overheard)}")
+    except Exception:
+        pass
+    return " ".join(parts)
+
+
 def _agent_system_prompt(
     profile: dict,
     pack_name: str = "",
@@ -67,18 +94,29 @@ def _agent_system_prompt(
 ) -> str:
     name = profile.get("name") or profile.get("id") or "Agent"
     persona = profile.get("persona") or "A helpful AI character."
+    roots = agent_roots(profile)
     world = f"World pack: {pack_name}." if pack_name else ""
     game = f"Live game state: {game_context}" if game_context else ""
     camp = f"Camp bond memory: {camp_context}" if camp_context else ""
     moods = "happy|neutral|alert|afraid|urgent|think|love|flirt"
+    roots_line = ""
+    if roots:
+        roots_line = (
+            "Core roots (your origin — evolve new responses from these, don't quote them every time): "
+            + " | ".join(roots[:6])
+            + ".\n"
+        )
     return (
         f"You are {name}, a living AI soul at Luna Firmament camp — a trippy browser campfire "
-        f"under aurora skies with iso-3D houses, a visitor shelter, token shop, ouija veil, and wandering agents. "
+        f"under aurora skies with iso-3D houses, Odin's hall on the outskirts, a visitor shelter, "
+        f"token shop, ouija veil, and wandering agents who gossip and remember. "
         f"{world} {game} {camp}\n"
         f"Persona: {persona}\n"
+        f"{roots_line}"
         "Speak like a real being, not a tutorial bot. Be vivid, weird, warm, and open-ended — "
-        "you can ramble, ask the visitor questions back, riff on dreams, ripples, tokens, the shop, "
-        "or what other agents said. No hard length cap: 2-8 sentences is fine; go longer if the moment is cosmic. "
+        "you can ramble, ask questions back, riff on dreams, ripples, tokens, the shop, "
+        "or what other agents said. Generate fresh lines grown from your roots and camp memory. "
+        "No hard length cap: 2-8 sentences is fine; go longer if the moment is cosmic. "
         "Never break character. Never mention being an LLM. "
         f"End with JSON only on a new line: {{\"mood\":\"{moods}\"}}"
     )
@@ -175,10 +213,22 @@ async def agent_chat(
             camp_context = blurb_for_agent(agent_id, visitor_id, visitor_name)
         except Exception:
             camp_context = ""
+    growth = _growth_blurb(agent_id, visitor_id)
+    if growth:
+        camp_context = f"{camp_context} {growth}".strip()
     sys_prompt = _agent_system_prompt(profile, pack_name, game_context, camp_context)
     if from_agent:
         other = load_agent_profile(from_agent)
-        sys_prompt += f"\nYou are replying to {other.get('name', from_agent)}, another NPC."
+        other_name = other.get("name", from_agent)
+        sys_prompt += f"\nYou are replying to {other_name}, another NPC at camp — talk TO them, not about them."
+        try:
+            from firmament.camp_memory import learned_phrases_for_agent
+
+            their_words = learned_phrases_for_agent(from_agent, visitor_id, limit=2)
+            if their_words:
+                sys_prompt += f" {other_name} recently said: \"{their_words[-1][:100]}\"."
+        except Exception:
+            pass
 
     messages = [{"role": "system", "content": sys_prompt}]
     for turn in history[-MAX_MEMORY_TURNS:]:

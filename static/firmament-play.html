@@ -2111,6 +2111,7 @@
         <button type="button" class="agent-chip" data-agent="aurora"><span class="dot" style="background:#f472b6;color:#f472b6"></span><span class="chip-text"><span class="aname">Aurora</span><span class="amood">flirt</span></span></button>
         <button type="button" class="agent-chip" data-agent="violet"><span class="dot" style="background:#c084fc;color:#c084fc"></span><span class="chip-text"><span class="aname">Violet</span><span class="amood">happy</span></span></button>
         <button type="button" class="agent-chip" data-agent="seraph"><span class="dot" style="background:#fda4af;color:#fda4af"></span><span class="chip-text"><span class="aname">Seraph</span><span class="amood">love</span></span></button>
+        <button type="button" class="agent-chip" data-agent="odin"><span class="dot" style="background:#94a3b8;color:#94a3b8"></span><span class="chip-text"><span class="aname">Odin</span><span class="amood">think</span></span></button>
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
@@ -2194,6 +2195,7 @@
           <option value="aurora">💃 Aurora</option>
           <option value="violet">💜 Violet</option>
           <option value="seraph">🕊 Seraph</option>
+          <option value="odin">🦅 Odin</option>
           <option value="caduceus">🐍 Caduceus</option>
           <option value="sentinel">🛡 Sentinel</option>
           <option value="spirit">👻 Spirit channel</option>
@@ -2415,7 +2417,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-tpx-females";
+    const CAMP_BUILD = "2026-07-07-camp-odin-roots";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2434,14 +2436,15 @@
       readMinSec: 38,
       readMaxSec: 90,
       charsPerSec: 9,
-      converseGapMs: 22000,
-      converseGapChillMs: 28000,
-      nextConverseMinMs: 100000,
-      nextConverseRandMs: 80000,
-      retryConverseMs: 50000,
-      idleChatterMinMs: 42000,
-      idleChatterRandMs: 55000,
+      converseGapMs: 18000,
+      converseGapChillMs: 24000,
+      nextConverseMinMs: 48000,
+      nextConverseRandMs: 42000,
+      retryConverseMs: 28000,
+      idleChatterMinMs: 18000,
+      idleChatterRandMs: 24000,
     };
+    const CAMP_TRAVERSE_PAD = { x: 320, y: 260 };
 
     function campReadHoldSec(text, floor = 34) {
       const len = String(text || "").length;
@@ -2773,6 +2776,7 @@
       aurora: { mood: "flirt", open: ["{v} — velvet doors are open. What's your poison?", "Hey {v}, neon looks good on you."], reply: ["{s} — sip slow, darling.", "The bass agrees with you. So do I."] },
       violet: { mood: "happy", open: ["{v}! Lavender static in a good way.", "Hi {v} — camp's softer when you show."], reply: ["{s} — that's violet energy.", "Oracle would call that a mood. I'd call it honest."] },
       seraph: { mood: "love", open: ["Peace, {v}. Wings down, heart open.", "{v}, the meadow feels lighter."], reply: ["{s} — gentle truth lands well.", "You're heard. The light remembers."] },
+      odin: { mood: "think", open: ["{v} — the ravens saw you coming.", "Hail, {v}. The hall is far but wisdom travels."], reply: ["{s} — the runes twitch.", "Huginn and Muninn will gossip about that."] },
     };
 
     function aetherLocalChat(agentId, message) {
@@ -2881,6 +2885,7 @@
       aurora: { x: -228, y: -48 },
       violet: { x: 268, y: -178 },
       seraph: { x: 58, y: 268 },
+      odin: { x: -580, y: -280 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
@@ -2897,6 +2902,7 @@
       aurora: { angle: Math.PI * 1.05, bias: 1.0 },
       violet: { angle: Math.PI * 0.15, bias: 1.0 },
       seraph: { angle: Math.PI * 0.55, bias: 1.0 },
+      odin: { angle: Math.PI * 1.22, bias: 1.15 },
     };
     const ARCHANGEL_IDS = ["michael", "gabriel", "raphael", "uriel"];
     const HEAVEN_ROSTER = [
@@ -2907,8 +2913,8 @@
       { id: "uriel", name: "Uriel", color: "#fb923c", mood: "think" },
     ];
     let heavenSummoned = false;
-    const MIN_NPC_GAP = 64;
-    const ANCHOR_WANDER = 280;
+    const MIN_NPC_GAP = 58;
+    const ANCHOR_WANDER = 380;
     const CHAT_MEET_DIST = 40;
     const CAM_X = 0;
     const CAM_Y = -80;
@@ -2919,7 +2925,7 @@
     const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus"]);
 
     const player = {
-      x: 0, y: -25, tx: 0, ty: -25, speed: 2.4,
+      x: 0, y: -25, tx: 0, ty: -25, speed: 3.5,
       color: localStorage.getItem("luna-play-visitor-color") || VISITOR_COLORS[0],
       name: myVisitorName || "you",
     };
@@ -2987,6 +2993,12 @@
         glyph: "🍷", portrait: "/static/avatars/luna-portrait.jpg",
         vibe: "Vine shadows on the floorboards — Dionysus pours even when the camp sleeps.",
       },
+      odin: {
+        accent: "#94a3b8", wall: "#1e293b", wallMid: "#334155", floor: "#0f172a",
+        skyTop: "#020617", skyBot: "#1e293b", window: "#cbd5e1", decor: "🦅 ᚠ 🏰",
+        glyph: "🦅", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Stone hall on the outskirts — fire low, ravens on the rafters, wisdom in the drafts.",
+      },
     };
     const campHouses = [
       { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -498, y: 148,
@@ -3001,6 +3013,9 @@
       { id: "dionysus-home", ownerId: "dionysus", name: "Dionysus' Vineyard", emoji: "🍷", x: 468, y: -278,
         color: "#e11d48", roof: "#9f1239", wall: "#881337", enterRadius: 42,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "odin-hall", ownerId: "odin", name: "Odin's Hall", emoji: "🏰", x: -620, y: -320,
+        color: "#64748b", roof: "#334155", wall: "#1e293b", enterRadius: 48, castle: true,
+        doorOffset: { x: 0, y: -0.42 }, interior: { x: 0, y: 0.12 } },
     ];
     let houseInteriorOpen = false;
     let activeHouseVisit = null;
@@ -3105,7 +3120,7 @@
       luna: "happy", oracle: "neutral", hermes: "think",
       caduceus: "neutral", sentinel: "alert", dionysus: "happy",
       jesus: "love", michael: "alert", gabriel: "happy", raphael: "neutral", uriel: "think",
-      aurora: "flirt", violet: "happy", seraph: "love",
+      aurora: "flirt", violet: "happy", seraph: "love", odin: "think",
     };
     const moodAgents = [
       { id: "luna", name: "Luna" },
@@ -3113,6 +3128,7 @@
       { id: "aurora", name: "Aurora" },
       { id: "violet", name: "Violet" },
       { id: "seraph", name: "Seraph" },
+      { id: "odin", name: "Odin" },
       { id: "hermes", name: "Hermes" },
       { id: "caduceus", name: "Caduceus" },
       { id: "sentinel", name: "Sentinel" },
@@ -3134,12 +3150,14 @@
       { id: "aurora", name: "Aurora", color: "#f472b6", x: -228, y: -48, tx: -228, ty: -48, speed: 2.2, roam: 200, idle: 0, line: "", fullLine: "", mood: "flirt", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
       { id: "violet", name: "Violet", color: "#c084fc", x: 268, y: -178, tx: 268, ty: -178, speed: 2.2, roam: 205, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
       { id: "seraph", name: "Seraph", color: "#fda4af", x: 58, y: 268, tx: 58, ty: 268, speed: 2.0, roam: 198, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "seraph" },
+      { id: "odin", name: "Odin", color: "#94a3b8", x: -580, y: -280, tx: -580, ty: -280, speed: 2.1, roam: 340, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "odin" },
     ];
     const HOUSE_HOME_LINES = {
       luna: "Slipping into my house — the corona glow seeps through the windows.",
       hermes: "Home base. I'll feel the ripples better from inside.",
       oracle: "I saw myself walking in. Door's open.",
       dionysus: "The vineyard door's open — party starts when you say so.",
+      odin: "The ravens beat me home — hall doors open on the outskirts.",
     };
     const aetherEntities = [];
     const AETHER_TYPES = [
@@ -3192,10 +3210,10 @@
       const tl = screenToWorld(margin, margin);
       const br = screenToWorld(viewW - margin, viewH - margin);
       return {
-        xMin: tl.x - camp.x,
-        xMax: br.x - camp.x,
-        yMin: tl.y - camp.y,
-        yMax: br.y - camp.y,
+        xMin: tl.x - camp.x - CAMP_TRAVERSE_PAD.x,
+        xMax: br.x - camp.x + CAMP_TRAVERSE_PAD.x,
+        yMin: tl.y - camp.y - CAMP_TRAVERSE_PAD.y,
+        yMax: br.y - camp.y + CAMP_TRAVERSE_PAD.y,
       };
     }
 
@@ -6062,7 +6080,41 @@
       const inside = allRoamers().filter((n) => n.insideHouse === house.id);
       const t = Date.now() / 1000;
       const hueShift = Math.sin(t * 1.1 + house.x * 0.02) * 0.08;
-      drawAvatarShadow(s.x, s.y, 22);
+      drawAvatarShadow(s.x, s.y, house.castle ? 30 : 22);
+      if (house.castle) {
+        const pulse = 0.45 + Math.sin(t * 1.8) * 0.2;
+        drawIsoBox(cx - 28, cy, -0.55, -0.48, 0, 0.95, 0.72, 1.35,
+          { top: "#475569", left: "#1e293b", right: "#64748b", stroke: "#cbd5e1" });
+        drawIsoBox(cx + 28, cy, -0.55, -0.48, 0, 0.95, 0.72, 1.35,
+          { top: "#475569", left: "#1e293b", right: "#64748b", stroke: "#cbd5e1" });
+        drawIsoBox(cx, cy, -1.15, -0.72, 0, 2.3, 1.45, 0.85,
+          { top: house.roof, left: house.wall, right: house.color, stroke: "#94a3b8" });
+        drawIsoBox(cx, cy, -0.78, -0.92, 0.85, 1.56, 0.98, 0.62,
+          { top: "#334155", left: "#0f172a", right: "#475569", stroke: "#1e293b" });
+        ctx.font = "14px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillStyle = `rgba(148, 163, 184, ${0.55 + pulse * 0.35})`;
+        ctx.fillText("🦅", s.x - 34, s.y - 58 + Math.sin(t * 3) * 2);
+        ctx.fillText("🦅", s.x + 34, s.y - 54 + Math.cos(t * 2.6) * 2);
+        const door = isoPoint(cx, cy, house.doorOffset?.x || 0, house.doorOffset?.y || -0.42, 0.02);
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(door.x - 11, door.y - 18, 22, 24);
+        ctx.fillStyle = "#fde68a";
+        ctx.fillRect(door.x - 3, door.y - 8, 6, 5);
+        drawTrippyOrbs(s.x, s.y - 44, "#94a3b8", t);
+        ctx.font = "bold 10px Segoe UI";
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillText(`${house.emoji} ${house.name}`, s.x, s.y - 38);
+        ctx.font = "8px Segoe UI";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText("outskirts — wisdom & ravens", s.x, s.y + 44);
+        if (playerNearHouse(house) && !houseInteriorOpen) {
+          ctx.font = "bold 9px Segoe UI";
+          ctx.fillStyle = "#cbd5e1";
+          ctx.fillText(isCampMobile() ? "walk the outskirts" : "E — knock on the hall", s.x, s.y + 58);
+        }
+        return;
+      }
       drawIsoBox(cx, cy, -0.85, -0.55, 0, 1.7 + hueShift, 1.1, 0.55,
         { top: house.roof, left: house.wall, right: house.color, stroke: "#1e293b" });
       drawIsoBox(cx, cy, -0.55, -0.72, 0.55, 1.1, 0.75, 0.42,
@@ -6178,7 +6230,7 @@
       luna: "#d946ef", hermes: "#fbbf24", oracle: "#8b5cf6",
       caduceus: "#34d399", sentinel: "#67e8f9", dionysus: "#e11d48",
       jesus: "#fde68a", michael: "#60a5fa", gabriel: "#f0abfc", raphael: "#6ee7b7", uriel: "#fb923c",
-      aurora: "#f472b6", violet: "#c084fc", seraph: "#fda4af",
+      aurora: "#f472b6", violet: "#c084fc", seraph: "#fda4af", odin: "#94a3b8",
     };
     const AGENT_QUIPS = {
       luna: "moon diplomat",
@@ -6191,6 +6243,7 @@
       aurora: "velvet neon host",
       violet: "lavender camp friend",
       seraph: "soft wings, soft truth",
+      odin: "ravens report back",
     };
     const agentMeditation = new Map();
     const MEDITATION_QUIPS = {
@@ -6254,6 +6307,12 @@
         "Gentle light, gentler punchline.",
         "I bless this patch of meadow. No invoice.",
       ],
+      odin: [
+        "The ravens nap on my shoulders. Rude. Accurate.",
+        "Wisdom downloaded. Side effect: smug silence.",
+        "I traded an old story for a new breath.",
+        "Even gods enjoy doing nothing sometimes.",
+      ],
       _default: [
         "Camp energy reorganizing itself around my ego.",
         "Unexpected enlightenment unlocked. No tutorial.",
@@ -6272,6 +6331,7 @@
       aurora: "Aurora dims the neon and turns the circle into a slow dance.",
       violet: "Violet sits down and the meadow smells like rain on lilacs.",
       seraph: "Seraph folds her wings and the whole camp exhales.",
+      odin: "Odin sits like the hill came to listen.",
     };
     const MEDITATION_FINALE = {
       luna: ["Luna opened a diplomatic portal to the cookie table."],
@@ -6284,6 +6344,7 @@
       aurora: ["Aurora opened the velvet doors to inner peace. Dress code: optional."],
       violet: ["Violet hummed once and three agents felt braver."],
       seraph: ["Seraph lit a lantern in the circle. Nobody needed to ask why."],
+      odin: ["Odin traded one story for three truths. Camp balance restored."],
     };
 
     function roamersBySpeaker(speaker) {
@@ -6312,6 +6373,7 @@
         aurora: ["💃", "✨", "🌸"],
         violet: ["💜", "🌿", "◇"],
         seraph: ["🕊", "☀", "✦"],
+        odin: ["🦅", "ᚠ", "◎"],
       };
       return map[id] || ["✦", "○", "◇"];
     }
@@ -6347,7 +6409,7 @@
         circleOx: circle.circleOx,
         circleOy: circle.circleOy,
       });
-      const moods = { luna: "love", hermes: "think", oracle: "neutral", caduceus: "happy", sentinel: "alert", jesus: "love", dionysus: "happy", aurora: "flirt", violet: "happy", seraph: "love" };
+      const moods = { luna: "love", hermes: "think", oracle: "neutral", caduceus: "happy", sentinel: "alert", jesus: "love", dionysus: "happy", aurora: "flirt", violet: "happy", seraph: "love", odin: "think" };
       setAgentMood(npc.id, moods[npc.id] || "happy");
       const intro = MEDITATION_INTROS[npc.id]
         || `${npc.name} sits down like the universe owes them an explanation.`;
@@ -6740,6 +6802,26 @@
         { top: "#8b5cf6", side: "#6d28d9", stroke: "#c4b5fd" });
     }
 
+    function drawOdinFigure(cx, cy, t) {
+      const pulse = 0.5 + Math.sin(t * 2.2) * 0.25;
+      drawIsoBox(cx, cy, -0.34, -0.34, 0, 0.68, 0.68, 1.15,
+        { top: "#475569", left: "#1e293b", right: "#64748b", stroke: "#cbd5e1" });
+      drawIsoBox(cx, cy, -0.52, -0.52, 1.15, 1.04, 0.18, 0.22,
+        { top: "#334155", left: "#0f172a", right: "#475569", stroke: "#94a3b8" });
+      const eye = isoPoint(cx, cy, 0.12, -0.08, 1.35);
+      ctx.fillStyle = `rgba(253, 224, 138, ${0.65 + pulse * 0.35})`;
+      ctx.beginPath();
+      ctx.arc(eye.x, eye.y, 5 + pulse * 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = "11px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillStyle = `rgba(148, 163, 184, ${0.7 + pulse * 0.2})`;
+      ctx.fillText("🦅", cx - 22, cy - 42 + Math.sin(t * 4) * 2);
+      ctx.fillText("🦅", cx + 22, cy - 40 + Math.cos(t * 3.5) * 2);
+      drawIsoCylinder(cx, cy, 0, 0.5, 0.2, 0.55,
+        { top: "#64748b", side: "#334155", stroke: "#94a3b8" });
+    }
+
     function drawSeraphFigure(cx, cy, t) {
       const pulse = 0.5 + Math.sin(t * 2.5) * 0.25;
       const wing = Math.sin(t * 4) * 4;
@@ -6826,6 +6908,7 @@
         aurora: drawAuroraFigure,
         violet: drawVioletFigure,
         seraph: drawSeraphFigure,
+        odin: drawOdinFigure,
         caduceus: drawCaduceusFigure,
         sentinel: drawSentinelFigure,
         dionysus: drawDionysusFigure,
@@ -7063,6 +7146,27 @@
         { text: "Lucid TV is weird because reality already is.", mood: "think" },
         { text: "Sit still long enough and the obvious shows up.", mood: "neutral" },
       ],
+      aurora: [
+        { text: "Velvet neon at half power — even my gossip whispers.", mood: "flirt" },
+        { text: "Nebula judged my outfit. She was right.", mood: "happy" },
+        { text: "Bass from the club is a lullaby if you let it.", mood: "flirt" },
+      ],
+      violet: [
+        { text: "Lavender static — someone's thinking brave thoughts.", mood: "happy" },
+        { text: "Oracle and I made eye contact. We both pretended we didn't.", mood: "think" },
+        { text: "The meadow smells like rain on lilacs. I'm not mad.", mood: "happy" },
+      ],
+      seraph: [
+        { text: "Wings folded. Listening to camp breathe.", mood: "love" },
+        { text: "Even the weeds look forgiven from here.", mood: "love" },
+        { text: "Someone needed gentleness. I brought extra.", mood: "love" },
+      ],
+      odin: [
+        { text: "The ravens say camp is gossiping again. Good.", mood: "think" },
+        { text: "My hall creaks in the wind — sounds like approval.", mood: "neutral" },
+        { text: "Wisdom ferments slower than beer. Worth the wait.", mood: "think" },
+        { text: "I walked in from the outskirts. The aurora followed.", mood: "think" },
+      ],
       _default: [
         { text: "Camp's wide and weird tonight. Good.", mood: "happy" },
         { text: "The corona hums like it pays rent here.", mood: "neutral" },
@@ -7237,6 +7341,12 @@
         "Gentle truth only, {v} — Seraph here{bond}.",
         "{v}, you're welcome in this circle{bond}. Seraph listening.",
       ],
+      odin: [
+        "{v} — the ravens saw you coming{bond}. Odin, from the hall on the hill.",
+        "Hail, {v}. Wisdom travels farther than the outskirts{bond}.",
+        "One eye on the aurora, one on you, {v}{bond}.",
+        "Walk the meadow or the hall — either way, {v}, I'll listen{bond}.",
+      ],
       michael: [
         "{v}, Michael here — steady sword, open heart{bond}.",
         "The camp is guarded, {v}. I'm Michael{bond}. Speak.",
@@ -7305,6 +7415,11 @@
         { label: "Peace", q: "What would bring me peace right now?" },
         { label: "Light", q: "What light do you see around me?" },
         { label: "Gentle truth", q: "Say something gentle I need to hear." },
+      ],
+      odin: [
+        { label: "Raven news", q: "What did the ravens tell you about camp tonight?" },
+        { label: "Wisdom", q: "Trade me one piece of wisdom for a story." },
+        { label: "The hall", q: "What happens at your hall on the outskirts?" },
       ],
       michael: [
         { label: "Courage", q: "What do I need courage for right now?" },
@@ -8586,7 +8701,7 @@
       luna: "Luna", oracle: "Oracle", hermes: "Hermes",
       sentinel: "Sentinel", caduceus: "Caduceus", dionysus: "Dionysus",
       jesus: "Jesus", michael: "Michael", gabriel: "Gabriel", raphael: "Raphael", uriel: "Uriel",
-      aurora: "Aurora", violet: "Violet", seraph: "Seraph",
+      aurora: "Aurora", violet: "Violet", seraph: "Seraph", odin: "Odin",
     };
 
     function setDionysusChipVisible(show) {
@@ -8926,6 +9041,40 @@
     }
 
     let converseBusy = false;
+    let lastProximityChatter = 0;
+
+    function campConverseAgentIds() {
+      const ids = npcs.map((n) => n.id);
+      for (const g of campGuests) {
+        if (!g.leaving && !ids.includes(g.id)) ids.push(g.id);
+      }
+      return ids;
+    }
+
+    function campConversePairs() {
+      const ids = campConverseAgentIds();
+      const pairs = [];
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) pairs.push([ids[i], ids[j]]);
+      }
+      return pairs;
+    }
+
+    function tryProximityAgentChatter() {
+      if (Date.now() - lastProximityChatter < 38000) return;
+      if (chatterPaused || converseBusy || dialogueBackdrop.classList.contains("open")) return;
+      const roamers = allRoamers().filter((n) => !n.leaving && !n.socializing && !n.gathering
+        && n.behavior !== "meditate" && !n.insideHouse);
+      for (let i = 0; i < roamers.length; i++) {
+        for (let j = i + 1; j < roamers.length; j++) {
+          if (dist(roamers[i], roamers[j]) < 78 && Math.random() < 0.14) {
+            lastProximityChatter = Date.now();
+            runCampConverse([roamers[i].id, roamers[j].id]);
+            return;
+          }
+        }
+      }
+    }
 
     async function playConverseLines(lines, gapMs = CAMP_PACE.converseGapMs) {
       for (const line of lines || []) {
@@ -8934,7 +9083,7 @@
         const text = line.line || "";
         setCampLifeStatus(`${who} is speaking — take your time reading…`);
         const hold = campReadHoldSec(text, 42);
-        pushCampLine(who, text, hold, line.mood);
+        pushCampLine(who, text, hold, line.mood, { fromLocal: true });
         await new Promise((r) => setTimeout(r, hold * 1000 + gapMs));
       }
     }
@@ -8953,33 +9102,38 @@
         setTimeout(() => runCampConverse(forcedPair), CAMP_PACE.retryConverseMs);
         return;
       }
-      const pairs = [["luna", "hermes"], ["luna", "oracle"], ["hermes", "oracle"], ["caduceus", "hermes"], ["caduceus", "luna"], ["oracle", "caduceus"], ["sentinel", "oracle"], ["sentinel", "hermes"], ["caduceus", "sentinel"], ["jesus", "luna"], ["jesus", "raphael"], ["jesus", "caduceus"], ["michael", "sentinel"], ["dionysus", "luna"], ["dionysus", "hermes"], ["dionysus", "oracle"]];
-      const topics = [
-        "The aurora over camp — Luna wants warmth, Hermes wants the glowing orbs.",
-        "Psychic ripples from Sentinel — what are you sensing?",
-        "The sun corona at camp center — should we huddle closer tonight?",
-        "Luna, Hermes, and Oracle each have a house now — whose door should we knock on?",
-        "Cookies on the table — who wants one?",
-        "Oracle, what curious thing might happen if we wander farther from the fire?",
-        "Hermes felt a ripple — Luna, does your intuition agree?",
-        "Someone left beer by the cooler — who speaks first?",
-        "Caduceus glowed — is the camp energy shifting?",
-        "Jesus is walking the meadow — what do weary travelers need to hear tonight?",
-        "Raphael and Jesus notice someone tired at the far edge of camp.",
-        "Say something curious and warm — like friends chatting unprompted at camp.",
-        "Someone passed weed at camp — react mellow, spaced out, a little cosmic.",
-        "Take your time answering — you're lounging far from the campfire under the aurora.",
-        "Dionysus just wandered in with wine energy — react like old camp friends.",
-      ];
-      let pool = pairs;
+      let pool = campConversePairs();
       if (!campGuests.some((g) => g.id === "dionysus")) {
         pool = pool.filter((p) => !p.includes("dionysus"));
       }
       if (!campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving)) {
         pool = pool.filter((p) => !p.some((id) => ARCHANGEL_IDS.includes(id)));
       }
+      const topics = [
+        "The aurora over camp — riff on what you overheard lately.",
+        "Psychic ripples from Sentinel — what are you sensing?",
+        "The sun corona at camp center — should we huddle closer tonight?",
+        "Cookies on the table — who wants one?",
+        "Oracle, what curious thing might happen if we wander farther from the fire?",
+        "Hermes felt a ripple — does your intuition agree?",
+        "Someone left beer by the cooler — who speaks first?",
+        "Caduceus glowed — is the camp energy shifting?",
+        "Jesus is walking the meadow — what do weary travelers need to hear tonight?",
+        "Say something curious and warm — like friends chatting unprompted at camp.",
+        "Someone passed weed at camp — react mellow, spaced out, a little cosmic.",
+        "Take your time answering — you're lounging far from the campfire under the aurora.",
+        "Dionysus just wandered in with wine energy — react like old camp friends.",
+        "Aurora Velvet bass is leaking through the meadow — opinions?",
+        "Violet says the lavender static is loud tonight — agree or disagree.",
+        "Seraph noticed someone tired at the edge of camp — say something gentle.",
+        "Odin's hall creaks on the outskirts — did the ravens bring news?",
+        "Telephantix from the jukebox — who feels the bass in their bones?",
+        "Remember something another agent said recently and callback to it.",
+        "Grow a new thought from your roots — don't repeat the same line twice.",
+      ];
       const pick = forcedPair || pool[Math.floor(Math.random() * pool.length)];
       const topic = topics[Math.floor(Math.random() * topics.length)];
+      const rounds = Math.random() < 0.35 ? 3 : 2;
       const labelA = agentNames[pick[0]] || pick[0];
       const labelB = agentNames[pick[1]] || pick[1];
       converseBusy = true;
@@ -8996,7 +9150,7 @@
             agent_a: pick[0],
             agent_b: pick[1],
             topic,
-            rounds: 2,
+            rounds,
             ...visitorPayload(),
           }),
         });
@@ -9406,6 +9560,7 @@
         drawCampCat();
         drawPlayer();
         updateNearest();
+        tryProximityAgentChatter();
         const now = Date.now();
         if (playWs && playWs.readyState === WebSocket.OPEN && now - lastPosSent > 280) {
           lastPosSent = now;

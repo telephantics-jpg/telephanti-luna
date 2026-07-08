@@ -32,7 +32,12 @@ AGENT_NAMES = {
     "gabriel": "Gabriel",
     "raphael": "Raphael",
     "uriel": "Uriel",
+    "aurora": "Aurora",
+    "violet": "Violet",
+    "seraph": "Seraph",
+    "odin": "Odin",
 }
+MAX_CAMP_CHATTER_LOG = 48
 
 
 def _load() -> dict[str, Any]:
@@ -67,6 +72,70 @@ def _visitor_bucket(data: dict[str, Any], visitor_id: str) -> dict[str, Any]:
     if not isinstance(bucket.get("agent_words"), dict):
         bucket["agent_words"] = {}
     return bucket
+
+
+def _camp_chatter_log(data: dict[str, Any]) -> list[dict[str, Any]]:
+    raw = data.setdefault("camp_chatter_log", [])
+    if not isinstance(raw, list):
+        raw = []
+        data["camp_chatter_log"] = raw
+    return raw
+
+
+def record_camp_chatter(
+    agent_id: str,
+    text: str,
+    *,
+    to_agent: str = "",
+) -> None:
+    agent_id = (agent_id or "").strip()
+    clean = (text or "").strip()[:280]
+    if not agent_id or not clean:
+        return
+    data = _load()
+    log = _camp_chatter_log(data)
+    if log and log[-1].get("agent_id") == agent_id and log[-1].get("text") == clean:
+        return
+    entry: dict[str, Any] = {
+        "agent_id": agent_id,
+        "text": clean,
+        "t": int(time.time()),
+    }
+    if to_agent:
+        entry["to"] = to_agent.strip()
+    log.append(entry)
+    data["camp_chatter_log"] = log[-MAX_CAMP_CHATTER_LOG:]
+    _save(data)
+
+
+def learned_phrases_for_agent(
+    agent_id: str,
+    visitor_id: str = "",
+    limit: int = 5,
+) -> list[str]:
+    data = _load()
+    bucket = data.get("visitors", {}).get((visitor_id or "").strip()) if visitor_id else None
+    lines = _recent_words_for_agent(bucket, data, agent_id, limit=limit)
+    return lines[-limit:]
+
+
+def overheard_at_camp(agent_id: str, limit: int = 4) -> list[str]:
+    agent_id = (agent_id or "").strip()
+    if not agent_id:
+        return []
+    data = _load()
+    log = _camp_chatter_log(data)
+    heard: list[str] = []
+    for entry in reversed(log):
+        speaker = str(entry.get("agent_id") or "")
+        text = str(entry.get("text") or "").strip()
+        if not text or speaker == agent_id:
+            continue
+        name = AGENT_NAMES.get(speaker, speaker.title())
+        heard.append(f'{name} said "{text[:96]}"')
+        if len(heard) >= limit:
+            break
+    return list(reversed(heard))
 
 
 def _global_agent_words(data: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
@@ -166,6 +235,10 @@ def record_moment(
         if not clean_text:
             return {"ok": False, "error": "text required"}
         _append_agent_words(data, bucket, agent_id, clean_text, now)
+        chatter = _camp_chatter_log(data)
+        if not (chatter and chatter[-1].get("agent_id") == agent_id and chatter[-1].get("text") == clean_text):
+            chatter.append({"agent_id": agent_id, "text": clean_text, "t": now})
+            data["camp_chatter_log"] = chatter[-MAX_CAMP_CHATTER_LOG:]
         moments.append(
             {
                 "kind": "agent_said",
@@ -246,8 +319,9 @@ def blurb_for_agent(agent_id: str, visitor_id: str = "", visitor_name: str = "")
     relevant = relevant[-8:]
     chat_count = int((bucket.get("agent_chats") or {}).get(agent_id, 0))
     own_words = _recent_words_for_agent(bucket, data, agent_id, limit=4)
+    overheard = overheard_at_camp(agent_id, limit=3)
 
-    if not relevant and not chat_count and not own_words:
+    if not relevant and not chat_count and not own_words and not overheard:
         return ""
 
     parts = [f"You know {name} from past nights at this campfire."]
@@ -255,12 +329,18 @@ def blurb_for_agent(agent_id: str, visitor_id: str = "", visitor_name: str = "")
         parts.append(f"You have chatted {chat_count} time(s) before.")
     if own_words:
         quoted = " · ".join(f'"{w[:96]}"' for w in own_words[-3:])
-        parts.append(f"You remember your own recent words at camp: {quoted}. Callback naturally when it fits.")
+        parts.append(
+            f"You remember your own recent words at camp: {quoted}. "
+            "Remix and evolve them — don't repeat verbatim every time."
+        )
+    if overheard:
+        parts.append(f"You overheard around camp: {' · '.join(overheard)}.")
     if relevant:
         highlights = "; ".join(_moment_line(m, name) for m in relevant[-5:])
         parts.append(f"Shared memories: {highlights}.")
     parts.append(
         "Let that history show — greet them warmly, callback to cookies/props/chats when it fits, "
+        "grow new lines from your roots and what you remember, "
         "and treat them like a friend you're glad returned."
     )
     return " ".join(parts)

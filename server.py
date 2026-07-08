@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "185-camp-tpx-females"
+LUNA_BUILD = "186-camp-odin-roots"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2618,15 +2618,17 @@ async def firmament_agents_converse_api(body: FirmamentAgentsConverseBody):
             hub.apply_chat_to_agent(aid, "assistant", line.get("line", ""), line.get("mood", "neutral"))
         if body.visitor_id.strip() and aid:
             try:
-                from firmament.camp_memory import record_moment
+                from firmament.camp_memory import record_camp_chatter, record_moment
 
+                line_text = str(line.get("line") or "")[:280]
                 record_moment(
                     body.visitor_id.strip(),
                     visitor_name=body.visitor_name,
                     agent_id=str(aid),
                     kind="agent_said",
-                    text=str(line.get("line") or "")[:280],
+                    text=line_text,
                 )
+                record_camp_chatter(str(aid), line_text, to_agent=body.agent_b if aid == body.agent_a else body.agent_a)
             except Exception:
                 pass
         await lobby.push_chatter(

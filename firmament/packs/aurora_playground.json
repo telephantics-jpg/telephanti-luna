@@ -31,7 +31,7 @@
   "psychic_engine": {
     "enabled": true,
     "intensity": 0.75,
-    "shared_agents": ["hermes", "sentinel", "luna", "oracle", "caduceus", "dionysus", "jesus", "michael", "gabriel", "raphael", "uriel"],
+    "shared_agents": ["hermes", "sentinel", "luna", "oracle", "caduceus", "dionysus", "jesus", "michael", "gabriel", "raphael", "uriel", "aurora", "violet", "seraph", "odin"],
     "zombie_mode": false,
     "pulse_color": "#67e8f9",
     "texture_overlay": "starfield_veil"
@@ -47,7 +47,11 @@
     { "id": "michael", "spawn": [0.12, 0.48, 112], "bubble_color": "#60a5fa" },
     { "id": "gabriel", "spawn": [0.88, 0.38, 106], "bubble_color": "#f0abfc" },
     { "id": "raphael", "spawn": [0.22, 0.78, 102], "bubble_color": "#6ee7b7" },
-    { "id": "uriel", "spawn": [0.72, 0.72, 104], "bubble_color": "#fb923c" }
+    { "id": "uriel", "spawn": [0.72, 0.72, 104], "bubble_color": "#fb923c" },
+    { "id": "aurora", "spawn": [0.08, 0.18, 100], "bubble_color": "#f472b6" },
+    { "id": "violet", "spawn": [0.92, 0.14, 98], "bubble_color": "#c084fc" },
+    { "id": "seraph", "spawn": [0.52, 0.78, 106], "bubble_color": "#fda4af" },
+    { "id": "odin", "spawn": [0.04, 0.06, 115], "bubble_color": "#94a3b8" }
   ],
   "hallucination": {
     "enabled": true,
@@ -63,6 +67,6 @@
   "mods": {
     "allow_user_sky": true,
     "allow_agent_spawn": true,
-    "max_agents": 12
+    "max_agents": 16
   }
 }

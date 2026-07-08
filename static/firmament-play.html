@@ -2115,7 +2115,7 @@
     }
     @media (max-width: 899px) {
       :root {
-        --header-h: 36px;
+        --header-h: 52px;
         --talk-bar-h: 32px;
         --dock-icons-h: 38px;
         --sidebar-w: 100%;
@@ -2272,10 +2272,7 @@
       #camp-music-now,
       #camp-music-prompt,
       #camp-agent-menu,
-      #camp-talk-target-wrap,
-      #camp-talk-all,
       .dock-music-group,
-      #btn-summon-heaven,
       #btn-summon-dionysus,
       #btn-talk-near,
       #btn-dock-help,
@@ -2318,14 +2315,34 @@
       }
       #camp-header .agents-row {
         display: flex !important;
-        max-height: 30px;
-        overflow: hidden;
+        max-height: none;
+        overflow: visible;
         margin-top: 0;
+        min-height: 34px;
+        width: 100%;
+        min-width: 0;
       }
       #agent-strip {
         gap: 4px;
-        padding-bottom: 0;
+        padding-bottom: 2px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.42) transparent;
       }
+      #agent-strip::-webkit-scrollbar { display: block; height: 4px; }
+      #agent-strip::-webkit-scrollbar-thumb {
+        background: rgba(56, 189, 248, 0.42);
+        border-radius: 999px;
+      }
+      #chip-summon-heaven {
+        border-color: rgba(253, 230, 138, 0.65);
+        background: linear-gradient(135deg, rgba(66, 32, 6, 0.92), rgba(253, 230, 138, 0.22));
+      }
+      #chip-summon-heaven .amood { display: none; }
       .agent-chip {
         padding: 3px 8px 3px 6px;
         border-width: 1px;
@@ -2395,7 +2412,23 @@
         width: 32px;
         height: 30px;
       }
-      #camp-talk-target-wrap { max-width: 42%; }
+      #camp-talk-target-wrap {
+        display: flex !important;
+        pointer-events: auto !important;
+        max-width: 38%;
+        min-width: 108px;
+        flex-shrink: 0;
+      }
+      #camp-talk-all {
+        display: inline-flex !important;
+        pointer-events: auto !important;
+        flex-shrink: 0;
+      }
+      #btn-summon-heaven {
+        display: inline-flex !important;
+        pointer-events: auto !important;
+        flex-shrink: 0;
+      }
       .dock-compact {
         max-width: none;
         flex: 0 0 auto;
@@ -2410,9 +2443,9 @@
       }
     }
     @media (max-width: 899px) and (orientation: landscape) {
-      :root { --header-h: 44px; }
+      :root { --header-h: 48px; }
       #camp-header {
-        max-height: 44px;
+        max-height: 56px;
         padding-top: max(4px, env(safe-area-inset-top));
         padding-bottom: 2px;
       }
@@ -2946,6 +2979,7 @@
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
+        <button type="button" class="agent-chip visitor-chip" id="chip-summon-heaven" title="Summon Jesus &amp; archangels"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">✦ Heaven</span><span class="amood">summon</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus-invite" title="Invite Dionysus to camp"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">🍷 Dionysus</span><span class="amood">invite</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
       </div>
@@ -3334,7 +3368,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-revert-242";
+    const CAMP_BUILD = "2026-07-08-mobile-spread-ui";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3603,7 +3637,7 @@
       let headerH = header ? Math.max(header.offsetHeight, header.scrollHeight) : 80;
       let dockH = dock ? Math.max(dock.offsetHeight, dock.scrollHeight) : 88;
       if (isCampMobile()) {
-        headerH = Math.min(Math.ceil(headerH), 64);
+        headerH = Math.min(Math.max(Math.ceil(headerH), 44), 72);
       } else {
         headerH = Math.min(Math.max(Math.ceil(headerH), 56), 80);
         dockH = Math.max(Math.ceil(dockH), 72);
@@ -3946,9 +3980,9 @@
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
     const WORLD_ZOOM_DESKTOP = 0.36;
-    const WORLD_ZOOM_MOBILE = 0.80;
-    const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
-    const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
+    const WORLD_ZOOM_MOBILE = 0.58;
+    const WORLD_ZOOM_IOS_PORTRAIT = 0.56;
+    const WORLD_ZOOM_IOS_LANDSCAPE = 0.58;
     const CAMP_ZOOM_MIN = 0.22;
     const CAMP_ZOOM_MAX = 0.95;
     let campViewZoom = null;
@@ -4195,20 +4229,20 @@
     }
     function tierRadii(tier) {
       const { halfW, halfH } = campBoundsCenter();
-      const edgeInset = isCampMobile() ? 24 : 8;
-      const spread = isCampMobile() ? 0.90 : 1.0;
+      const edgeInset = isCampMobile() ? 16 : 8;
+      const spread = isCampMobile() ? 0.96 : 1.0;
       if (tier === "edge") {
-        const edgeFrac = isCampMobile() ? 0.76 : 0.98;
+        const edgeFrac = isCampMobile() ? 0.90 : 0.98;
         return {
           rx: Math.max(halfW * edgeFrac, halfW - edgeInset) * spread,
           ry: Math.max(halfH * (edgeFrac - 0.02), halfH - edgeInset) * spread,
         };
       }
       if (tier === "inner") {
-        const inner = isCampMobile() ? 0.36 : 0.30;
+        const inner = isCampMobile() ? 0.42 : 0.30;
         return { rx: halfW * inner, ry: halfH * (inner - 0.02) };
       }
-      const mid = isCampMobile() ? 0.62 : 0.56;
+      const mid = isCampMobile() ? 0.72 : 0.56;
       return { rx: halfW * mid, ry: halfH * (mid - 0.06) };
     }
     function layoutCampPoint(id, baseX, baseY) {
@@ -4246,7 +4280,7 @@
     }
     function getMinNpcGap() {
       if (isIOS()) return 96;
-      if (isCampMobile()) return 90;
+      if (isCampMobile()) return 108;
       return MIN_NPC_GAP;
     }
     function getNpcSpreadJitter(agentId) {
@@ -4259,8 +4293,7 @@
     }
     function getCampLayoutKey() {
       if (!isCampMobile()) return `${viewW}x${viewH}`;
-      const b = getCampRelativeBounds();
-      return `${viewW}x${viewH}z${getWorldZoom().toFixed(3)}b${b.xMin.toFixed(0)}${b.xMax.toFixed(0)}`;
+      return `${isLandscape() ? "L" : "P"}z${getWorldZoom().toFixed(2)}`;
     }
     let lastSpreadZoom = 0;
     let lastLayoutKey = "";
@@ -4854,12 +4887,13 @@
     function spreadMobileAgentLayout() {
       const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
       roster.forEach((n) => {
-        const p = sectorPosition(n.id);
+        const anchor = NPC_ANCHORS[n.id];
+        const p = anchor ? layoutCampPoint(n.id, anchor.x, anchor.y) : sectorPosition(n.id);
         n.x = p.x;
         n.y = p.y;
         applyNpcSpreadState(n);
       });
-      for (let pass = 0; pass < 12; pass++) enforceNpcSeparation(1.45);
+      for (let pass = 0; pass < 10; pass++) enforceNpcSeparation(1.35);
     }
     function spreadAllCampObjects() {
       const catPos = layoutCampPoint("camp-cat", 240, 340);
@@ -11016,6 +11050,12 @@
       if (!list) return;
       const rows = [];
       const seen = new Set();
+      const heavenHere = heavenSummoned || campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving);
+      rows.push({ id: "nearest", name: "📍 Nearest agent", role: "talk to whoever is closest", route: true });
+      rows.push({ id: "all", name: "📢 All agents", role: "everyone at camp hears you", route: true });
+      if (!heavenHere) {
+        rows.push({ id: "summon-heaven", name: "✦ Summon Heaven", role: "Jesus & archangels join camp", summon: true });
+      }
       for (const n of allRoamers()) {
         if (n.leaving || seen.has(n.id)) continue;
         seen.add(n.id);
@@ -11028,12 +11068,13 @@
           rows.push({ id: a.id, name: a.name, role: "tap to invite", invite: true });
           continue;
         }
+        if (ARCHANGEL_IDS.includes(a.id) && !heavenHere && a.id !== "jesus") continue;
         rows.push({ id: a.id, name: a.name, role: AGENT_ROLES[a.id] || "camp agent" });
       }
       list.innerHTML = rows.map((r) => `
-        <button type="button" class="cpas-row" data-agent="${r.id}" data-invite="${r.invite ? "1" : "0"}">
+        <button type="button" class="cpas-row" data-agent="${r.id}" data-invite="${r.invite ? "1" : "0"}" data-route="${r.route ? "1" : "0"}" data-summon="${r.summon ? "1" : "0"}">
           <span><span class="cpas-name">${escapeHtml(r.name)}</span><span class="cpas-role">${escapeHtml(r.role)}</span></span>
-          <span class="cpas-go">${r.invite ? "🍷" : "💬"}</span>
+          <span class="cpas-go">${r.summon ? "✦" : r.invite ? "🍷" : r.route ? "➤" : "💬"}</span>
         </button>`).join("");
       list.querySelectorAll(".cpas-row").forEach((btn) => {
         btn.addEventListener("click", (ev) => {
@@ -11041,8 +11082,20 @@
           ev.stopPropagation();
           const id = btn.dataset.agent;
           closeCampPickAgentSheet();
+          if (btn.dataset.summon === "1") {
+            summonArchangelCouncil();
+            return;
+          }
           if (btn.dataset.invite === "1") {
             spawnDionysusVisit({ manual: true });
+            return;
+          }
+          if (btn.dataset.route === "1") {
+            const sel = document.getElementById("camp-talk-target");
+            if (sel) sel.value = id;
+            const input = document.getElementById("camp-talk-input");
+            if (input) input.focus();
+            showToast(id === "all" ? "Type your message — all agents will hear" : "Type your message — nearest agent will reply");
             return;
           }
           const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
@@ -11393,6 +11446,7 @@
     document.getElementById("camp-shop-close").onclick = () => closeCampShop();
     document.getElementById("camp-shop-layer").onclick = () => closeCampShop();
     document.getElementById("btn-summon-heaven").onclick = () => summonArchangelCouncil();
+    document.getElementById("chip-summon-heaven")?.addEventListener("click", () => summonArchangelCouncil());
     document.getElementById("btn-summon-dionysus").onclick = () => toggleDionysusVisit();
     document.getElementById("chip-dionysus-invite")?.addEventListener("click", () => toggleDionysusVisit());
     document.getElementById("btn-conjure-aether").onclick = () => conjureFromAether();

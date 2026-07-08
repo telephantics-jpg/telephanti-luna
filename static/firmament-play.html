@@ -3283,7 +3283,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-meadow";
+    const CAMP_BUILD = "2026-07-08-camp-pc-stable";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3311,10 +3311,6 @@
       idleChatterRandMs: 24000,
     };
     const CAMP_TRAVERSE_PAD = { x: 40, y: 32 };
-    const DESKTOP_MEADOW = Object.freeze({
-      xMin: -1250, xMax: 1250,
-      yMin: -820, yMax: 820,
-    });
     const CAMP_POND = { cx: -520, cy: 160, rx: 128, ry: 92, name: "Aurora Pond" };
     const AGENT_DRAG_THRESHOLD = 10;
     const AGENT_HIT_RADIUS = 52;
@@ -3335,8 +3331,7 @@
         Math.min(CAMP_PACE.readMaxSec, floor + Math.ceil(len / CAMP_PACE.charsPerSec)),
       );
     }
-    const campDesktopMq = window.matchMedia("(min-width: 900px)");
-    const isCampMobile = () => !campDesktopMq.matches;
+    const isCampMobile = () => window.innerWidth < 900;
     const canvasCampChatOnly = () => isCampMobile();
     const isAndroid = () => /Android/i.test(navigator.userAgent);
     const isSlowDevice = () => isCampMobile() || isAndroid();
@@ -3886,12 +3881,10 @@
     }
     function getDesktopFitZoom() {
       if (viewW < 80 || viewH < 80) return WORLD_ZOOM_DESKTOP;
-      const margin = 36;
-      const meadowW = DESKTOP_MEADOW.xMax - DESKTOP_MEADOW.xMin;
-      const meadowH = DESKTOP_MEADOW.yMax - DESKTOP_MEADOW.yMin;
-      const zx = (viewW - margin * 2) / meadowW;
-      const zy = (viewH - margin * 2) / meadowH;
-      return Math.min(zx, zy) * 0.94;
+      const ar = viewW / Math.max(viewH, 1);
+      const arScale = Math.max(0.82, Math.min(1.18, ar / 1.55));
+      const hScale = Math.max(0.78, Math.min(1.12, viewH / 720));
+      return Math.max(0.30, Math.min(0.50, WORLD_ZOOM_DESKTOP * arScale * hScale));
     }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
@@ -4168,7 +4161,6 @@
       return 68;
     }
     function getCampLayoutKey() {
-      if (!isCampMobile()) return `${viewW}x${viewH}`;
       const b = getCampRelativeBounds();
       return `${viewW}x${viewH}z${getWorldZoom().toFixed(3)}b${b.xMin.toFixed(0)}${b.xMax.toFixed(0)}`;
     }
@@ -4586,16 +4578,8 @@
     ];
 
     function getCampRelativeBounds() {
+      const margin = isCampMobile() ? 8 : 24;
       const pad = getTraversePad();
-      if (!isCampMobile()) {
-        return {
-          xMin: DESKTOP_MEADOW.xMin - pad.x,
-          xMax: DESKTOP_MEADOW.xMax + pad.x,
-          yMin: DESKTOP_MEADOW.yMin - pad.y,
-          yMax: DESKTOP_MEADOW.yMax + pad.y,
-        };
-      }
-      const margin = 8;
       const tl = screenToWorld(margin, margin);
       const br = screenToWorld(viewW - margin, viewH - margin);
       return {
@@ -4745,21 +4729,16 @@
         pickNpcWanderTarget(n);
       }
     }
-    function spreadDesktopAnchorLayout() {
+    function spreadPerimeterLayout() {
       const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
-      roster.forEach((n) => {
-        const anchor = NPC_ANCHORS[n.id];
-        const p = anchor
-          ? layoutCampPoint(n.id, anchor.x, anchor.y)
-          : sectorPosition(n.id);
+      const total = Math.max(1, roster.length);
+      roster.forEach((n, i) => {
+        const p = perimeterPosition(n.id, i, total);
         n.x = p.x;
         n.y = p.y;
         applyNpcSpreadState(n);
       });
-      for (let pass = 0; pass < 4; pass++) enforceNpcSeparation(0.85);
-    }
-    function spreadPerimeterLayout() {
-      spreadDesktopAnchorLayout();
+      for (let pass = 0; pass < 6; pass++) enforceNpcSeparation(1.05);
     }
     function spreadMobileAgentLayout() {
       const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
@@ -5528,7 +5507,7 @@
     function campDisplayDpr() {
       const dpr = window.devicePixelRatio || 1;
       if (isCampMobile()) return Math.min(dpr, isIOS() ? 2.5 : 3);
-      return dpr;
+      return Math.min(dpr, 2);
     }
     function applyCanvasDimensions(w, h) {
       campDpr = campDisplayDpr();
@@ -5536,8 +5515,8 @@
       viewH = h;
       const bw = Math.max(1, Math.round(w * campDpr));
       const bh = Math.max(1, Math.round(h * campDpr));
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
       if (canvas.width !== bw || canvas.height !== bh) {
         canvas.width = bw;
         canvas.height = bh;
@@ -5569,8 +5548,7 @@
       updateCampViewportDebug();
       const zoom = getWorldZoom();
       const layoutKey = getCampLayoutKey();
-      const zoomChanged = isCampMobile() && Math.abs(zoom - lastSpreadZoom) > 0.005;
-      if (!campSpreadInit || zoomChanged || layoutKey !== lastLayoutKey) {
+      if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005 || layoutKey !== lastLayoutKey) {
         campSpreadInit = true;
         lastSpreadZoom = zoom;
         lastLayoutKey = layoutKey;
@@ -12081,7 +12059,7 @@
       if (!campBuildEl) return;
       const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
       if (!isCampMobile()) {
-        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)} d${campDisplayDpr().toFixed(1)} meadow`;
+        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)} d${campDisplayDpr().toFixed(1)}`;
         return;
       }
       campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;

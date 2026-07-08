@@ -3329,7 +3329,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-canvas-lock";
+    const CAMP_BUILD = "2026-07-08-camp-load-sync";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3549,6 +3549,7 @@
       stableCampH = 0;
       campLayoutTag = "";
       campSpreadInit = false;
+      campLayoutReady = false;
       lastSpreadZoom = 0;
       lastLayoutKey = "";
       resetCampViewCamera();
@@ -3603,8 +3604,32 @@
         campStage.style.height = "";
         campStage.style.width = "";
         campStage.style.top = "";
+        campStage.style.left = "";
+        campStage.style.right = "";
+        campStage.style.bottom = "";
       }
-
+    }
+    function forceReflow() {
+      void document.documentElement.offsetHeight;
+      if (campStage) void campStage.offsetHeight;
+      if (canvas) void canvas.offsetHeight;
+    }
+    function pinDesktopStageBox() {
+      if (isCampMobile() || !campStage) return null;
+      const style = getComputedStyle(document.documentElement);
+      const headerH = parseFloat(style.getPropertyValue("--header-h")) || 80;
+      const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 88;
+      const w = desktopStageWidth();
+      const h = Math.max(120, Math.round(layoutViewportHeight() - headerH - dockH));
+      campStage.style.position = "fixed";
+      campStage.style.left = "0";
+      campStage.style.top = `${headerH}px`;
+      campStage.style.width = `${w}px`;
+      campStage.style.height = `${h}px`;
+      campStage.style.right = "auto";
+      campStage.style.bottom = "auto";
+      forceReflow();
+      return { w, h };
     }
     if (isCampMobile()) document.documentElement.classList.add("touch-camp");
     else document.documentElement.classList.add("desktop-camp");
@@ -5601,6 +5626,7 @@
 
     let resizeRetry = 0;
     let lastLayoutSig = "";
+    let campLayoutReady = false;
 
     let lastCanvasW = 0;
     let lastCanvasH = 0;
@@ -5635,30 +5661,26 @@
       const ch = canvas.clientHeight;
       return Math.abs(cw - w) <= 2 && Math.abs(ch - h) <= 2 && Math.abs(viewW - w) <= 2 && Math.abs(viewH - h) <= 2;
     }
-
-    function resizeCore() {
-      const sig = campLayoutSignature();
-      if (isIOS() && lastLayoutSig && sig !== lastLayoutSig) {
-        resetCampLayoutState();
-      }
-      lastLayoutSig = sig;
-      const { w, h } = getCampCanvasSize();
-      if (w < 2 || h < 2) {
-        if (resizeRetry < 24) {
-          resizeRetry += 1;
-          scheduleResize({ debounceMs: 40 });
-        }
-        return;
-      }
-      resizeRetry = 0;
+    function layoutSizeOk(w, h) {
+      const minW = isCampMobile() ? 180 : 420;
+      const minH = isCampMobile() ? 180 : 280;
+      return w >= minW && h >= minH;
+    }
+    function syncCampCanvasToStage() {
+      syncUILayout();
+      if (!isCampMobile()) pinDesktopStageBox();
+      forceReflow();
+      const { w, h } = readStagePixelSize();
+      if (w < 2 || h < 2) return false;
       lastCanvasW = w;
       lastCanvasH = h;
       applyCanvasDimensions(w, h);
-      if (!canvasMatchesStage() && resizeRetry < 24) {
-        resizeRetry += 1;
-        scheduleResize({ debounceMs: 32 });
-        return;
-      }
+      forceReflow();
+      const ok = canvasMatchesStage() && layoutSizeOk(w, h);
+      if (ok) campLayoutReady = true;
+      return ok;
+    }
+    function finishResizeLayout() {
       ensureViewCamera();
       updateCampViewportDebug();
       const zoom = getWorldZoom();
@@ -5672,18 +5694,48 @@
         if (isCampMobile()) initMobileAgentView();
       }
     }
-
+    function resizeCore() {
+      const sig = campLayoutSignature();
+      if (isIOS() && lastLayoutSig && sig !== lastLayoutSig) {
+        resetCampLayoutState();
+        campLayoutReady = false;
+      }
+      lastLayoutSig = sig;
+      if (syncCampCanvasToStage()) {
+        resizeRetry = 0;
+        finishResizeLayout();
+        return;
+      }
+      if (resizeRetry < 32) {
+        resizeRetry += 1;
+        scheduleResize({ debounceMs: 48 });
+      }
+    }
     function resize() {
-      syncUILayout();
       requestAnimationFrame(() => {
         syncUILayout();
+        forceReflow();
         requestAnimationFrame(resizeCore);
       });
     }
-
-    function bootResizeCascade() {
+    function simulateViewportSettle() {
       scheduleResize();
-      [50, 150, 350, 700, 1400].forEach((ms) => setTimeout(scheduleResize, ms));
+      setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+        scheduleResize();
+      }, 60);
+      setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+        syncCampCanvasToStage();
+        if (campLayoutReady) finishResizeLayout();
+        else scheduleResize();
+      }, 180);
+    }
+    function bootResizeCascade() {
+      campLayoutReady = false;
+      scheduleResize();
+      simulateViewportSettle();
+      [16, 80, 200, 450, 900, 1800, 3200].forEach((ms) => setTimeout(scheduleResize, ms));
     }
 
     let orientTimer = 0;
@@ -5736,6 +5788,17 @@
       if (!isCampMobile() && convo) layoutObs.observe(convo);
     }
     window.addEventListener("load", () => bootResizeCascade());
+    window.addEventListener("focus", () => scheduleResize());
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        syncUILayout();
+        simulateViewportSettle();
+      }).catch(() => {});
+    }
+    if (typeof MutationObserver !== "undefined") {
+      const bodyClassObs = new MutationObserver(() => scheduleResize({ debounceMs: 40 }));
+      bodyClassObs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    }
     bootResizeCascade();
 
     function setCampTilt(_sx, _sy) {
@@ -12568,6 +12631,8 @@
       initCampCat();
       initMobileAgentView();
       bootResizeCascade();
+      setTimeout(simulateViewportSettle, 0);
+      setTimeout(simulateViewportSettle, 400);
       mergeLocalBondsIntoCamp();
       bindCampMusicGestureUnlock();
       const greetDelay = isSlowDevice() ? 5200 : 2800;
@@ -12598,6 +12663,11 @@
           campReady = true;
           if (isSlowDevice()) requestAnimationFrame(() => bootCampWorld());
           else bootCampWorld();
+        }
+        if (!campLayoutReady) {
+          scheduleResize();
+          requestAnimationFrame(gameLoop);
+          return;
         }
         const dx = player.tx - player.x, dy = player.ty - player.y;
         const d = Math.hypot(dx, dy);

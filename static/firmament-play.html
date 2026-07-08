@@ -2549,7 +2549,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-witty-converse";
+    const CAMP_BUILD = "2026-07-08-camp-agent-click-controls";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2580,6 +2580,9 @@
     const CAMP_POND = { cx: -438, cy: 118, rx: 128, ry: 92, name: "Aurora Pond" };
     const AGENT_DRAG_THRESHOLD = 4;
     const AGENT_HIT_RADIUS = 52;
+    const AGENT_CLICK_DELAY_MS = 260;
+    const AGENT_DOUBLE_CLICK_MS = 420;
+    const AGENT_LONG_PRESS_MS = 380;
     const MAX_CANVAS_SPEECH_BUBBLES = 2;
 
     function campReadHoldSec(text, floor = 34) {
@@ -3984,6 +3987,17 @@
     function updateNpcSitOne(n) {
       n.tx = n.x;
       n.ty = n.y;
+      if (n.sitPinned) {
+        if (n.idle > 0) {
+          n.idle -= 1;
+          return;
+        }
+        n.idle = 90 + Math.floor(Math.random() * 140);
+        if (!n.socializing && !n.gathering && !converseBusy && !chatterPaused && Math.random() < 0.22) {
+          emitNpcIdleChatter(n);
+        }
+        return;
+      }
       if (n.behaviorTimer > 0) n.behaviorTimer -= 1;
       if (n.idle > 0) {
         n.idle -= 1;
@@ -3997,25 +4011,47 @@
       if (n.behaviorTimer <= 0) resetNpcFreeWill(n);
     }
 
+    const SIT_PIN_LINES = {
+      luna: "Fine — I'll sit still. The corona can rotate without me.",
+      hermes: "Stillness mode. Ripples on mute.",
+      oracle: "I foresaw this bench energy.",
+      caduceus: "Both snakes voted to stay. Majority rules.",
+      sentinel: "Sitting down. Still watching. Always watching.",
+      violet: "Camp blushes when I sit still. Cute.",
+      odin: "Even gods enjoy doing nothing sometimes.",
+      rhea: "Titans sit too. Come closer if you need.",
+      _default: "Okay — I'm not wandering until you say so.",
+    };
+
+    let lastSitToggle = { id: null, t: 0 };
+
     function toggleNpcSit(npc) {
       if (!npc || npc.leaving) return;
-      if (npc.behavior === "sit" || npc.behavior === "stand") {
+      const now = Date.now();
+      if (lastSitToggle.id === npc.id && now - lastSitToggle.t < 450) return;
+      lastSitToggle = { id: npc.id, t: now };
+      agentMeditation.delete(npc.id);
+      if (npc.sitPinned) {
+        npc.sitPinned = false;
         resetNpcFreeWill(npc, "roam");
-        showToast(`${npc.name} got up — roaming again`);
-      } else {
-        npc.behavior = "sit";
-        npc.tx = npc.x;
-        npc.ty = npc.y;
-        npc.visitTarget = null;
-        npc.socializing = false;
-        npc.gathering = false;
-        npc.behaviorTimer = 280 + Math.floor(Math.random() * 420);
-        npc.idle = 16 + Math.floor(Math.random() * 36);
-        showToast(`${npc.name} sat down — double-tap again to send them wandering`);
-        setTimeout(() => {
-          if (npc.behavior === "sit" && !converseBusy && !chatterPaused) emitNpcIdleChatter(npc);
-        }, 2200 + Math.random() * 5000);
+        showToast(`${npc.name} got up — wandering again`);
+        return;
       }
+      npc.sitPinned = true;
+      npc.behavior = "sit";
+      npc.tx = npc.x;
+      npc.ty = npc.y;
+      npc.visitTarget = null;
+      npc.socializing = false;
+      npc.gathering = false;
+      npc.behaviorTimer = 999999;
+      npc.idle = 40 + Math.floor(Math.random() * 50);
+      const quip = SIT_PIN_LINES[npc.id] || SIT_PIN_LINES._default;
+      showToast(`${npc.name} sitting still — double-click to let them roam`);
+      pushCampLine(npc.name, quip, campReadHoldSec(quip, 14), npc.mood || "neutral", { fromLocal: true, quiet: true });
+      setTimeout(() => {
+        if (npc.sitPinned && !converseBusy && !chatterPaused) emitNpcIdleChatter(npc);
+      }, 2800 + Math.random() * 4200);
     }
 
     function updateNpcVisitOne(n) {
@@ -4051,6 +4087,7 @@
       for (const id of group) {
         const n = findRoamAgent(id);
         if (!n) continue;
+        n.sitPinned = false;
         n.socializing = true;
         n.behavior = "visit";
         n.visitTarget = group.find((g) => g !== id) || null;
@@ -4171,7 +4208,7 @@
 
     function updateNpcFree() {
       for (const n of npcs) {
-        if (!n.socializing && !n.gathering) {
+        if (!n.socializing && !n.gathering && !n.sitPinned) {
           if (n.behaviorTimer > 0) n.behaviorTimer -= 1;
           else resetNpcFreeWill(n);
         }
@@ -7005,7 +7042,8 @@
     const ISO_COS = 0.8660254;
     const ISO_SIN = 0.5;
     let dragTarget = null;
-    let lastAgentTap = { id: null, t: 0 };
+    let agentClickTimer = 0;
+    let agentClickPending = null;
     let agentLongPressTimer = 0;
     let agentLongPressNpc = null;
     let agentLongPressStart = { sx: 0, sy: 0 };
@@ -7715,7 +7753,7 @@
     ];
 
     const CAMP_NOW_IDLE_LINES = [
-      { who: "Camp", text: "Agents lounging — double-tap one to make them sit or stand." },
+      { who: "Camp", text: "Agents lounging — double-click one to make them sit still." },
       { who: "Camp", text: "The meadow's gossiping. Give it a minute." },
       { who: "Luna", text: "…still watching the corona like it's television." },
       { who: "Hermes", text: "…ripples nominal. Vibes suspicious." },
@@ -7724,7 +7762,7 @@
       { who: "Sentinel", text: "…BEEP. Chill mode engaged." },
       { who: "Camp", text: "Nebula would like you to know she runs things." },
       { who: "Camp", text: "Aurora Velvet bass leaking — nobody's complaining." },
-      { who: "Camp", text: "Tap an agent to talk · double-tap to seat them." },
+      { who: "Camp", text: "Click to talk · double-click to sit still · hold to drag." },
       { who: "Camp", text: "Someone left the good vibes on the grill again." },
       { who: "Jesus", text: "…peace holding steady at camp center." },
       { who: "Camp", text: "Lucid TV murmurs in the distance. Don't investigate alone." },
@@ -7818,7 +7856,7 @@
         "{v}… I dreamed you'd ask. I'm the Oracle{bond}.",
         "The veil's thin tonight, {v}{bond}. Go ahead — I'm listening.",
         "I saw your footsteps before you took them, {v}{bond}.",
-        "{v}, I saw you double-tap an agent to make them sit. Prophetic UI{bond}.",
+        "{v}, I saw you double-click an agent to make them sit still. Prophetic UI{bond}.",
         "The ouija board warmed up when you arrived, {v}{bond}. Coincidence? No.",
       ],
       caduceus: [
@@ -8331,7 +8369,7 @@
       } else {
         const v = myVisitorName || player.name || "traveler";
         setTimeout(() => {
-          const intro = `${v}, welcome to the aurora meadow — drag agents anywhere, swim in the pond on the left, tap to talk.`;
+          const intro = `${v}, welcome to the meadow — click agents to talk, double-click to sit them still, hold to drag. Pond's on the left.`;
           pushCampLine("Camp", intro, 15, "happy", { fromLocal: true, quiet: true, welcomeSplash: true });
         }, 2800);
         const stagger = [
@@ -8350,7 +8388,7 @@
           }, a.delay);
         }
         setTimeout(() => {
-          pushCampLine("Camp", "The meadow's wide — wander, swim, drag units where you want them.", 16, "happy", { fromLocal: true, quiet: true });
+          pushCampLine("Camp", "Click to chat · double-click to sit still · hold to drag — meadow's yours.", 16, "happy", { fromLocal: true, quiet: true });
         }, 48000);
         setTimeout(() => {
           const ambient = CAMP_AMBIENT_LINES[Math.floor(Math.random() * CAMP_AMBIENT_LINES.length)];
@@ -8926,7 +8964,7 @@
       }
       if (nearestId) openDialogue(nearestId);
       else {
-        replyEl.textContent = "Drag camp objects · tap agents to talk · empty ground = walk";
+        replyEl.textContent = "Click agent = chat · double-click = sit still · hold = drag";
       }
     }
 
@@ -9064,10 +9102,38 @@
       return null;
     }
 
+    function clearAgentClickPending() {
+      if (agentClickTimer) clearTimeout(agentClickTimer);
+      agentClickTimer = 0;
+      agentClickPending = null;
+    }
+
     function clearAgentLongPress() {
       if (agentLongPressTimer) clearTimeout(agentLongPressTimer);
       agentLongPressTimer = 0;
       agentLongPressNpc = null;
+    }
+
+    function onAgentClick(npc) {
+      if (!npc || npc.leaving) return;
+      const now = Date.now();
+      if (agentClickPending?.id === npc.id && now - agentClickPending.t < AGENT_DOUBLE_CLICK_MS) {
+        clearAgentClickPending();
+        toggleNpcSit(npc);
+        return;
+      }
+      clearAgentClickPending();
+      agentClickPending = { id: npc.id, t: now };
+      agentClickTimer = setTimeout(() => {
+        agentClickTimer = 0;
+        agentClickPending = null;
+        if (isAgentSpeechPinned(npc)) {
+          showToast(`Hold ${npc.name} to drag — double-click to sit still`);
+          return;
+        }
+        if (npc.id === "luna") openLunaEmbed();
+        else openDialogue(npc.id);
+      }, AGENT_CLICK_DELAY_MS);
     }
 
     function scheduleAgentLongPress(npc, sx, sy, pointerId) {
@@ -9077,10 +9143,11 @@
       agentLongPressTimer = setTimeout(() => {
         agentLongPressTimer = 0;
         if (dragTarget) return;
+        clearAgentClickPending();
         startAgentDrag(npc, sx, sy, pointerId, false);
         dragTarget.moved = true;
         showToast(`Dragging ${npc.name} — drop anywhere on the meadow`);
-      }, 380);
+      }, AGENT_LONG_PRESS_MS);
     }
 
     function placeDragAt(sx, sy, target) {
@@ -9095,6 +9162,7 @@
         target.ref.y = ry;
       } else if (target.kind === "agent") {
         agentMeditation.delete(target.ref.id);
+        target.ref.sitPinned = false;
         target.ref.x = rx;
         target.ref.y = ry;
         target.ref.tx = rx;
@@ -9110,6 +9178,7 @@
 
     function startAgentDrag(npc, sx, sy, pointerId, fromPin = false) {
       clearAgentLongPress();
+      clearAgentClickPending();
       dragTarget = { kind: "agent", ref: npc, moved: false, startSx: sx, startSy: sy, pointerId, fromPin };
       canvas.setPointerCapture(pointerId);
       canvas.classList.add("dragging");
@@ -9152,7 +9221,6 @@
         else if (hit.kind === "cat") showToast(`🐱 ${hit.ref.name} — tap to pet`);
         else if (hit.kind === "pond") showToast("🌊 Aurora Pond — walk in to swim");
         else if (hit.kind === "agent") {
-          showToast(`Drag ${hit.ref.name} anywhere · tap to talk`);
           scheduleAgentLongPress(hit.ref, sx, sy, ev.pointerId);
         } else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
         return;
@@ -9211,18 +9279,7 @@
           player.tx = pw.x + (Math.random() - 0.5) * 40;
           player.ty = pw.y + (Math.random() - 0.5) * 24;
         } else if (dragTarget.kind === "agent") {
-          const now = Date.now();
-          const npc = dragTarget.ref;
-          if (lastAgentTap.id === npc.id && now - lastAgentTap.t < 700) {
-            toggleNpcSit(npc);
-            lastAgentTap = { id: null, t: 0 };
-          } else {
-            lastAgentTap = { id: npc.id, t: now };
-            if (isAgentSpeechPinned(npc)) {
-              showToast(`Drag ${npc.name} to a spot — they'll meditate & power up`);
-            } else if (npc.id === "luna") openLunaEmbed();
-            else openDialogue(npc.id);
-          }
+          onAgentClick(dragTarget.ref);
         }
       } else if (dragTarget.kind === "agent") {
         if (dragTarget.fromPin || isAgentSpeechPinned(dragTarget.ref)) {
@@ -9257,6 +9314,14 @@
     canvas.addEventListener("pointermove", onCampPointerMove);
     canvas.addEventListener("pointerup", onCampPointerUp);
     canvas.addEventListener("pointercancel", onCampPointerUp);
+    canvas.addEventListener("dblclick", (ev) => {
+      const { sx, sy } = campPointerPos(ev);
+      const hit = hitTestCamp(sx, sy);
+      if (hit?.kind !== "agent") return;
+      ev.preventDefault();
+      clearAgentClickPending();
+      toggleNpcSit(hit.ref);
+    });
 
     document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
     document.getElementById("btn-find-bar").onclick = () => gatherNpcsAtCamp(false);
@@ -9299,7 +9364,7 @@
         tip.textContent = "Talk · 🏪 shop · ⛺ shelter · 🔮 Ouija · ✨ conjure";
         setTimeout(() => tip.classList.remove("flash"), 2400);
       }
-      showToast("Drag camp objects · tap agents to talk · walk on empty ground");
+      showToast("Click agent = chat · double-click = sit still · hold = drag");
     };
     document.querySelectorAll("#agent-strip .agent-chip").forEach((btn) => {
       btn.onclick = () => {
@@ -10324,7 +10389,7 @@
         if (isCampMobile()) applyMobileChatterMode("mini", { quiet: true });
         else setSpeechBubbleDock(true);
       }
-      setCampLifeStatus("𝕏 Pulse · agents tweet today · drag units on the meadow");
+      setCampLifeStatus("𝕏 Pulse · click chat · double-click sit still · hold drag");
       initCampCat();
       spreadAllNpcs();
       mergeLocalBondsIntoCamp();

@@ -3283,7 +3283,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-zoomout";
+    const CAMP_BUILD = "2026-07-08-camp-pc-far";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3865,7 +3865,7 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.12;
+    const WORLD_ZOOM_DESKTOP = 0.055;
     const WORLD_ZOOM_MOBILE = 0.80;
     const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
     const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
@@ -3884,7 +3884,7 @@
       const ar = viewW / Math.max(viewH, 1);
       const arScale = Math.max(0.82, Math.min(1.18, ar / 1.55));
       const hScale = Math.max(0.78, Math.min(1.12, viewH / 720));
-      return Math.max(0.18, Math.min(0.30, WORLD_ZOOM_DESKTOP * arScale * hScale));
+      return Math.max(0.08, Math.min(0.16, WORLD_ZOOM_DESKTOP * arScale * hScale));
     }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;

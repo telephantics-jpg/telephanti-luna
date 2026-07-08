@@ -1522,8 +1522,10 @@
     }
     @media (min-width: 900px) {
       :root {
+        --header-h: 80px;
         --talk-bar-h: 34px;
         --dock-icons-h: 32px;
+        --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--talk-bar-h) + var(--dock-icons-h) + 8px);
       }
       #camp-text-expand,
       #camp-layer-bar {
@@ -2067,13 +2069,11 @@
     body.camp-focus #convo-log:not(.collapsed) #convo-log-title-short { display: none; }
     body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     @media (min-width: 900px) {
+      body.camp-focus #camp-stage,
       body.camp-focus.speech-expanded #camp-stage,
+      body.camp-focus #action-bar,
       body.camp-focus.speech-expanded #action-bar {
         right: calc(var(--sidebar-w) + var(--gap) * 2);
-      }
-      body.camp-focus #camp-stage,
-      body.camp-focus #action-bar {
-        right: 0;
       }
       body.camp-focus #camp-music-bar {
         right: calc(var(--sidebar-w) + var(--gap) * 2 + 8px);
@@ -3326,7 +3326,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-veil-fix";
+    const CAMP_BUILD = "2026-07-08-camp-stage-sync";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3554,22 +3554,23 @@
     }
 
     function getCampCanvasSize() {
-      const el = campStage || canvas;
-      const box = el.getBoundingClientRect();
+      const stage = campStage || canvas?.parentElement || canvas;
+      const box = stage.getBoundingClientRect();
       let w = Math.max(1, Math.round(box.width));
       let h = Math.max(1, Math.round(box.height));
-      const sz = getCampCanvasSizeFromLayout();
       if (!isCampMobile()) {
-        if (w < 200 || h < 120 || Math.abs(w - sz.w) > 36 || Math.abs(h - sz.h) > 28) {
-          w = sz.w;
-          h = sz.h;
-        }
-      } else if (isIOS()) {
+        return { w, h };
+      }
+      const sz = getCampCanvasSizeFromLayout();
+      if (isIOS()) {
         if (w < 100 || h < 100 || Math.abs(h - sz.h) > 28 || Math.abs(w - sz.w) > 16) {
           w = sz.w;
           h = sz.h;
         }
         commitStableCampSize(w, h);
+      } else if (w < 80 || h < 80) {
+        w = sz.w;
+        h = sz.h;
       }
       return { w, h };
     }
@@ -5600,8 +5601,9 @@
       viewH = h;
       const bw = Math.max(1, Math.round(w * campDpr));
       const bh = Math.max(1, Math.round(h * campDpr));
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.display = "block";
       if (canvas.width !== bw || canvas.height !== bh) {
         canvas.width = bw;
         canvas.height = bh;
@@ -5609,8 +5611,7 @@
       ctx.setTransform(campDpr, 0, 0, campDpr, 0, 0);
     }
 
-    function resize() {
-      syncUILayout();
+    function resizeCore() {
       const sig = campLayoutSignature();
       if (isIOS() && lastLayoutSig && sig !== lastLayoutSig) {
         resetCampLayoutState();
@@ -5618,14 +5619,13 @@
       lastLayoutSig = sig;
       const { w, h } = getCampCanvasSize();
       if (w < 2 || h < 2) {
-        if (resizeRetry < 16) {
+        if (resizeRetry < 24) {
           resizeRetry += 1;
-          scheduleResize();
+          scheduleResize({ debounceMs: 40 });
         }
         return;
       }
       resizeRetry = 0;
-      const dimChanged = Math.abs(w - lastCanvasW) > 2 || Math.abs(h - lastCanvasH) > 2;
       lastCanvasW = w;
       lastCanvasH = h;
       applyCanvasDimensions(w, h);
@@ -5641,6 +5641,19 @@
         spreadAllNpcs();
         if (isCampMobile()) initMobileAgentView();
       }
+    }
+
+    function resize() {
+      syncUILayout();
+      requestAnimationFrame(() => {
+        syncUILayout();
+        requestAnimationFrame(resizeCore);
+      });
+    }
+
+    function bootResizeCascade() {
+      scheduleResize();
+      [50, 150, 350, 700, 1400].forEach((ms) => setTimeout(scheduleResize, ms));
     }
 
     let orientTimer = 0;
@@ -5682,17 +5695,18 @@
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => scheduleResize());
+      const layoutObs = new ResizeObserver(() => scheduleResize({ debounceMs: 16 }));
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
+      const convo = document.getElementById("convo-log");
       if (hdr) layoutObs.observe(hdr);
       if (dock) layoutObs.observe(dock);
-      if (!isIOS()) {
-        if (campStage) layoutObs.observe(campStage);
-        else layoutObs.observe(canvas);
-      }
+      if (campStage) layoutObs.observe(campStage);
+      else if (canvas) layoutObs.observe(canvas);
+      if (!isCampMobile() && convo) layoutObs.observe(convo);
     }
-    scheduleResize();
+    window.addEventListener("load", () => bootResizeCascade());
+    bootResizeCascade();
 
     function setCampTilt(_sx, _sy) {
       document.documentElement.style.setProperty("--tilt-x", "0deg");
@@ -6706,9 +6720,7 @@
       try {
         localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
       } catch (_) {}
-      if (isCampMobile()) {
-        setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
-      }
+      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
     }
 
     function expandSpeechBubble() { setSpeechBubbleDock(false); }
@@ -12523,7 +12535,7 @@
       }
       initCampCat();
       initMobileAgentView();
-      scheduleResize();
+      bootResizeCascade();
       mergeLocalBondsIntoCamp();
       bindCampMusicGestureUnlock();
       const greetDelay = isSlowDevice() ? 5200 : 2800;

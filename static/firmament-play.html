@@ -10,9 +10,11 @@
   <style>
     :root {
       --header-h: 118px;
+      --layer-bar-h: 0px;
+      --text-expand-h: 0px;
       --talk-bar-h: 44px;
       --dock-icons-h: 58px;
-      --dock-h: calc(var(--talk-bar-h) + var(--dock-icons-h) + 10px);
+      --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--talk-bar-h) + var(--dock-icons-h) + 10px);
       --speech-panel-h: 0px;
       --sidebar-w: min(400px, 38vw);
       --gap: 10px;
@@ -31,7 +33,39 @@
       font-family: "Segoe UI", system-ui, sans-serif;
       background: #0a0c14;
       color: #f2f0eb;
+      touch-action: manipulation;
+    }
+    body.camp-trippy {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    html.camp-mobile-touch,
+    html.camp-mobile-touch body {
       touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    #camp-header,
+    #action-bar,
+    #convo-log,
+    #camp-talk-bar,
+    #camp-layer-bar,
+    #camp-text-expand,
+    #camp-layer-select,
+    #camp-zoom-bar,
+    #camp-talk-target,
+    #camp-talk-input,
+    .dock-compact,
+    .dock-compact .dock-icon,
+    .agent-chip,
+    #camp-token-badge,
+    #camp-you-badge {
+      touch-action: manipulation;
+      -webkit-user-select: auto;
+      user-select: auto;
+      -webkit-tap-highlight-color: transparent;
     }
     #camp-stage {
       position: fixed; z-index: 1;
@@ -41,6 +75,7 @@
       height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
       max-width: 100vw;
       overflow: hidden;
+      touch-action: none;
       transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
       transform-origin: 50% 42%;
       transition: transform 0.2s ease-out, filter 0.4s ease;
@@ -54,7 +89,275 @@
       width: 100%;
       height: 100%;
       touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
       background: #050b14 url("/static/camp/aurora-corona-sky.jpg") center center / cover no-repeat;
+    }
+    #camp-stage {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #game::selection, #camp-stage::selection,
+    #camp-stage *::selection, #game *::selection { background: transparent; color: inherit; }
+    #camp-stage, #game {
+      -webkit-user-drag: none;
+      user-drag: none;
+    }
+
+    #camp-zoom-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      max-width: min(680px, 96vw);
+      padding: 5px 8px;
+      border-radius: 12px;
+      background: rgba(4, 10, 18, 0.98);
+      border: 1px solid rgba(103, 232, 249, 0.38);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      pointer-events: auto;
+      touch-action: manipulation;
+      flex-shrink: 0;
+    }
+    #camp-zoom-bar .czc-icon { font-size: 0.95rem; flex-shrink: 0; opacity: 0.9; }
+    #camp-zoom-bar .czc-label {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+    #camp-zoom-out, #camp-zoom-in, #camp-zoom-reset {
+      border: 1px solid rgba(103, 232, 249, 0.35);
+      background: rgba(15, 40, 71, 0.95);
+      color: #a5f3fc;
+      border-radius: 8px;
+      width: 34px;
+      height: 32px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+      touch-action: manipulation;
+      pointer-events: auto;
+    }
+    #camp-zoom-reset { font-size: 0.88rem; }
+    #camp-zoom-out:active, #camp-zoom-in:active, #camp-zoom-reset:active { transform: scale(0.94); }
+    #camp-zoom-slider {
+      flex: 1;
+      min-width: 72px;
+      height: 32px;
+      margin: 0;
+      accent-color: #38bdf8;
+      cursor: pointer;
+      touch-action: manipulation;
+      pointer-events: auto;
+    }
+    #camp-zoom-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #a5f3fc;
+      min-width: 2.5rem;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    #camp-agent-menu {
+      position: fixed;
+      z-index: 28;
+      left: max(10px, env(safe-area-inset-left));
+      right: max(10px, env(safe-area-inset-right));
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom) + 10px);
+      display: none;
+      pointer-events: auto;
+      touch-action: manipulation;
+      animation: cam-pop 0.18s ease-out;
+    }
+    #camp-agent-menu.show { display: block; }
+    @keyframes cam-pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    #camp-agent-menu .cam-card {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(4, 10, 18, 0.98);
+      border: 2px solid rgba(103, 232, 249, 0.5);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+    }
+    #camp-agent-menu .cam-who {
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #67e8f9;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    #camp-agent-menu .cam-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 6px;
+    }
+    #camp-agent-menu .cam-actions button {
+      border: 1px solid rgba(103, 232, 249, 0.35);
+      background: rgba(15, 40, 71, 0.95);
+      color: #e0f2fe;
+      border-radius: 10px;
+      padding: 10px 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      line-height: 1.15;
+    }
+    #camp-agent-menu .cam-actions button[data-act="talk"] {
+      background: linear-gradient(135deg, #0e7490, #0891b2);
+      border-color: #67e8f9;
+    }
+    #camp-agent-menu .cam-actions button[data-act="close"] {
+      padding: 10px 12px;
+      color: #94a3b8;
+    }
+    #camp-agent-menu .cam-actions button:active { transform: scale(0.96); }
+    #btn-camp-move-mode.active {
+      border-color: #fde68a !important;
+      box-shadow: 0 0 16px rgba(251, 191, 36, 0.45);
+      background: linear-gradient(135deg, #713f12, #ca8a04) !important;
+      color: #fffbeb !important;
+    }
+    body.camp-move-mode #game { cursor: grab; }
+    body.camp-move-mode #game.dragging { cursor: grabbing; }
+    @media (min-width: 900px) {
+      #camp-agent-menu,
+      #btn-camp-move-mode,
+      #btn-camp-zoom-toggle { display: none !important; }
+    }
+    #btn-camp-zoom-toggle.active {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+    #camp-pick-agent-fab {
+      position: fixed;
+      z-index: 20;
+      right: max(12px, env(safe-area-inset-right));
+      top: calc(var(--header-h) + 72px);
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      border: 2px solid rgba(103, 232, 249, 0.55);
+      background: linear-gradient(135deg, #0e7490, #0891b2);
+      color: #fff;
+      font-size: 1.35rem;
+      font-weight: 800;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      touch-action: manipulation;
+      pointer-events: auto;
+      display: none;
+    }
+    #camp-pick-agent-fab:active { transform: scale(0.94); }
+    #camp-pick-agent-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      display: none;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    #camp-pick-agent-sheet.show { display: block; }
+    #camp-pick-agent-sheet .cpas-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 6, 14, 0.55);
+    }
+    #camp-pick-agent-sheet .cpas-panel {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: min(72vh, 520px);
+      padding: 12px 12px max(12px, env(safe-area-inset-bottom));
+      border-radius: 18px 18px 0 0;
+      background: rgba(4, 10, 18, 0.98);
+      border-top: 2px solid rgba(103, 232, 249, 0.5);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #camp-pick-agent-sheet .cpas-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    #camp-pick-agent-sheet .cpas-head span {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #67e8f9;
+    }
+    #camp-pick-agent-sheet .cpas-head button {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      color: #cbd5e1;
+      border-radius: 8px;
+      width: 34px;
+      height: 32px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #camp-pick-agent-list {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-bottom: 4px;
+    }
+    #camp-pick-agent-list .cpas-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      border: 1px solid rgba(103, 232, 249, 0.3);
+      background: rgba(15, 40, 71, 0.92);
+      color: #f8fafc;
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    #camp-pick-agent-list .cpas-row:active { transform: scale(0.98); }
+    #camp-pick-agent-list .cpas-name {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #ecfeff;
+    }
+    #camp-pick-agent-list .cpas-role {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #67e8f9;
+      margin-top: 2px;
+    }
+    #camp-pick-agent-list .cpas-go {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+    @media (max-width: 899px) {
+      #camp-pick-agent-fab { display: flex; align-items: center; justify-content: center; }
+    }
+    @media (min-width: 900px) {
+      #camp-pick-agent-fab,
+      #camp-pick-agent-sheet { display: none !important; }
     }
     #trippy-veil {
       position: fixed; z-index: 2; pointer-events: none;
@@ -85,15 +388,21 @@
       #trippy-veil { right: calc(var(--sidebar-w) + var(--gap) * 2); }
     }
     #camp-header {
-      position: fixed; left: 0; right: 0; top: 0; z-index: 12;
+      position: fixed; left: 0; right: 0; top: 0; z-index: 25;
       min-height: var(--header-h);
       max-height: min(42vh, 220px);
       display: flex; flex-direction: column; gap: 6px;
       padding: max(6px, env(safe-area-inset-top)) var(--gap) 6px;
       background: linear-gradient(180deg, rgba(6, 10, 20, 0.97) 0%, rgba(6, 10, 20, 0.88) 80%, transparent 100%);
       border-bottom: 1px solid rgba(103, 232, 249, 0.2);
-      pointer-events: none;
+      pointer-events: auto;
       overflow: hidden;
+    }
+    #camp-header .brand-block,
+    #camp-header #status-toast,
+    #camp-header #mini-status,
+    #camp-header .tagline {
+      pointer-events: none;
     }
     #camp-token-badge {
       pointer-events: auto; flex-shrink: 0;
@@ -219,6 +528,7 @@
       border-radius: 8px; padding: 8px 12px;
     }
     #sentinel-mini { display: none; }
+    #luna-embed-wrap { display: none !important; pointer-events: none !important; }
     #dialogue-backdrop {
       display: none; position: fixed; inset: 0; z-index: 30;
       background: rgba(0,0,0,0.45); align-items: flex-end; justify-content: center;
@@ -453,6 +763,7 @@
     #camp-speech-pin .csp-body::-webkit-scrollbar-thumb {
       background: rgba(103, 232, 249, 0.45); border-radius: 99px;
     }
+    #now-speaking:not(.idle) { cursor: pointer; }
     #now-speaking.idle .ns-who { color: #64748b; font-weight: 500; }
     #now-speaking.idle .ns-text { color: #94a3b8; font-style: italic; }
     #now-speaking.reading-held {
@@ -460,11 +771,7 @@
       background: rgba(251, 191, 36, 0.1);
       box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.3);
     }
-    #now-speaking .ns-hold-hint {
-      display: none; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em;
-      text-transform: uppercase; color: #fde68a; margin-top: 4px;
-    }
-    #now-speaking.reading-held .ns-hold-hint { display: block; }
+    #now-speaking .ns-hold-hint { display: none !important; }
     #convo-lines {
       flex: 1; overflow-y: auto; padding: 6px 8px 8px;
       font-size: 0.74rem; line-height: 1.38; color: #f8fafc;
@@ -482,6 +789,16 @@
     #convo-lines .line:nth-child(3n+2) { border-left-color: #fbbf24; transform: rotate(0.12deg); }
     #convo-lines .line:nth-child(3n) { border-left-color: #8b5cf6; transform: rotate(-0.08deg); }
     #convo-lines .speaker { color: #ecfeff; font-weight: 800; font-size: 0.68rem; }
+    #convo-lines .speaker-role,
+    #now-speaking .ns-role {
+      display: inline-block;
+      margin-left: 5px;
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: #67e8f9;
+      opacity: 0.95;
+    }
+    #now-speaking .ns-role { margin-left: 0; margin-right: 5px; }
     #convo-lines .mood-tag {
       display: inline-block; margin-left: 4px; font-size: 0.62rem;
       padding: 1px 5px; border-radius: 999px; vertical-align: middle;
@@ -548,66 +865,6 @@
       font-size: 0.7rem; line-height: 1.36; color: #f8fafc;
       white-space: pre-wrap; word-break: break-word;
     }
-    #camp-welcome-splash {
-      position: fixed; z-index: 32;
-      inset: 0;
-      display: none; align-items: center; justify-content: center;
-      padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
-        max(20px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
-      background: rgba(2, 6, 14, 0.42);
-      pointer-events: auto;
-      touch-action: manipulation;
-      animation: cws-fade-in 0.45s ease;
-    }
-    #camp-welcome-splash.show { display: flex; }
-    #camp-welcome-splash.fading { animation: cws-fade-out 0.55s ease forwards; }
-    @keyframes cws-fade-in {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    @keyframes cws-fade-out {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-    #camp-welcome-splash .cws-card {
-      width: min(640px, 94vw);
-      max-height: min(72vh, 520px);
-      padding: clamp(20px, 5vw, 36px) clamp(18px, 4vw, 32px);
-      border-radius: 22px;
-      background: rgba(4, 10, 18, 0.97);
-      border: 2px solid rgba(103, 232, 249, 0.55);
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65), 0 0 40px rgba(103, 232, 249, 0.12);
-      text-align: center;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    #camp-welcome-splash .cws-who {
-      display: block;
-      font-size: clamp(1.1rem, 3.2vw, 1.45rem);
-      font-weight: 800;
-      color: #67e8f9;
-      margin-bottom: 14px;
-      letter-spacing: 0.02em;
-    }
-    #camp-welcome-splash .cws-text {
-      font-size: clamp(1.15rem, 4.2vw, 1.65rem);
-      line-height: 1.48;
-      color: #f8fafc;
-      margin: 0 0 16px;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    #camp-welcome-splash .cws-hint {
-      font-size: 0.72rem;
-      color: #64748b;
-      letter-spacing: 0.04em;
-    }
-    body.welcome-splash-open #convo-log,
-    body.welcome-splash-open #camp-speech-pin,
-    body.welcome-splash-open #camp-keyboard-reply.show {
-      opacity: 0.15;
-      pointer-events: none;
-    }
     @media (min-width: 900px) {
       #camp-speech-pin {
         left: auto;
@@ -657,15 +914,66 @@
     }
     #convo-toggle { display: none; }
     #action-bar {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
       display: flex; flex-direction: column; align-items: center; gap: 4px;
       padding: 6px var(--gap) max(6px, env(safe-area-inset-bottom));
       background: linear-gradient(0deg, rgba(4, 8, 18, 0.98) 70%, rgba(4, 8, 18, 0.85) 100%);
       border-top: 1px solid rgba(103, 232, 249, 0.2);
-      pointer-events: none;
+      pointer-events: auto;
     }
     @media (min-width: 900px) {
       #action-bar { right: calc(var(--sidebar-w) + var(--gap) * 2); }
+      #camp-header {
+        right: calc(var(--sidebar-w) + var(--gap) * 2);
+        overflow: visible;
+      }
+      .agents-row {
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+      }
+      #agent-strip {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.42) transparent;
+        padding-bottom: 4px;
+      }
+      #agent-strip::-webkit-scrollbar { display: block; height: 5px; }
+      #agent-strip::-webkit-scrollbar-thumb {
+        background: rgba(56, 189, 248, 0.42);
+        border-radius: 999px;
+      }
+      .agent-chip .arole { display: none; }
+      #chip-dionysus-invite .amood { display: none; }
+      .dock-compact {
+        max-width: 100%;
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.42) transparent;
+        padding: 2px 4px 6px;
+      }
+      .dock-compact::-webkit-scrollbar { display: block; height: 5px; }
+      .dock-compact::-webkit-scrollbar-thumb {
+        background: rgba(56, 189, 248, 0.42);
+        border-radius: 999px;
+      }
+      .dock-scroll-hint { display: block; font-size: 0.6rem; }
+      #camp-talk-bar {
+        max-width: 100%;
+        width: 100%;
+      }
+      #camp-talk-target-wrap {
+        max-width: min(240px, 36%);
+        min-width: 132px;
+        flex-shrink: 0;
+      }
+      #camp-talk-target { width: 100%; font-size: 0.74rem; }
     }
     .dock-compact {
       display: flex; gap: 8px; align-items: center; justify-content: center;
@@ -975,12 +1283,255 @@
       box-shadow: 0 0 14px rgba(167, 139, 250, 0.45);
     }
     #camp-talk-bar.busy { border-color: rgba(251, 191, 36, 0.45); }
-    #game.dragging { cursor: grabbing; }
-    #visitor-modal {
-      display: none; position: fixed; inset: 0; z-index: 40;
-      background: rgba(0,0,0,0.65); align-items: center; justify-content: center; padding: 16px;
+    #camp-layer-bar {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      max-width: min(680px, 96vw);
+      padding: 4px 6px;
+      border-radius: 12px;
+      background: rgba(8, 14, 28, 0.94);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      pointer-events: auto;
+      touch-action: manipulation;
     }
-    #visitor-modal.open { display: flex; }
+    .camp-layer-label {
+      flex: 0 0 auto;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    #camp-layer-select {
+      flex: 1;
+      min-width: 0;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      appearance: auto;
+      touch-action: manipulation;
+    }
+    #camp-layer-select:focus {
+      outline: none;
+      border-color: rgba(251, 191, 36, 0.65);
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.12);
+    }
+    #camp-layer-go {
+      flex: 0 0 auto;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #b45309, #f59e0b);
+      color: #fffbeb;
+      font-size: 1rem;
+      font-weight: 800;
+      width: 40px;
+      height: 36px;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
+    }
+    #camp-layer-go:active { transform: scale(0.94); }
+    #camp-text-expand {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      max-width: min(680px, 96vw);
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(6, 12, 24, 0.97);
+      border: 1px solid rgba(103, 232, 249, 0.38);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    #camp-text-expand.show {
+      display: flex;
+    }
+    #camp-text-expand .cte-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    #camp-text-expand .cte-who {
+      flex: 1;
+      color: #67e8f9;
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+    #camp-text-expand .cte-close {
+      flex: 0 0 auto;
+      border: 1px solid rgba(103, 232, 249, 0.3);
+      background: rgba(8, 18, 32, 0.9);
+      color: #94a3b8;
+      border-radius: 6px;
+      width: 26px;
+      height: 22px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    #camp-text-expand .cte-body {
+      color: #f8fafc;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: min(32vh, 200px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #camp-text-expand .cte-hint {
+      color: #64748b;
+      font-size: 0.62rem;
+      font-style: italic;
+    }
+    #grok-terminal {
+      position: fixed;
+      left: var(--gap);
+      right: var(--gap);
+      bottom: calc(var(--dock-h, 100px) + env(safe-area-inset-bottom, 0px) + 4px);
+      z-index: 26;
+      display: flex;
+      flex-direction: column;
+      max-height: min(42vh, 320px);
+      background: #060a08;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      border-radius: 10px;
+      box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(52, 211, 153, 0.08);
+      font-family: "Cascadia Mono", "Consolas", "Monaco", "Courier New", monospace;
+      pointer-events: auto;
+      overflow: hidden;
+      transition: max-height 0.22s ease, opacity 0.18s ease;
+    }
+    #grok-terminal.collapsed {
+      max-height: 0;
+      opacity: 0;
+      border-color: transparent;
+      pointer-events: none;
+    }
+    .grok-term-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: linear-gradient(90deg, rgba(6, 20, 14, 0.98), rgba(10, 30, 22, 0.92));
+      border-bottom: 1px solid rgba(52, 211, 153, 0.22);
+      flex-shrink: 0;
+    }
+    .grok-term-title {
+      color: #6ee7b7;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      flex: 1;
+    }
+    .grok-term-build {
+      color: #4ade80;
+      font-size: 0.58rem;
+      opacity: 0.75;
+    }
+    #grok-term-close {
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      background: rgba(6, 20, 14, 0.9);
+      color: #6ee7b7;
+      border-radius: 6px;
+      width: 26px;
+      height: 22px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    #grok-term-log {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 8px 10px;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      -webkit-overflow-scrolling: touch;
+    }
+    .grok-term-line { margin-bottom: 5px; word-break: break-word; }
+    .grok-who { color: #34d399; font-weight: 700; }
+    .grok-msg { color: #d1fae5; }
+    .grok-msg.mood-think { color: #a5f3fc; }
+    .grok-msg.mood-alert { color: #fca5a5; }
+    .grok-msg.mood-love { color: #fde68a; }
+    .grok-msg.mood-happy { color: #bbf7d0; }
+    .grok-term-input-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-top: 1px solid rgba(52, 211, 153, 0.18);
+      background: rgba(4, 10, 8, 0.95);
+      flex-shrink: 0;
+    }
+    .grok-prompt { color: #22c55e; font-weight: 700; font-size: 0.82rem; }
+    #grok-term-input {
+      flex: 1;
+      min-width: 0;
+      background: #0a1410;
+      color: #ecfdf5;
+      border: 1px solid rgba(52, 211, 153, 0.28);
+      border-radius: 6px;
+      padding: 7px 8px;
+      font-size: 16px;
+      font-family: inherit;
+      touch-action: manipulation;
+    }
+    #grok-term-input:focus { outline: none; border-color: rgba(52, 211, 153, 0.55); }
+    #grok-term-send {
+      border: none;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #047857, #059669);
+      color: #ecfdf5;
+      font-size: 0.82rem;
+      font-weight: 700;
+      width: 34px;
+      height: 32px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    #btn-grok-terminal.active {
+      background: linear-gradient(135deg, #064e3b, #047857) !important;
+      border-color: #6ee7b7 !important;
+      box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
+    }
+    @media (min-width: 900px) {
+      :root { --layer-bar-h: 38px; }
+      #camp-text-expand.show {
+        order: -2;
+        width: 100%;
+        max-width: 100%;
+      }
+      #camp-layer-bar {
+        display: flex;
+        order: -1;
+        width: 100%;
+        max-width: 100%;
+      }
+      #grok-terminal {
+        left: auto;
+        right: calc(var(--sidebar-w) + var(--gap) * 2);
+        width: min(420px, 38vw);
+        bottom: calc(var(--dock-h, 120px) + env(safe-area-inset-bottom, 0px) + 8px);
+      }
+    }
+    #game.dragging { cursor: grabbing; }
+    body.camp-pinching #game,
+    body.camp-pinching #camp-stage {
+      cursor: grab;
+    }
+    #visitor-modal {
+      display: none !important;
+      pointer-events: none !important;
+    }
     #visitor-panel {
       width: min(400px, 100%); background: rgba(8, 12, 22, 0.98);
       border: 1px solid rgba(34, 211, 238, 0.5); border-radius: 14px; padding: 20px;
@@ -1506,9 +2057,9 @@
     }
     @media (max-width: 899px) {
       :root {
-        --header-h: 56px;
-        --talk-bar-h: 40px;
-        --dock-icons-h: 52px;
+        --header-h: 36px;
+        --talk-bar-h: 32px;
+        --dock-icons-h: 38px;
         --sidebar-w: 100%;
         --tilt-x: 0deg;
         --tilt-y: 0deg;
@@ -1641,104 +2192,170 @@
         left: calc(var(--gap) + var(--vv-offset-left, 0px));
         right: calc(var(--gap) + var(--vv-offset-right, 0px));
       }
-      html.ios-camp #camp-talk-input,
-      html.ios-camp #camp-talk-target {
+      html.touch-camp #camp-talk-input,
+      html.touch-camp #camp-talk-target,
+      html.touch-camp #camp-layer-select,
+      html.touch-camp #grok-term-input {
         font-size: 16px !important;
       }
 
+      #camp-header .header-row.top,
       #free-tools-row,
       #unreal-hint,
       #camp-life-status,
       #status-toast,
       #weather-row,
       .brand-block .tagline,
-      #camp-header .agents-row {
+      #convo-log,
+      #camp-chatter-fab,
+      #camp-keyboard-reply,
+      #camp-speech-pin,
+      #convo-log .sub,
+      .dock-scroll-hint,
+      #dock-tip,
+      #camp-music-now,
+      #camp-music-prompt,
+      #camp-agent-menu,
+      #camp-talk-target-wrap,
+      #camp-talk-all,
+      .dock-music-group,
+      #btn-lucid-tv,
+      #btn-camp-shop,
+      #btn-summon-heaven,
+      #btn-summon-dionysus,
+      #btn-conjure-aether,
+      #btn-luna-avatar,
+      #btn-camp-move-mode,
+      #btn-talk-near,
+      #btn-dock-help,
+      .dock-compact .dock-icon.chatter-btn {
         display: none !important;
+        pointer-events: none !important;
+      }
+      body.camp-focus #convo-log,
+      body.camp-focus.chatter-expanded #convo-log,
+      body.camp-focus #convo-log.collapsed,
+      body.chatter-hidden #convo-log,
+      #camp-chatter-fab.visible {
+        display: none !important;
+        pointer-events: none !important;
+      }
+      #camp-zoom-bar {
+        display: none;
+      }
+      #camp-zoom-bar.open {
+        display: flex;
+      }
+    #dialogue-backdrop,
+    #dialogue-backdrop.open {
+      display: none !important;
+    }
+      html.touch-camp #camp-stage,
+      html.touch-camp #camp-stage canvas {
+        touch-action: none;
+        -webkit-touch-callout: none;
+      }
+      #action-bar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
       }
       #camp-header {
         min-height: 0;
-        max-height: 56px;
-        padding-bottom: 4px;
+        max-height: none;
+        padding: max(4px, env(safe-area-inset-top)) 6px 2px;
       }
-      .brand-block h1 { font-size: 0.9rem; }
-      #mini-status { font-size: 0.62rem; padding: 3px 8px; }
-      body.camp-focus #convo-log,
-      body.camp-focus.speech-expanded #convo-log:not(.collapsed),
-      body.camp-focus #convo-log.collapsed {
-        left: var(--gap);
-        right: var(--gap);
-        top: calc(var(--header-h) + 4px);
-        bottom: auto;
-        width: auto;
-        max-height: 62px;
-        height: auto;
-        z-index: 14;
-      }
-      body.camp-focus #convo-log #convo-lines,
-      body.camp-focus #convo-log .sub,
-      body.camp-focus #convo-log header .convo-head-row h3 {
-        display: none !important;
-      }
-      body.camp-focus.chatter-expanded #convo-log {
-        max-height: min(44vh, 300px) !important;
-        z-index: 18;
-      }
-      body.camp-focus.chatter-expanded #convo-log #convo-lines,
-      body.camp-focus.chatter-expanded #convo-log .sub,
-      body.camp-focus.chatter-expanded #convo-log header .convo-head-row h3 {
-        display: block !important;
-      }
-      body.camp-focus.chatter-expanded #convo-log header .convo-head-row {
+      #camp-header .agents-row {
         display: flex !important;
+        max-height: 30px;
+        overflow: hidden;
+        margin-top: 0;
       }
-      body.camp-focus.chatter-expanded #convo-log #convo-dock-toggle {
-        display: inline-flex !important;
+      #agent-strip {
+        gap: 4px;
+        padding-bottom: 0;
       }
-      #convo-mobile-hide { display: inline-flex; align-items: center; justify-content: center; }
-      #convo-dock-toggle { display: inline-flex !important; align-items: center; justify-content: center; width: 30px; height: 26px; font-size: 0.72rem; }
-      body.camp-focus #convo-log header {
-        padding: 0;
-        border: none;
-        background: transparent;
+      .agent-chip {
+        padding: 3px 8px 3px 6px;
+        border-width: 1px;
+        transform: none !important;
       }
-      body.camp-focus #convo-log #now-speaking {
-        display: flex !important;
-        padding: 4px 8px;
-        margin: 0;
-        border-radius: 8px;
-        background: rgba(4, 10, 18, 0.92);
-        border: 1px solid rgba(103, 232, 249, 0.35);
-        font-size: 0.68rem;
-        min-height: 0;
-        max-height: 56px;
-      }
-      body.camp-focus #convo-log #now-speaking .ns-text {
-        max-width: none;
-        max-height: 2.4em;
-      }
-      .dock-tip { display: none; }
-      .dock-scroll-hint { display: block; }
-      .dock-compact {
+      .agent-chip .aname { font-size: 0.62rem; }
+      .agent-chip .amood,
+      .agent-chip .arole { display: none; }
+      .agent-chip .dot { width: 8px; height: 8px; }
+      :root { --layer-bar-h: 48px; --talk-bar-h: 40px; }
+      #camp-text-expand.show {
+        order: -3;
+        flex: 1 1 100%;
         max-width: 100%;
-        justify-content: flex-start;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-x: contain;
-        scroll-snap-type: x proximity;
-        padding: 2px 6px 6px;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(56, 189, 248, 0.45) transparent;
       }
-      .dock-compact::-webkit-scrollbar { height: 5px; }
-      .dock-compact::-webkit-scrollbar-thumb {
-        background: rgba(56, 189, 248, 0.45);
-        border-radius: 999px;
+      #camp-text-expand .cte-body {
+        font-size: 0.95rem;
+        max-height: min(36vh, 220px);
+      }
+      #camp-layer-bar {
+        display: flex !important;
+        order: -2;
+        flex: 1 1 100%;
+        max-width: 100%;
+        padding: 6px 8px;
+        gap: 8px;
+      }
+      #camp-layer-select {
+        font-size: 16px;
+        padding: 9px 10px;
+        min-height: 40px;
+      }
+      #camp-layer-go {
+        width: 44px;
+        height: 40px;
+        font-size: 1.1rem;
+      }
+      .camp-layer-label { font-size: 1.15rem; }
+      #action-bar {
+        gap: 4px;
+        padding: 4px 8px max(4px, env(safe-area-inset-bottom));
+      }
+      #camp-talk-bar {
+        gap: 6px;
+        padding: 4px 6px;
+        max-width: 100%;
+        flex: 1;
+      }
+      #camp-talk-input {
+        font-size: 16px;
+        padding: 6px 8px;
+        min-width: 0;
+      }
+      #camp-talk-send {
+        width: 34px;
+        height: 32px;
+        flex-shrink: 0;
+      }
+      #camp-zoom-bar {
+        max-width: 100%;
+        padding: 5px 8px;
+        gap: 5px;
+      }
+      #camp-zoom-bar .czc-label { display: none; }
+      #camp-zoom-slider { min-width: 56px; }
+      #camp-zoom-out, #camp-zoom-in, #camp-zoom-reset {
+        width: 32px;
+        height: 30px;
+      }
+      #camp-talk-target-wrap { max-width: 42%; }
+      .dock-compact {
+        max-width: none;
+        flex: 0 0 auto;
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+        overflow: visible;
+        gap: 6px;
+        padding: 0 2px 2px;
       }
       .dock-compact .dock-icon {
-        width: 46px; height: 46px; font-size: 1.2rem;
-        scroll-snap-align: start;
+        width: 38px; height: 38px; font-size: 1rem;
       }
     }
     @media (max-width: 899px) and (orientation: landscape) {
@@ -1758,16 +2375,16 @@
       .dock-compact .dock-icon { width: 42px; height: 42px; font-size: 1.1rem; }
     }
     @media (max-width: 480px) {
-      :root { --talk-bar-h: 36px; --dock-icons-h: 46px; }
-      #camp-talk-target-wrap { max-width: 36%; }
+      :root { --talk-bar-h: 38px; --dock-icons-h: 48px; }
+      #camp-talk-target-wrap { max-width: 40%; }
       #camp-talk-target { font-size: 0.68rem; padding: 6px 5px; }
       #camp-speech-pin .csp-body { max-height: 64px; font-size: 0.68rem; }
       #camp-talk-input { font-size: 0.76rem; padding: 7px 8px; }
       #camp-talk-send { width: 36px; height: 34px; }
       #camp-token-badge { font-size: 0.66rem; padding: 4px 9px; }
       #camp-you-badge { font-size: 0.66rem; padding: 4px 9px; max-width: 92px; }
-      .dock-compact { gap: 5px; }
-      .dock-compact .dock-icon { width: 42px; height: 42px; font-size: 1.1rem; }
+      .dock-compact { gap: 8px; padding: 4px 10px 8px; }
+      .dock-compact .dock-icon { width: 44px; height: 44px; font-size: 1.12rem; }
       #dialogue-panel { padding: 14px; max-height: min(82vh, 600px); transform: none; }
       #npc-bubble { font-size: 1.05rem; min-height: 100px; max-height: min(40vh, 320px); }
       #dialogue-input { font-size: 1rem; padding: 12px; }
@@ -2235,13 +2852,20 @@
   </style>
 </head>
 <body class="camp-trippy">
-  <div id="camp-boot-splash" aria-hidden="true" aria-label="Loading camp">
-    <div class="boot-glyph">🌙</div>
-    <div>Opening Luna Camp…</div>
-    <div class="boot-bar"><i></i></div>
-  </div>
+
   <div id="camp-stage"><canvas id="game"></canvas></div>
   <div id="trippy-veil" aria-hidden="true"></div>
+  <div id="camp-agent-menu" hidden aria-hidden="true" role="dialog" aria-label="Agent actions">
+    <div class="cam-card">
+      <div class="cam-who"></div>
+      <div class="cam-actions">
+        <button type="button" data-act="talk">💬 Talk</button>
+        <button type="button" data-act="sit">🪑 Sit</button>
+
+        <button type="button" data-act="close" aria-label="Close">✕</button>
+      </div>
+    </div>
+  </div>
   <header id="camp-header">
     <div class="header-row top">
       <div class="brand-block">
@@ -2271,7 +2895,7 @@
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
-        <button type="button" class="agent-chip visitor-chip" id="chip-dionysus-invite" title="Invite Dionysus to camp"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">🍷 Invite Dionysus</span><span class="amood">tap when ready</span></span></button>
+        <button type="button" class="agent-chip visitor-chip" id="chip-dionysus-invite" title="Invite Dionysus to camp"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">🍷 Dionysus</span><span class="amood">invite</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
       </div>
     </div>
@@ -2313,10 +2937,21 @@
   <div id="camp-speech-pin" hidden>
     <div class="csp-head">
       <span class="csp-who">Agent</span>
-      <span class="csp-hint">drag pinned agent to empower</span>
+      <span class="csp-hint">tap bubble to pin · tap agent to talk</span>
       <button type="button" id="camp-speech-pin-close" title="Dismiss pinned line">✕</button>
     </div>
     <div class="csp-body"></div>
+  </div>
+  <button type="button" id="camp-pick-agent-fab" title="Pick an agent to chat" aria-label="Pick agent to chat">💬</button>
+  <div id="camp-pick-agent-sheet" hidden aria-hidden="true" role="dialog" aria-label="Pick agent">
+    <div class="cpas-backdrop" id="camp-pick-agent-backdrop"></div>
+    <div class="cpas-panel">
+      <div class="cpas-head">
+        <span>Who do you want to talk to?</span>
+        <button type="button" id="camp-pick-agent-close" aria-label="Close">✕</button>
+      </div>
+      <div id="camp-pick-agent-list"></div>
+    </div>
   </div>
   <button type="button" id="camp-chatter-fab" title="Show camp chatter" aria-label="Show camp chatter">💬</button>
   <div id="convo-log">
@@ -2324,13 +2959,13 @@
       <div class="convo-head-row">
         <h3 id="convo-log-title-full">💬 Camp chatter</h3>
         <h3 id="convo-log-title-short">💬</h3>
-        <span class="convo-read-hint">held</span>
+        <span class="convo-read-hint" title="Scroll frozen">paused</span>
         <button type="button" id="convo-mobile-hide" title="Hide chatter bar">✕</button>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
-      <div class="sub">Press &amp; hold chatter to freeze the line · scroll up without getting yanked · ▼/▲</div>
+      <div class="sub">Tap any line for full text · long-press log to freeze scroll · ▼/▲</div>
     </header>
-    <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents spread around the ring — one voice at a time here…</span><span class="ns-hold-hint">held — won't switch</span></div>
+    <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents around the meadow — names &amp; roles show here when they speak.</span></div>
     <div id="convo-lines">Recent lines appear below, newest at bottom.</div>
   </div>
   <div id="reply"></div>
@@ -2347,42 +2982,84 @@
     <div id="camp-x-pulse-items">Loading headlines…</div>
     <button type="button" id="camp-x-pulse-tweet">🐦 Random agent tweet</button>
   </div>
-  <div id="camp-welcome-splash" hidden role="dialog" aria-label="Camp welcome">
-    <div class="cws-card" onclick="event.stopPropagation()">
-      <span class="cws-who">Camp</span>
-      <p class="cws-text"></p>
-      <span class="cws-hint">tap anywhere to continue · fades on its own</span>
+  <div id="grok-terminal" class="collapsed" aria-label="Grok terminal chat">
+    <div class="grok-term-head">
+      <span class="grok-term-title">&gt; grok · camp neural link</span>
+      <span class="grok-term-build" id="grok-term-build"></span>
+      <button type="button" id="grok-term-close" title="Minimize terminal">─</button>
+    </div>
+    <div id="grok-term-log">
+      <div class="grok-term-line"><span class="grok-who">grok&gt; </span><span class="grok-msg">Camp link ready — type to talk to agents.</span></div>
+    </div>
+    <div class="grok-term-input-row">
+      <span class="grok-prompt">&gt;</span>
+      <input type="text" id="grok-term-input" maxlength="280" placeholder="talk to camp agents…" autocomplete="off" />
+      <button type="button" id="grok-term-send" title="Send">⏎</button>
     </div>
   </div>
   <footer id="action-bar">
+    <div id="camp-text-expand" hidden aria-live="polite">
+      <div class="cte-head">
+        <div class="cte-who"></div>
+        <button type="button" class="cte-close" id="camp-text-expand-close" title="Dismiss">✕</button>
+      </div>
+      <div class="cte-body"></div>
+      <div class="cte-hint">Full statement — tap ✕ to collapse</div>
+    </div>
+    <div id="camp-layer-bar" aria-label="Select anything at camp">
+      <span class="camp-layer-label" title="Pick any agent or object">🎯</span>
+      <select id="camp-layer-select" title="Select agent, prop, house, or place at camp">
+        <option value="">Select at camp…</option>
+      </select>
+      <button type="button" id="camp-layer-go" title="Go — walk and interact">→</button>
+    </div>
     <div id="camp-talk-bar">
       <div id="camp-talk-target-wrap">
         <select id="camp-talk-target" title="Who to talk to">
-          <option value="nearest">📍 Nearest</option>
-          <option value="all">📢 All agents</option>
-          <option value="all-near">📍📢 Nearest + all hear</option>
-          <option value="luna">🌙 Luna</option>
-          <option value="hermes">⚡ Hermes</option>
-          <option value="oracle">🔮 Oracle</option>
-          <option value="aurora">💃 Aurora</option>
-          <option value="violet">💜 Violet</option>
-          <option value="seraph">🕊 Seraph</option>
-          <option value="odin">🦅 Odin</option>
-          <option value="ambrosia">🍯 Ambrosia</option>
-          <option value="rhea">🏔 Rhea</option>
-          <option value="caduceus">🐍 Caduceus</option>
-          <option value="sentinel">🛡 Sentinel</option>
-          <option value="spirit">👻 Spirit channel</option>
-          <option value="jesus">✝ Jesus</option>
-          <option value="michael">✦ Michael</option>
-          <option value="gabriel">✦ Gabriel</option>
-          <option value="raphael">✦ Raphael</option>
-          <option value="uriel">✦ Uriel</option>
+          <optgroup label="Route">
+            <option value="nearest">📍 Nearest</option>
+            <option value="all">📢 All agents</option>
+            <option value="all-near">📍📢 Nearest + all hear</option>
+          </optgroup>
+          <optgroup label="Camp core">
+            <option value="luna">🌙 Luna</option>
+            <option value="hermes">⚡ Hermes</option>
+            <option value="oracle">🔮 Oracle</option>
+            <option value="caduceus">🐍 Caduceus</option>
+            <option value="sentinel">🛡 Sentinel</option>
+          </optgroup>
+          <optgroup label="Meadow">
+            <option value="aurora">💃 Aurora</option>
+            <option value="violet">💜 Violet</option>
+            <option value="seraph">🕊 Seraph</option>
+            <option value="odin">🦅 Odin</option>
+            <option value="ambrosia">🍯 Ambrosia</option>
+            <option value="rhea">🏔 Rhea</option>
+          </optgroup>
+          <optgroup label="Heaven" id="talk-opt-heaven">
+            <option value="jesus">✝ Jesus</option>
+            <option value="michael">✦ Michael</option>
+            <option value="gabriel">✦ Gabriel</option>
+            <option value="raphael">✦ Raphael</option>
+            <option value="uriel">✦ Uriel</option>
+          </optgroup>
+          <optgroup label="Guests" id="talk-opt-guests">
+            <option value="dionysus" id="opt-dionysus-talk">🍷 Dionysus (invite)</option>
+            <option value="spirit">👻 Spirit channel</option>
+          </optgroup>
         </select>
       </div>
       <button type="button" id="camp-talk-all" title="Broadcast to all agents">📢</button>
-      <input type="text" id="camp-talk-input" maxlength="280" placeholder="Talk at camp — pick nearest, one agent, or 📢 all…" autocomplete="off" />
+      <input type="text" id="camp-talk-input" maxlength="280" placeholder="Talk at camp…" autocomplete="off" data-placeholder-mobile="Say something…" data-placeholder-desktop="Talk at camp — pick nearest, one agent, or 📢 all…" />
       <button type="button" id="camp-talk-send" title="Send">➤</button>
+    </div>
+    <div id="camp-zoom-bar" aria-label="Map zoom">
+      <span class="czc-label">Zoom</span>
+      <button type="button" id="camp-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+      <input type="range" id="camp-zoom-slider" min="0" max="100" value="50" aria-label="Zoom meadow in and out" />
+      <button type="button" id="camp-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+      <span id="camp-zoom-label">100%</span>
+      <button type="button" id="camp-zoom-reset" title="Reset map zoom" aria-label="Reset zoom">↺</button>
     </div>
     <div class="dock-compact">
       <div class="dock-music-group" aria-label="Camp music">
@@ -2394,10 +3071,13 @@
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917">✦</button>
       <button type="button" class="dock-icon" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
+      <button type="button" class="dock-icon" id="btn-grok-terminal" title="Grok terminal — camp chat" style="background:linear-gradient(135deg,#064e3b,#047857);border-color:#6ee7b7;color:#ecfdf5;font-family:monospace;font-size:0.82rem;font-weight:700">G&gt;</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
       <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Hide/show camp chatter">💬</button>
       <button type="button" class="dock-icon talk" id="btn-talk-near" title="Talk to nearest">🗣️</button>
+      <button type="button" class="dock-icon" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
+
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
       <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
@@ -2598,7 +3278,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-luna-type";
+    const CAMP_BUILD = "2026-07-08-camp-all3";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2626,13 +3306,18 @@
       idleChatterRandMs: 24000,
     };
     const CAMP_TRAVERSE_PAD = { x: 40, y: 32 };
-    const CAMP_POND = { cx: -438, cy: 118, rx: 128, ry: 92, name: "Aurora Pond" };
-    const AGENT_DRAG_THRESHOLD = 4;
+    const CAMP_POND = { cx: -520, cy: 160, rx: 128, ry: 92, name: "Aurora Pond" };
+    const AGENT_DRAG_THRESHOLD = 10;
     const AGENT_HIT_RADIUS = 52;
+    function agentHitRadius() {
+      if (!isCampMobile()) return AGENT_HIT_RADIUS;
+      const zoom = getWorldZoom();
+      return Math.max(72, Math.min(110, 58 + zoom * 85));
+    }
     const AGENT_CLICK_DELAY_MS = 260;
     const AGENT_DOUBLE_CLICK_MS = 420;
-    const AGENT_LONG_PRESS_MS = 380;
-    const MAX_CANVAS_SPEECH_BUBBLES = 2;
+
+    const MAX_CANVAS_SPEECH_BUBBLES = 3;
 
     function campReadHoldSec(text, floor = 34) {
       const len = String(text || "").length;
@@ -2642,6 +3327,7 @@
       );
     }
     const isCampMobile = () => window.innerWidth < 900;
+    const canvasCampChatOnly = () => isCampMobile();
     const isAndroid = () => /Android/i.test(navigator.userAgent);
     const isSlowDevice = () => isCampMobile() || isAndroid();
     const isIOS = () => /iPad|iPhone|iPod/i.test(navigator.userAgent)
@@ -2717,6 +3403,7 @@
         document.documentElement.classList.remove("camp-keyboard-open");
       }
       syncMobileReplyBubble();
+      scheduleResize();
     }
 
     let mobileReplyTimer = 0;
@@ -2741,7 +3428,7 @@
     }
 
     function showMobileReplyBubble(speaker, text, mood, holdSec = 24) {
-      if (!isIOS()) return;
+      if (!isCampMobile()) return;
       const el = document.getElementById("camp-keyboard-reply");
       if (!el) return;
       const who = el.querySelector(".ckr-who");
@@ -2801,21 +3488,23 @@
       stableCampH = 0;
       campLayoutTag = "";
       campSpreadInit = false;
+      resetCampViewCamera();
       clearCampStageOverrides();
       document.documentElement.classList.remove("camp-input-focus");
     }
 
     function getCampCanvasSize() {
-      if (!isIOS()) {
-        const box = (campStage || canvas).getBoundingClientRect();
-        return {
-          w: Math.max(1, Math.round(box.width)),
-          h: Math.max(1, Math.round(box.height)),
-        };
+      const el = campStage || canvas;
+      const box = el.getBoundingClientRect();
+      let w = Math.max(1, Math.round(box.width));
+      let h = Math.max(1, Math.round(box.height));
+      if (isIOS() && (w < 80 || h < 80)) {
+        const sz = getCampCanvasSizeFromLayout();
+        w = sz.w;
+        h = sz.h;
       }
-      const sz = getCampCanvasSizeFromLayout();
-      commitStableCampSize(sz.w, sz.h);
-      return sz;
+      if (isIOS()) commitStableCampSize(w, h);
+      return { w, h };
     }
 
     function iosDismissKeyboard() {
@@ -2839,7 +3528,9 @@
         veil.style.top = "";
       }
     }
+    if (isCampMobile()) document.documentElement.classList.add("touch-camp");
     if (isIOS()) document.documentElement.classList.add("ios-camp");
+    if (isAndroid()) document.documentElement.classList.add("android-camp");
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
 
     function serverOfflineHint() {
@@ -3163,25 +3854,377 @@
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
     const WORLD_ZOOM_DESKTOP = 0.38;
-    const WORLD_ZOOM_MOBILE = 0.34;
-    const WORLD_ZOOM_IOS_PORTRAIT = 0.16;
-    const WORLD_ZOOM_IOS_LANDSCAPE = 0.12;
-    function getWorldZoom() {
+    const WORLD_ZOOM_MOBILE = 0.80;
+    const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
+    const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
+    const CAMP_ZOOM_MIN = 0.22;
+    const CAMP_ZOOM_MAX = 0.95;
+    let campViewZoom = null;
+    let campViewCamX = null;
+    let campViewCamY = null;
+    const campPointers = new Map();
+    let campPinchState = null;
+    function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
       if (isCampMobile()) return WORLD_ZOOM_MOBILE;
       return WORLD_ZOOM_DESKTOP;
     }
+    function getWorldZoom() {
+      return campViewZoom ?? getBaseWorldZoom();
+    }
+    function ensureViewCamera() {
+      if (campViewCamX == null) campViewCamX = CAM_X;
+      if (campViewCamY == null) campViewCamY = getCamYOffset();
+    }
+    function resetCampViewCamera() {
+      campViewZoom = null;
+      campViewCamX = null;
+      campViewCamY = null;
+      campPinchState = null;
+      campPointers.clear();
+      document.body.classList.remove("camp-pinching");
+      syncCampZoomSliderUi();
+    }
+    function zoomSliderValueToWorld(pct) {
+      const t = Math.max(0, Math.min(100, pct)) / 100;
+      return CAMP_ZOOM_MIN + t * (CAMP_ZOOM_MAX - CAMP_ZOOM_MIN);
+    }
+    function worldZoomToSliderValue(zoom) {
+      const t = (zoom - CAMP_ZOOM_MIN) / (CAMP_ZOOM_MAX - CAMP_ZOOM_MIN);
+      return Math.round(Math.max(0, Math.min(100, t * 100)));
+    }
+    function campZoomCenterScreen() {
+      return { sx: viewW / 2, sy: viewH * getCampAnchorY() };
+    }
+    function syncCampZoomSliderUi(pct) {
+      const slider = document.getElementById("camp-zoom-slider");
+      const label = document.getElementById("camp-zoom-label");
+      const val = pct == null ? worldZoomToSliderValue(getWorldZoom()) : Math.round(pct);
+      if (slider && document.activeElement !== slider) slider.value = String(val);
+      if (label) {
+        const base = getBaseWorldZoom();
+        label.textContent = `${Math.round((getWorldZoom() / base) * 100)}%`;
+      }
+    }
+    function applyCampZoomFromSlider(pct) {
+      const { sx, sy } = campZoomCenterScreen();
+      setViewZoomAtScreen(zoomSliderValueToWorld(pct), sx, sy);
+      syncCampZoomSliderUi(pct);
+    }
+    const CAMP_UI_SELECTOR = [
+      "#action-bar", "#camp-header", "#camp-zoom-bar", "#convo-log",
+      "#camp-music-bar", "#camp-enter-house", "#camp-speech-pin",
+      "#camp-chatter-fab", "#camp-music-prompt", "#visitor-modal",
+      "#camp-agent-menu", "#grok-terminal", "#camp-layer-bar", "#camp-text-expand",
+      "#camp-pick-agent-fab", "#camp-pick-agent-sheet",
+    ].join(", ");
+    function isCampUiTarget(el) {
+      return !!(el && el.closest && el.closest(CAMP_UI_SELECTOR));
+    }
+    function isMapSurfaceTarget(el) {
+      if (!el) return false;
+      if (el === canvas || canvas.contains(el)) return true;
+      const stage = document.getElementById("camp-stage");
+      return !!(stage && (el === stage || stage.contains(el)));
+    }
+    function bindCampUiGuards() {
+      const stopUiToMap = (ev) => {
+        if (!isCampUiTarget(ev.target)) return;
+        ev.stopPropagation();
+      };
+      const blockMapSelect = (ev) => {
+        if (isCampUiTarget(ev.target)) return;
+        if (isMapSurfaceTarget(ev.target)) ev.preventDefault();
+      };
+      document.addEventListener("pointerdown", stopUiToMap, true);
+      document.addEventListener("mousedown", stopUiToMap, true);
+      document.addEventListener("touchstart", stopUiToMap, { capture: true, passive: true });
+      document.addEventListener("selectstart", blockMapSelect, true);
+      document.addEventListener("dragstart", blockMapSelect, true);
+      canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
+      const stage = document.getElementById("camp-stage");
+      if (stage) stage.addEventListener("contextmenu", (ev) => ev.preventDefault());
+    }
+    function bindCampCanvasTouch() {
+      if (!canvas) return;
+      const stage = document.getElementById("camp-stage");
+      const targets = [canvas, stage].filter(Boolean);
+      const onTouchStart = (ev) => {
+        if (!useTouchCampActions(ev) || isCampUiTarget(ev.target)) return;
+        if (ev.touches.length !== 1) return;
+        const t = ev.touches[0];
+        const top = document.elementFromPoint(t.clientX, t.clientY);
+        if (isCanvasMapTarget(top)) ev.preventDefault();
+      };
+      const onTouchMove = (ev) => {
+        if (!dragTarget || !dragTarget.moved) return;
+        if (ev.touches.length !== 1) return;
+        ev.preventDefault();
+      };
+      for (const el of targets) {
+        el.addEventListener("touchstart", onTouchStart, { passive: false });
+        el.addEventListener("touchmove", onTouchMove, { passive: false });
+      }
+    }
+    function syncMobileTalkPlaceholder() {
+      const input = document.getElementById("camp-talk-input");
+      if (!input) return;
+      input.placeholder = isCampMobile()
+        ? (input.dataset.placeholderMobile || "Say something…")
+        : (input.dataset.placeholderDesktop || input.placeholder);
+    }
+    function initMobileAgentView() {
+      if (!isCampMobile()) return;
+      document.documentElement.classList.add("camp-mobile-touch");
+      syncMobileTalkPlaceholder();
+      const talkSel = document.getElementById("camp-talk-target");
+      if (talkSel) talkSel.value = "nearest";
+      if (isIOS()) syncViewportOffset();
+      const { sx, sy } = campZoomCenterScreen();
+      setViewZoomAtScreen(getBaseWorldZoom(), sx, sy);
+      syncCampZoomSliderUi();
+      if (isIOS()) {
+        [80, 240, 520].forEach((ms) => setTimeout(scheduleResize, ms));
+      }
+    }
+    function syncCampZoomBarUi() {
+      const bar = document.getElementById("camp-zoom-bar");
+      const btn = document.getElementById("btn-camp-zoom-toggle");
+      const open = !!bar?.classList.contains("open");
+      if (btn) btn.classList.toggle("active", open);
+      scheduleResize();
+    }
+    function setCampZoomBarOpen(open) {
+      const bar = document.getElementById("camp-zoom-bar");
+      if (!bar) return;
+      bar.classList.toggle("open", !!open);
+      syncCampZoomBarUi();
+      if (open) showToast("Zoom slider open — tap 🔍 again to hide");
+    }
+    function initCampZoomSlider() {
+      const slider = document.getElementById("camp-zoom-slider");
+      const reset = document.getElementById("camp-zoom-reset");
+      const zoomIn = document.getElementById("camp-zoom-in");
+      const zoomOut = document.getElementById("camp-zoom-out");
+      const panel = document.getElementById("camp-zoom-bar");
+      if (!slider) return;
+      const step = 7;
+      syncCampZoomSliderUi(worldZoomToSliderValue(getBaseWorldZoom()));
+      const nudge = (delta) => applyCampZoomFromSlider(Number(slider.value) + delta);
+      slider.addEventListener("input", () => applyCampZoomFromSlider(Number(slider.value)));
+      slider.addEventListener("change", () => applyCampZoomFromSlider(Number(slider.value)));
+      zoomIn?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        nudge(step);
+      });
+      zoomOut?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        nudge(-step);
+      });
+      reset?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        resetCampViewCamera();
+        showToast("Map zoom reset");
+      });
+      const guardUi = (ev) => {
+        ev.stopPropagation();
+        if (ev.type === "pointerdown" && ev.currentTarget?.setPointerCapture) {
+          try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (_) {}
+        }
+      };
+      [slider, reset, zoomIn, zoomOut, panel].forEach((el) => {
+        if (!el) return;
+        el.addEventListener("pointerdown", guardUi);
+        el.addEventListener("mousedown", guardUi);
+        el.addEventListener("touchstart", guardUi, { passive: true });
+      });
+    }
+    function clampViewCamera() {
+      ensureViewCamera();
+      const margin = 72;
+      const b = getCampRelativeBounds();
+      campViewCamX = Math.max(camp.x + b.xMin - margin, Math.min(camp.x + b.xMax + margin, campViewCamX));
+      campViewCamY = Math.max(camp.y + b.yMin - margin, Math.min(camp.y + b.yMax + margin, campViewCamY));
+    }
+    function panCampCameraTo(wx, wy) {
+      ensureViewCamera();
+      campViewCamX = wx;
+      campViewCamY = wy;
+      clampViewCamera();
+    }
+    function setViewZoomAtScreen(targetZoom, sx, sy) {
+      ensureViewCamera();
+      const anchorY = getCampAnchorY();
+      const zoom0 = getWorldZoom();
+      const wx = campViewCamX + (sx - viewW / 2) / zoom0;
+      const wy = campViewCamY + (sy - viewH * anchorY) / zoom0;
+      campViewZoom = Math.max(CAMP_ZOOM_MIN, Math.min(CAMP_ZOOM_MAX, targetZoom));
+      campViewCamX = wx - (sx - viewW / 2) / campViewZoom;
+      campViewCamY = wy - (sy - viewH * anchorY) / campViewZoom;
+      clampViewCamera();
+    }
+    function campPinchMetrics() {
+      const pts = [...campPointers.values()];
+      if (pts.length < 2) return null;
+      let midSx = 0;
+      let midSy = 0;
+      for (const p of pts) {
+        midSx += p.sx;
+        midSy += p.sy;
+      }
+      midSx /= pts.length;
+      midSy /= pts.length;
+      let span = 0;
+      for (const p of pts) span += Math.hypot(p.sx - midSx, p.sy - midSy);
+      span = Math.max(28, (span / pts.length) * 2);
+      return { midSx, midSy, span, count: pts.length };
+    }
+    function campPointerKey(id, kind = "p") {
+      return `${kind}:${id}`;
+    }
+    function beginCampPinch() {
+      const m = campPinchMetrics();
+      if (!m) return;
+      dragTarget = null;
+      canvas.classList.remove("dragging");
+      ensureViewCamera();
+      campPinchState = {
+        startSpan: m.span,
+        startZoom: getWorldZoom(),
+        lastMidSx: m.midSx,
+        lastMidSy: m.midSy,
+      };
+      document.body.classList.add("camp-pinching");
+    }
+    function updateCampPinch() {
+      const m = campPinchMetrics();
+      if (!m || !campPinchState) return;
+      const scale = m.span / campPinchState.startSpan;
+      const newZoom = campPinchState.startZoom * scale;
+      setViewZoomAtScreen(newZoom, m.midSx, m.midSy);
+      campPinchState.lastMidSx = m.midSx;
+      campPinchState.lastMidSy = m.midSy;
+    }
+    function endCampPinch() {
+      campPinchState = null;
+      document.body.classList.remove("camp-pinching");
+    }
+    function campStagePos(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      return { sx: clientX - rect.left, sy: clientY - rect.top };
+    }
+    function trackCampPointerDown() { return false; }
+    function trackCampPointerMove() { return false; }
+    function trackCampPointerUp() {}
+    function bindCampTouchPinch() {}
     function getCampAnchorY() {
-      if (isIOS()) return 0.54;
-      if (isCampMobile()) return 0.50;
+      if (isIOS()) return isLandscape() ? 0.50 : 0.46;
+      if (isCampMobile()) return 0.44;
       return 0.44;
     }
     function getCamYOffset() {
-      if (isIOS()) return -80;
-      if (isCampMobile()) return -50;
+      if (isIOS()) return isLandscape() ? -62 : -72;
+      if (isCampMobile()) return -68;
       return -80;
     }
+    const CAMP_LAYOUT_TIERS = {
+      odin: "edge", rhea: "edge", hermes: "edge", sentinel: "edge",
+      dionysus: "edge", oracle: "edge", gabriel: "edge", uriel: "edge",
+      luna: "mid", caduceus: "mid", aurora: "mid", violet: "mid", ambrosia: "mid",
+      michael: "mid", raphael: "mid", jesus: "mid", seraph: "mid",
+      "odin-hall": "edge", "hermes-home": "edge", "dionysus-home": "edge", "aurora-shop": "edge",
+      "luna-home": "edge", "oracle-home": "edge", "visitor-shelter": "edge", "aurora-velvet": "edge",
+      "lucid-tv": "mid", pond: "edge", "camp-cat": "mid",
+      stereo: "edge", beer: "edge", steaks: "edge", herbs: "edge",
+      weed: "edge", cookies: "edge", ouija: "mid",
+    };
+    function campLayoutTier(id, baseX, baseY) {
+      if (id && CAMP_LAYOUT_TIERS[id]) return CAMP_LAYOUT_TIERS[id];
+      const d = Math.hypot(baseX, baseY);
+      if (d > 460) return "edge";
+      if (d > 210) return "mid";
+      return "inner";
+    }
+    function campBoundsCenter() {
+      const b = getCampRelativeBounds();
+      return {
+        cx: (b.xMin + b.xMax) * 0.5,
+        cy: (b.yMin + b.yMax) * 0.5,
+        halfW: (b.xMax - b.xMin) * 0.5,
+        halfH: (b.yMax - b.yMin) * 0.5,
+      };
+    }
+    function tierRadii(tier) {
+      const { halfW, halfH } = campBoundsCenter();
+      const edgeInset = isCampMobile() ? 4 : 8;
+      const spread = isCampMobile() ? 1.06 : 1.0;
+      if (tier === "edge") {
+        return {
+          rx: Math.max(halfW * 0.98, halfW - edgeInset) * spread,
+          ry: Math.max(halfH * 0.97, halfH - edgeInset) * spread,
+        };
+      }
+      if (tier === "inner") {
+        const inner = isCampMobile() ? 0.40 : 0.30;
+        return { rx: halfW * inner, ry: halfH * (inner - 0.02) };
+      }
+      const mid = isCampMobile() ? 0.70 : 0.56;
+      return { rx: halfW * mid, ry: halfH * (mid - 0.06) };
+    }
+    function layoutCampPoint(id, baseX, baseY) {
+      const tier = campLayoutTier(id, baseX, baseY);
+      const { cx, cy } = campBoundsCenter();
+      const angle = Math.atan2(baseY, baseX);
+      const bias = (id && NPC_SECTORS[id]?.bias) ? NPC_SECTORS[id].bias : 1;
+      const r = tierRadii(tier);
+      const key = String(id || `${baseX.toFixed(0)},${baseY.toFixed(0)}`);
+      const hash = key.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+      const jitter = tier === "edge" ? 18 : tier === "inner" ? 28 : 34;
+      const jx = ((hash % 11) - 5) * (jitter * 0.35);
+      const jy = (((hash >> 2) % 9) - 4) * (jitter * 0.35);
+      return clampCampCoord(
+        cx + Math.cos(angle) * r.rx * bias + jx,
+        cy + Math.sin(angle) * r.ry * bias + jy,
+      );
+    }
+    function layoutCampWorld(id, relX, relY) {
+      const p = layoutCampPoint(id, relX, relY);
+      return { x: camp.x + p.x, y: camp.y + p.y };
+    }
+    function propCampPos(prop) {
+      if (prop.layoutSpace) return { x: prop.x, y: prop.y };
+      return layoutCampPoint(prop.id, prop.x, prop.y);
+    }
+    function propCampWorld(prop) {
+      const pos = propCampPos(prop);
+      return { x: camp.x + pos.x, y: camp.y + pos.y };
+    }
+    function getTraversePad() {
+      if (isCampMobile()) return { x: 20, y: 16 };
+      return CAMP_TRAVERSE_PAD;
+    }
+    function getMinNpcGap() {
+      if (isIOS()) return 92;
+      if (isCampMobile()) return 82;
+      return MIN_NPC_GAP;
+    }
+    function getNpcSpreadJitter(agentId) {
+      if (!isCampMobile()) return 72;
+      const anchor = NPC_ANCHORS[agentId];
+      const tier = campLayoutTier(agentId, anchor?.x ?? 0, anchor?.y ?? 0);
+      if (tier === "edge") return 32;
+      if (tier === "inner") return 44;
+      return 68;
+    }
+    function getCampLayoutKey() {
+      const b = getCampRelativeBounds();
+      return `${viewW}x${viewH}z${getBaseWorldZoom().toFixed(3)}b${b.xMin.toFixed(0)}${b.xMax.toFixed(0)}`;
+    }
     let lastSpreadZoom = 0;
+    let lastLayoutKey = "";
     let campChillUntil = 0;
     const campGuests = [];
     const NPC_ANCHORS = {
@@ -3243,8 +4286,8 @@
     const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus"]);
 
     function getPlayerSpeed() {
-      if (isCampMobile()) return 5.6;
-      return 3.5;
+      if (isCampMobile()) return 9.2;
+      return 5.8;
     }
 
     const player = {
@@ -3378,19 +4421,19 @@
       },
     };
     const campHouses = [
-      { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -498, y: 148,
+      { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -580, y: 210,
         color: "#d946ef", roof: "#a21caf", wall: "#581c87", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "hermes-home", ownerId: "hermes", name: "Hermes' House", emoji: "🏡", x: 498, y: 138,
+      { id: "hermes-home", ownerId: "hermes", name: "Hermes' House", emoji: "🏡", x: 580, y: 190,
         color: "#fbbf24", roof: "#d97706", wall: "#92400e", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "oracle-home", ownerId: "oracle", name: "Oracle's House", emoji: "🏚", x: 0, y: 388,
+      { id: "oracle-home", ownerId: "oracle", name: "Oracle's House", emoji: "🏚", x: 40, y: 440,
         color: "#8b5cf6", roof: "#6d28d9", wall: "#4c1d95", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "dionysus-home", ownerId: "dionysus", name: "Dionysus' Vineyard", emoji: "🍷", x: 468, y: -278,
+      { id: "dionysus-home", ownerId: "dionysus", name: "Dionysus' Vineyard", emoji: "🍷", x: 520, y: -340,
         color: "#e11d48", roof: "#9f1239", wall: "#881337", enterRadius: 42,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "odin-hall", ownerId: "odin", name: "Odin's Hall", emoji: "🏰", x: -620, y: -320,
+      { id: "odin-hall", ownerId: "odin", name: "Odin's Hall", emoji: "🏰", x: -680, y: -360,
         color: "#64748b", roof: "#334155", wall: "#1e293b", enterRadius: 48, castle: true,
         doorOffset: { x: 0, y: -0.42 }, interior: { x: 0, y: 0.12 } },
     ];
@@ -3398,16 +4441,16 @@
     let activeHouseVisit = null;
     let nearestHouse = null;
     const campStructures = [
-      { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -308, y: 358,
+      { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -420, y: 400,
         color: "#34d399", roof: "#059669", wall: "#064e3b", enterRadius: 44,
         doorOffset: { x: 0, y: -0.32 }, interior: { x: 0, y: 0.08 } },
-      { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 338, y: 362,
+      { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 440, y: 380,
         color: "#f59e0b", roof: "#d97706", wall: "#92400e", enterRadius: 44,
         doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.1 } },
-      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -148, y: 288,
+      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -220, y: 320,
         color: "#6366f1", roof: "#4338ca", wall: "#312e81", enterRadius: 46,
         doorOffset: { x: 0, y: -0.28 }, interior: { x: 0, y: 0.05 } },
-      { id: "aurora-velvet", type: "club", name: "Aurora Velvet", emoji: "💃", x: -418, y: -48,
+      { id: "aurora-velvet", type: "club", name: "Aurora Velvet", emoji: "💃", x: -520, y: -90,
         color: "#ec4899", roof: "#9d174d", wall: "#831843", enterRadius: 48,
         doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.08 } },
     ];
@@ -3471,25 +4514,25 @@
     let campMusicGestureBound = false;
     let campMusicYtFallback = false;
     const props = [
-      { id: "beer", name: "Beer", emoji: "🍺", x: 228, y: -88, color: "#f59e0b", radius: 90,
+      { id: "beer", name: "Beer", emoji: "🍺", x: 540, y: -50, color: "#f59e0b", radius: 90,
         useMsg: "You crack open a cold beer from the camp cooler. Cheers!",
         npcLines: ["Cheers!", "Save me one!", "Beer tastes better under the aurora.", "Hermes wants the last one."] },
-      { id: "steaks", name: "Steaks", emoji: "🥩", x: -238, y: -78, color: "#dc2626", radius: 90,
+      { id: "steaks", name: "Steaks", emoji: "🥩", x: -540, y: -70, color: "#dc2626", radius: 90,
         useMsg: "You flip sizzling steaks on the campfire grill. Smells incredible.",
         npcLines: ["Medium rare please!", "That steak smells amazing.", "Oracle saw extra steaks in her vision.", "Pass the plate!"] },
-      { id: "herbs", name: "Herbs", emoji: "🌿", x: -108, y: -198, color: "#4ade80", radius: 85,
+      { id: "herbs", name: "Herbs", emoji: "🌿", x: -90, y: -420, color: "#4ade80", radius: 85,
         useMsg: "You share the camp herb bundle — earthy, warm, everyone gets mellow.",
         npcLines: ["Chill vibes only.", "Hermes says the herbs hum with the aurora.", "So relaxed right now.", "Oracle approves this energy."] },
-      { id: "weed", name: "Weed", emoji: "🍃", x: 248, y: 128, color: "#22c55e", radius: 88,
+      { id: "weed", name: "Weed", emoji: "🍃", x: 490, y: 290, color: "#22c55e", radius: 88,
         useMsg: "You pass the camp weed around — slow smiles, wide aurora, everyone drifts farther from the fire.",
         npcLines: ["…okay yeah I'm good.", "Hermes is seeing colors in the ripples.", "Oracle says the stars look closer.", "Luna wants to wander way out there.", "Caduceus approves the vibe."] },
-      { id: "cookies", name: "Cookies", emoji: "🍪", x: -208, y: 118, color: "#d4a05a", radius: 85,
+      { id: "cookies", name: "Cookies", emoji: "🍪", x: -430, y: 270, color: "#d4a05a", radius: 85,
         useMsg: "You grab cookies from the camp table. Caduceus glows approvingly.",
         npcLines: ["Cookie tax is real.", "Caduceus wanted one too.", "Sweet treat at camp!", "Luna loves the chocolate ones."] },
-      { id: "ouija", name: "Ouija", emoji: "🔮", x: 148, y: 168, color: "#a855f7", radius: 92,
+      { id: "ouija", name: "Ouija", emoji: "🔮", x: 130, y: 390, color: "#a855f7", radius: 92,
         useMsg: "You kneel by the spirit board — the planchette is already twitching.",
         npcLines: ["Oracle says don't look away.", "Hermes felt a ripple.", "Luna will channel — be respectful.", "Caduceus glows violet."] },
-      { id: "stereo", name: "Jukebox", emoji: "🎵", x: -298, y: -258, color: "#38bdf8", radius: 86,
+      { id: "stereo", name: "Jukebox", emoji: "🎵", x: -510, y: -310, color: "#38bdf8", radius: 86,
         useMsg: "Telephantix blasts from the camp stereo — Flowing Free rolls under the sun corona.",
         npcLines: ["Flowing Free hits different out here.", "That's Telephantix — Hermes feels every ripple.", "Luna wants to dance by the corona.", "Oracle predicted this track.", "Turn it up — Loud and Clear next!"] },
     ];
@@ -3589,14 +4632,15 @@
     ];
 
     function getCampRelativeBounds() {
-      const margin = 24;
+      const margin = isCampMobile() ? 8 : 24;
+      const pad = getTraversePad();
       const tl = screenToWorld(margin, margin);
       const br = screenToWorld(viewW - margin, viewH - margin);
       return {
-        xMin: tl.x - camp.x - CAMP_TRAVERSE_PAD.x,
-        xMax: br.x - camp.x + CAMP_TRAVERSE_PAD.x,
-        yMin: tl.y - camp.y - CAMP_TRAVERSE_PAD.y,
-        yMax: br.y - camp.y + CAMP_TRAVERSE_PAD.y,
+        xMin: tl.x - camp.x - pad.x,
+        xMax: br.x - camp.x + pad.x,
+        yMin: tl.y - camp.y - pad.y,
+        yMax: br.y - camp.y + pad.y,
       };
     }
 
@@ -3635,18 +4679,17 @@
 
     function sectorPosition(agentId) {
       const anchor = NPC_ANCHORS[agentId];
-      if (anchor) return { x: anchor.x, y: anchor.y };
+      if (anchor) return layoutCampPoint(agentId, anchor.x, anchor.y);
       const sector = NPC_SECTORS[agentId];
       const angle = sector ? sector.angle : Math.random() * Math.PI * 2;
-      const b = getCampRelativeBounds();
-      const cx = (b.xMin + b.xMax) * 0.5;
-      const cy = (b.yMin + b.yMax) * 0.5;
-      const rx = (b.xMax - b.xMin) * 0.74;
-      const ry = (b.yMax - b.yMin) * 0.74;
-      return {
-        x: cx + Math.cos(angle) * rx,
-        y: cy + Math.sin(angle) * ry,
-      };
+      const tier = campLayoutTier(agentId, Math.cos(angle) * 300, Math.sin(angle) * 300);
+      const { cx, cy } = campBoundsCenter();
+      const r = tierRadii(tier);
+      const biasBoost = isCampMobile() ? 1.1 : 1;
+      return clampCampCoord(
+        cx + Math.cos(angle) * r.rx * (sector?.bias ?? 1) * biasBoost,
+        cy + Math.sin(angle) * r.ry * (sector?.bias ?? 1) * biasBoost,
+      );
     }
 
     function shouldSkipSeparation(a, b) {
@@ -3664,7 +4707,7 @@
           const a = all[i];
           const b = all[j];
           if (shouldSkipSeparation(a, b)) continue;
-          const gap = (a.socializing || b.socializing) ? MIN_NPC_GAP * 0.62 : MIN_NPC_GAP;
+          const gap = (a.socializing || b.socializing) ? getMinNpcGap() * 0.62 : getMinNpcGap();
           const d = dist(a, b);
           if (d >= gap || d < 0.01) continue;
           const ang = Math.atan2(a.y - b.y, a.x - b.x);
@@ -3691,9 +4734,9 @@
       for (const other of allRoamers()) {
         if (other.id === n.id) continue;
         const d = dist({ x: n.tx, y: n.ty }, { x: other.x, y: other.y });
-        if (d < MIN_NPC_GAP) {
+        if (d < getMinNpcGap()) {
           const away = Math.atan2(n.ty - other.y, n.tx - other.x) || NPC_SECTORS[n.id]?.angle || 0;
-          const push = MIN_NPC_GAP - d + 28;
+          const push = getMinNpcGap() - d + 28;
           n.tx += Math.cos(away) * push;
           n.ty += Math.sin(away) * push;
         }
@@ -3703,28 +4746,75 @@
       n.ty = t.y;
     }
 
-    function spreadAllNpcs() {
-      npcs.forEach((n) => {
-        const p = sectorPosition(n.id);
-        n.x = p.x + (Math.random() - 0.5) * 72;
-        n.y = p.y + (Math.random() - 0.5) * 72;
-        n.tx = n.x;
-        n.ty = n.y;
-        n.visitTarget = null;
-        n.socializing = false;
-        n.gathering = false;
-        n.insideHouse = null;
-        n.homeTarget = null;
-        n.housePhase = null;
-        if (npcMode === "free") {
-          resetNpcFreeWill(n, Math.random() < 0.55 ? "roam" : "visit");
-        } else {
-          n.behavior = "roam";
-          n.idle = 6 + Math.floor(Math.random() * 14);
-          pickNpcWanderTarget(n);
-        }
+    function perimeterAngle(agentId, index, total) {
+      const sector = NPC_SECTORS[agentId];
+      if (sector?.angle != null) return sector.angle;
+      return (index / Math.max(1, total)) * Math.PI * 2 - Math.PI / 2;
+    }
+    function perimeterPosition(agentId, index, total) {
+      const { cx, cy, halfW, halfH } = campBoundsCenter();
+      const angle = perimeterAngle(agentId, index, total);
+      const bias = NPC_SECTORS[agentId]?.bias ?? 1;
+      const inset = isCampMobile() ? 4 : 8;
+      const rx = Math.max(halfW - inset, halfW * 0.98) * bias;
+      const ry = Math.max(halfH - inset, halfH * 0.97) * bias;
+      const hash = String(agentId || index).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+      const jx = ((hash % 7) - 3) * 5;
+      const jy = (((hash >> 2) % 5) - 2) * 5;
+      return clampCampCoord(
+        cx + Math.cos(angle) * rx + jx,
+        cy + Math.sin(angle) * ry + jy,
+      );
+    }
+    function applyNpcSpreadState(n) {
+      n.tx = n.x;
+      n.ty = n.y;
+      n.visitTarget = null;
+      n.socializing = false;
+      n.gathering = false;
+      n.insideHouse = null;
+      n.homeTarget = null;
+      n.housePhase = null;
+      if (npcMode === "free") {
+        resetNpcFreeWill(n, Math.random() < 0.55 ? "roam" : "visit");
+      } else {
+        n.behavior = "roam";
+        n.idle = 6 + Math.floor(Math.random() * 14);
+        pickNpcWanderTarget(n);
+      }
+    }
+    function spreadPerimeterLayout() {
+      const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
+      const total = Math.max(1, roster.length);
+      roster.forEach((n, i) => {
+        const p = perimeterPosition(n.id, i, total);
+        n.x = p.x;
+        n.y = p.y;
+        applyNpcSpreadState(n);
       });
-      enforceNpcSeparation(0.55);
+      for (let pass = 0; pass < 6; pass++) enforceNpcSeparation(1.05);
+    }
+    function spreadMobileAgentLayout() {
+      const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
+      roster.forEach((n) => {
+        const p = sectorPosition(n.id);
+        n.x = p.x;
+        n.y = p.y;
+        applyNpcSpreadState(n);
+      });
+      for (let pass = 0; pass < 10; pass++) enforceNpcSeparation(1.35);
+    }
+    function spreadAllCampObjects() {
+      const catPos = layoutCampPoint("camp-cat", 240, 340);
+      campCat.x = catPos.x;
+      campCat.y = catPos.y;
+      campCat.tx = catPos.x;
+      campCat.ty = catPos.y;
+    }
+    function spreadAllNpcs() {
+      if (isCampMobile()) spreadMobileAgentLayout();
+      else spreadPerimeterLayout();
+      spreadAllCampObjects();
     }
 
     function huddlePositions(count, radius = 54) {
@@ -3757,6 +4847,15 @@
     }
 
     function gatherNpcsAtCamp(quiet) {
+      if (isCampMobile()) {
+        spreadMobileAgentLayout();
+        if (!quiet) {
+          pushCampLine("Camp", "Agents spread across camp — room to breathe.", 10, "happy", { quiet: true });
+          showToast("Everyone spaced out on the meadow");
+        }
+        refreshCampLayerPicker();
+        return;
+      }
       player.x = 0;
       player.y = -25;
       player.tx = 0;
@@ -3769,16 +4868,18 @@
     }
 
     function houseDoorPos(house) {
+      const h = layoutCampPoint(house.id, house.x, house.y);
       return {
-        x: house.x + (house.doorOffset?.x || 0) * 32,
-        y: house.y + (house.doorOffset?.y || 0) * 32,
+        x: h.x + (house.doorOffset?.x || 0) * 32,
+        y: h.y + (house.doorOffset?.y || 0) * 32,
       };
     }
 
     function houseInteriorPos(house) {
+      const h = layoutCampPoint(house.id, house.x, house.y);
       return {
-        x: house.x + (house.interior?.x || 0) * 24,
-        y: house.y + (house.interior?.y || 0) * 24,
+        x: h.x + (house.interior?.x || 0) * 24,
+        y: h.y + (house.interior?.y || 0) * 24,
       };
     }
 
@@ -3955,17 +5056,20 @@
 
     function pickNpcWanderTarget(n, towardProp) {
       const chilling = campChillUntil > Date.now();
-      const anchor = NPC_ANCHORS[n.id] || sectorPosition(n.id);
+      const anchor = sectorPosition(n.id);
       if (towardProp) {
-        n.tx = towardProp.x + (Math.random() - 0.5) * 34;
-        n.ty = towardProp.y + (Math.random() - 0.5) * 34;
+        const propPt = propCampPos(towardProp);
+        n.tx = propPt.x + (Math.random() - 0.5) * 34;
+        n.ty = propPt.y + (Math.random() - 0.5) * 34;
       } else if (n.visitTarget && n.behavior === "visit") {
         const target = findRoamAgent(n.visitTarget);
         if (target) aimNpcNear(n, target, CHAT_MEET_DIST + Math.random() * 22);
       } else {
         const roll = Math.random();
         if (roll < 0.28 && !chilling) {
-          const coronaR = 52 + Math.random() * 68;
+          const coronaBase = isCampMobile() ? 38 : 52;
+          const coronaSpan = isCampMobile() ? 48 : 68;
+          const coronaR = coronaBase + Math.random() * coronaSpan;
           const coronaA = Math.random() * Math.PI * 2;
           n.tx = Math.cos(coronaA) * coronaR;
           n.ty = Math.sin(coronaA) * coronaR * 0.55 - 6;
@@ -3974,14 +5078,15 @@
           n.tx = pt.x;
           n.ty = pt.y;
         } else if (roll < 0.74) {
-          const wander = ANCHOR_WANDER * (chilling ? 1.9 : 1.35) * (0.75 + Math.random() * 1.1);
+          const wanderMul = isCampMobile() ? 0.42 : 1;
+          const wander = ANCHOR_WANDER * wanderMul * (chilling ? 1.9 : 1.35) * (0.75 + Math.random() * 1.1);
           const angle = (NPC_SECTORS[n.id]?.angle ?? Math.random() * Math.PI * 2) + (Math.random() - 0.5) * 1.5;
           n.tx = anchor.x + Math.cos(angle) * wander;
           n.ty = anchor.y + Math.sin(angle) * wander;
         } else {
           const others = Object.keys(NPC_ANCHORS).filter((k) => k !== n.id);
           const pick = others[Math.floor(Math.random() * others.length)];
-          const other = NPC_ANCHORS[pick];
+          const other = layoutCampPoint(pick, NPC_ANCHORS[pick].x, NPC_ANCHORS[pick].y);
           const blend = 0.32 + Math.random() * 0.48;
           n.tx = anchor.x + (other.x - anchor.x) * blend + (Math.random() - 0.5) * 48;
           n.ty = anchor.y + (other.y - anchor.y) * blend + (Math.random() - 0.5) * 48;
@@ -4020,7 +5125,7 @@
         for (const other of allRoamers()) {
           if (other.id === n.id) continue;
           if (other.visitTarget === n.id || n.visitTarget === other.id) continue;
-          if (dist(n, other) < MIN_NPC_GAP * 0.62) {
+          if (dist(n, other) < getMinNpcGap() * 0.62) {
             pickNpcWanderTarget(n);
             return;
           }
@@ -4111,7 +5216,7 @@
       npc.behaviorTimer = 999999;
       npc.idle = 40 + Math.floor(Math.random() * 50);
       const quip = SIT_PIN_LINES[npc.id] || SIT_PIN_LINES._default;
-        showToast(`${npc.name} sitting still — ${isCampMobile() ? "double-tap" : "click"} again to let them roam`);
+        showToast(`${npc.name} sitting still — ${isCampMobile() ? "tap again → 🚶 Roam" : "click"} again to let them roam`);
       pushCampLine(npc.name, quip, campReadHoldSec(quip, 14), npc.mood || "neutral", { fromLocal: true, quiet: true });
       setTimeout(() => {
         if (npc.sitPinned && !converseBusy && !chatterPaused) emitNpcIdleChatter(npc);
@@ -4481,11 +5586,14 @@
       }
       resizeRetry = 0;
       applyCanvasDimensions(w, h);
-      const zoom = getWorldZoom();
-      if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005) {
+      const zoom = getBaseWorldZoom();
+      const layoutKey = getCampLayoutKey();
+      if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005 || layoutKey !== lastLayoutKey) {
         campSpreadInit = true;
         lastSpreadZoom = zoom;
+        lastLayoutKey = layoutKey;
         spreadAllNpcs();
+        if (isCampMobile()) initMobileAgentView();
       }
     }
 
@@ -4506,7 +5614,9 @@
     function onVisualViewportChange() {
       if (isIOS()) {
         syncKeyboardDock();
+        syncViewportOffset();
         window.scrollTo(0, 0);
+        scheduleResize();
         return;
       }
       syncViewportOffset();
@@ -4531,10 +5641,8 @@
       const dock = document.getElementById("action-bar");
       if (hdr) layoutObs.observe(hdr);
       if (dock) layoutObs.observe(dock);
-      if (!isIOS()) {
-        if (campStage) layoutObs.observe(campStage);
-        else layoutObs.observe(canvas);
-      }
+      if (campStage) layoutObs.observe(campStage);
+      else layoutObs.observe(canvas);
     }
     scheduleResize();
 
@@ -4555,22 +5663,22 @@
     }, { passive: true });
 
     function worldToScreen(wx, wy) {
+      ensureViewCamera();
       const zoom = getWorldZoom();
       const anchorY = getCampAnchorY();
-      const camY = getCamYOffset();
       return {
-        x: viewW / 2 + (wx - CAM_X) * zoom,
-        y: viewH * anchorY + (wy - camY) * zoom,
+        x: viewW / 2 + (wx - campViewCamX) * zoom,
+        y: viewH * anchorY + (wy - campViewCamY) * zoom,
       };
     }
 
     function screenToWorld(sx, sy) {
+      ensureViewCamera();
       const zoom = getWorldZoom();
       const anchorY = getCampAnchorY();
-      const camY = getCamYOffset();
       return {
-        x: CAM_X + (sx - viewW / 2) / zoom,
-        y: camY + (sy - viewH * anchorY) / zoom,
+        x: campViewCamX + (sx - viewW / 2) / zoom,
+        y: campViewCamY + (sy - viewH * anchorY) / zoom,
       };
     }
 
@@ -4742,8 +5850,28 @@
       drawRainOverlay();
     }
 
+    function pondLayout() {
+      if (!isCampMobile()) {
+        return {
+          cx: CAMP_POND.cx, cy: CAMP_POND.cy,
+          rx: CAMP_POND.rx, ry: CAMP_POND.ry,
+          name: CAMP_POND.name,
+        };
+      }
+      const pos = layoutCampPoint("pond", CAMP_POND.cx, CAMP_POND.cy);
+      const { halfW, halfH } = campBoundsCenter();
+      const pondScale = Math.min(halfW / 500, halfH / 360, 1.08);
+      return {
+        cx: pos.x, cy: pos.y,
+        rx: CAMP_POND.rx * pondScale,
+        ry: CAMP_POND.ry * pondScale,
+        name: CAMP_POND.name,
+      };
+    }
+
     function pondWorldPos() {
-      return { x: camp.x + CAMP_POND.cx, y: camp.y + CAMP_POND.cy };
+      const pond = pondLayout();
+      return { x: camp.x + pond.cx, y: camp.y + pond.cy };
     }
 
     function campRelativePos(wx, wy) {
@@ -4751,8 +5879,9 @@
     }
 
     function pointInPond(rx, ry) {
-      const dx = (rx - CAMP_POND.cx) / CAMP_POND.rx;
-      const dy = (ry - CAMP_POND.cy) / CAMP_POND.ry;
+      const pond = pondLayout();
+      const dx = (rx - pond.cx) / pond.rx;
+      const dy = (ry - pond.cy) / pond.ry;
       return dx * dx + dy * dy <= 1;
     }
 
@@ -4762,12 +5891,13 @@
     }
 
     function drawCampPond() {
-      const wx = camp.x + CAMP_POND.cx;
-      const wy = camp.y + CAMP_POND.cy;
+      const pond = pondLayout();
+      const wx = camp.x + pond.cx;
+      const wy = camp.y + pond.cy;
       const s = worldToScreen(wx, wy);
       const zoom = getWorldZoom();
-      const rx = CAMP_POND.rx * zoom;
-      const ry = CAMP_POND.ry * zoom;
+      const rx = pond.rx * zoom;
+      const ry = pond.ry * zoom;
       const t = Date.now() / 1000;
       ctx.save();
       const shore = ctx.createRadialGradient(s.x, s.y, rx * 0.2, s.x, s.y, rx * 1.15);
@@ -4793,12 +5923,12 @@
       ctx.font = "bold 11px Segoe UI";
       ctx.textAlign = "center";
       ctx.fillStyle = "rgba(186, 230, 253, 0.85)";
-      ctx.fillText(`🌊 ${CAMP_POND.name}`, s.x, s.y - ry - 10);
+      ctx.fillText(`🌊 ${pond.name}`, s.x, s.y - ry - 10);
       if (playerInPond()) {
         ctx.font = "9px Segoe UI";
         ctx.fillStyle = "#7dd3fc";
         ctx.fillText("swimming", s.x, s.y + ry + 16);
-      } else if (dist(player, pondWorldPos()) < CAMP_POND.rx + 48) {
+      } else if (dist(player, pondWorldPos()) < pond.rx + 48) {
         ctx.font = "9px Segoe UI";
         ctx.fillStyle = "#94a3b8";
         ctx.fillText(isCampMobile() ? "tap water to swim" : "walk in to swim", s.x, s.y + ry + 16);
@@ -5238,26 +6368,26 @@
         if (opt) opt.hidden = !heavenHere;
       });
       const jesusOpt = sel.querySelector('option[value="jesus"]');
-      if (jesusOpt) jesusOpt.hidden = false;
+      if (jesusOpt) jesusOpt.hidden = !heavenHere && !npcs.some((n) => n.id === "jesus");
+      const heavenGroup = document.getElementById("talk-opt-heaven");
+      if (heavenGroup) {
+        heavenGroup.label = heavenHere ? "Heaven" : "Heaven (tap ✦ to summon)";
+      }
       syncCampTalkAllBtn();
-      let spiritOpt = sel.querySelector('option[value="spirit"]');
-      if (!spiritOpt) {
-        spiritOpt = document.createElement("option");
-        spiritOpt.value = "spirit";
-        sel.appendChild(spiritOpt);
+      const spiritOpt = sel.querySelector('option[value="spirit"]');
+      if (spiritOpt) {
+        spiritOpt.textContent = ouijaSpiritName
+          ? `👻 ${ouijaSpiritName}`
+          : "👻 Spirit channel";
       }
-      spiritOpt.textContent = ouijaSpiritName
-        ? `👻 ${ouijaSpiritName}`
-        : "👻 Spirit channel";
       const dionOpt = sel.querySelector('option[value="dionysus"]');
-      if (dionHere && !dionOpt) {
-        const opt = document.createElement("option");
-        opt.value = "dionysus";
-        opt.textContent = "🍷 Dionysus";
-        sel.insertBefore(opt, spiritOpt);
-      } else if (!dionHere && dionOpt) {
-        dionOpt.remove();
+      if (dionOpt) {
+        dionOpt.hidden = false;
+        dionOpt.disabled = false;
+        dionOpt.textContent = dionHere ? "🍷 Dionysus" : "🍷 Dionysus (invite)";
       }
+      const guestsGroup = document.getElementById("talk-opt-guests");
+      if (guestsGroup) guestsGroup.label = dionHere ? "Guests" : "Guests (🍷 = invite)";
     }
 
     async function chatAllCampAgents(text) {
@@ -5302,7 +6432,7 @@
 
     function spawnHeavenGuest(def, offset = 0) {
       if (campGuests.some((g) => g.id === def.id) || npcs.some((n) => n.id === def.id)) return;
-      const dest = NPC_ANCHORS[def.id] || sectorPosition(def.id);
+      const dest = sectorPosition(def.id);
       campGuests.push({
         id: def.id, name: def.name, color: def.color,
         x: dest.x + offset, y: dest.y + offset * 0.5,
@@ -5336,6 +6466,7 @@
       } catch (_) {}
       HEAVEN_ROSTER.filter((def) => def.id !== "jesus").forEach((def, i) => spawnHeavenGuest(def, i * 18));
       spreadAllNpcs();
+      refreshCampLayerPicker();
       try {
         const res = await fetch("/api/firmament/agents/converse", {
           method: "POST",
@@ -5416,7 +6547,11 @@
           }
         } else {
           let agentId = target === "nearest" ? (nearestId || "luna") : target;
-          if (agentId === "luna") {
+          if (agentId === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
+            await spawnDionysusVisit({ manual: true });
+            refreshCampTalkTarget(true);
+          }
+          if (agentId === "luna" && !canvasCampChatOnly()) {
             showToast("Luna hears you — check the chatter panel");
           }
           await chat(agentId, text, { useDialogue: false, fromCampBar: true });
@@ -5438,10 +6573,10 @@
     function syncChatterFab() {
       const fab = document.getElementById("camp-chatter-fab");
       const dockBtn = document.getElementById("btn-chatter-toggle");
-      const hidden = mobileChatterMode === "hidden";
+      const hidden = canvasCampChatOnly() || mobileChatterMode === "hidden";
       document.body.classList.toggle("chatter-hidden", hidden);
-      document.body.classList.toggle("chatter-expanded", mobileChatterMode === "expanded");
-      if (fab) fab.classList.toggle("visible", hidden && isCampMobile());
+      document.body.classList.toggle("chatter-expanded", !canvasCampChatOnly() && mobileChatterMode === "expanded");
+      if (fab) fab.classList.toggle("visible", hidden && isCampMobile() && !canvasCampChatOnly());
       if (dockBtn) {
         dockBtn.classList.toggle("active", !hidden);
         dockBtn.title = hidden ? "Show camp chatter" : mobileChatterMode === "expanded" ? "Minimize chatter" : "Expand or hide chatter";
@@ -5450,7 +6585,7 @@
 
     function applyMobileChatterMode(mode, opts = {}) {
       if (!isCampMobile()) return;
-      mobileChatterMode = mode;
+      mobileChatterMode = canvasCampChatOnly() ? "hidden" : mode;
       syncChatterFab();
       const el = document.getElementById("convo-log");
       if (el) {
@@ -5469,7 +6604,7 @@
     }
 
     function cycleMobileChatter() {
-      if (!isCampMobile()) return;
+      if (!isCampMobile() || canvasCampChatOnly()) return;
       const order = ["mini", "hidden", "expanded"];
       const idx = Math.max(0, order.indexOf(mobileChatterMode));
       applyMobileChatterMode(order[(idx + 1) % order.length]);
@@ -5481,6 +6616,7 @@
       if (!el) return;
       const mobile = isCampMobile();
       if (mobile) {
+        if (canvasCampChatOnly()) return;
         applyMobileChatterMode(collapsed ? "mini" : "expanded", { quiet: true });
         if (btn) {
           btn.textContent = collapsed ? "▲" : "▼";
@@ -5504,7 +6640,7 @@
     function minimizeSpeechBubble() { setSpeechBubbleDock(true); }
 
     function restoreMobileChatter() {
-      if (!isCampMobile()) return;
+      if (!isCampMobile() || canvasCampChatOnly()) return;
       applyMobileChatterMode("mini");
     }
 
@@ -5602,6 +6738,7 @@
           const pt = randomPointInBounds(24);
           prop.x = pt.x;
           prop.y = pt.y;
+          prop.layoutSpace = true;
           pushCampLine("Shop", `${item.emoji} ${item.name} materialized at camp — go grab it!`, 16, "happy");
         }
       } else if (item.kind === "effect" && item.effect === "psychic_boost") {
@@ -5807,8 +6944,9 @@
       const shelter = campStructures.find((s) => s.type === "shelter");
       if (!shelter) return;
       const hasKey = (campWallet.unlocks || []).includes("shelter") || (campWallet.tokens >= 0);
-      player.tx = camp.x + shelter.x;
-      player.ty = camp.y + shelter.y;
+      const shelterPos = layoutCampWorld(shelter.id, shelter.x, shelter.y);
+      player.tx = shelterPos.x;
+      player.ty = shelterPos.y;
       shelterResting = true;
       campChillUntil = Date.now() + 60000;
       pushCampLine(player.name || "You", hasKey
@@ -5839,8 +6977,9 @@
       const club = campStructures.find((s) => s.id === "aurora-velvet");
       if (!club) return;
       if (!campCat.following) {
-        campCat.x = camp.x + club.x + 32;
-        campCat.y = camp.y + club.y + 26;
+        const clubPos = layoutCampWorld(club.id, club.x, club.y);
+        campCat.x = clubPos.x + 32;
+        campCat.y = clubPos.y + 26;
       } else {
         campCat.x = player.x - 20;
         campCat.y = player.y + 14;
@@ -5891,8 +7030,9 @@
         campCat.tx = player.x - 18 + Math.sin(campCat.phase) * 6;
         campCat.ty = player.y + 16 + Math.cos(campCat.phase * 0.7) * 4;
       } else if (club) {
-        const homeX = camp.x + club.x + 32;
-        const homeY = camp.y + club.y + 26;
+        const clubPos = layoutCampWorld(club.id, club.x, club.y);
+        const homeX = clubPos.x + 32;
+        const homeY = clubPos.y + 26;
         campCat.tx = homeX + Math.sin(campCat.phase * 0.5) * 8;
         campCat.ty = homeY + Math.cos(campCat.phase * 0.4) * 5;
       }
@@ -6720,11 +7860,12 @@
         speechHold.set(who, { line: pinnedSpeech.get(who).line, until: Date.now() + 86400000 });
         return;
       }
-      if (convoReadingHold) return;
+      if (convoReadingHold && !canvasCampChatOnly()) return;
       speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
     }
 
     function showCampSpeechPin(speaker, text, mood) {
+      if (canvasCampChatOnly()) return;
       const panel = document.getElementById("camp-speech-pin");
       const whoEl = panel?.querySelector(".csp-who");
       const bodyEl = panel?.querySelector(".csp-body");
@@ -7124,23 +8265,28 @@
       ctx.fillText("empower circle", sx, sy + baseR + 26);
     }
 
-    const ISO_SCALE = 5.4;
     const ISO_COS = 0.8660254;
     const ISO_SIN = 0.5;
+    function getIsoScale() {
+      if (isIOS()) return 6.35;
+      if (isCampMobile()) return 6.2;
+      return 5.4;
+    }
     let dragTarget = null;
+    let pendingCampAction = null;
+    let campAgentMenuNpc = null;
     let agentClickTimer = 0;
     let agentClickPending = null;
     let agentLongPressTimer = 0;
     let agentLongPressNpc = null;
     let agentLongPressStart = { sx: 0, sy: 0 };
-    let welcomeSplashTimer = 0;
-    let welcomeSplashActive = false;
     let arrivalGreetingPhase = true;
 
     function isoPoint(cx, cy, x, y, z) {
+      const scale = getIsoScale();
       return {
-        x: cx + (x - y) * ISO_COS * ISO_SCALE,
-        y: cy + (x + y) * ISO_SIN * ISO_SCALE - z * ISO_SCALE * 1.12,
+        x: cx + (x - y) * ISO_COS * scale,
+        y: cy + (x + y) * ISO_SIN * scale - z * scale * 1.12,
       };
     }
 
@@ -7496,12 +8642,13 @@
         ctx.fillText("◎ circle", cs.x, cs.y - (54 + med.power * 0.35));
       }
       const dragging = dragTarget?.kind === "agent" && dragTarget.ref === n;
-      if (dragging) {
-        ctx.strokeStyle = isAgentSpeechPinned(n) ? "#fde68a" : n.color;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
+      const pendingAgent = pendingCampAction?.type === "agent" && pendingCampAction.id === n.id;
+      if (dragging || pendingAgent || speakingAgentId === n.id) {
+        ctx.strokeStyle = dragging || pendingAgent ? "#fde68a" : n.color;
+        ctx.lineWidth = dragging ? 3 : pendingAgent ? 2.5 : 2;
+        ctx.setLineDash(dragging || pendingAgent ? [5, 5] : []);
         ctx.beginPath();
-        ctx.arc(s.x, cy, 42, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, dragging ? 44 : pendingAgent ? 42 : 38, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
       } else if (!n.insideHouse && !med) {
@@ -7848,7 +8995,7 @@
       { who: "Sentinel", text: "…BEEP. Chill mode engaged." },
       { who: "Camp", text: "Nebula would like you to know she runs things." },
       { who: "Camp", text: "Aurora Velvet bass leaking — nobody's complaining." },
-      { who: "Camp", text: "Phone: tap chat · double-tap sit · hold drag. PC: click sit · double-click chat." },
+      { who: "Camp", text: "Tap meadow to walk · tap agents, props & houses to interact." },
       { who: "Camp", text: "Someone left the good vibes on the grill again." },
       { who: "Jesus", text: "…peace holding steady at camp center." },
       { who: "Camp", text: "Lucid TV murmurs in the distance. Don't investigate alone." },
@@ -7908,8 +9055,10 @@
       const el = document.getElementById("now-speaking");
       if (!el || chatterPaused || converseBusy || convoReadingHold) return;
       const line = CAMP_NOW_IDLE_LINES[Math.floor(Math.random() * CAMP_NOW_IDLE_LINES.length)];
+      const role = speakerRole(line.who);
+      const roleHtml = role ? `<span class="ns-role">${escapeHtml(role)}</span>` : "";
       el.classList.add("idle");
-      el.innerHTML = `<span class="ns-who">${escapeHtml(line.who)}</span><span class="ns-text">${escapeHtml(line.text)}</span>`;
+      el.innerHTML = `<span class="ns-who">${escapeHtml(line.who)}${roleHtml}</span><span class="ns-text">${escapeHtml(line.text)}</span>`;
     }
 
     function bondClauseForAgent(agentId) {
@@ -8142,16 +9291,21 @@
       player.ty = pos.y;
     }
 
+    function dionysusAtCamp() {
+      return !!findRoamAgent("dionysus")
+        || campGuests.some((g) => g.id === "dionysus" && !g.leaving);
+    }
+
     function onHouseTapped(house) {
       if (!house) return;
       if (!playerNearHouse(house)) {
         walkPlayerToHouseDoor(house);
-        showToast(`Walking to ${house.emoji} ${house.name} — Enter unlocks at the door`);
+        pendingCampAction = { type: "house", id: house.id };
+        showToast(`Walking to ${house.emoji} ${house.name}`);
         return;
       }
-      showToast(isCampMobile()
-        ? `At the door — tap Enter above to go inside`
-        : `At the door — press E or tap Enter`);
+      pendingCampAction = null;
+      tryEnterCampHouse(house);
     }
 
     function tryEnterCampHouse(house) {
@@ -8266,19 +9420,22 @@
         return;
       }
       const ownerId = house.ownerId;
-      if (ownerId === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
-        showToast("Dionysus isn't home — invite him with 🍷 first");
-        return;
-      }
+      const dionAway = ownerId === "dionysus" && !dionysusAtCamp();
       activeHouseVisit = house;
       houseInteriorOpen = true;
       const layer = document.getElementById("camp-house-layer");
       const theme = houseInteriorTheme(ownerId);
       document.getElementById("camp-house-title").textContent = house.name;
-      document.getElementById("camp-house-sub").textContent = `${agentNames[ownerId] || ownerId} · inside`;
+      document.getElementById("camp-house-sub").textContent = dionAway
+        ? `${agentNames[ownerId] || ownerId} · vineyard (host away)`
+        : `${agentNames[ownerId] || ownerId} · inside`;
       document.getElementById("camp-house-host-name").textContent = agentNames[ownerId] || ownerId;
-      document.getElementById("camp-house-host-vibe").textContent = theme.vibe;
-      document.getElementById("camp-house-host-bubble").textContent = pickAgentOpener(ownerId);
+      document.getElementById("camp-house-host-vibe").textContent = dionAway
+        ? "Casks breathe, lights hum — the party waits even when Dionysus is out at camp."
+        : theme.vibe;
+      document.getElementById("camp-house-host-bubble").textContent = dionAway
+        ? "The vineyard keeps the toast warm. Dionysus is wandering — leave a line and he'll answer. 🍷"
+        : pickAgentOpener(ownerId);
       document.getElementById("camp-house-input").value = "";
       document.getElementById("camp-house-status").textContent = "Enter = send · Esc = leave";
       const fullBtn = document.getElementById("camp-house-full-avatar");
@@ -8305,7 +9462,9 @@
         text: `${myVisitorName || player.name || "You"} entered ${house.name}`,
       });
       setCampLifeStatus(`Inside ${house.name} — talking with ${agentNames[ownerId] || ownerId}`);
-      showToast(`Inside ${house.name} — E or Esc to leave`);
+      showToast(dionAway
+        ? `Inside ${house.name} — Dionysus is away but the vineyard is open`
+        : `Inside ${house.name} — E or Esc to leave`);
       setTimeout(() => document.getElementById("camp-house-input")?.focus(), 120);
     }
 
@@ -8383,44 +9542,17 @@
       }
     }
 
-    function hideWelcomeSplash() {
-      const el = document.getElementById("camp-welcome-splash");
-      if (!el || !welcomeSplashActive) return;
-      clearTimeout(welcomeSplashTimer);
-      welcomeSplashTimer = 0;
-      el.classList.add("fading");
-      welcomeSplashActive = false;
-      document.body.classList.remove("welcome-splash-open");
-      setTimeout(() => {
-        el.classList.remove("show", "fading");
-        el.hidden = true;
-        arrivalGreetingPhase = false;
-        if (isCampMobile()) minimizeSpeechBubble();
-      }, 520);
+    function speakerAgentId(speaker) {
+      let agentId = (speaker || "").trim().toLowerCase();
+      if (!agentId) return null;
+      if (agentMoods[agentId] !== undefined) return agentId;
+      const hit = moodAgents.find((a) => a.name.toLowerCase() === agentId);
+      return hit?.id || null;
     }
-
-    function showWelcomeSplash(speaker, text, mood, holdSec = 14) {
-      const el = document.getElementById("camp-welcome-splash");
-      if (!el) return;
-      const clean = (text || "").trim();
-      if (!clean) return;
-      clearTimeout(welcomeSplashTimer);
-      const whoEl = el.querySelector(".cws-who");
-      const bodyEl = el.querySelector(".cws-text");
-      if (whoEl) whoEl.textContent = speaker;
-      if (bodyEl) bodyEl.textContent = clean;
-      el.hidden = false;
-      el.classList.remove("fading");
-      el.classList.add("show");
-      welcomeSplashActive = true;
-      arrivalGreetingPhase = true;
-      document.body.classList.add("welcome-splash-open");
-      setCampLifeStatus(`${speaker} welcomes you to the meadow`);
-      welcomeSplashTimer = setTimeout(hideWelcomeSplash, holdSec * 1000);
+    function speakerRole(speaker) {
+      const id = speakerAgentId(speaker);
+      return id ? (AGENT_ROLES[id] || "camp agent") : "";
     }
-
-    document.getElementById("camp-welcome-splash")?.addEventListener("click", hideWelcomeSplash);
-
     function scheduleCampArrivalGreetings() {
       if (campArrivalScheduled) return;
       campArrivalScheduled = true;
@@ -8429,12 +9561,12 @@
         const welcome = localWelcomeLine();
         if (welcome && !campServerWelcomeShown) {
           setTimeout(() => {
-            pushCampLine("Camp", welcome, 13, "happy", { fromLocal: true, quiet: true, welcomeSplash: true });
+            pushCampLine("Camp", welcome, 13, "happy", { fromLocal: true, quiet: true });
           }, 1200);
         }
         setTimeout(() => {
           const line = pickAgentOpener("luna");
-          pushCampLine("Luna", line, 14, "happy", { fromLocal: true, quiet: true, welcomeSplash: true });
+          pushCampLine("Luna", line, 14, "happy", { fromLocal: true, quiet: true });
           setAgentMood("luna", "happy");
         }, welcome && !campServerWelcomeShown ? 15000 : 4500);
         setTimeout(() => {
@@ -8455,8 +9587,10 @@
       } else {
         const v = myVisitorName || player.name || "traveler";
         setTimeout(() => {
-          const intro = `${v}, welcome — tap 🌙 Luna to type or talk. Agents: tap chat on phone, click sit on PC. Pond left.`;
-          pushCampLine("Camp", intro, 15, "happy", { fromLocal: true, quiet: true, welcomeSplash: true });
+          const intro = isCampMobile()
+            ? `${v}, welcome — tap an agent for 💬 Talk · 🪑 Sit · ✋ Move. Meadow is yours.`
+            : `${v}, welcome — tap 🌙 Luna to type or talk. Agents: tap chat on phone, click sit on PC. Pond left.`;
+          pushCampLine("Camp", intro, 15, "happy", { fromLocal: true, quiet: isCampMobile() });
         }, 2800);
         const stagger = [
           { id: "luna", delay: 18000, mood: "happy" },
@@ -8474,7 +9608,7 @@
           }, a.delay);
         }
         setTimeout(() => {
-          pushCampLine("Camp", "Click to chat · double-click to sit still · hold to drag — meadow's yours.", 16, "happy", { fromLocal: true, quiet: true });
+          pushCampLine("Camp", "Tap meadow to walk · tap agents & objects to interact.", 16, "happy", { fromLocal: true, quiet: true });
         }, 48000);
         setTimeout(() => {
           const ambient = CAMP_AMBIENT_LINES[Math.floor(Math.random() * CAMP_AMBIENT_LINES.length)];
@@ -8712,13 +9846,51 @@
       return lines.slice(0, maxLines);
     }
 
+    function maxCanvasSpeechBubbles() {
+      if (isIOS() && isCampMobile()) return 4;
+      return isCampMobile() ? 3 : MAX_CANVAS_SPEECH_BUBBLES;
+    }
+
+    function drawThoughtBubble(sx, sy, text, color) {
+      const mobile = isCampMobile();
+      const label = (text || "…").trim();
+      const fontSize = mobile ? 11 : 12;
+      const lineH = fontSize + 4;
+      ctx.font = `600 italic ${fontSize}px Segoe UI`;
+      ctx.textAlign = "left";
+      const textW = Math.max(ctx.measureText(label).width, 36);
+      const boxW = textW + 30;
+      const boxH = lineH + 16;
+      const bx = sx - boxW / 2;
+      const by = sy - boxH - 26;
+      ctx.fillStyle = "rgba(12, 20, 36, 0.94)";
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 12);
+      ctx.fill();
+      ctx.strokeStyle = color || "#93c5fd";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = color + "44";
+      ctx.beginPath();
+      ctx.arc(bx + 14, by + boxH + 8, 5, 0, Math.PI * 2);
+      ctx.arc(bx + 24, by + boxH + 14, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillText(label, bx + 12, by + 14 + lineH * 0.35);
+      ctx.textAlign = "center";
+    }
+
     function drawSpeechBubble(sx, sy, text, color, above = true, meta = null) {
       if (!text) return null;
-      const mobile = isMobileView();
-      const maxW = mobile ? 168 : 220;
-      const fontSize = mobile ? 10 : 12;
+      const mobile = isCampMobile();
+      const ios = isIOS() && mobile;
+      const expanded = !!(meta?.speaker && expandedCampText.who === meta.speaker);
+      const maxW = expanded ? (ios ? 300 : mobile ? 280 : 300) : (ios ? 210 : mobile ? 188 : 220);
+      const fontSize = expanded ? (ios ? 13 : mobile ? 12 : 13) : (ios ? 12 : mobile ? 11 : 12);
       const lineH = fontSize + 4;
-      const maxLines = mobile ? 2 : 3;
+      const maxLines = expanded ? 10 : (mobile ? 3 : 3);
       const pinned = !!(meta && pinnedSpeech.has(meta.speaker));
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
@@ -8760,24 +9932,40 @@
 
     function drawAgentSpeechBubbles() {
       speechBubbleRects.length = 0;
-      if (welcomeSplashActive) return;
       let drawn = 0;
+      const max = maxCanvasSpeechBubbles();
+      const now = Date.now();
       const roamers = allRoamers();
       const priority = [
         ...roamers.filter((n) => pinnedSpeech.has(n.name)),
         ...roamers.filter((n) => n.id === speakingAgentId),
-        ...roamers.filter((n) => speechHold.has(n.name) && speechHold.get(n.name).until > Date.now()),
+        ...roamers.filter((n) => speechHold.has(n.name) && speechHold.get(n.name).until > now),
+        ...roamers.filter((n) => {
+          const line = (n.line || "").trim();
+          return line === "..." || line === "…";
+        }),
+        ...roamers.filter((n) => {
+          const held = speechHold.get(n.name);
+          return held && held.until > now && held.line;
+        }),
       ];
       const seen = new Set();
       for (const n of priority) {
-        if (seen.has(n.id) || drawn >= MAX_CANVAS_SPEECH_BUBBLES) continue;
+        if (seen.has(n.id) || drawn >= max) continue;
         seen.add(n.id);
+        const s = worldToScreen(camp.x + n.x, camp.y + n.y);
+        const color = n.color || AGENT_COLORS[n.id] || "#67e8f9";
+        const thinkLine = (n.line || "").trim();
+        if (thinkLine === "..." || thinkLine === "…") {
+          drawThoughtBubble(s.x, s.y - 8, thinkLine, color);
+          drawn += 1;
+          continue;
+        }
         const pinned = pinnedSpeech.get(n.name);
         const held = speechHold.get(n.name);
-        const active = pinned || (held && held.until > Date.now() ? held : null);
+        const active = pinned || (held && held.until > now ? held : null);
         if (!active?.line) continue;
-        const s = worldToScreen(camp.x + n.x, camp.y + n.y);
-        drawSpeechBubble(s.x, s.y - 8, active.line, n.color || AGENT_COLORS[n.id] || "#67e8f9", true, {
+        drawSpeechBubble(s.x, s.y - 8, active.line, color, true, {
           speaker: n.name,
           agentId: n.id,
           mood: pinned?.mood || n.mood || "neutral",
@@ -8885,11 +10073,12 @@
     function drawCampProp(wx, wy, prop) {
       const s = worldToScreen(wx, wy);
       const dragging = dragTarget?.kind === "prop" && dragTarget.ref === prop;
+      const pendingProp = pendingCampAction?.type === "prop" && pendingCampAction.id === prop.id;
       const nearPlayer = nearestProp && nearestProp.id === prop.id;
-      if (dragging || nearPlayer) {
-        ctx.strokeStyle = dragging ? "#fbbf24" : `${prop.color}aa`;
-        ctx.lineWidth = dragging ? 3 : 2;
-        ctx.setLineDash(dragging ? [6, 4] : []);
+      if (dragging || pendingProp || nearPlayer) {
+        ctx.strokeStyle = dragging || pendingProp ? "#fbbf24" : `${prop.color}aa`;
+        ctx.lineWidth = dragging || pendingProp ? 3 : 2;
+        ctx.setLineDash(dragging || pendingProp ? [6, 4] : []);
         ctx.beginPath();
         ctx.arc(s.x, s.y, 34, 0, Math.PI * 2);
         ctx.stroke();
@@ -8967,10 +10156,10 @@
       ctx.fillStyle = "#f1f5f9";
       ctx.textAlign = "center";
       ctx.fillText(prop.name, s.x, s.y - 30);
-      if (dragging) {
+      if (pendingProp) {
         ctx.fillStyle = "#fde68a";
         ctx.font = "9px Segoe UI";
-        ctx.fillText("drop anywhere", s.x, s.y + 32);
+        ctx.fillText("walking…", s.x, s.y + 32);
       } else if (nearPlayer) {
         ctx.fillStyle = prop.id === "stereo" && campMusicOn ? "#7dd3fc" : "#6ee7b7";
         ctx.font = "9px Segoe UI";
@@ -8983,7 +10172,7 @@
       } else {
         ctx.fillStyle = "#64748b";
         ctx.font = "8px Segoe UI";
-        ctx.fillText("drag me", s.x, s.y + 32);
+        ctx.fillText("tap", s.x, s.y + 32);
       }
     }
 
@@ -9059,7 +10248,7 @@
         pushCampLine("Camp", "You climb out of the pond — grass never felt so diplomatic.", 10, "happy", { keepDock: true, quiet: true });
         return;
       }
-      if (dist(player, pondWorldPos()) < CAMP_POND.rx + 40) {
+      if (dist(player, pondWorldPos()) < pondLayout().rx + 40) {
         const pw = pondWorldPos();
         player.tx = pw.x;
         player.ty = pw.y;
@@ -9067,9 +10256,7 @@
       }
       if (nearestId) openDialogue(nearestId);
       else {
-        replyEl.textContent = isCampMobile()
-          ? "Tap agent = chat · double-tap = sit · hold = drag"
-          : "Click agent = sit · double-click = chat · hold = drag";
+        replyEl.textContent = "Tap meadow to walk · tap agents & objects to interact";
       }
     }
 
@@ -9113,11 +10300,13 @@
     function updateNearest() {
       let bestProp = null, bestPropD = 95;
       for (const p of props) {
-        const d = dist(player, { x: camp.x + p.x, y: camp.y + p.y });
+        const pw = propCampWorld(p);
+        const d = dist(player, pw);
         if (d < bestPropD) { bestPropD = d; bestProp = p; }
       }
       for (const st of campStructures) {
-        const d = dist(player, { x: camp.x + st.x, y: camp.y + st.y });
+        const sw = layoutCampWorld(st.id, st.x, st.y);
+        const d = dist(player, sw);
         const reach = (st.enterRadius || 44) + 8;
         if (d < reach && d < bestPropD) {
           bestPropD = d;
@@ -9160,7 +10349,7 @@
       } else if (playerInPond()) {
         hint.textContent = "🏊 Swimming in Aurora Pond — tap shore to climb out";
         hint.classList.add("show");
-      } else if (dist(player, pondWorldPos()) < CAMP_POND.rx + 52) {
+      } else if (dist(player, pondWorldPos()) < pondLayout().rx + 52) {
         hint.textContent = "🌊 Aurora Pond — walk or tap the water to swim";
         hint.classList.add("show");
       } else {
@@ -9169,42 +10358,57 @@
     }
 
     function campPointerPos(ev) {
-      const rect = canvas.getBoundingClientRect();
-      return { sx: ev.clientX - rect.left, sy: ev.clientY - rect.top };
+      const rect = (campStage || canvas).getBoundingClientRect();
+      const rawX = ev.clientX - rect.left;
+      const rawY = ev.clientY - rect.top;
+      const scaleX = viewW / Math.max(1, rect.width);
+      const scaleY = viewH / Math.max(1, rect.height);
+      return { sx: rawX * scaleX, sy: rawY * scaleY };
     }
 
     function hitTestCamp(sx, sy) {
-      const houseReach = isCampMobile() ? 62 : 50;
+      const hits = [];
+      const addHit = (kind, ref, dist, radius) => {
+        if (dist < radius) hits.push({ kind, ref, dist });
+      };
+      for (const n of allRoamers()) {
+        if (n.leaving || n.insideHouse) continue;
+        const ns = worldToScreen(camp.x + n.x, camp.y + n.y);
+        addHit("agent", n, Math.hypot(sx - ns.x, sy - ns.y), agentHitRadius());
+      }
       for (const h of campHouses) {
-        const hs = worldToScreen(camp.x + h.x, camp.y + h.y);
-        if (Math.hypot(sx - hs.x, sy - hs.y) < houseReach) return { kind: "house", ref: h };
+        const hw = layoutCampWorld(h.id, h.x, h.y);
+        const hs = worldToScreen(hw.x, hw.y);
+        addHit("house", h, Math.hypot(sx - hs.x, sy - hs.y), campObjectHitRadius("house"));
       }
       for (const st of campStructures) {
-        const ss = worldToScreen(camp.x + st.x, camp.y + st.y);
-        if (Math.hypot(sx - ss.x, sy - ss.y) < 42) return { kind: "structure", ref: st };
+        const sw = layoutCampWorld(st.id, st.x, st.y);
+        const ss = worldToScreen(sw.x, sw.y);
+        addHit("structure", st, Math.hypot(sx - ss.x, sy - ss.y), campObjectHitRadius("structure"));
       }
       for (const p of props) {
-        const ps = worldToScreen(camp.x + p.x, camp.y + p.y);
-        if (Math.hypot(sx - ps.x, sy - ps.y) < 40) return { kind: "prop", ref: p };
+        const pw = propCampWorld(p);
+        const ps = worldToScreen(pw.x, pw.y);
+        addHit("prop", p, Math.hypot(sx - ps.x, sy - ps.y), campObjectHitRadius("prop"));
       }
       if (!stripClubOpen || campCat.following) {
         const cs = worldToScreen(campCat.x, campCat.y);
-        if (Math.hypot(sx - cs.x, sy - cs.y) < 28) return { kind: "cat", ref: campCat };
+        addHit("cat", campCat, Math.hypot(sx - cs.x, sy - cs.y), campObjectHitRadius("cat"));
       }
-      const pondS = worldToScreen(camp.x + CAMP_POND.cx, camp.y + CAMP_POND.cy);
+      const pond = pondLayout();
+      const pondS = worldToScreen(camp.x + pond.cx, camp.y + pond.cy);
       const zoom = getWorldZoom();
-      const pondHitX = CAMP_POND.rx * zoom * 0.92;
-      const pondHitY = CAMP_POND.ry * zoom * 0.92;
+      const pondHitX = pond.rx * zoom * 0.92;
+      const pondHitY = pond.ry * zoom * 0.92;
       const pondDx = (sx - pondS.x) / pondHitX;
       const pondDy = (sy - pondS.y) / pondHitY;
       if (pondDx * pondDx + pondDy * pondDy <= 1) {
-        return { kind: "pond", ref: CAMP_POND };
+        hits.push({ kind: "pond", ref: CAMP_POND, dist: Math.hypot(pondDx, pondDy) * Math.min(pondHitX, pondHitY) });
       }
-      for (const n of allRoamers()) {
-        const ns = worldToScreen(camp.x + n.x, camp.y + n.y);
-        if (Math.hypot(sx - ns.x, sy - ns.y) < AGENT_HIT_RADIUS) return { kind: "agent", ref: n };
-      }
-      return null;
+      if (!hits.length) return null;
+      hits.sort((a, b) => a.dist - b.dist);
+      const best = hits[0];
+      return { kind: best.kind, ref: best.ref };
     }
 
     function clearAgentClickPending() {
@@ -9219,63 +10423,579 @@
       agentLongPressNpc = null;
     }
 
+    function useTouchCampActions(ev) {
+      if (!ev) return isCampMobile();
+      return isCampMobile() || ev.pointerType === "touch";
+    }
+    function campTapSlop() {
+      if (isIOS() && isCampMobile()) return 28;
+      return isCampMobile() ? 26 : 14;
+    }
+    function campDragThreshold() {
+      if (isIOS() && isCampMobile()) return 20;
+      if (isCampMobile()) return 16;
+      return 12;
+    }
+    function campObjectHitRadius(kind) {
+      const zoom = getWorldZoom();
+      if (kind === "prop") return isCampMobile() ? Math.max(48, 38 + zoom * 40) : 44;
+      if (kind === "structure") return isCampMobile() ? Math.max(50, 40 + zoom * 38) : 46;
+      if (kind === "house") return isCampMobile() ? Math.max(64, 52 + zoom * 42) : 54;
+      if (kind === "cat") return isCampMobile() ? 36 : 30;
+      return 40;
+    }
+    function isCanvasMapTarget(el) {
+      if (!el) return false;
+      if (el === canvas || canvas.contains(el)) return true;
+      const stage = document.getElementById("camp-stage");
+      return !!(stage && (el === stage || (stage.contains(el) && el !== document.getElementById("trippy-veil"))));
+    }
+    function agentWorldPos(npc) {
+      return { x: camp.x + npc.x, y: camp.y + npc.y };
+    }
+    function walkPlayerTo(wx, wy) {
+      player.tx = wx;
+      player.ty = wy;
+    }
+    function interactCampHit(hit) {
+      if (!hit?.kind) return;
+      switch (hit.kind) {
+        case "agent": {
+          const npc = hit.ref;
+          if (!npc || npc.leaving) return;
+          const pos = agentWorldPos(npc);
+          if (dist(player, pos) > 68) {
+            walkPlayerTo(pos.x, pos.y - 6);
+            pendingCampAction = { type: "agent", id: npc.id };
+            showToast(`→ ${npc.name}`);
+            return;
+          }
+          pendingCampAction = null;
+          openAgentChat(npc);
+          break;
+        }
+        case "prop": {
+          const pw = propCampWorld(hit.ref);
+          const world = { x: camp.x + pw.x, y: camp.y + pw.y };
+          if (dist(player, world) > hit.ref.radius + 30) {
+            walkPlayerTo(world.x, world.y);
+            pendingCampAction = { type: "prop", id: hit.ref.id };
+            showToast(`${hit.ref.emoji} ${hit.ref.name}`);
+            return;
+          }
+          pendingCampAction = null;
+          useProp(hit.ref);
+          break;
+        }
+        case "structure": {
+          const st = hit.ref;
+          const sw = layoutCampWorld(st.id, st.x, st.y);
+          const world = { x: camp.x + sw.x, y: camp.y + sw.y };
+          if (dist(player, world) > (st.enterRadius || 44) + 6) {
+            walkPlayerTo(world.x, world.y);
+            pendingCampAction = { type: "structure", id: st.id };
+            showToast(`${st.emoji} ${st.name}`);
+            return;
+          }
+          pendingCampAction = null;
+          useProp({ structure: st, name: st.name, emoji: st.emoji });
+          break;
+        }
+        case "house": {
+          const house = hit.ref;
+          if (!playerNearHouse(house)) {
+            walkPlayerToHouseDoor(house);
+            pendingCampAction = { type: "house", id: house.id };
+            showToast(`→ ${house.emoji} ${house.name}`);
+            return;
+          }
+          pendingCampAction = null;
+          tryEnterCampHouse(house);
+          break;
+        }
+        case "cat":
+          if (!campCatNearPlayer()) {
+            walkPlayerTo(campCat.x, campCat.y);
+            pendingCampAction = { type: "cat" };
+            showToast(`→ ${campCat.name}`);
+          } else {
+            pendingCampAction = null;
+            petCampCat();
+          }
+          break;
+        case "pond": {
+          const pw = pondWorldPos();
+          walkPlayerTo(pw.x + (Math.random() - 0.5) * 30, pw.y + (Math.random() - 0.5) * 18);
+          pendingCampAction = { type: "pond" };
+          showToast("🌊 Aurora Pond");
+          break;
+        }
+      }
+    }
+    function campLayerWorldPos(kind, ref) {
+      if (kind === "agent" && ref) {
+        return { x: camp.x + ref.x, y: camp.y + ref.y };
+      }
+      if (kind === "prop" && ref) {
+        const pw = propCampWorld(ref);
+        return { x: pw.x, y: pw.y };
+      }
+      if (kind === "house" && ref) {
+        const hw = layoutCampWorld(ref.id, ref.x, ref.y);
+        return { x: hw.x, y: hw.y };
+      }
+      if (kind === "structure" && ref) {
+        const sw = layoutCampWorld(ref.id, ref.x, ref.y);
+        return { x: sw.x, y: sw.y };
+      }
+      if (kind === "cat") {
+        return { x: campCat.x, y: campCat.y };
+      }
+      if (kind === "pond") {
+        return pondWorldPos();
+      }
+      if (kind === "fire") {
+        return { x: camp.x, y: camp.y };
+      }
+      return null;
+    }
+
+    function resolveCampLayerHit(value) {
+      if (!value) return null;
+      const sep = value.indexOf(":");
+      if (sep < 1) return null;
+      const kind = value.slice(0, sep);
+      const id = value.slice(sep + 1);
+      if (kind === "agent") {
+        const n = findRoamAgent(id);
+        return n && !n.leaving ? { kind: "agent", ref: n } : null;
+      }
+      if (kind === "prop") {
+        const p = props.find((x) => x.id === id);
+        return p ? { kind: "prop", ref: p } : null;
+      }
+      if (kind === "house") {
+        const h = campHouses.find((x) => x.id === id);
+        return h ? { kind: "house", ref: h } : null;
+      }
+      if (kind === "structure") {
+        const st = campStructures.find((x) => x.id === id);
+        return st ? { kind: "structure", ref: st } : null;
+      }
+      if (kind === "cat") return { kind: "cat", ref: campCat };
+      if (kind === "pond") return { kind: "pond", ref: CAMP_POND };
+      if (kind === "fire") return { kind: "meadow", ref: null };
+      return null;
+    }
+
+    async function applyCampLayerPick(value, opts = {}) {
+      if (value === "agent:dionysus" && !findRoamAgent("dionysus")) {
+        await spawnDionysusVisit({ manual: true });
+        refreshCampLayerPicker();
+        value = "agent:dionysus";
+      }
+      const hit = resolveCampLayerHit(value);
+      if (!hit) return false;
+      if (hit.kind === "meadow") {
+        walkPlayerTo(camp.x, camp.y - 20);
+        pendingCampAction = null;
+        panCampCameraTo(camp.x, camp.y);
+        showToast("→ Sun corona campfire");
+        const layerSel = document.getElementById("camp-layer-select");
+        if (layerSel) setTimeout(() => { layerSel.value = ""; }, 280);
+        return true;
+      }
+      const pos = campLayerWorldPos(hit.kind, hit.ref);
+      if (pos) panCampCameraTo(pos.x, pos.y);
+      interactCampHit(hit);
+      if (hit.kind === "agent" && hit.ref) {
+        const sel = document.getElementById("camp-talk-target");
+        if (sel) {
+          sel.value = hit.ref.id;
+          syncCampTalkAllBtn();
+          refreshCampTalkTarget();
+        }
+      }
+      if (!opts.quiet) {
+        const label = hit.ref?.name || hit.ref?.emoji || hit.kind;
+        showToast(`→ ${label}`);
+      }
+      recenterCampView({ blurInput: true });
+      const sel = document.getElementById("camp-layer-select");
+      if (sel && !opts.keepValue) {
+        setTimeout(() => { sel.value = ""; }, 280);
+      }
+      return true;
+    }
+
+    function refreshCampLayerPicker() {
+      const sel = document.getElementById("camp-layer-select");
+      if (!sel) return;
+      const prev = sel.value;
+      const chunks = ['<option value="">🎯 Select anyone or anything…</option>'];
+      const optRows = (label, rows) => {
+        if (!rows.length) return;
+        chunks.push(`<optgroup label="${escapeHtml(label)}">`);
+        for (const r of rows) {
+          chunks.push(`<option value="${escapeHtml(r.value)}">${escapeHtml(r.text)}</option>`);
+        }
+        chunks.push("</optgroup>");
+      };
+      const agents = [];
+      const seen = new Set();
+      for (const n of allRoamers()) {
+        if (n.leaving || n.insideHouse || seen.has(n.id)) continue;
+        seen.add(n.id);
+        agents.push({
+          value: `agent:${n.id}`,
+          text: n.name || agentNames[n.id] || n.id,
+        });
+      }
+      agents.sort((a, b) => a.text.localeCompare(b.text));
+      if (!seen.has("dionysus") && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
+        agents.push({ value: "agent:dionysus", text: "🍷 Dionysus (invite)" });
+      }
+      optRows("Agents", agents);
+      optRows("Props", props.map((p) => ({
+        value: `prop:${p.id}`,
+        text: `${p.emoji} ${p.name}`,
+      })));
+      optRows("Houses", campHouses.map((h) => ({
+        value: `house:${h.id}`,
+        text: `${h.emoji} ${h.name}`,
+      })));
+      optRows("Structures", campStructures.map((st) => ({
+        value: `structure:${st.id}`,
+        text: `${st.emoji} ${st.name}`,
+      })));
+      optRows("Places", [
+        { value: "cat:nebula", text: `🐱 ${campCat.name}` },
+        { value: "pond:aurora", text: "🌊 Aurora Pond" },
+        { value: "fire:corona", text: "🔥 Sun corona" },
+      ]);
+      sel.innerHTML = chunks.join("");
+      if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
+    }
+
+    let expandedCampText = { who: "", text: "", mood: "" };
+
+    function syncCampTextExpandHeight() {
+      const panel = document.getElementById("camp-text-expand");
+      let h = 0;
+      if (panel?.classList.contains("show")) {
+        h = Math.max(58, Math.ceil(panel.offsetHeight) + 6);
+      }
+      document.documentElement.style.setProperty("--text-expand-h", `${h}px`);
+      scheduleResize();
+    }
+
+    function showCampTextExpand(who, text, opts = {}) {
+      const panel = document.getElementById("camp-text-expand");
+      if (!panel) return;
+      const clean = (text || "").trim();
+      const whoClean = (who || "").trim();
+      if (!clean && !whoClean) {
+        hideCampTextExpand();
+        return;
+      }
+      expandedCampText = { who: whoClean, text: clean || whoClean, mood: opts.mood || "neutral" };
+      const whoEl = panel.querySelector(".cte-who");
+      const bodyEl = panel.querySelector(".cte-body");
+      const hintEl = panel.querySelector(".cte-hint");
+      if (whoEl) {
+        whoEl.textContent = opts.label ? `${opts.label} ${whoClean}` : whoClean;
+      }
+      if (bodyEl) bodyEl.textContent = clean || whoClean;
+      if (hintEl) hintEl.textContent = opts.hint || "Full statement — tap ✕ to collapse";
+      panel.hidden = false;
+      panel.classList.add("show");
+      requestAnimationFrame(syncCampTextExpandHeight);
+    }
+
+    function hideCampTextExpand() {
+      expandedCampText = { who: "", text: "", mood: "" };
+      const panel = document.getElementById("camp-text-expand");
+      if (!panel) return;
+      panel.classList.remove("show");
+      panel.hidden = true;
+      syncCampTextExpandHeight();
+    }
+
+    function campSelectExpandPayload(sel) {
+      const opt = sel?.selectedOptions?.[0];
+      if (!opt || !opt.value) return null;
+      const label = opt.textContent.trim();
+      const val = opt.value;
+      if (val.startsWith("agent:")) {
+        const id = val.slice(6);
+        const npc = findRoamAgent(id) || campGuests.find((g) => g.id === id);
+        const line = (npc?.fullLine || npc?.line || "").trim();
+        if (line && line !== "..." && line !== "…") {
+          return {
+            who: npc?.name || label,
+            text: line,
+            mood: npc?.mood || "neutral",
+            hint: "Full agent line — tap ✕ to collapse",
+          };
+        }
+      }
+      if (val.startsWith("house:")) {
+        const id = val.slice(6);
+        const house = campHouses.find((h) => h.id === id);
+        if (house) {
+          const owner = agentNames[house.ownerId] || house.ownerId;
+          let text = `${house.emoji} ${house.name} — ${owner}'s door`;
+          if (house.ownerId === "dionysus" && !dionysusAtCamp()) {
+            text += " · vineyard open (Dionysus may be away)";
+          }
+          return {
+            who: house.name,
+            text,
+            hint: "Tap again at the door or use Enter to go inside",
+          };
+        }
+      }
+      return { who: label, text: label };
+    }
+
+    function syncSelectTextExpand(sel, label, hint) {
+      const payload = campSelectExpandPayload(sel);
+      if (!payload) {
+        hideCampTextExpand();
+        return;
+      }
+      showCampTextExpand(payload.who, payload.text, {
+        label,
+        mood: payload.mood,
+        hint: payload.hint || hint || "Full menu choice — tap ✕ to collapse",
+      });
+    }
+
+    function initCampTextExpand() {
+      document.getElementById("camp-text-expand-close")?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        hideCampTextExpand();
+      });
+    }
+
+    function initCampLayerPicker() {
+      refreshCampLayerPicker();
+      const sel = document.getElementById("camp-layer-select");
+      const go = document.getElementById("camp-layer-go");
+      const runPick = () => {
+        const val = sel?.value;
+        if (!val) {
+          showToast("Pick someone or something from the list");
+          return;
+        }
+        syncSelectTextExpand(sel, "🎯", "Walking to selection…");
+        void applyCampLayerPick(val);
+      };
+      go?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        runPick();
+      });
+      sel?.addEventListener("focus", () => {
+        if (sel.value) syncSelectTextExpand(sel, "🎯");
+      });
+      let layerPickTs = 0;
+      const onLayerPick = () => {
+        const now = Date.now();
+        if (now - layerPickTs < 420) return;
+        layerPickTs = now;
+        if (!sel.value) {
+          hideCampTextExpand();
+          return;
+        }
+        syncSelectTextExpand(sel, "🎯", "Going now…");
+        runPick();
+      };
+      sel?.addEventListener("change", onLayerPick);
+      if (isAndroid()) sel?.addEventListener("input", onLayerPick);
+    }
+
+    function processPendingCampAction() {
+      if (!pendingCampAction) return;
+      const a = pendingCampAction;
+      if (a.type === "agent") {
+        const npc = findRoamAgent(a.id);
+        if (!npc || dist(player, agentWorldPos(npc)) < 72) {
+          pendingCampAction = null;
+          if (npc) openAgentChat(npc);
+        }
+      } else if (a.type === "prop") {
+        const prop = props.find((p) => p.id === a.id);
+        if (!prop) { pendingCampAction = null; return; }
+        const pw = propCampWorld(prop);
+        if (dist(player, { x: camp.x + pw.x, y: camp.y + pw.y }) < prop.radius + 34) {
+          pendingCampAction = null;
+          useProp(prop);
+        }
+      } else if (a.type === "structure") {
+        const st = campStructures.find((s) => s.id === a.id);
+        if (!st) { pendingCampAction = null; return; }
+        const sw = layoutCampWorld(st.id, st.x, st.y);
+        if (dist(player, { x: camp.x + sw.x, y: camp.y + sw.y }) < (st.enterRadius || 44) + 10) {
+          pendingCampAction = null;
+          useProp({ structure: st, name: st.name, emoji: st.emoji });
+        }
+      } else if (a.type === "house") {
+        const house = campHouses.find((h) => h.id === a.id);
+        if (!house) { pendingCampAction = null; return; }
+        if (playerNearHouse(house)) {
+          pendingCampAction = null;
+          tryEnterCampHouse(house);
+        }
+      } else if (a.type === "cat" && campCatNearPlayer()) {
+        pendingCampAction = null;
+        petCampCat();
+      } else if (a.type === "pond" && playerInPond()) {
+        pendingCampAction = null;
+      }
+    }
+    function focusAgentTalk(npc) {
+      if (!npc || npc.leaving) return;
+      hideAgentActionMenu();
+      const sel = document.getElementById("camp-talk-target");
+      const input = document.getElementById("camp-talk-input");
+      if (sel) {
+        sel.value = npc.id;
+        syncCampTalkAllBtn();
+        refreshCampTalkTarget();
+      }
+      showToast(`💬 ${npc.name} — type below`);
+      setTimeout(() => input?.focus(), 120);
+    }
+    function hideAgentActionMenu() {
+      const menu = document.getElementById("camp-agent-menu");
+      campAgentMenuNpc = null;
+      if (!menu) return;
+      menu.classList.remove("show");
+      menu.hidden = true;
+      menu.setAttribute("aria-hidden", "true");
+    }
+    function showAgentActionMenu(npc) {
+      if (!npc || npc.leaving) return;
+      const menu = document.getElementById("camp-agent-menu");
+      if (!menu) return;
+      campAgentMenuNpc = npc;
+      const who = menu.querySelector(".cam-who");
+      const sitBtn = menu.querySelector('[data-act="sit"]');
+      if (who) who.textContent = npc.name;
+      if (sitBtn) sitBtn.textContent = npc.sitPinned ? "🚶 Roam" : "🪑 Sit";
+      menu.hidden = false;
+      menu.setAttribute("aria-hidden", "false");
+      menu.classList.add("show");
+      if (!isCampMobile()) showToast(`Tap 💬 Talk · 🪑 Sit — or ✕ close`);
+    }
+    function renderCampPickAgentList() {
+      const list = document.getElementById("camp-pick-agent-list");
+      if (!list) return;
+      const rows = [];
+      const seen = new Set();
+      for (const n of allRoamers()) {
+        if (n.leaving || seen.has(n.id)) continue;
+        seen.add(n.id);
+        const role = AGENT_ROLES[n.id] || "camp agent";
+        rows.push({ id: n.id, name: n.name || agentNames[n.id] || n.id, role });
+      }
+      for (const a of moodAgents) {
+        if (seen.has(a.id)) continue;
+        if (a.id === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
+          rows.push({ id: a.id, name: a.name, role: "tap to invite", invite: true });
+          continue;
+        }
+        rows.push({ id: a.id, name: a.name, role: AGENT_ROLES[a.id] || "camp agent" });
+      }
+      list.innerHTML = rows.map((r) => `
+        <button type="button" class="cpas-row" data-agent="${r.id}" data-invite="${r.invite ? "1" : "0"}">
+          <span><span class="cpas-name">${escapeHtml(r.name)}</span><span class="cpas-role">${escapeHtml(r.role)}</span></span>
+          <span class="cpas-go">${r.invite ? "🍷" : "💬"}</span>
+        </button>`).join("");
+      list.querySelectorAll(".cpas-row").forEach((btn) => {
+        btn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const id = btn.dataset.agent;
+          closeCampPickAgentSheet();
+          if (btn.dataset.invite === "1") {
+            spawnDionysusVisit({ manual: true });
+            return;
+          }
+          const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
+          openAgentChat(npc);
+        });
+      });
+    }
+    function openCampPickAgentSheet() {
+      const sheet = document.getElementById("camp-pick-agent-sheet");
+      if (!sheet) return;
+      renderCampPickAgentList();
+      sheet.hidden = false;
+      sheet.setAttribute("aria-hidden", "false");
+      sheet.classList.add("show");
+    }
+    function closeCampPickAgentSheet() {
+      const sheet = document.getElementById("camp-pick-agent-sheet");
+      if (!sheet) return;
+      sheet.classList.remove("show");
+      sheet.hidden = true;
+      sheet.setAttribute("aria-hidden", "true");
+    }
+    function initCampPickAgentSheet() {
+      document.getElementById("camp-pick-agent-fab")?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        openCampPickAgentSheet();
+      });
+      document.getElementById("camp-pick-agent-close")?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        closeCampPickAgentSheet();
+      });
+      document.getElementById("camp-pick-agent-backdrop")?.addEventListener("click", () => {
+        closeCampPickAgentSheet();
+      });
+    }
+    function initCampAgentMenu() {
+      const menu = document.getElementById("camp-agent-menu");
+      if (!menu) return;
+      menu.querySelectorAll("[data-act]").forEach((btn) => {
+        btn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const act = btn.dataset.act;
+          const npc = campAgentMenuNpc;
+          hideAgentActionMenu();
+          if (!npc || act === "close") return;
+          if (act === "talk") openAgentChat(npc);
+          else if (act === "sit") toggleNpcSit(npc);
+        });
+      });
+    }
     function openAgentChat(npc) {
       if (!npc || npc.leaving) return;
-      if (isAgentSpeechPinned(npc)) {
-        showToast(`Hold ${npc.name} to drag — double-tap to sit still on phone`);
-        return;
-      }
-      if (npc.id === "luna") openLunaEmbed();
-      else openDialogue(npc.id);
-    }
-
-    function onAgentClick(npc, pointerType = "mouse") {
-      if (!npc || npc.leaving) return;
-      const touchLike = pointerType === "touch" || isCampMobile();
-      const now = Date.now();
-      if (agentClickPending?.id === npc.id && now - agentClickPending.t < AGENT_DOUBLE_CLICK_MS) {
-        clearAgentClickPending();
-        if (touchLike) toggleNpcSit(npc);
-        else openAgentChat(npc);
-        return;
-      }
-      clearAgentClickPending();
-      agentClickPending = { id: npc.id, t: now };
-      agentClickTimer = setTimeout(() => {
-        agentClickTimer = 0;
-        agentClickPending = null;
-        if (touchLike) openAgentChat(npc);
-        else toggleNpcSit(npc);
-      }, AGENT_CLICK_DELAY_MS);
-    }
-
-    function scheduleAgentLongPress(npc, sx, sy, pointerId) {
-      clearAgentLongPress();
-      agentLongPressNpc = npc;
-      agentLongPressStart = { sx, sy };
-      agentLongPressTimer = setTimeout(() => {
-        agentLongPressTimer = 0;
-        if (dragTarget) return;
-        clearAgentClickPending();
-        startAgentDrag(npc, sx, sy, pointerId, false);
-        dragTarget.moved = true;
-        showToast(`Dragging ${npc.name} — drop anywhere on the meadow`);
-      }, AGENT_LONG_PRESS_MS);
+      hideAgentActionMenu();
+      focusAgentTalk(npc);
     }
 
     function placeDragAt(sx, sy, target) {
       const w = screenToWorld(sx, sy);
       const b = getCampRelativeBounds();
+      if (target.kind === "cat") {
+        target.ref.x = Math.max(camp.x + b.xMin, Math.min(camp.x + b.xMax, w.x));
+        target.ref.y = Math.max(camp.y + b.yMin, Math.min(camp.y + b.yMax, w.y));
+        target.ref.tx = target.ref.x;
+        target.ref.ty = target.ref.y;
+        return;
+      }
       const rx = Math.max(b.xMin, Math.min(b.xMax, w.x - camp.x));
       const ry = Math.max(b.yMin, Math.min(b.yMax, w.y - camp.y));
-      if (target.kind === "house") {
-        return;
-      } else if (target.kind === "prop") {
-        target.ref.x = rx;
-        target.ref.y = ry;
-      } else if (target.kind === "agent") {
+      if (target.kind === "agent") {
         agentMeditation.delete(target.ref.id);
-        target.ref.sitPinned = false;
+        target.ref.insideHouse = null;
         target.ref.x = rx;
         target.ref.y = ry;
         target.ref.tx = rx;
@@ -9283,157 +11003,203 @@
         target.ref.idle = 50;
         target.ref.behavior = "stand";
         target.ref.behaviorTimer = 80;
-      } else {
+      } else if (target.kind === "prop") {
+        target.ref.x = rx;
+        target.ref.y = ry;
+        target.ref.layoutSpace = false;
+      } else if (target.ref) {
         target.ref.x = rx;
         target.ref.y = ry;
       }
     }
 
-    function startAgentDrag(npc, sx, sy, pointerId, fromPin = false) {
-      clearAgentLongPress();
-      clearAgentClickPending();
-      dragTarget = { kind: "agent", ref: npc, moved: false, startSx: sx, startSy: sy, pointerId, fromPin };
-      canvas.setPointerCapture(pointerId);
+    function startCampDrag(hit, sx, sy, pointerId, opts = {}) {
+      dragTarget = {
+        kind: hit.kind,
+        ref: hit.ref,
+        moved: false,
+        startSx: sx,
+        startSy: sy,
+        pointerId,
+        fromPin: !!opts.fromPin,
+      };
+      pendingCampAction = null;
       canvas.classList.add("dragging");
-      showToast(fromPin
-        ? `Dragging ${npc.name} — drop to meditate & empower ✦`
-        : `Dragging ${npc.name} — drop on the meadow`);
+      try { canvas.setPointerCapture(pointerId); } catch (_) {}
+      if (hit.kind === "agent") {
+        showToast(opts.fromPin
+          ? `Dragging ${hit.ref.name} — drop to reposition`
+          : `Grabbed ${hit.ref.name} — drag or tap to talk`);
+      } else if (hit.kind === "prop") {
+        showToast(`Dragging ${hit.ref.emoji} ${hit.ref.name}`);
+      } else if (hit.kind === "structure") {
+        showToast(`Dragging ${hit.ref.emoji} ${hit.ref.name}`);
+      } else if (hit.kind === "house") {
+        showToast(`Dragging ${hit.ref.emoji} ${hit.ref.name}`);
+      }
     }
 
     function onCampPointerDown(ev) {
+      if (dragTarget) return;
+      if (isCampUiTarget(ev.target)) return;
+      if (!isCanvasMapTarget(ev.target) && !isCanvasMapTarget(document.elementFromPoint(ev.clientX, ev.clientY))) return;
+      if (ev.pointerType === "touch") ev.preventDefault();
+      hideAgentActionMenu();
       const { sx, sy } = campPointerPos(ev);
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       if (bubbleHit?.speaker) {
         const npc = roamersBySpeaker(bubbleHit.speaker);
+        showCampTextExpand(bubbleHit.speaker, bubbleHit.line, {
+          mood: bubbleHit.mood,
+          hint: "Full speech — tap bubble again to pin",
+        });
         if (pinnedSpeech.has(bubbleHit.speaker) && npc) {
-          startAgentDrag(npc, sx, sy, ev.pointerId, true);
+          startCampDrag({ kind: "agent", ref: npc }, sx, sy, ev.pointerId, { fromPin: true });
           return;
         }
         pinCampSpeech(bubbleHit.speaker, bubbleHit.line, bubbleHit.mood, {
           color: bubbleHit.color,
           agentId: bubbleHit.agentId,
         });
-        showToast(`Pinned ${bubbleHit.speaker} — drag bubble or agent to move & empower`);
+        if (npc) openAgentChat(npc);
         return;
       }
       const hit = hitTestCamp(sx, sy);
       if (hit) {
         if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref)) {
-          startAgentDrag(hit.ref, sx, sy, ev.pointerId, true);
+          startCampDrag(hit, sx, sy, ev.pointerId, { fromPin: true });
           return;
         }
-        dragTarget = { ...hit, moved: false, startSx: sx, startSy: sy, pointerId: ev.pointerId, pointerType: ev.pointerType || "mouse" };
-        canvas.setPointerCapture(ev.pointerId);
-        canvas.classList.add("dragging");
-        if (hit.kind === "prop") showToast(`Dragging ${hit.ref.emoji} ${hit.ref.name}`);
-        else if (hit.kind === "house") {
-          showToast(playerNearHouse(hit.ref)
-            ? `${hit.ref.emoji} At the door — tap Enter to go inside`
-            : `${hit.ref.emoji} Walk to the door first`);
-        }
-        else if (hit.kind === "cat") showToast(`🐱 ${hit.ref.name} — tap to pet`);
-        else if (hit.kind === "pond") showToast("🌊 Aurora Pond — walk in to swim");
-        else if (hit.kind === "agent") {
-          scheduleAgentLongPress(hit.ref, sx, sy, ev.pointerId);
-        } else showToast(`Grabbed ${hit.ref.name} — drag or tap to chat`);
+        startCampDrag(hit, sx, sy, ev.pointerId);
         return;
       }
-      const w = screenToWorld(sx, sy);
-      const b = getCampRelativeBounds();
-      player.tx = Math.max(camp.x + b.xMin, Math.min(camp.x + b.xMax, w.x));
-      player.ty = Math.max(camp.y + b.yMin, Math.min(camp.y + b.yMax, w.y));
+      dragTarget = {
+        kind: "meadow",
+        moved: false,
+        startSx: sx,
+        startSy: sy,
+        pointerId: ev.pointerId,
+      };
+      try { canvas.setPointerCapture(ev.pointerId); } catch (_) {}
     }
 
     function onCampPointerMove(ev) {
-      const { sx, sy } = campPointerPos(ev);
-      if (agentLongPressNpc) {
-        if (Math.hypot(sx - agentLongPressStart.sx, sy - agentLongPressStart.sy) > AGENT_DRAG_THRESHOLD) {
-          clearAgentLongPress();
-        }
-      }
+      if (trackCampPointerMove(ev)) return;
       if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
-      if (Math.hypot(sx - dragTarget.startSx, sy - dragTarget.startSy) > AGENT_DRAG_THRESHOLD) {
-        if (dragTarget.kind === "agent") clearAgentLongPress();
+      const { sx, sy } = campPointerPos(ev);
+      const dragDist = Math.hypot(sx - dragTarget.startSx, sy - dragTarget.startSy);
+      if (dragDist > campDragThreshold()) {
         dragTarget.moved = true;
-        placeDragAt(sx, sy, dragTarget);
+        if (dragTarget.kind !== "meadow" && dragTarget.kind !== "pond") {
+          placeDragAt(sx, sy, dragTarget);
+        }
       }
     }
 
     function onCampPointerUp(ev) {
-      clearAgentLongPress();
-      if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
-      canvas.releasePointerCapture(ev.pointerId);
+      trackCampPointerUp(ev);
+      try { canvas.releasePointerCapture(ev.pointerId); } catch (_) {}
       canvas.classList.remove("dragging");
-      const { sx, sy } = campPointerPos(ev);
-      if (!dragTarget.moved) {
-        if (dragTarget.kind === "house") {
-          onHouseTapped(dragTarget.ref);
-        } else if (dragTarget.kind === "prop") {
-          player.tx = camp.x + dragTarget.ref.x;
-          player.ty = camp.y + dragTarget.ref.y;
-          setTimeout(() => {
-            if (dist(player, { x: camp.x + dragTarget.ref.x, y: camp.y + dragTarget.ref.y }) < dragTarget.ref.radius + 24) {
-              useProp(dragTarget.ref);
-            }
-          }, 300);
-        } else if (dragTarget.kind === "structure") {
-          player.tx = camp.x + dragTarget.ref.x;
-          player.ty = camp.y + dragTarget.ref.y;
-          setTimeout(() => {
-            const st = dragTarget.ref;
-            if (dist(player, { x: camp.x + st.x, y: camp.y + st.y }) < (st.enterRadius || 44)) {
-              useProp({ structure: st, name: st.name, emoji: st.emoji });
-            }
-          }, 300);
-        } else if (dragTarget.kind === "cat") {
-          petCampCat();
-        } else if (dragTarget.kind === "pond") {
-          const pw = pondWorldPos();
-          player.tx = pw.x + (Math.random() - 0.5) * 40;
-          player.ty = pw.y + (Math.random() - 0.5) * 24;
-        } else if (dragTarget.kind === "agent") {
-          onAgentClick(dragTarget.ref, dragTarget.pointerType);
-        }
-      } else if (dragTarget.kind === "agent") {
-        if (dragTarget.fromPin || isAgentSpeechPinned(dragTarget.ref)) {
-          beginAgentMeditation(dragTarget.ref);
-          const pinLine = pinnedSpeech.get(dragTarget.ref.name)?.line;
-          if (pinLine) {
-            speechHold.set(dragTarget.ref.name, { line: pinLine, until: Date.now() + 86400000 });
-          }
-          showToast(`${dragTarget.ref.name} meditating — empowerment circle rising ✦`);
-          recordCampMemory({
-            kind: "moment",
-            text: `${myVisitorName || player.name || "You"} placed ${dragTarget.ref.name} in an empowerment circle`,
-          });
-        } else {
-          resetNpcFreeWill(dragTarget.ref, "roam");
-          showToast(`${dragTarget.ref.name} repositioned`);
-        }
-      } else if (dragTarget.kind === "prop") {
-        showToast(`${dragTarget.ref.name} placed`);
-        recordCampMemory({
-          kind: "prop_move",
-          prop_id: dragTarget.ref.id,
-          text: `${myVisitorName || player.name || "You"} moved ${dragTarget.ref.name} at camp`,
-        });
-      } else if (dragTarget.kind === "structure") {
-        showToast(`${dragTarget.ref.name} repositioned`);
-      }
+      if (campPinchState) return;
+      if (!dragTarget) return;
+      const target = dragTarget;
       dragTarget = null;
+      const { sx, sy } = campPointerPos(ev);
+      const dragDist = Math.hypot(sx - target.startSx, sy - target.startSy);
+      const wasTap = dragDist <= campTapSlop();
+      if (target.kind === "meadow" || target.kind === "pond") {
+        const w = screenToWorld(sx, sy);
+        const b = getCampRelativeBounds();
+        walkPlayerTo(
+          Math.max(camp.x + b.xMin, Math.min(camp.x + b.xMax, w.x)),
+          Math.max(camp.y + b.yMin, Math.min(camp.y + b.yMax, w.y)),
+        );
+        pendingCampAction = null;
+        return;
+      }
+      if (wasTap || !target.moved) {
+        interactCampHit({ kind: target.kind, ref: target.ref });
+        return;
+      }
+      if (target.kind === "agent") {
+        if (target.fromPin || isAgentSpeechPinned(target.ref)) {
+          beginAgentMeditation(target.ref);
+          const pinLine = pinnedSpeech.get(target.ref.name)?.line;
+          if (pinLine) {
+            speechHold.set(target.ref.name, { line: pinLine, until: Date.now() + 86400000 });
+          }
+          showToast(`${target.ref.name} meditating — empowerment circle rising ✦`);
+        } else {
+          resetNpcFreeWill(target.ref, "roam");
+          showToast(`${target.ref.name} repositioned`);
+        }
+      } else if (target.kind === "prop") {
+        showToast(`${target.ref.name} placed`);
+      } else if (target.kind === "structure" || target.kind === "house") {
+        showToast(`${target.ref.name} repositioned`);
+      } else if (target.kind === "cat") {
+        showToast(`${campCat.name} relocated`);
+      }
     }
 
-    canvas.addEventListener("pointerdown", onCampPointerDown);
-    canvas.addEventListener("pointermove", onCampPointerMove);
-    canvas.addEventListener("pointerup", onCampPointerUp);
-    canvas.addEventListener("pointercancel", onCampPointerUp);
+    const bindCampMapPointer = (el) => {
+      if (!el) return;
+      el.addEventListener("pointerdown", onCampPointerDown);
+      el.addEventListener("pointermove", onCampPointerMove);
+      el.addEventListener("pointerup", onCampPointerUp);
+      el.addEventListener("pointercancel", onCampPointerUp);
+    };
+    bindCampMapPointer(canvas);
+    if (campStage && campStage !== canvas) {
+      campStage.addEventListener("pointerdown", (ev) => {
+        if (ev.target === campStage) onCampPointerDown(ev);
+      });
+      campStage.addEventListener("pointermove", onCampPointerMove);
+      campStage.addEventListener("pointerup", onCampPointerUp);
+      campStage.addEventListener("pointercancel", onCampPointerUp);
+    }
+    bindCampTouchPinch();
+    canvas.addEventListener("wheel", (ev) => {
+      ev.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const sx = ev.clientX - rect.left;
+      const sy = ev.clientY - rect.top;
+      const factor = ev.deltaY < 0 ? 1.1 : 0.9;
+      setViewZoomAtScreen(getWorldZoom() * factor, sx, sy);
+      syncCampZoomSliderUi();
+    }, { passive: false });
+    canvas.addEventListener("selectstart", (ev) => ev.preventDefault());
+    document.getElementById("camp-stage")?.addEventListener("selectstart", (ev) => ev.preventDefault());
+    bindCampUiGuards();
+    bindCampCanvasTouch();
+    initCampPickAgentSheet();
+    initCampTextExpand();
+    initCampLayerPicker();
+    initCampZoomSlider();
+    if (isCampMobile()) setCampZoomBarOpen(false);
+    document.getElementById("btn-camp-zoom-toggle")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const bar = document.getElementById("camp-zoom-bar");
+      setCampZoomBarOpen(!bar?.classList.contains("open"));
+    });
+    initCampAgentMenu();
+    ["gesturestart", "gesturechange", "gestureend"].forEach((evt) => {
+      canvas.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
+    });
     canvas.addEventListener("dblclick", (ev) => {
       const { sx, sy } = campPointerPos(ev);
       const hit = hitTestCamp(sx, sy);
-      if (hit?.kind !== "agent") return;
-      ev.preventDefault();
-      clearAgentClickPending();
-      openAgentChat(hit.ref);
+      if (hit?.kind === "agent") {
+        ev.preventDefault();
+        clearAgentClickPending();
+        openAgentChat(hit.ref);
+        return;
+      }
+      if (campViewZoom != null) {
+        resetCampViewCamera();
+        showToast("Map zoom reset — use Zoom bar in toolbar");
+      }
     });
 
     document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
@@ -9459,11 +11225,28 @@
     const campTalkTargetSel = document.getElementById("camp-talk-target");
     campTalkTargetSel?.addEventListener("mousedown", () => { campTalkPickerOpen = true; });
     campTalkTargetSel?.addEventListener("touchstart", () => { campTalkPickerOpen = true; }, { passive: true });
-    campTalkTargetSel?.addEventListener("change", () => {
+    campTalkTargetSel?.addEventListener("focus", () => {
+      if (campTalkTargetSel.value) {
+        syncSelectTextExpand(campTalkTargetSel, "💬 Talk to", "Full talk target — type below to send");
+      }
+    });
+    let talkTargetPickTs = 0;
+    const onTalkTargetPick = () => {
+      const now = Date.now();
+      if (now - talkTargetPickTs < 420) return;
+      talkTargetPickTs = now;
       campTalkPickerOpen = false;
       syncCampTalkAllBtn();
-      showToast(`Talking to: ${campTalkTargetSel.selectedOptions[0]?.textContent || campTalkTargetSel.value}`);
-    });
+      const val = campTalkTargetSel.value;
+      syncSelectTextExpand(campTalkTargetSel, "💬 Talk to", "Full talk target — type below to send");
+      if (val === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
+        spawnDionysusVisit({ manual: true });
+        refreshCampTalkTarget(true);
+      }
+      showToast(`Talking to: ${campTalkTargetSel.selectedOptions[0]?.textContent || val}`);
+    };
+    campTalkTargetSel?.addEventListener("change", onTalkTargetPick);
+    if (isAndroid()) campTalkTargetSel?.addEventListener("input", onTalkTargetPick);
     campTalkTargetSel?.addEventListener("blur", () => {
       setTimeout(() => { campTalkPickerOpen = false; }, 450);
     });
@@ -9478,13 +11261,14 @@
         setTimeout(() => tip.classList.remove("flash"), 2400);
       }
       showToast(isCampMobile()
-        ? "Tap = chat · double-tap = sit still · hold = drag"
-        : "Click = sit still · double-click = chat · hold = drag");
+        ? "Tap meadow to walk · tap anything to interact"
+        : "Tap meadow to walk · tap agents, props, houses");
     };
     document.querySelectorAll("#agent-strip .agent-chip").forEach((btn) => {
       btn.onclick = () => {
-        if (btn.dataset.agent === "luna") openLunaEmbed();
-        else openDialogue(btn.dataset.agent);
+        const id = btn.dataset.agent;
+        const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
+        openAgentChat(npc);
       };
     });
     document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
@@ -9521,6 +11305,17 @@
         sendCampTalk();
       }
     });
+    document.getElementById("btn-grok-terminal")?.addEventListener("click", () => toggleGrokTerminal());
+    document.getElementById("grok-term-close")?.addEventListener("click", () => setGrokTerminalOpen(false));
+    document.getElementById("grok-term-send")?.addEventListener("click", () => sendGrokTerminalTalk());
+    document.getElementById("grok-term-input")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendGrokTerminalTalk();
+      }
+    });
+    document.getElementById("grok-term-input")?.addEventListener("focus", onCampInputFocus);
+    document.getElementById("grok-term-input")?.addEventListener("blur", onCampInputBlur);
     function onCampInputFocus() {
       if (isIOS()) {
         setTimeout(syncKeyboardDock, 60);
@@ -9532,6 +11327,7 @@
     function onCampInputBlur() {
       if (isIOS()) {
         setTimeout(syncKeyboardDock, 80);
+        setTimeout(scheduleResize, 120);
         window.scrollTo(0, 0);
         return;
       }
@@ -9599,10 +11395,12 @@
       }
       const house = campHouses.find((h) => h.ownerId === "dionysus");
       g.leaving = true;
-      g.exitX = house ? house.x + 80 : g.x + 90;
-      g.exitY = house ? house.y + 50 : g.y + 60;
+      const exitPt = house ? layoutCampPoint(house.id, house.x + 80, house.y + 50) : null;
+      g.exitX = exitPt ? exitPt.x : g.x + 90;
+      g.exitY = exitPt ? exitPt.y : g.y + 60;
       pushCampLine("Dionysus", "Back to the vineyard — summon me when the party's ready. 🍷", 22, "happy");
       setCampLifeStatus("Dionysus heading to his vineyard…");
+      refreshCampTalkTarget(true);
       return true;
     }
 
@@ -9617,8 +11415,9 @@
     async function spawnDionysusVisit(opts = {}) {
       if (campGuests.some((g) => g.id === "dionysus" && !g.leaving)) return;
       const house = campHouses.find((h) => h.ownerId === "dionysus");
-      const dest = house ? { x: house.x - 42, y: house.y + 28 } : sectorPosition("dionysus");
-      const entry = { x: dest.x + 95, y: dest.y + 55 };
+      const dest = house ? layoutCampPoint(house.id, house.x - 42, house.y + 28) : sectorPosition("dionysus");
+      const entry = clampCampCoord(dest.x + 95, dest.y + 55);
+      const exitPt = house ? layoutCampPoint(house.id, house.x + 80, house.y + 50) : null;
       campGuests.push({
         id: "dionysus", name: "Dionysus", color: "#e11d48",
         x: entry.x, y: entry.y, tx: dest.x, ty: dest.y,
@@ -9626,15 +11425,26 @@
         behavior: "roam", behaviorTimer: 0, arriving: true, leaving: false,
         visitTarget: null, socializing: false, gathering: false,
         insideHouse: null, homeTarget: null, housePhase: null,
-        exitX: house ? house.x + 80 : entry.x + 60,
-        exitY: house ? house.y + 50 : entry.y + 35,
+        exitX: exitPt ? exitPt.x : entry.x + 60,
+        exitY: exitPt ? exitPt.y : entry.y + 35,
       });
+      if (isCampMobile()) {
+        const p = sectorPosition("dionysus");
+        const g = campGuests[campGuests.length - 1];
+        g.x = p.x;
+        g.y = p.y;
+        g.tx = p.x;
+        g.ty = p.y;
+        enforceNpcSeparation(1.28);
+      }
       setDionysusChipVisible(true);
       setAgentMood("dionysus", "happy");
+      refreshCampTalkTarget(true);
       pushCampLine("Camp", opts.manual
         ? "🍷 You called — Dionysus strolls in from the vineyard, grinning like he planned this."
         : "🍷 Dionysus wanders in from the treeline — everyone spreads out a little more.", 24, "happy");
       setCampLifeStatus("Dionysus is at camp — tap 🍷 again to send him home");
+      refreshCampLayerPicker();
       showToast("Dionysus arrived — his vineyard is on the east ridge");
       setTimeout(() => runCampConverse(["dionysus", "luna"]), 22000);
       try {
@@ -9665,16 +11475,9 @@
     }
 
     function openDialogue(agentId) {
-      dialogueAgent = agentId || nearestId || "luna";
-      dialogueName.textContent = agentNames[dialogueAgent] || dialogueAgent;
-      npcBubble.textContent = pickAgentOpener(dialogueAgent);
-      dialogueStatus.textContent = "Type a message or tap a prompt below";
-      renderDialogueQuickBtns(dialogueAgent);
-      dialogueInput.value = "";
-      dialogueBackdrop.classList.add("open");
-      chatterPaused = true;
-      expandSpeechBubble();
-      setTimeout(() => dialogueInput.focus(), 100);
+      const id = agentId || nearestId || "luna";
+      const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
+      focusAgentTalk(npc);
     }
 
     function closeDialogue() {
@@ -9694,7 +11497,7 @@
       if (npc) npc.line = "...";
       if (opts.useDialogue) dialogueStatus.textContent = "Waiting for reply...";
       else setCampLifeStatus(`${agentNames[agentId] || agentId} is thinking…`);
-      if (isIOS() && opts.fromCampBar) {
+      if (isIOS() && opts.fromCampBar && !canvasCampChatOnly()) {
         showMobileReplyBubble(agentNames[agentId] || agentId, "…", "think", 90);
       }
       recordCampMemory({ kind: "chat", agent_id: agentId, text: text.trim() });
@@ -9775,40 +11578,56 @@
 
     function bindConvoReadingHold(el) {
       if (!el) return;
-      el.addEventListener("pointerdown", () => {
-        convoReadingHold = true;
-        convoStickBottom = false;
-        updateConvoScrollLockUi();
-      });
-      const release = () => {
+      let holdTimer = 0;
+      let holdActive = false;
+      const startHold = () => {
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(() => {
+          holdActive = true;
+          convoReadingHold = true;
+          convoStickBottom = false;
+          updateConvoScrollLockUi();
+        }, 520);
+      };
+      const releaseHold = () => {
+        clearTimeout(holdTimer);
+        if (!holdActive) return;
+        holdActive = false;
         convoReadingHold = false;
         convoStickBottom = convoNearBottom();
         updateConvoScrollLockUi();
       };
-      el.addEventListener("pointerup", release);
-      el.addEventListener("pointercancel", release);
-      el.addEventListener("lostpointercapture", release);
+      el.addEventListener("pointerdown", startHold);
+      el.addEventListener("pointerup", releaseHold);
+      el.addEventListener("pointercancel", releaseHold);
+      el.addEventListener("lostpointercapture", releaseHold);
     }
     bindConvoReadingHold(convoLinesEl);
-    bindConvoReadingHold(convoLogEl);
-    bindConvoReadingHold(document.getElementById("now-speaking"));
     convoLinesEl?.addEventListener("click", (ev) => {
       const line = ev.target.closest(".line");
       if (!line) return;
       const entry = campLines[Number(line.dataset.idx)];
       if (!entry?.text) return;
+      showCampTextExpand(entry.speaker, entry.text, {
+        mood: entry.mood,
+        hint: "Full line — tap ✕ to collapse",
+      });
       const agent = allRoamers().find((n) => n.name === entry.speaker || n.id === entry.speaker.toLowerCase());
       pinCampSpeech(entry.speaker, entry.text, entry.mood, {
         color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
         agentId: agent?.id || "",
       });
-      if (agent) showToast(`Pinned ${entry.speaker} — drag them to meditate & empower`);
+      if (agent) showToast(`Full line — pinned ${entry.speaker}`);
     });
     document.getElementById("now-speaking")?.addEventListener("click", () => {
       const el = document.getElementById("now-speaking");
       if (!el || el.classList.contains("idle")) return;
       const last = campLines[campLines.length - 1];
-      if (!last) return;
+      if (!last?.text) return;
+      showCampTextExpand(last.speaker, last.text, {
+        mood: last.mood,
+        hint: "Full line — tap ✕ to collapse",
+      });
       const agent = allRoamers().find((n) => n.name === last.speaker || n.id === last.speaker.toLowerCase());
       pinCampSpeech(last.speaker, last.text, last.mood, {
         color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
@@ -9823,7 +11642,9 @@
     }
 
     function nowSpeakingHtml(speaker, text, mood) {
-      return `<span class="ns-who">${escapeHtml(speaker)} <span class="mood-tag ${moodClass(mood)}">${escapeHtml(mood)}</span></span><span class="ns-text">${escapeHtml(text)}</span><span class="ns-hold-hint">held — won't switch</span>`;
+      const role = speakerRole(speaker);
+      const roleHtml = role ? `<span class="ns-role">${escapeHtml(role)}</span>` : "";
+      return `<span class="ns-who">${escapeHtml(speaker)}${roleHtml}<span class="mood-tag ${moodClass(mood)}">${escapeHtml(mood)}</span></span><span class="ns-text">${escapeHtml(text)}</span>`;
     }
 
     function updateNowSpeaking(speaker, text, mood) {
@@ -9841,7 +11662,9 @@
       convoLinesEl.innerHTML = visible.map((entry, i) => {
         const mc = moodClass(entry.mood);
         const pinCls = pinnedSpeechKey === `${entry.speaker}::${entry.text}` ? " pinned-line" : "";
-        return `<div class="line${pinCls}" data-idx="${startIdx + i}"><span class="speaker">${escapeHtml(entry.speaker)}<span class="mood-tag ${mc}">${escapeHtml(entry.mood)}</span></span><span class="text">${escapeHtml(entry.text)}</span></div>`;
+        const role = speakerRole(entry.speaker);
+        const roleHtml = role ? `<span class="speaker-role">${escapeHtml(role)}</span>` : "";
+        return `<div class="line${pinCls}" data-idx="${startIdx + i}"><span class="speaker">${escapeHtml(entry.speaker)}${roleHtml}<span class="mood-tag ${mc}">${escapeHtml(entry.mood)}</span></span><span class="text">${escapeHtml(entry.text)}</span></div>`;
       }).join("");
       if (convoShouldAutoScroll()) {
         convoLinesEl.scrollTop = convoLinesEl.scrollHeight;
@@ -9851,14 +11674,58 @@
       updateConvoScrollLockUi();
     }
 
+    let grokTerminalOpen = false;
+
+    function setGrokTerminalOpen(open) {
+      grokTerminalOpen = !!open;
+      const panel = document.getElementById("grok-terminal");
+      const btn = document.getElementById("btn-grok-terminal");
+      if (panel) panel.classList.toggle("collapsed", !grokTerminalOpen);
+      if (btn) btn.classList.toggle("active", grokTerminalOpen);
+      if (grokTerminalOpen) {
+        scheduleResize();
+        setTimeout(() => document.getElementById("grok-term-input")?.focus(), 100);
+      }
+    }
+
+    function toggleGrokTerminal() {
+      setGrokTerminalOpen(!grokTerminalOpen);
+    }
+
+    function appendGrokTerminalLine(speaker, text, mood) {
+      const log = document.getElementById("grok-term-log");
+      if (!log) return;
+      const line = document.createElement("div");
+      line.className = "grok-term-line";
+      const who = document.createElement("span");
+      who.className = "grok-who";
+      who.textContent = `${speaker}> `;
+      const msg = document.createElement("span");
+      msg.className = `grok-msg ${moodClass(mood || "neutral")}`;
+      msg.textContent = text;
+      line.append(who, msg);
+      log.appendChild(line);
+      while (log.children.length > 100) log.removeChild(log.firstChild);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function sendGrokTerminalTalk() {
+      const input = document.getElementById("grok-term-input");
+      const talkInput = document.getElementById("camp-talk-input");
+      const text = (input?.value || "").trim();
+      if (!text || campTalkBusy) return;
+      if (talkInput) talkInput.value = text;
+      input.value = "";
+      recenterCampView({ blurInput: true });
+      await sendCampTalk();
+    }
+
     function pushCampLine(speaker, line, holdSec, mood, opts = {}) {
       if (holdSec == null) holdSec = campReadHoldSec(line, 36);
       const clean = (line || "").trim();
       if (!clean) return;
-      if (opts.welcomeSplash) {
-        showWelcomeSplash(speaker, clean, mood, holdSec);
-      }
-      const quiet = opts.quiet || welcomeSplashActive || (arrivalGreetingPhase && !opts.welcomeSplash);
+      if (isCampMobile() && opts.fromLocal) opts.quiet = false;
+      const quiet = opts.quiet || (arrivalGreetingPhase && !isCampMobile());
       let agentId = (speaker || "").toLowerCase();
       if (!agentMoods[agentId]) {
         const hit = moodAgents.find((a) => a.name.toLowerCase() === agentId);
@@ -9873,12 +11740,19 @@
         campLines.push(entry);
         while (campLines.length > 100) campLines.shift();
         renderConvoLog();
+        appendGrokTerminalLine(speaker, clean, moodVal);
       }
-      if (!convoReadingHold && !quiet) updateNowSpeaking(speaker, clean, moodVal);
-      if (isIOS() && !isVisitorSpeaker(speaker) && speaker !== "Camp" && !quiet) {
+      if (clean && !opts.quiet && speaker !== "Camp" && !isVisitorSpeaker(speaker)) {
+        showCampTextExpand(speaker, clean, {
+          mood: moodVal,
+          hint: isCampMobile() ? "Full agent line — tap ✕ to collapse" : "Full line — click ✕ to collapse",
+        });
+      }
+      if (!canvasCampChatOnly() && !convoReadingHold && !quiet) updateNowSpeaking(speaker, clean, moodVal);
+      if (isCampMobile() && !isVisitorSpeaker(speaker) && speaker !== "Camp" && !quiet) {
         showMobileReplyBubble(speaker, clean, moodVal, holdSec);
       }
-      if (!opts.keepDock && !isCampMobile() && !quiet) expandSpeechBubble();
+      if (!opts.keepDock && !canvasCampChatOnly() && !quiet) expandSpeechBubble();
       notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase() || n.id === agentId);
@@ -9886,13 +11760,15 @@
         npc.idle = 99999;
       }
       if (!quiet) showBigSpeech(speaker, clean, holdSec);
-      setTimeout(() => {
-        const latest = campLines[campLines.length - 1];
-        if (latest?.text === clean && latest?.speaker === speaker
-            && !chatterPaused && !converseBusy && !convoReadingHold) {
-          showNowSpeakingIdle();
-        }
-      }, holdSec * 1000 + 400);
+      if (!canvasCampChatOnly()) {
+        setTimeout(() => {
+          const latest = campLines[campLines.length - 1];
+          if (latest?.text === clean && latest?.speaker === speaker
+              && !chatterPaused && !converseBusy && !convoReadingHold) {
+            showNowSpeakingIdle();
+          }
+        }, holdSec * 1000 + 400);
+      }
       if (npc) {
         npc.line = clean;
         npc.fullLine = clean;
@@ -10144,7 +12020,13 @@
 
     const serverStatusEl = document.getElementById("server-status");
     const campBuildEl = document.getElementById("camp-build-tag");
-    if (campBuildEl) campBuildEl.textContent = CAMP_BUILD;
+    if (campBuildEl) {
+      const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
+      campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;
+    }
+    const grokBuildEl = document.getElementById("grok-term-build");
+    if (grokBuildEl) grokBuildEl.textContent = CAMP_BUILD;
+    if (isCampMobile()) setGrokTerminalOpen(false);
     updateCampMusicUi();
     function updateBrainStatusChip(h) {
       const ollamaChip = document.getElementById("chip-ollama");
@@ -10346,11 +12228,8 @@
       if (savedName) {
         myVisitorName = savedName;
         player.name = savedName;
-      } else if (isCampMobile()) {
-        player.name = "you";
-        setTimeout(() => openVisitorNameModal({ firstJoin: true }), 900);
       } else {
-        myVisitorName = "Traveler" + (100 + Math.floor(Math.random() * 900));
+        myVisitorName = isCampMobile() ? "you" : `Traveler${100 + Math.floor(Math.random() * 900)}`;
         player.name = myVisitorName;
         localStorage.setItem("luna-play-visitor-name", myVisitorName);
       }
@@ -10494,21 +12373,27 @@
       scheduleAgentTweets();
       try {
         if (isCampMobile()) {
-          const savedMode = localStorage.getItem("luna-camp-chatter-mode");
-          applyMobileChatterMode(savedMode === "hidden" || savedMode === "expanded" ? savedMode : "mini", { quiet: true });
+          applyMobileChatterMode("hidden", { quiet: true });
         } else {
           const savedDock = localStorage.getItem("luna-camp-speech-dock");
           setSpeechBubbleDock(savedDock === "min");
         }
       } catch (_) {
-        if (isCampMobile()) applyMobileChatterMode("mini", { quiet: true });
+        if (isCampMobile()) applyMobileChatterMode("hidden", { quiet: true });
         else setSpeechBubbleDock(true);
       }
       setCampLifeStatus(isCampMobile()
-        ? "𝕏 Pulse · tap chat · double-tap sit · hold drag"
-        : "𝕏 Pulse · click sit · double-click chat · hold drag");
+        ? "🎯 dropdown — pick anyone or anything · tap meadow to walk"
+        : "🎯 Layer picker below · tap meadow to walk · type to talk");
+      syncCampZoomSliderUi();
+      if (isCampMobile()) {
+        setTimeout(() => showToast("Tap meadow to walk · tap anyone or anything"), 2200);
+      } else {
+        setTimeout(() => showToast("Use the Zoom bar above the icons — slider or +/− buttons"), 2800);
+      }
       initCampCat();
       spreadAllNpcs();
+      initMobileAgentView();
       mergeLocalBondsIntoCamp();
       bindCampMusicGestureUnlock();
       const greetDelay = isSlowDevice() ? 5200 : 2800;
@@ -10537,11 +12422,6 @@
         lastDrawAt = frameNow;
         if (!campReady) {
           campReady = true;
-          const splash = document.getElementById("camp-boot-splash");
-          if (splash) {
-            splash.classList.add("done");
-            setTimeout(() => splash.remove(), 400);
-          }
           if (isSlowDevice()) requestAnimationFrame(() => bootCampWorld());
           else bootCampWorld();
         }
@@ -10553,6 +12433,7 @@
           player.x += (dx / d) * moveSpd;
           player.y += (dy / d) * moveSpd;
         }
+        processPendingCampAction();
         updatePlayerSwim();
         updateNpcSocial();
         enforceNpcSeparation(0.45);
@@ -10560,15 +12441,18 @@
         drawGround();
         drawPsychicRipples();
         for (const h of campHouses) {
-          drawCampHouse(camp.x + h.x, camp.y + h.y, h);
+          const hw = layoutCampWorld(h.id, h.x, h.y);
+          drawCampHouse(hw.x, hw.y, h);
         }
         for (const st of campStructures) {
-          drawCampStructure(camp.x + st.x, camp.y + st.y, st);
+          const sw = layoutCampWorld(st.id, st.x, st.y);
+          drawCampStructure(sw.x, sw.y, st);
         }
         drawCampfire(camp.x, camp.y);
         drawCampfireLabel();
         for (const p of props) {
-          drawCampProp(camp.x + p.x, camp.y + p.y, p);
+          const pw = propCampWorld(p);
+          drawCampProp(pw.x, pw.y, p);
         }
 
         updateAetherEntities();

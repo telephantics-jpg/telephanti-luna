@@ -3333,7 +3333,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-stack-fix";
+    const CAMP_BUILD = "2026-07-08-camp-ref-fix";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5757,7 +5757,7 @@
       const bodyClassObs = new MutationObserver(() => scheduleResize({ debounceMs: 40 }));
       bodyClassObs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     }
-    primeCampLayoutOnLoad();
+    requestAnimationFrame(() => primeCampLayoutOnLoad());
 
     function setCampTilt(_sx, _sy) {
       document.documentElement.style.setProperty("--tilt-x", "0deg");
@@ -12211,15 +12211,16 @@
     const serverStatusEl = document.getElementById("server-status");
     const campBuildEl = document.getElementById("camp-build-tag");
     function updateCampViewportDebug() {
-      if (!campBuildEl) return;
+      const tag = document.getElementById("camp-build-tag");
+      if (!tag) return;
       const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
       if (!isCampMobile()) {
         const cw = canvas?.clientWidth || 0;
         const ch = canvas?.clientHeight || 0;
-        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} c${cw}×${ch} z${getWorldZoom().toFixed(2)} d${campDisplayDpr().toFixed(1)}`;
+        tag.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} c${cw}×${ch} z${getWorldZoom().toFixed(2)} d${campDisplayDpr().toFixed(1)}`;
         return;
       }
-      campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;
+      tag.textContent = `${CAMP_BUILD} · ${plat}`;
     }
     updateCampViewportDebug();
     const grokBuildEl = document.getElementById("grok-term-build");

@@ -70,14 +70,15 @@
     #camp-stage {
       position: fixed; z-index: 1;
       left: 0; top: var(--header-h); right: 0;
-      width: 100%;
-      height: calc(100vh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
-      height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
+      width: auto;
+      height: auto;
       max-width: 100vw;
       overflow: hidden;
       touch-action: none;
       transform: none;
       filter: none;
+      background: #050b14;
     }
     @media (min-width: 900px) {
       html.desktop-camp #camp-stage,
@@ -91,9 +92,9 @@
     #game {
       display: block;
       position: absolute;
-      left: 0; top: 0;
-      width: 100%;
-      height: 100%;
+      left: 0; top: 0; right: 0; bottom: 0;
+      width: 100% !important;
+      height: 100% !important;
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
@@ -371,9 +372,9 @@
     #trippy-veil {
       position: fixed; z-index: 2; pointer-events: none;
       left: 0; top: var(--header-h); right: 0;
-      width: 100%;
-      height: calc(100vh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
-      height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
+      width: auto;
+      height: auto;
       background:
         radial-gradient(ellipse at 18% 22%, rgba(167, 139, 250, 0.14), transparent 42%),
         radial-gradient(ellipse at 82% 68%, rgba(244, 114, 182, 0.1), transparent 45%),
@@ -1589,10 +1590,12 @@
       }
       html.desktop-camp #camp-stage,
       html.desktop-camp #trippy-veil {
+        left: 0;
+        right: calc(var(--sidebar-w) + var(--gap) * 2);
         top: var(--header-h);
         bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
-        height: auto !important;
-        min-height: 360px;
+        width: auto;
+        height: auto;
       }
     }
     #game.dragging { cursor: grabbing; }
@@ -3350,7 +3353,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-fitview";
+    const CAMP_BUILD = "2026-07-08-camp-pc-canvasfill";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3533,9 +3536,18 @@
       const style = getComputedStyle(document.documentElement);
       const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
       const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 100;
+      const gap = parseFloat(style.getPropertyValue("--gap")) || 10;
+      const sidebar = parseFloat(style.getPropertyValue("--sidebar-w")) || 0;
       const vw = layoutViewportWidth();
       const vh = layoutViewportHeight();
-      return { w: vw, h: Math.max(120, vh - headerH - dockH) };
+      const stageW = isCampMobile() ? vw : Math.max(320, vw - sidebar - gap * 2);
+      return { w: stageW, h: Math.max(120, vh - headerH - dockH) };
+    }
+
+    function measureCampStageBox() {
+      const stage = campStage || canvas;
+      if (!stage) return { w: 0, h: 0 };
+      return stage.getBoundingClientRect();
     }
 
     function commitStableCampSize(w, h) {
@@ -3568,15 +3580,16 @@
     }
 
     function getCampCanvasSize() {
-      const el = campStage || canvas;
-      const box = el.getBoundingClientRect();
+      const box = measureCampStageBox();
       let w = Math.max(1, Math.round(box.width));
       let h = Math.max(1, Math.round(box.height));
       if (!isCampMobile()) {
         const sz = getCampCanvasSizeFromLayout();
-        const layoutH = Math.max(360, Math.round(sz.h));
-        if (h < layoutH * 0.82) h = layoutH;
-        if (w < 120) w = Math.max(w, Math.round(sz.w * 0.72));
+        if (w < 240 || h < 240) {
+          w = Math.max(w, Math.round(sz.w));
+          h = Math.max(h, Math.round(sz.h));
+        }
+        return { w, h };
       }
       if (isIOS() && (w < 80 || h < 80)) {
         const sz = getCampCanvasSizeFromLayout();
@@ -5596,8 +5609,9 @@
       viewH = h;
       const bw = Math.round(w * campDpr);
       const bh = Math.round(h * campDpr);
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.display = "block";
       if (canvas.width !== bw || canvas.height !== bh) {
         canvas.width = bw;
         canvas.height = bh;
@@ -5621,7 +5635,7 @@
         return;
       }
       resizeRetry = 0;
-      const dimChanged = Math.abs(w - lastCanvasW) > 10 || Math.abs(h - lastCanvasH) > 10;
+      const dimChanged = Math.abs(w - lastCanvasW) > 2 || Math.abs(h - lastCanvasH) > 2;
       lastCanvasW = w;
       lastCanvasH = h;
       applyCanvasDimensions(w, h);
@@ -5690,6 +5704,9 @@
       else layoutObs.observe(canvas);
     }
     scheduleResize();
+    if (!isCampMobile()) {
+      [50, 180, 420, 900].forEach((ms) => setTimeout(scheduleResize, ms));
+    }
 
     function setCampTilt(_sx, _sy) {
       document.documentElement.style.setProperty("--tilt-x", "0deg");

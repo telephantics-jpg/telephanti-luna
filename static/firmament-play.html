@@ -2213,13 +2213,8 @@
       #camp-agent-menu,
       #camp-talk-target-wrap,
       #camp-talk-all,
-      .dock-music-group,
-      #btn-lucid-tv,
-      #btn-camp-shop,
       #btn-summon-heaven,
       #btn-summon-dionysus,
-      #btn-conjure-aether,
-      #btn-luna-avatar,
       #btn-camp-move-mode,
       #btn-talk-near,
       #btn-dock-help,
@@ -2241,10 +2236,14 @@
       #camp-zoom-bar.open {
         display: flex;
       }
-    #dialogue-backdrop,
-    #dialogue-backdrop.open {
-      display: none !important;
-    }
+      #dialogue-backdrop.open {
+        display: flex !important;
+        padding-bottom: max(12px, calc(env(safe-area-inset-bottom) + var(--dock-h)));
+      }
+      #dialogue-panel {
+        width: min(96vw, 420px);
+        max-height: min(72vh, 520px);
+      }
       html.touch-camp #camp-stage,
       html.touch-camp #camp-stage canvas {
         touch-action: none;
@@ -2343,11 +2342,16 @@
       .dock-compact {
         max-width: none;
         flex: 0 0 auto;
-        justify-content: flex-end;
+        justify-content: flex-start;
         flex-wrap: nowrap;
-        overflow: visible;
+        overflow-x: auto;
         gap: 6px;
-        padding: 0 2px 2px;
+        padding: 0 2px 6px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.42) transparent;
+      }
+      .dock-scroll-hint {
+        display: block !important;
       }
       .dock-compact .dock-icon {
         width: 38px; height: 38px; font-size: 1rem;
@@ -3263,7 +3267,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-ara-mika-ios";
+    const CAMP_BUILD = "2026-07-08-camp-simple-v2";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3846,9 +3850,10 @@
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
     const WORLD_ZOOM_DESKTOP = 0.38;
-    const WORLD_ZOOM_MOBILE = 0.80;
-    const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
-    const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
+    const WORLD_ZOOM_MOBILE = 0.74;
+    const WORLD_ZOOM_ANDROID = 0.66;
+    const WORLD_ZOOM_IOS_PORTRAIT = 0.72;
+    const WORLD_ZOOM_IOS_LANDSCAPE = 0.74;
     const CAMP_ZOOM_MIN = 0.22;
     const CAMP_ZOOM_MAX = 0.95;
     let campViewZoom = null;
@@ -3858,6 +3863,7 @@
     let campPinchState = null;
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
+      if (isAndroid()) return WORLD_ZOOM_ANDROID;
       if (isCampMobile()) return WORLD_ZOOM_MOBILE;
       return WORLD_ZOOM_DESKTOP;
     }
@@ -4152,12 +4158,13 @@
     }
     function tierRadii(tier) {
       const { halfW, halfH } = campBoundsCenter();
-      const edgeInset = isCampMobile() ? 4 : 8;
-      const spread = isCampMobile() ? 1.06 : 1.0;
+      const edgeInset = isCampMobile() ? 12 : 8;
+      const spread = isCampMobile() ? (isAndroid() ? 0.86 : 0.92) : 1.0;
       if (tier === "edge") {
+        const edgeMul = isCampMobile() ? 0.88 : 0.98;
         return {
-          rx: Math.max(halfW * 0.98, halfW - edgeInset) * spread,
-          ry: Math.max(halfH * 0.97, halfH - edgeInset) * spread,
+          rx: Math.max(halfW * edgeMul, halfW - edgeInset) * spread,
+          ry: Math.max(halfH * (edgeMul - 0.01), halfH - edgeInset) * spread,
         };
       }
       if (tier === "inner") {
@@ -5510,7 +5517,17 @@
     }
 
     let resizeRAF = 0;
-    function scheduleResize() {
+    let resizeLayoutTimer = 0;
+    function scheduleResize(opts = {}) {
+      const debounceMs = opts.debounceMs ?? 0;
+      if (debounceMs > 0) {
+        clearTimeout(resizeLayoutTimer);
+        resizeLayoutTimer = setTimeout(() => {
+          resizeLayoutTimer = 0;
+          scheduleResize();
+        }, debounceMs);
+        return;
+      }
       if (resizeRAF) cancelAnimationFrame(resizeRAF);
       resizeRAF = requestAnimationFrame(() => {
         resizeRAF = 0;
@@ -5543,7 +5560,6 @@
       document.documentElement.style.setProperty("--tilt-y", "0deg");
       if (isCampMobile()) minimizeSpeechBubble();
       scheduleResize();
-      setTimeout(scheduleResize, 280);
     }
 
     function recenterCampView(opts = {}) {
@@ -5553,6 +5569,8 @@
 
     let resizeRetry = 0;
     let lastLayoutSig = "";
+    let lastCanvasW = 0;
+    let lastCanvasH = 0;
     function applyCanvasDimensions(w, h) {
       campDpr = Math.min(window.devicePixelRatio || 1, isIOS() ? 2.5 : 3);
       viewW = w;
@@ -5587,7 +5605,11 @@
       applyCanvasDimensions(w, h);
       const zoom = getBaseWorldZoom();
       const layoutKey = getCampLayoutKey();
-      if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005 || layoutKey !== lastLayoutKey) {
+      const dimChanged = Math.abs(w - lastCanvasW) > 8 || Math.abs(h - lastCanvasH) > 8;
+      lastCanvasW = w;
+      lastCanvasH = h;
+      const layoutChanged = layoutKey !== lastLayoutKey || Math.abs(zoom - lastSpreadZoom) > 0.005;
+      if (!campSpreadInit || (layoutChanged && dimChanged)) {
         campSpreadInit = true;
         lastSpreadZoom = zoom;
         lastLayoutKey = layoutKey;
@@ -5610,19 +5632,24 @@
         }
       }, isIOS() ? 80 : 30);
     }
+    let vvChangeTimer = 0;
     function onVisualViewportChange() {
-      if (isIOS()) {
-        syncKeyboardDock();
+      clearTimeout(vvChangeTimer);
+      vvChangeTimer = setTimeout(() => {
+        vvChangeTimer = 0;
+        if (isIOS()) {
+          syncKeyboardDock();
+          syncViewportOffset();
+          window.scrollTo(0, 0);
+          scheduleResize({ debounceMs: 80 });
+          return;
+        }
         syncViewportOffset();
         window.scrollTo(0, 0);
-        scheduleResize();
-        return;
-      }
-      syncViewportOffset();
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      scheduleResize();
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        scheduleResize({ debounceMs: 120 });
+      }, isIOS() ? 60 : 100);
     }
     window.addEventListener("resize", () => scheduleResize());
     window.addEventListener("orientationchange", onCampOrientationChange);
@@ -5635,31 +5662,18 @@
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => scheduleResize());
+      const layoutObs = new ResizeObserver(() => scheduleResize({ debounceMs: 140 }));
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (hdr) layoutObs.observe(hdr);
       if (dock) layoutObs.observe(dock);
-      if (campStage) layoutObs.observe(campStage);
-      else layoutObs.observe(canvas);
     }
     scheduleResize();
 
-    function setCampTilt(sx, sy) {
-      if (isCampMobile()) {
-        document.documentElement.style.setProperty("--tilt-x", "0deg");
-        document.documentElement.style.setProperty("--tilt-y", "0deg");
-        return;
-      }
-      const nx = (sx / Math.max(1, window.innerWidth)) - 0.5;
-      const ny = (sy / Math.max(1, window.innerHeight)) - 0.5;
-      const max = 3.2;
-      document.documentElement.style.setProperty("--tilt-y", `${(nx * max).toFixed(2)}deg`);
-      document.documentElement.style.setProperty("--tilt-x", `${(-ny * max * 0.65).toFixed(2)}deg`);
+    function setCampTilt(_sx, _sy) {
+      document.documentElement.style.setProperty("--tilt-x", "0deg");
+      document.documentElement.style.setProperty("--tilt-y", "0deg");
     }
-    window.addEventListener("pointermove", (ev) => {
-      if (!ev.pointerType || ev.pointerType === "mouse") setCampTilt(ev.clientX, ev.clientY);
-    }, { passive: true });
 
     function worldToScreen(wx, wy) {
       ensureViewCamera();
@@ -6503,24 +6517,7 @@
     }
 
     function focusGrokAgent(agentId) {
-      const sel = document.getElementById("camp-talk-target");
-      const layerSel = document.getElementById("camp-layer-select");
-      const input = document.getElementById("camp-talk-input");
-      if (sel) {
-        sel.value = agentId;
-        syncCampTalkAllBtn();
-        refreshCampTalkTarget();
-      }
-      if (layerSel) {
-        layerSel.value = `agent:${agentId}`;
-        syncSelectTextExpand(layerSel, "🎯");
-      }
-      const npc = findRoamAgent(agentId);
-      if (npc) {
-        panCampCameraTo(camp.x + npc.x, camp.y + npc.y);
-      }
-      showToast(`💬 ${agentNames[agentId] || agentId} — type or send`);
-      setTimeout(() => input?.focus(), 120);
+      void openDialogueWindow(agentId);
     }
 
     async function sendCampTalk() {
@@ -10773,7 +10770,7 @@
         h = Math.max(58, Math.ceil(panel.offsetHeight) + 6);
       }
       document.documentElement.style.setProperty("--text-expand-h", `${h}px`);
-      scheduleResize();
+      syncUILayout();
     }
 
     function showCampTextExpand(who, text, opts = {}) {
@@ -10871,10 +10868,14 @@
       refreshCampLayerPicker();
       const sel = document.getElementById("camp-layer-select");
       const go = document.getElementById("camp-layer-go");
-      const runPick = () => {
+      const runWalkPick = () => {
         const val = sel?.value;
         if (!val) {
           showToast("Pick someone or something from the list");
+          return;
+        }
+        if (val.startsWith("agent:")) {
+          openDialogueWindow(val.slice(6));
           return;
         }
         syncSelectTextExpand(sel, "🎯", "Walking to selection…");
@@ -10883,25 +10884,20 @@
       go?.addEventListener("click", (ev) => {
         ev.preventDefault();
         ev.stopPropagation();
-        runPick();
+        runWalkPick();
       });
-      sel?.addEventListener("focus", () => {
-        if (sel.value) syncSelectTextExpand(sel, "🎯");
-      });
-      let layerPickTs = 0;
-      const onLayerPick = () => {
-        const now = Date.now();
-        if (now - layerPickTs < 420) return;
-        layerPickTs = now;
-        if (!sel.value) {
+      sel?.addEventListener("change", () => {
+        const val = sel?.value;
+        if (!val) {
           hideCampTextExpand();
           return;
         }
-        syncSelectTextExpand(sel, "🎯", "Going now…");
-        runPick();
-      };
-      sel?.addEventListener("change", onLayerPick);
-      if (isAndroid()) sel?.addEventListener("input", onLayerPick);
+        if (val.startsWith("agent:")) {
+          openDialogueWindow(val.slice(6));
+          return;
+        }
+        syncSelectTextExpand(sel, "🎯", "Tap → to walk there");
+      });
     }
 
     function processPendingCampAction() {
@@ -11066,7 +11062,7 @@
     function openAgentChat(npc) {
       if (!npc || npc.leaving) return;
       hideAgentActionMenu();
-      focusAgentTalk(npc);
+      openDialogueWindow(npc.id || npc);
     }
 
     function placeDragAt(sx, sy, target) {
@@ -11276,10 +11272,12 @@
       canvas.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
     });
     canvas.addEventListener("dblclick", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (isCampMobile()) return;
       const { sx, sy } = campPointerPos(ev);
       const hit = hitTestCamp(sx, sy);
       if (hit?.kind === "agent") {
-        ev.preventDefault();
         clearAgentClickPending();
         openAgentChat(hit.ref);
         return;
@@ -11289,6 +11287,12 @@
         showToast("Map zoom reset — use Zoom bar in toolbar");
       }
     });
+    document.addEventListener("dblclick", (ev) => {
+      if (isMapSurfaceTarget(ev.target)) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+    }, true);
 
     document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
     document.getElementById("btn-find-bar").onclick = () => gatherNpcsAtCamp(false);
@@ -11554,15 +11558,47 @@
       }
     }
 
-    function openDialogue(agentId) {
-      const id = agentId || nearestId || "luna";
+    async function openDialogueWindow(agentId) {
+      let id = (agentId || nearestId || "luna").toLowerCase();
+      if (id === "dionysus" && !findRoamAgent("dionysus")) {
+        await spawnDionysusVisit({ manual: true });
+        id = "dionysus";
+      }
       const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
-      focusAgentTalk(npc);
+      hideAgentActionMenu();
+      dialogueAgent = id;
+      dialogueName.textContent = npc.name || agentNames[id] || id;
+      const greet = (npc.line || npc.fullLine || "").trim();
+      npcBubble.textContent = greet && greet !== "..." && greet !== "…"
+        ? greet
+        : `Talk to ${npc.name || agentNames[id] || id}…`;
+      renderDialogueQuickBtns(id);
+      dialogueStatus.textContent = "Type below · Enter = send";
+      dialogueBackdrop.classList.add("open");
+      chatterPaused = true;
+      const talkSel = document.getElementById("camp-talk-target");
+      const layerSel = document.getElementById("camp-layer-select");
+      if (talkSel) {
+        talkSel.value = id;
+        syncCampTalkAllBtn();
+        refreshCampTalkTarget();
+      }
+      if (layerSel) layerSel.value = "";
+      hideCampTextExpand();
+      if (npc.x != null && npc.y != null) {
+        panCampCameraTo(camp.x + npc.x, camp.y + npc.y);
+      }
+      setTimeout(() => dialogueInput?.focus(), isCampMobile() ? 80 : 140);
+    }
+
+    function openDialogue(agentId) {
+      void openDialogueWindow(agentId);
     }
 
     function closeDialogue() {
       dialogueBackdrop.classList.remove("open");
       chatterPaused = false;
+      dialogueInput?.blur();
     }
 
     dialogueBackdrop.onclick = closeDialogue;

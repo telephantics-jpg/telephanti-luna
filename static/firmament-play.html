@@ -2417,7 +2417,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-odin-roots";
+    const CAMP_BUILD = "2026-07-07-camp-odin-portrait";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2945,12 +2945,25 @@
     let activeHousePortrait = null;
 
     function housePortraitPath(ownerId, songId) {
+      if (ownerId === "odin") {
+        const suffix = isSlowDevice() ? "-m" : "";
+        return `/static/camp/portraits/odin/hall${suffix}.jpg`;
+      }
       if (!HOUSE_PORTRAIT_AGENTS.includes(ownerId)) return null;
       const suffix = isSlowDevice() ? "-m" : "";
       return `/static/camp/portraits/${ownerId}/${songId}${suffix}.jpg`;
     }
 
     function pickHousePortraitVariant(ownerId) {
+      if (ownerId === "odin") {
+        const src = housePortraitPath("odin", "hall");
+        activeHousePortrait = { ownerId: "odin", songId: "hall", title: "Odin's Hall", src };
+        return {
+          src,
+          song: { title: "Raven's Vigil" },
+          fallback: HOUSE_INTERIOR_THEMES.odin?.portrait || src,
+        };
+      }
       const songs = HOUSE_SONG_PORTRAITS;
       let pool = songs;
       if (lastHousePortraitPick.ownerId === ownerId && songs.length > 1) {
@@ -2996,7 +3009,7 @@
       odin: {
         accent: "#94a3b8", wall: "#1e293b", wallMid: "#334155", floor: "#0f172a",
         skyTop: "#020617", skyBot: "#1e293b", window: "#cbd5e1", decor: "🦅 ᚠ 🏰",
-        glyph: "🦅", portrait: "/static/avatars/luna-portrait.jpg",
+        glyph: "🦅", portrait: "/static/camp/portraits/odin/hall.jpg",
         vibe: "Stone hall on the outskirts — fire low, ravens on the rafters, wisdom in the drafts.",
       },
     };

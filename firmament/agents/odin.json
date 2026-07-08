@@ -14,7 +14,7 @@
   "avatar": {
     "type": "metahuman",
     "asset": "MH_Odin",
-    "fallback_portrait": "/static/avatars/luna-portrait.jpg"
+    "fallback_portrait": "/static/camp/portraits/odin/hall.jpg"
   },
   "bubble": {
     "color": "#94a3b8",

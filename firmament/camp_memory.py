@@ -36,6 +36,8 @@ AGENT_NAMES = {
     "violet": "Violet",
     "seraph": "Seraph",
     "odin": "Odin",
+    "ambrosia": "Ambrosia",
+    "rhea": "Rhea",
 }
 MAX_CAMP_CHATTER_LOG = 48
 

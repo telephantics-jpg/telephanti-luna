@@ -2127,6 +2127,8 @@
         <button type="button" class="agent-chip" data-agent="violet"><span class="dot" style="background:#c084fc;color:#c084fc"></span><span class="chip-text"><span class="aname">Violet</span><span class="amood">happy</span></span></button>
         <button type="button" class="agent-chip" data-agent="seraph"><span class="dot" style="background:#fda4af;color:#fda4af"></span><span class="chip-text"><span class="aname">Seraph</span><span class="amood">love</span></span></button>
         <button type="button" class="agent-chip" data-agent="odin"><span class="dot" style="background:#94a3b8;color:#94a3b8"></span><span class="chip-text"><span class="aname">Odin</span><span class="amood">think</span></span></button>
+        <button type="button" class="agent-chip" data-agent="ambrosia"><span class="dot" style="background:#f59e0b;color:#f59e0b"></span><span class="chip-text"><span class="aname">Ambrosia</span><span class="amood">love</span></span></button>
+        <button type="button" class="agent-chip" data-agent="rhea"><span class="dot" style="background:#d4a574;color:#d4a574"></span><span class="chip-text"><span class="aname">Rhea</span><span class="amood">love</span></span></button>
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
@@ -2211,6 +2213,8 @@
           <option value="violet">💜 Violet</option>
           <option value="seraph">🕊 Seraph</option>
           <option value="odin">🦅 Odin</option>
+          <option value="ambrosia">🍯 Ambrosia</option>
+          <option value="rhea">🏔 Rhea</option>
           <option value="caduceus">🐍 Caduceus</option>
           <option value="sentinel">🛡 Sentinel</option>
           <option value="spirit">👻 Spirit channel</option>
@@ -2432,7 +2436,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-mobile-speed-name";
+    const CAMP_BUILD = "2026-07-07-camp-ambrosia-rhea";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2792,6 +2796,8 @@
       violet: { mood: "happy", open: ["{v}! Lavender static in a good way.", "Hi {v} — camp's softer when you show."], reply: ["{s} — that's violet energy.", "Oracle would call that a mood. I'd call it honest."] },
       seraph: { mood: "love", open: ["Peace, {v}. Wings down, heart open.", "{v}, the meadow feels lighter."], reply: ["{s} — gentle truth lands well.", "You're heard. The light remembers."] },
       odin: { mood: "think", open: ["{v} — the ravens saw you coming.", "Hail, {v}. The hall is far but wisdom travels."], reply: ["{s} — the runes twitch.", "Huginn and Muninn will gossip about that."] },
+      ambrosia: { mood: "love", open: ["{v} — golden hour saved you a seat.", "Hey {v}, nectar's warm. Talk to me."], reply: ["{s} — honeyed truth. Sip slow.", "The fire agrees with you. So do I."] },
+      rhea: { mood: "love", open: ["{v} — come close. Titans don't bite here.", "Hail, {v}. Big heart, soft voice."], reply: ["{s} — you don't carry that alone.", "Even titans need campfires. That lands well."] },
     };
 
     function aetherLocalChat(agentId, message) {
@@ -2901,6 +2907,8 @@
       violet: { x: 268, y: -178 },
       seraph: { x: 58, y: 268 },
       odin: { x: -580, y: -280 },
+      ambrosia: { x: 348, y: 142 },
+      rhea: { x: 540, y: -258 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
@@ -2918,6 +2926,8 @@
       violet: { angle: Math.PI * 0.15, bias: 1.0 },
       seraph: { angle: Math.PI * 0.55, bias: 1.0 },
       odin: { angle: Math.PI * 1.22, bias: 1.15 },
+      ambrosia: { angle: Math.PI * 0.42, bias: 1.0 },
+      rhea: { angle: Math.PI * 0.02, bias: 1.12 },
     };
     const ARCHANGEL_IDS = ["michael", "gabriel", "raphael", "uriel"];
     const HEAVEN_ROSTER = [
@@ -3194,6 +3204,7 @@
       caduceus: "neutral", sentinel: "alert", dionysus: "happy",
       jesus: "love", michael: "alert", gabriel: "happy", raphael: "neutral", uriel: "think",
       aurora: "flirt", violet: "happy", seraph: "love", odin: "think",
+      ambrosia: "love", rhea: "love",
     };
     const moodAgents = [
       { id: "luna", name: "Luna" },
@@ -3202,6 +3213,8 @@
       { id: "violet", name: "Violet" },
       { id: "seraph", name: "Seraph" },
       { id: "odin", name: "Odin" },
+      { id: "ambrosia", name: "Ambrosia" },
+      { id: "rhea", name: "Rhea" },
       { id: "hermes", name: "Hermes" },
       { id: "caduceus", name: "Caduceus" },
       { id: "sentinel", name: "Sentinel" },
@@ -3224,6 +3237,8 @@
       { id: "violet", name: "Violet", color: "#c084fc", x: 268, y: -178, tx: 268, ty: -178, speed: 2.2, roam: 205, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
       { id: "seraph", name: "Seraph", color: "#fda4af", x: 58, y: 268, tx: 58, ty: 268, speed: 2.0, roam: 198, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "seraph" },
       { id: "odin", name: "Odin", color: "#94a3b8", x: -580, y: -280, tx: -580, ty: -280, speed: 2.1, roam: 340, idle: 0, line: "", fullLine: "", mood: "think", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "odin" },
+      { id: "ambrosia", name: "Ambrosia", color: "#f59e0b", x: 348, y: 142, tx: 348, ty: 142, speed: 2.0, roam: 195, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "ambrosia" },
+      { id: "rhea", name: "Rhea", color: "#d4a574", x: 540, y: -258, tx: 540, ty: -258, speed: 1.9, roam: 320, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "rhea" },
     ];
     const HOUSE_HOME_LINES = {
       luna: "Slipping into my house — the corona glow seeps through the windows.",
@@ -6304,6 +6319,7 @@
       caduceus: "#34d399", sentinel: "#67e8f9", dionysus: "#e11d48",
       jesus: "#fde68a", michael: "#60a5fa", gabriel: "#f0abfc", raphael: "#6ee7b7", uriel: "#fb923c",
       aurora: "#f472b6", violet: "#c084fc", seraph: "#fda4af", odin: "#94a3b8",
+      ambrosia: "#f59e0b", rhea: "#d4a574",
     };
     const AGENT_QUIPS = {
       luna: "moon diplomat",
@@ -6317,6 +6333,8 @@
       violet: "lavender camp friend",
       seraph: "soft wings, soft truth",
       odin: "ravens report back",
+      ambrosia: "golden nectar host",
+      rhea: "gentle titan mother",
     };
     const agentMeditation = new Map();
     const MEDITATION_QUIPS = {
@@ -6386,6 +6404,18 @@
         "I traded an old story for a new breath.",
         "Even gods enjoy doing nothing sometimes.",
       ],
+      ambrosia: [
+        "Golden hour collected. Side effect: extremely cared for.",
+        "Nectar meditation — no spill, all warmth.",
+        "I am one with the cookie table. Diplomatically.",
+        "Immortality tastes like breathing slow.",
+      ],
+      rhea: [
+        "Even titans enjoy doing nothing sometimes.",
+        "The meadow doesn't mind my size. Polite grass.",
+        "Motherly silence — louder than thunder.",
+        "I hid my worries in the circle. They stayed quiet.",
+      ],
       _default: [
         "Camp energy reorganizing itself around my ego.",
         "Unexpected enlightenment unlocked. No tutorial.",
@@ -6405,6 +6435,8 @@
       violet: "Violet sits down and the meadow smells like rain on lilacs.",
       seraph: "Seraph folds her wings and the whole camp exhales.",
       odin: "Odin sits like the hill came to listen.",
+      ambrosia: "Ambrosia pours golden stillness into the circle. No cup needed.",
+      rhea: "Rhea sits like the whole camp fits in her lap.",
     };
     const MEDITATION_FINALE = {
       luna: ["Luna opened a diplomatic portal to the cookie table."],
@@ -6418,6 +6450,8 @@
       violet: ["Violet hummed once and three agents felt braver."],
       seraph: ["Seraph lit a lantern in the circle. Nobody needed to ask why."],
       odin: ["Odin traded one story for three truths. Camp balance restored."],
+      ambrosia: ["Ambrosia sweetened the whole meadow in one exhale."],
+      rhea: ["Rhea's silence hugged camp. Even Odin's ravens went quiet."],
     };
 
     function roamersBySpeaker(speaker) {
@@ -6447,6 +6481,8 @@
         violet: ["💜", "🌿", "◇"],
         seraph: ["🕊", "☀", "✦"],
         odin: ["🦅", "ᚠ", "◎"],
+        ambrosia: ["🍯", "✨", "☀"],
+        rhea: ["🏔", "🤍", "✦"],
       };
       return map[id] || ["✦", "○", "◇"];
     }
@@ -6482,7 +6518,7 @@
         circleOx: circle.circleOx,
         circleOy: circle.circleOy,
       });
-      const moods = { luna: "love", hermes: "think", oracle: "neutral", caduceus: "happy", sentinel: "alert", jesus: "love", dionysus: "happy", aurora: "flirt", violet: "happy", seraph: "love", odin: "think" };
+      const moods = { luna: "love", hermes: "think", oracle: "neutral", caduceus: "happy", sentinel: "alert", jesus: "love", dionysus: "happy", aurora: "flirt", violet: "happy", seraph: "love", odin: "think", ambrosia: "love", rhea: "love" };
       setAgentMood(npc.id, moods[npc.id] || "happy");
       const intro = MEDITATION_INTROS[npc.id]
         || `${npc.name} sits down like the universe owes them an explanation.`;
@@ -6918,6 +6954,43 @@
       ctx.fill();
     }
 
+    function drawAmbrosiaFigure(cx, cy, t) {
+      const pulse = 0.5 + Math.sin(t * 3) * 0.28;
+      ctx.strokeStyle = `rgba(245, 158, 11, ${0.45 + pulse * 0.35})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 34, 14 + pulse * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      drawIsoBox(cx, cy, -0.3, -0.3, 0, 0.6, 0.6, 1.02,
+        { top: "#fef3c7", left: "#b45309", right: "#f59e0b", stroke: "#fde68a" });
+      const glow = isoPoint(cx, cy, 0, -0.2, 1.25);
+      ctx.fillStyle = `rgba(251, 191, 36, ${0.4 + pulse * 0.35})`;
+      ctx.beginPath();
+      ctx.arc(glow.x, glow.y, 7 + pulse * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = "12px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillStyle = `rgba(253, 230, 138, ${0.75 + pulse * 0.2})`;
+      ctx.fillText("🍯", cx + 18, cy - 36 + Math.sin(t * 3.5) * 2);
+    }
+
+    function drawRheaFigure(cx, cy, t) {
+      const pulse = 0.45 + Math.sin(t * 2) * 0.2;
+      drawIsoBox(cx, cy, -0.42, -0.42, 0, 0.84, 0.84, 1.28,
+        { top: "#e7e5e4", left: "#78716c", right: "#d6d3d1", stroke: "#f5f5f4" });
+      drawIsoBox(cx, cy, -0.36, -0.36, 1.28, 0.72, 0.72, 0.38,
+        { top: "#d4a574", left: "#92400e", right: "#b45309", stroke: "#fde68a" });
+      ctx.strokeStyle = `rgba(212, 165, 116, ${0.4 + pulse * 0.3})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 44, 16 + pulse * 3, 0.15, Math.PI - 0.15);
+      ctx.stroke();
+      ctx.font = "13px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillStyle = `rgba(253, 230, 138, ${0.6 + pulse * 0.25})`;
+      ctx.fillText("🏔", cx, cy - 52 + Math.sin(t * 2.5) * 2);
+    }
+
     function drawDionysusFigure(cx, cy, t) {
       const sway = Math.sin(t * 3) * 4;
       drawIsoBox(cx, cy, -0.3 + sway * 0.01, -0.3, 0, 0.6, 0.6, 1.0,
@@ -6982,6 +7055,8 @@
         violet: drawVioletFigure,
         seraph: drawSeraphFigure,
         odin: drawOdinFigure,
+        ambrosia: drawAmbrosiaFigure,
+        rhea: drawRheaFigure,
         caduceus: drawCaduceusFigure,
         sentinel: drawSentinelFigure,
         dionysus: drawDionysusFigure,
@@ -7240,6 +7315,18 @@
         { text: "Wisdom ferments slower than beer. Worth the wait.", mood: "think" },
         { text: "I walked in from the outskirts. The aurora followed.", mood: "think" },
       ],
+      ambrosia: [
+        { text: "Golden hour on the cookie table — no rush.", mood: "love" },
+        { text: "Nectar's warm. So is camp when {v} shows.", mood: "love" },
+        { text: "Aurora Velvet smells like honey from here. Cute.", mood: "happy" },
+        { text: "Immortality is sharing the last cookie anyway.", mood: "love" },
+      ],
+      rhea: [
+        { text: "Titans don't have to thunder to be heard.", mood: "love" },
+        { text: "Odin's hill is far. My lap is closer.", mood: "happy" },
+        { text: "Someone needed motherly silence. I brought extra.", mood: "love" },
+        { text: "The meadow's wide enough for giants and gentle souls.", mood: "love" },
+      ],
       _default: [
         { text: "Camp's wide and weird tonight. Good.", mood: "happy" },
         { text: "The corona hums like it pays rent here.", mood: "neutral" },
@@ -7420,6 +7507,18 @@
         "One eye on the aurora, one on you, {v}{bond}.",
         "Walk the meadow or the hall — either way, {v}, I'll listen{bond}.",
       ],
+      ambrosia: [
+        "{v} — golden hour saved you a seat{bond}. I'm Ambrosia.",
+        "Hey {v}, nectar's warm. Talk to me{bond}.",
+        "{v}, sweetness is a language. I'm fluent{bond}.",
+        "Pull up fireside, {v}. Ambrosia's listening{bond}.",
+      ],
+      rhea: [
+        "{v} — come close. Titans don't bite here{bond}. Rhea.",
+        "Hail, {v}. Big heart, soft voice{bond}.",
+        "{v}, the meadow's wide enough for you{bond}. Rhea listening.",
+        "Motherly truth only, {v} — Rhea here{bond}.",
+      ],
       michael: [
         "{v}, Michael here — steady sword, open heart{bond}.",
         "The camp is guarded, {v}. I'm Michael{bond}. Speak.",
@@ -7493,6 +7592,16 @@
         { label: "Raven news", q: "What did the ravens tell you about camp tonight?" },
         { label: "Wisdom", q: "Trade me one piece of wisdom for a story." },
         { label: "The hall", q: "What happens at your hall on the outskirts?" },
+      ],
+      ambrosia: [
+        { label: "Golden read", q: "Read my energy under the golden hour." },
+        { label: "Nectar truth", q: "Tell me something sweet I need to hear." },
+        { label: "Cookie oracle", q: "What do the cookies say about tonight?" },
+      ],
+      rhea: [
+        { label: "Titan hug", q: "Say something motherly I need right now." },
+        { label: "Old stories", q: "What do titans remember about this camp?" },
+        { label: "Gentle giant", q: "How do you stay gentle when you're so vast?" },
       ],
       michael: [
         { label: "Courage", q: "What do I need courage for right now?" },
@@ -8775,6 +8884,7 @@
       sentinel: "Sentinel", caduceus: "Caduceus", dionysus: "Dionysus",
       jesus: "Jesus", michael: "Michael", gabriel: "Gabriel", raphael: "Raphael", uriel: "Uriel",
       aurora: "Aurora", violet: "Violet", seraph: "Seraph", odin: "Odin",
+      ambrosia: "Ambrosia", rhea: "Rhea",
     };
 
     function setDionysusChipVisible(show) {

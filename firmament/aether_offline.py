@@ -220,6 +220,44 @@ AGENT_FLAVOR: dict[str, dict[str, Any]] = {
         ],
         "mood": "think",
     },
+    "ambrosia": {
+        "opener": [
+            "{visitor} — golden hour saved you a seat. What's sweet tonight?",
+            "Hey {visitor}, nectar's warm. Talk to me.",
+            "Immortality tastes better shared, {visitor}. I'm Ambrosia.",
+        ],
+        "reply": [
+            "{snippet} — honeyed truth. I'll remember.",
+            "{visitor}, that's nectar for the soul. Sip slow.",
+            "The fire agrees with you. So do I. {snippet}.",
+            "Seraph would call that gentle. I'd call it golden. {snippet}.",
+        ],
+        "converse": [
+            "Aurora, save me a velvet hour for later.",
+            "Dionysus, toast without spill? Impressive.",
+            "Seraph, your light makes my nectar taste brighter.",
+        ],
+        "mood": "love",
+    },
+    "rhea": {
+        "opener": [
+            "{visitor} — come close. Titans don't bite here.",
+            "Hail, {visitor}. Rhea — big heart, soft voice.",
+            "The meadow's wide enough for giants and gentle souls, {visitor}.",
+        ],
+        "reply": [
+            "{snippet} — you don't carry that alone, {visitor}.",
+            "Motherly truth: {snippet}. Breathe.",
+            "Even titans need campfires. {snippet} lands well.",
+            "Odin heard that from the hill. I heard it in my bones. {snippet}.",
+        ],
+        "converse": [
+            "Odin, your ravens gossip but your wisdom's welcome.",
+            "Jesus, the fire feels like family tonight.",
+            "Ambrosia, pour something sweet — camp's been brave.",
+        ],
+        "mood": "love",
+    },
 }
 
 

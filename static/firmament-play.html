@@ -1522,8 +1522,56 @@
       box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
     }
     @media (min-width: 900px) {
+      :root {
+        --talk-bar-h: 34px;
+        --dock-icons-h: 32px;
+      }
       #camp-text-expand,
       #camp-layer-bar {
+        display: none !important;
+        pointer-events: none !important;
+      }
+      #action-bar {
+        gap: 3px;
+        padding: 4px var(--gap) max(4px, env(safe-area-inset-bottom));
+      }
+      #camp-talk-bar {
+        gap: 5px;
+        padding: 3px 6px;
+      }
+      .dock-compact {
+        gap: 5px;
+        max-width: none;
+      }
+      .dock-compact .dock-icon {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 0.82rem !important;
+        border-radius: 10px;
+        border-width: 1px;
+      }
+      .dock-compact .dock-icon.dock-tpx {
+        font-size: 0.58rem !important;
+      }
+      .dock-compact .dock-icon.dock-grok-agent {
+        font-size: 0.62rem !important;
+      }
+      .dock-music-group {
+        gap: 4px;
+        padding: 2px 4px;
+      }
+      .dock-music-group .dock-icon {
+        width: 30px !important;
+        height: 30px !important;
+      }
+      #camp-zoom-bar,
+      #btn-camp-zoom-toggle,
+      #btn-dock-help,
+      #btn-summon-heaven,
+      #btn-summon-dionysus,
+      #btn-talk-near,
+      #dock-tip,
+      .dock-scroll-hint {
         display: none !important;
         pointer-events: none !important;
       }
@@ -3283,7 +3331,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-stable";
+    const CAMP_BUILD = "2026-07-08-camp-pc-zoom-icons";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3865,7 +3913,7 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.38;
+    const WORLD_ZOOM_DESKTOP = 0.24;
     const WORLD_ZOOM_MOBILE = 0.80;
     const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
     const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
@@ -3884,7 +3932,7 @@
       const ar = viewW / Math.max(viewH, 1);
       const arScale = Math.max(0.82, Math.min(1.18, ar / 1.55));
       const hScale = Math.max(0.78, Math.min(1.12, viewH / 720));
-      return Math.max(0.30, Math.min(0.50, WORLD_ZOOM_DESKTOP * arScale * hScale));
+      return Math.max(0.18, Math.min(0.28, WORLD_ZOOM_DESKTOP * arScale * hScale));
     }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
@@ -4161,6 +4209,7 @@
       return 68;
     }
     function getCampLayoutKey() {
+      if (!isCampMobile()) return `${viewW}x${viewH}`;
       const b = getCampRelativeBounds();
       return `${viewW}x${viewH}z${getWorldZoom().toFixed(3)}b${b.xMin.toFixed(0)}${b.xMax.toFixed(0)}`;
     }
@@ -4729,6 +4778,25 @@
         pickNpcWanderTarget(n);
       }
     }
+    function spreadDesktopAnchorLayout() {
+      const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
+      roster.forEach((n) => {
+        const anchor = NPC_ANCHORS[n.id];
+        if (anchor) {
+          const hash = String(n.id).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+          const jx = ((hash % 7) - 3) * 8;
+          const jy = (((hash >> 2) % 5) - 2) * 8;
+          n.x = anchor.x + jx;
+          n.y = anchor.y + jy;
+        } else {
+          const p = sectorPosition(n.id);
+          n.x = p.x;
+          n.y = p.y;
+        }
+        applyNpcSpreadState(n);
+      });
+      for (let pass = 0; pass < 6; pass++) enforceNpcSeparation(1.05);
+    }
     function spreadPerimeterLayout() {
       const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
       const total = Math.max(1, roster.length);
@@ -4759,7 +4827,7 @@
     }
     function spreadAllNpcs() {
       if (isCampMobile()) spreadMobileAgentLayout();
-      else spreadPerimeterLayout();
+      else spreadDesktopAnchorLayout();
       spreadAllCampObjects();
     }
 
@@ -4794,7 +4862,7 @@
 
     function gatherNpcsAtCamp(quiet) {
       if (isCampMobile()) spreadMobileAgentLayout();
-      else spreadPerimeterLayout();
+      else spreadDesktopAnchorLayout();
       if (!quiet) {
         pushCampLine("Camp", "Everyone spread across the aurora meadow — room to breathe.", 10, "happy", { quiet: true });
         showToast("Everyone spaced out on the meadow");
@@ -5548,7 +5616,8 @@
       updateCampViewportDebug();
       const zoom = getWorldZoom();
       const layoutKey = getCampLayoutKey();
-      if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005 || layoutKey !== lastLayoutKey) {
+      const zoomChanged = isCampMobile() && Math.abs(zoom - lastSpreadZoom) > 0.005;
+      if (!campSpreadInit || zoomChanged || layoutKey !== lastLayoutKey) {
         campSpreadInit = true;
         lastSpreadZoom = zoom;
         lastLayoutKey = layoutKey;

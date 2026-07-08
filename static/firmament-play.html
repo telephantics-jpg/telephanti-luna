@@ -2135,7 +2135,48 @@
       font-size: 0.85rem;
     }
     #luna-embed-frame {
-      flex: 1; width: 100%; border: 0; background: #0a0c14;
+      flex: 1; width: 100%; min-height: 0; border: 0; background: #0a0c14;
+    }
+    #luna-embed-type {
+      flex-shrink: 0;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+      background: rgba(8, 10, 18, 0.98);
+      border-top: 1px solid rgba(217, 70, 239, 0.28);
+      pointer-events: auto;
+    }
+    #luna-embed-reply {
+      font-size: 0.68rem;
+      color: #c4b5fd;
+      line-height: 1.35;
+      max-height: 2.7em;
+      overflow: hidden;
+      margin-bottom: 4px;
+      opacity: 0.92;
+    }
+    #luna-embed-reply:empty { display: none; }
+    .luna-embed-type-row {
+      display: flex; gap: 6px; align-items: center;
+    }
+    #luna-embed-input {
+      flex: 1; min-width: 0;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.95);
+      color: #f1f5f9;
+      font-size: 0.88rem;
+      padding: 8px 10px;
+    }
+    #luna-embed-input::placeholder { color: #64748b; }
+    #luna-embed-send {
+      flex-shrink: 0;
+      border: 1px solid rgba(217, 70, 239, 0.45);
+      border-radius: 10px;
+      background: linear-gradient(135deg, #7e22ce, #c026d3);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 8px 12px;
+      cursor: pointer;
     }
     #btn-luna-avatar {
       background: linear-gradient(135deg, #a21caf, #d946ef) !important;
@@ -2147,7 +2188,8 @@
         pointer-events: none;
       }
       #luna-embed-wrap.open:not(.expanded) #luna-embed-header,
-      #luna-embed-wrap.open:not(.expanded) #luna-embed-frame {
+      #luna-embed-wrap.open:not(.expanded) #luna-embed-frame,
+      #luna-embed-wrap.open:not(.expanded) #luna-embed-type {
         pointer-events: auto;
       }
       #luna-embed-wrap.open {
@@ -2538,18 +2580,25 @@
   <div id="luna-embed-wrap" aria-label="Luna full avatar at camp">
     <div id="luna-embed-header">
       <button type="button" id="luna-embed-back-camp" title="Back to aurora camp">🔥 Camp</button>
-      <span>🌙 Luna — full avatar &amp; voice</span>
+      <span>🌙 Luna</span>
       <button type="button" id="luna-embed-expand" title="Expand">⛶</button>
       <button type="button" id="luna-embed-close" title="Minimize">✕</button>
     </div>
     <iframe id="luna-embed-frame" title="Luna avatar" allow="microphone *; autoplay *; camera *; fullscreen *"></iframe>
+    <div id="luna-embed-type">
+      <div id="luna-embed-reply" aria-live="polite"></div>
+      <div class="luna-embed-type-row">
+        <input id="luna-embed-input" type="text" maxlength="500" placeholder="Type to Luna — no mic needed" autocomplete="off" enterkeyhint="send" />
+        <button type="button" id="luna-embed-send">Send</button>
+      </div>
+    </div>
   </div>
   <div id="pixel-wrap">
     <button id="pixel-close" type="button">Close Unreal stream</button>
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-luna-hear-lucid";
+    const CAMP_BUILD = "2026-07-08-camp-luna-type";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3057,6 +3106,20 @@
     }
 
     function applyChatResult(agentId, data, opts = {}) {
+      if (opts.lunaEmbed) {
+        const embedReply = document.getElementById("luna-embed-reply");
+        const who = data.name || agentNames[agentId] || agentId;
+        if (embedReply) embedReply.textContent = `${who}: ${data.reply || "…"}`;
+        notifyLunaEmbed(who, data.reply || "");
+        setAgentMood(agentId, data.mood || "happy");
+        pushCampLine(who, data.reply, campReadHoldSec(data.reply, 36), data.mood, {
+          fromLocal: true,
+          quiet: true,
+          keepDock: isCampMobile(),
+        });
+        setCampLifeStatus(data.backend === "aether" ? "Luna replied (offline aether)" : "Luna replied");
+        return;
+      }
       const bubble = opts.useHouse
         ? document.getElementById("camp-house-host-bubble")
         : opts.useDialogue
@@ -8392,7 +8455,7 @@
       } else {
         const v = myVisitorName || player.name || "traveler";
         setTimeout(() => {
-          const intro = `${v}, welcome to the meadow — click agents to talk, double-click to sit them still, hold to drag. Pond's on the left.`;
+          const intro = `${v}, welcome — tap 🌙 Luna to type or talk. Agents: tap chat on phone, click sit on PC. Pond left.`;
           pushCampLine("Camp", intro, 15, "happy", { fromLocal: true, quiet: true, welcomeSplash: true });
         }, 2800);
         const stagger = [
@@ -8477,9 +8540,24 @@
       } catch (_) {}
     }
 
+    async function sendLunaEmbedType() {
+      const input = document.getElementById("luna-embed-input");
+      const replyEl = document.getElementById("luna-embed-reply");
+      const text = (input?.value || "").trim();
+      if (!text || chatBusy) return;
+      if (input) input.value = "";
+      if (replyEl) replyEl.textContent = "Luna is thinking…";
+      setCampLifeStatus("Luna is reading your message…");
+      notifyLunaEmbed(myVisitorName || player.name || "You", text);
+      await chat("luna", text, { lunaEmbed: true, quiet: true });
+      const last = document.getElementById("luna-embed-reply");
+      if (last && !last.textContent) last.textContent = "";
+    }
+
     function openLunaEmbed(opts = {}) {
       const wrap = document.getElementById("luna-embed-wrap");
       const frame = document.getElementById("luna-embed-frame");
+      const typeInput = document.getElementById("luna-embed-input");
       if (!wrap || !frame) return;
       wrap.classList.add("open");
       if (opts.expand) {
@@ -8492,21 +8570,8 @@
       const want = lunaEmbedUrl();
       if (!frame.src || !frame.src.includes("camp=1")) frame.src = want;
       else syncLunaEmbedVisitor();
-      const pingHear = () => {
-        try {
-          frame.contentWindow?.postMessage({ type: "luna-camp:focus-hear" }, location.origin);
-        } catch (_) {}
-      };
-      if (opts.focusHear) {
-        pingHear();
-        frame.addEventListener("load", pingHear, { once: true });
-      }
-      setCampLifeStatus(isCampMobile()
-        ? "Luna open — tap 🎤 Listen inside Luna to talk"
-        : "Luna open — tap 🎤 Listen so she can hear you");
-      showToast(isCampMobile()
-        ? "Luna — tap 🎤 Listen, then Allow mic"
-        : "Luna — click 🎤 Listen at the bottom, Allow mic");
+      setCampLifeStatus("Luna — type below (mic optional)");
+      setTimeout(() => typeInput?.focus(), 280);
     }
 
     function closeLunaEmbed() {
@@ -8536,6 +8601,10 @@
       if (e.key === "Escape") closeCampHouse();
     });
     document.getElementById("btn-luna-avatar").onclick = () => openLunaEmbed();
+    document.getElementById("luna-embed-send")?.addEventListener("click", () => sendLunaEmbedType());
+    document.getElementById("luna-embed-input")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); sendLunaEmbedType(); }
+    });
     document.getElementById("luna-embed-back-camp").onclick = () => closeLunaEmbed();
     document.getElementById("luna-embed-close").onclick = () => closeLunaEmbed();
     document.getElementById("lucid-tv-close").onclick = () => closeLucidTv();

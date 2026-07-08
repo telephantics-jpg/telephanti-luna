@@ -2664,6 +2664,7 @@
     }
     body.luna-camp-embed .chat,
     body.luna-camp-embed .chat-panel,
+    body.luna-camp-embed .messages,
     body.luna-camp-embed .mobile-tabs,
     body.luna-camp-embed .interact-bar,
     body.luna-camp-embed .ouija-fab,
@@ -2676,36 +2677,66 @@
     body.luna-camp-embed .zone-hint,
     body.luna-camp-embed .luna-memory-thread,
     body.luna-camp-embed .luna-assistant-hud { display: none !important; }
-    /* Camp iframe: always show mic controls (dock + hear banner + mic fab) */
+    /* Camp iframe: slim type bar + optional mic dock — nothing blocking Luna */
+    body.luna-camp-embed .chat-compose {
+      display: flex !important;
+      flex-direction: column;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: calc(3.15rem + var(--safe-b));
+      z-index: 85;
+      margin: 0;
+      padding: 0.35rem max(0.45rem, var(--safe-l)) 0.35rem max(0.45rem, var(--safe-r));
+      background: rgba(6, 8, 16, 0.94);
+      border-top: 1px solid rgba(217, 70, 239, 0.22);
+      box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.35);
+    }
+    body.luna-camp-embed .chat-compose .quick-prompts { display: none !important; }
+    body.luna-camp-embed .chat-compose .input-row {
+      margin: 0;
+      gap: 0.4rem;
+    }
+    body.luna-camp-embed .chat-compose #input {
+      font-size: 0.86rem;
+      padding: 0.55rem 0.65rem;
+      min-height: 2.35rem;
+    }
+    body.luna-camp-embed .chat-compose #send {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.78rem;
+      min-width: 3.2rem;
+    }
+    body.luna-camp-embed .mic-toggle-fab,
+    body.luna-camp-embed .pet-hear-banner { display: none !important; }
     body.luna-camp-embed .mobile-action-dock {
       display: flex !important;
-      justify-content: space-evenly;
+      justify-content: center;
       align-items: stretch;
-      gap: 0.55rem;
-      padding: 0.45rem max(0.65rem, var(--safe-l)) calc(0.45rem + var(--safe-b)) max(0.65rem, var(--safe-r));
-      border-top: 1px solid rgba(217, 70, 239, 0.38);
-      background: rgba(6, 8, 16, 0.98);
+      gap: 0.4rem;
+      padding: 0.3rem max(0.5rem, var(--safe-l)) calc(0.3rem + var(--safe-b)) max(0.5rem, var(--safe-r));
+      border-top: 1px solid rgba(217, 70, 239, 0.2);
+      background: rgba(6, 8, 16, 0.96);
     }
     body.luna-camp-embed .mobile-action-dock .dock-btn { display: none !important; }
     body.luna-camp-embed .mobile-action-dock #dock-mic,
-    body.luna-camp-embed .mobile-action-dock #dock-voice,
-    body.luna-camp-embed .mobile-action-dock #dock-options {
+    body.luna-camp-embed .mobile-action-dock #dock-voice {
       display: flex !important;
       flex: 1;
-      max-width: 9rem;
-      min-height: 3.25rem;
+      max-width: 5.5rem;
+      min-height: 2.5rem;
+      padding: 0.25rem 0.35rem;
     }
-    body.luna-camp-embed .mic-toggle-fab {
+    body.luna-camp-embed .mobile-action-dock #dock-options {
       display: flex !important;
-      left: max(0.55rem, var(--safe-l));
-      right: auto;
-      transform: none;
-      bottom: calc(4.35rem + var(--safe-b));
-      z-index: 92;
+      flex: 0 0 auto;
+      min-width: 2.6rem;
+      min-height: 2.5rem;
+      padding: 0.25rem;
     }
-    body.luna-camp-embed .pet-hear-banner.visible {
-      display: flex !important;
-      bottom: calc(4.1rem + var(--safe-b));
+    body.luna-camp-embed .mobile-action-dock .dock-btn .dock-label { font-size: 0.58rem; }
+    body.luna-camp-embed .main {
+      padding-bottom: calc(6.5rem + var(--safe-b));
     }
     #camp-back-fab {
       position: fixed;
@@ -2729,11 +2760,12 @@
     body.web-cloud #camp-back-fab,
     body.luna-camp-embed #camp-back-fab { display: inline-flex; }
     body.luna-camp-embed #camp-back-fab {
-      top: auto;
-      bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px));
-      left: max(10px, env(safe-area-inset-left));
-      font-size: 0.72rem;
-      padding: 7px 12px;
+      top: max(8px, env(safe-area-inset-top));
+      bottom: auto;
+      left: max(8px, env(safe-area-inset-left));
+      font-size: 0.68rem;
+      padding: 6px 10px;
+      opacity: 0.88;
     }
     @media (min-width: 861px) {
       body.web-cloud:not(.luna-camp-embed) #camp-back-fab {
@@ -6366,11 +6398,12 @@
         if (msg.type === "luna-camp:focus-hear") {
           if (typeof setupMic === "function") setupMic();
           if (typeof setupMobileDock === "function") setupMobileDock();
-          if (typeof showPetHearBanner === "function") showPetHearBanner();
-          if (typeof showToast === "function") {
-            showToast(isCampMobile()
-              ? "Tap 🎤 Listen — then Allow microphone"
-              : "Click 🎤 Listen — Allow mic when asked");
+        }
+        if (msg.type === "luna-camp:type" && msg.text) {
+          const inp = document.getElementById("input");
+          if (inp) {
+            inp.value = String(msg.text);
+            document.getElementById("form")?.requestSubmit();
           }
         }
       });
@@ -6380,8 +6413,9 @@
       setTimeout(() => {
         if (typeof setupMic === "function") setupMic();
         if (typeof setupMobileDock === "function") setupMobileDock();
-        if (typeof showPetHearBanner === "function") showPetHearBanner();
-      }, 1200);
+        const inp = document.getElementById("input");
+        if (inp) inp.placeholder = "Type to Luna — mic optional";
+      }, 800);
     }
 
     function setupWebCloudMode() {

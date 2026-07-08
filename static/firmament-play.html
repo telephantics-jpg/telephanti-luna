@@ -610,18 +610,6 @@
       box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
       border-color: #e0f2fe;
     }
-    .dock-compact .dock-icon.dock-spotify {
-      background: #1db954; border-color: #1ed760; color: #fff;
-      position: relative;
-    }
-    .dock-compact .dock-icon.dock-spotify.active {
-      box-shadow: 0 0 18px rgba(30, 215, 96, 0.55);
-      border-color: #bbf7d0;
-    }
-    .dock-compact .dock-icon.dock-spotify svg {
-      width: 22px; height: 22px; display: block; pointer-events: none;
-    }
-
     .dock-compact .dock-icon.dock-music-off {
       background: rgba(30, 41, 59, 0.95); border-color: rgba(148, 163, 184, 0.45);
       font-size: 1rem; color: #cbd5e1;
@@ -824,76 +812,8 @@
       left: -9999px;
       top: -9999px;
     }
-    #camp-spotify-layer {
-      display: none; position: fixed; inset: 0; z-index: 43;
-      background: rgba(2, 6, 14, 0.88); align-items: flex-end; justify-content: center;
-      padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
-        max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-      backdrop-filter: blur(8px);
-    }
-    #camp-spotify-layer.open { display: flex; }
-    #camp-spotify-panel {
-      width: min(480px, 100%);
-      display: flex; flex-direction: column; gap: 8px;
-      background: linear-gradient(165deg, rgba(8, 18, 12, 0.98), rgba(4, 8, 18, 0.98));
-      border: 2px solid rgba(30, 215, 96, 0.45); border-radius: 16px 16px 12px 12px;
-      padding: 10px 12px 12px; overflow: hidden;
-      box-shadow: 0 -8px 40px rgba(30, 215, 96, 0.18), 0 24px 60px rgba(0,0,0,0.55);
-    }
-    #camp-spotify-head {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    }
-    #camp-spotify-head h2 {
-      margin: 0; font-size: 0.92rem; color: #bbf7d0;
-      display: flex; align-items: center; gap: 6px;
-    }
-    #camp-spotify-head p {
-      margin: 0; font-size: 0.66rem; color: #86efac; opacity: 0.85;
-    }
-    #camp-spotify-close {
-      border: 1px solid rgba(30, 215, 96, 0.4);
-      background: rgba(15, 23, 42, 0.9); color: #d1fae5;
-      border-radius: 8px; width: 32px; height: 28px; font-size: 0.85rem; cursor: pointer;
-    }
-    #camp-spotify-embed {
-      width: 100%; height: 380px; min-height: 320px; border: 0; border-radius: 12px;
-      background: #121212;
-    }
-    #camp-spotify-loading {
-      font-size: 0.72rem; color: #86efac; text-align: center; margin: 0;
-      min-height: 1.2em;
-    }
-    #camp-spotify-open {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 0.72rem; font-weight: 700; color: #ecfccb;
-      text-decoration: none; padding: 7px 10px; border-radius: 8px;
-      border: 1px solid rgba(30, 215, 96, 0.35);
-      background: rgba(20, 83, 45, 0.55);
-    }
-    #camp-music-spotify {
-      background: linear-gradient(135deg, #14532d, #22c55e) !important;
-      border-color: #86efac !important;
-      color: #ecfccb !important;
-      font-weight: 800;
-    }
-    body.camp-spotify-open #camp-spotify-layer { display: flex; }
-
     #camp-music-bar { display: none !important; }
     #camp-music-picker { display: none !important; }
-    #camp-spotify-tabs {
-      display: flex; gap: 6px; margin-bottom: 4px;
-    }
-    #camp-spotify-tabs button {
-      flex: 1; border: 1px solid rgba(30, 215, 96, 0.35);
-      background: rgba(15, 23, 42, 0.85); color: #bbf7d0;
-      border-radius: 8px; padding: 6px 8px; font-size: 0.68rem; font-weight: 700;
-      cursor: pointer; touch-action: manipulation;
-    }
-    #camp-spotify-tabs button.active {
-      background: rgba(20, 83, 45, 0.75);
-      border-color: #86efac;
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.25);
-    }
 
     .dock-tip {
       font-size: 0.68rem; color: #64748b; text-align: center;
@@ -2188,6 +2108,9 @@
         <button type="button" class="agent-chip" data-agent="luna"><span class="dot" style="background:#d946ef;color:#d946ef"></span><span class="chip-text"><span class="aname">Luna</span><span class="amood">happy</span></span></button>
         <button type="button" class="agent-chip" data-agent="hermes"><span class="dot" style="background:#fbbf24;color:#fbbf24"></span><span class="chip-text"><span class="aname">Hermes</span><span class="amood">think</span></span></button>
         <button type="button" class="agent-chip" data-agent="oracle"><span class="dot" style="background:#8b5cf6;color:#8b5cf6"></span><span class="chip-text"><span class="aname">Oracle</span><span class="amood">neutral</span></span></button>
+        <button type="button" class="agent-chip" data-agent="aurora"><span class="dot" style="background:#f472b6;color:#f472b6"></span><span class="chip-text"><span class="aname">Aurora</span><span class="amood">flirt</span></span></button>
+        <button type="button" class="agent-chip" data-agent="violet"><span class="dot" style="background:#c084fc;color:#c084fc"></span><span class="chip-text"><span class="aname">Violet</span><span class="amood">happy</span></span></button>
+        <button type="button" class="agent-chip" data-agent="seraph"><span class="dot" style="background:#fda4af;color:#fda4af"></span><span class="chip-text"><span class="aname">Seraph</span><span class="amood">love</span></span></button>
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
@@ -2268,6 +2191,9 @@
           <option value="luna">🌙 Luna</option>
           <option value="hermes">⚡ Hermes</option>
           <option value="oracle">🔮 Oracle</option>
+          <option value="aurora">💃 Aurora</option>
+          <option value="violet">💜 Violet</option>
+          <option value="seraph">🕊 Seraph</option>
           <option value="caduceus">🐍 Caduceus</option>
           <option value="sentinel">🛡 Sentinel</option>
           <option value="spirit">👻 Spirit channel</option>
@@ -2284,10 +2210,7 @@
     </div>
     <div class="dock-compact">
       <div class="dock-music-group" aria-label="Camp music">
-        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix — AI album at camp">TX</button>
-        <button type="button" class="dock-icon dock-spotify" id="btn-camp-spotify" title="Spotify — pick playlist or liked songs">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-        </button>
+        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix — your album at camp">TX</button>
         <button type="button" class="dock-icon dock-music-off" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
       </div>
       <button type="button" class="dock-icon" id="btn-lucid-tv" title="Lucid Mind TV — real mysterious feeds" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
@@ -2302,34 +2225,12 @@
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
       <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
-    <div id="dock-tip" class="dock-tip">TX = Telephantix · green = Spotify · 🔇 off · swipe toolbar →</div>
+    <div id="dock-tip" class="dock-tip">TX = Telephantix · 🔇 off · swipe toolbar →</div>
     <div class="dock-scroll-hint">swipe toolbar →</div>
   </footer>
-  <div id="camp-spotify-layer" role="dialog" aria-label="Spotify at camp">
-    <div id="camp-spotify-panel" onclick="event.stopPropagation()">
-      <div id="camp-spotify-head">
-        <div>
-          <h2 id="camp-spotify-head-title">🎧 stoodstrong</h2>
-          <p id="camp-spotify-head-sub">New Metal, Rock, rap, and country</p>
-        </div>
-        <button type="button" id="camp-spotify-close" title="Close">✕</button>
-      </div>
-      <div id="camp-spotify-tabs">
-        <button type="button" data-spotify-key="playlist" id="camp-spotify-tab-pl">My playlist</button>
-        <button type="button" data-spotify-key="liked" id="camp-spotify-tab-liked">Liked songs</button>
-      </div>
-      <p id="camp-spotify-loading">Loading Spotify…</p>
-      <iframe id="camp-spotify-embed" title="Spotify at camp"
-        src="https://open.spotify.com/embed/playlist/1UfrZNrliP4h7dCjQfEk6E?utm_source=generator&amp;theme=0"
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="eager"
-        referrerpolicy="strict-origin-when-cross-origin"></iframe>
-      <a id="camp-spotify-open" href="https://open.spotify.com/playlist/1UfrZNrliP4h7dCjQfEk6E" target="_blank" rel="noopener">Open in Spotify app ↗</a>
-    </div>
-  </div>
   <audio id="camp-music-audio" preload="none" playsinline></audio>
   <iframe id="camp-music-yt-fallback" title="Telephantix fallback" allow="autoplay; encrypted-media" hidden></iframe>
-  <button type="button" id="camp-music-prompt" aria-live="polite">🎵 Tap TX or Spotify in the toolbar</button>
+  <button type="button" id="camp-music-prompt" aria-live="polite">🎵 Tap TX in the toolbar</button>
   <button type="button" id="camp-enter-house" aria-live="polite">🚪 Enter house</button>
   <div id="prop-hint"></div>
   <button type="button" id="convo-toggle"></button>
@@ -2514,32 +2415,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-spotify-fix";
-    const CAMP_SPOTIFY_SOURCES = {
-      playlist: {
-        playlistId: "1UfrZNrliP4h7dCjQfEk6E",
-        title: "New Metal, Rock, rap, and country",
-        shortLabel: "My playlist",
-        owner: "stoodstrong",
-      },
-      liked: {
-        playlistId: "0lw5XmLlpaqlVDWUzCkjBY",
-        title: "Liked Songs",
-        shortLabel: "Liked songs",
-        owner: "stoodstrong",
-      },
-    };
-    function campSpotifyMeta(key) {
-      return CAMP_SPOTIFY_SOURCES[key] || CAMP_SPOTIFY_SOURCES.playlist;
-    }
-    function campSpotifyUrl(key) {
-      const meta = campSpotifyMeta(key);
-      return `https://open.spotify.com/playlist/${meta.playlistId}`;
-    }
-    function campSpotifyEmbed(key) {
-      const meta = campSpotifyMeta(key);
-      return `https://open.spotify.com/embed/playlist/${meta.playlistId}?utm_source=generator&theme=0`;
-    }
+    const CAMP_BUILD = "2026-07-07-camp-tpx-females";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2894,6 +2770,9 @@
       sentinel: { mood: "alert", open: ["BEEP. {v} detected. Proceed.", "Perimeter nominal. Talk freely."], reply: ["Logged: {s}. Threat level: feelings.", "BEEP. Translation: you're not alone."] },
       jesus: { mood: "love", open: ["Peace, {v}. You're welcome here.", "Come sit. No hurry."], reply: ["Thank you for trusting me. {s}.", "You're not too late for rest or hope."] },
       dionysus: { mood: "happy", open: ["{v}! Toast?", "Wine energy, zero spill. Talk."], reply: ["Ha — {s}. Vines approve.", "Main-character moment. Own it."] },
+      aurora: { mood: "flirt", open: ["{v} — velvet doors are open. What's your poison?", "Hey {v}, neon looks good on you."], reply: ["{s} — sip slow, darling.", "The bass agrees with you. So do I."] },
+      violet: { mood: "happy", open: ["{v}! Lavender static in a good way.", "Hi {v} — camp's softer when you show."], reply: ["{s} — that's violet energy.", "Oracle would call that a mood. I'd call it honest."] },
+      seraph: { mood: "love", open: ["Peace, {v}. Wings down, heart open.", "{v}, the meadow feels lighter."], reply: ["{s} — gentle truth lands well.", "You're heard. The light remembers."] },
     };
 
     function aetherLocalChat(agentId, message) {
@@ -2999,6 +2878,9 @@
       gabriel: { x: 288, y: 188 },
       raphael: { x: -178, y: 308 },
       uriel: { x: 188, y: 298 },
+      aurora: { x: -228, y: -48 },
+      violet: { x: 268, y: -178 },
+      seraph: { x: 58, y: 268 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
@@ -3012,6 +2894,9 @@
       gabriel: { angle: Math.PI * 0.28, bias: 1.0 },
       raphael: { angle: Math.PI * 0.64, bias: 1.0 },
       uriel: { angle: Math.PI * 0.44, bias: 1.0 },
+      aurora: { angle: Math.PI * 1.05, bias: 1.0 },
+      violet: { angle: Math.PI * 0.15, bias: 1.0 },
+      seraph: { angle: Math.PI * 0.55, bias: 1.0 },
     };
     const ARCHANGEL_IDS = ["michael", "gabriel", "raphael", "uriel"];
     const HEAVEN_ROSTER = [
@@ -3154,10 +3039,12 @@
       "Nebula kneads the velvet like it owes her tokens.",
     ];
     const STRIP_CLUB_LINES = [
-      { who: "Dionysus", line: "Welcome to the velvet — even the shadows dance politely here.", mood: "happy" },
+      { who: "Aurora", line: "Welcome to the velvet — even the shadows dance politely here.", mood: "flirt" },
+      { who: "Dionysus", line: "Aurora pours neon like wine. I'm not jealous. Much.", mood: "happy" },
       { who: "Hermes", line: "Psychic ripples bounce off the neon — fascinating acoustics.", mood: "think" },
       { who: "Luna", line: "The lights look like corona ribbons. I'm not mad about it.", mood: "happy" },
       { who: "Oracle", line: "I dreamed this lounge before the camp had walls.", mood: "neutral" },
+      { who: "Violet", line: "Lavender static and bass — my favorite combination.", mood: "happy" },
       { who: "Camp", line: "Nebula yawns on the couch — she runs this place, officially.", mood: "happy" },
     ];
     let lucidTvOpen = false;
@@ -3218,10 +3105,14 @@
       luna: "happy", oracle: "neutral", hermes: "think",
       caduceus: "neutral", sentinel: "alert", dionysus: "happy",
       jesus: "love", michael: "alert", gabriel: "happy", raphael: "neutral", uriel: "think",
+      aurora: "flirt", violet: "happy", seraph: "love",
     };
     const moodAgents = [
       { id: "luna", name: "Luna" },
       { id: "oracle", name: "Oracle" },
+      { id: "aurora", name: "Aurora" },
+      { id: "violet", name: "Violet" },
+      { id: "seraph", name: "Seraph" },
       { id: "hermes", name: "Hermes" },
       { id: "caduceus", name: "Caduceus" },
       { id: "sentinel", name: "Sentinel" },
@@ -3240,6 +3131,9 @@
       { id: "caduceus", name: "Caduceus", color: "#34d399", x: -372, y: 228, tx: -372, ty: 228, speed: 2.1, roam: 210, idle: 0, line: "", fullLine: "", mood: "neutral", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "caduceus" },
       { id: "sentinel", name: "Sentinel", color: "#67e8f9", x: -358, y: -228, tx: -358, ty: -228, speed: 2.4, roam: 212, idle: 0, line: "", fullLine: "", mood: "alert", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "sentinel" },
       { id: "jesus", name: "Jesus", color: "#fde68a", x: 118, y: 178, tx: 118, ty: 178, speed: 2.0, roam: 205, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "jesus" },
+      { id: "aurora", name: "Aurora", color: "#f472b6", x: -228, y: -48, tx: -228, ty: -48, speed: 2.2, roam: 200, idle: 0, line: "", fullLine: "", mood: "flirt", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
+      { id: "violet", name: "Violet", color: "#c084fc", x: 268, y: -178, tx: 268, ty: -178, speed: 2.2, roam: 205, idle: 0, line: "", fullLine: "", mood: "happy", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null },
+      { id: "seraph", name: "Seraph", color: "#fda4af", x: 58, y: 268, tx: 58, ty: 268, speed: 2.0, roam: 198, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "seraph" },
     ];
     const HOUSE_HOME_LINES = {
       luna: "Slipping into my house — the corona glow seeps through the windows.",
@@ -5715,7 +5609,7 @@
     }
 
     function campMusicIsActive() {
-      return campMusicSource === "spotify" || campMusicSource === "telephantix";
+      return campMusicSource === "telephantix";
     }
 
     function campMusicStatusLabel() {
@@ -5723,11 +5617,7 @@
       if (campMusicSource === "telephantix") {
         return `Telephantix — ${campMusicBoost ? `${track.title} · BASS` : track.title}`;
       }
-      if (campMusicSource === "spotify") {
-        const meta = campSpotifyMeta(campSpotifyKey);
-        return `Spotify — ${meta.shortLabel}`;
-      }
-      return "Music off — tap TX or Spotify below";
+      return "Music off — tap TX below";
     }
 
     function updateCampMusicPrompt() {
@@ -5741,7 +5631,7 @@
         } else if (campMusicSource === "telephantix" && campMusicPlayPending) {
           prompt.textContent = `🔊 Tap to play — ${track?.title || "Telephantix"}`;
         } else {
-          prompt.textContent = "🎵 Tap TX or Spotify in the toolbar";
+          prompt.textContent = "🎵 Tap TX in the toolbar";
         }
       }
       document.body.classList.toggle("camp-music-pending", tpxPending);
@@ -5927,40 +5817,7 @@
       updateCampMusicPrompt();
     }
 
-    let campSpotifyOpen = false;
     let campMusicSource = null;
-    let campSpotifyKey = "playlist";
-
-    function loadCampSpotifyEmbed(key = campSpotifyKey) {
-      campSpotifyKey = key in CAMP_SPOTIFY_SOURCES ? key : "playlist";
-      const meta = campSpotifyMeta(campSpotifyKey);
-      const frame = document.getElementById("camp-spotify-embed");
-      const loading = document.getElementById("camp-spotify-loading");
-      const embedUrl = campSpotifyEmbed(campSpotifyKey);
-      if (loading) loading.textContent = `Loading ${meta.shortLabel}…`;
-      if (frame) {
-        const applySrc = () => { frame.src = embedUrl; };
-        requestAnimationFrame(applySrc);
-        frame.onload = () => {
-          if (loading) loading.textContent = "Tap ▶ in the player to start";
-        };
-      }
-      const titleEl = document.getElementById("camp-spotify-head-title");
-      const subEl = document.getElementById("camp-spotify-head-sub");
-      const link = document.getElementById("camp-spotify-open");
-      if (titleEl) titleEl.textContent = `🎧 ${meta.owner}`;
-      if (subEl) subEl.textContent = meta.title;
-      if (link) link.href = campSpotifyUrl(campSpotifyKey);
-      document.querySelectorAll("#camp-spotify-tabs button").forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.spotifyKey === campSpotifyKey);
-      });
-    }
-
-    function hideCampSpotifyLayer() {
-      campSpotifyOpen = false;
-      document.body.classList.remove("camp-spotify-open");
-      document.getElementById("camp-spotify-layer")?.classList.remove("open");
-    }
 
     function stopCampTelephantix(opts = {}) {
       campMusicOn = false;
@@ -5971,37 +5828,10 @@
 
     function closeAllCampMusic(opts = {}) {
       campMusicSource = null;
-      campSpotifyKey = "playlist";
-      hideCampSpotifyLayer();
       stopCampTelephantix({ keepPreference: opts.keepPreference });
       updateCampMusicUi();
       updateCampMusicPrompt();
       if (!opts.quiet) showToast("🔇 Camp music off");
-    }
-
-    function toggleCampSpotifyDock() {
-      if (campMusicSource === "spotify" && campSpotifyOpen) {
-        closeAllCampMusic();
-        return;
-      }
-      openCampSpotify(campSpotifyKey || "playlist");
-    }
-
-    function openCampSpotify(key = "playlist", opts = {}) {
-      const nextKey = key in CAMP_SPOTIFY_SOURCES ? key : "playlist";
-      stopCampTelephantix({ keepPreference: true });
-      campMusicSource = "spotify";
-      campSpotifyKey = nextKey;
-      campSpotifyOpen = true;
-      document.body.classList.add("camp-spotify-open", "camp-music-on");
-      document.getElementById("camp-spotify-layer")?.classList.add("open");
-      loadCampSpotifyEmbed(campSpotifyKey);
-      updateCampMusicUi();
-      updateCampMusicPrompt();
-      if (!opts.quiet) {
-        const meta = campSpotifyMeta(campSpotifyKey);
-        showToast(`${meta.shortLabel} — tap ▶ in the player`);
-      }
     }
 
     function openCampTelephantix(opts = {}) {
@@ -6009,7 +5839,6 @@
         closeAllCampMusic(opts);
         return;
       }
-      hideCampSpotifyLayer();
       campMusicSource = "telephantix";
       campMusicUserStopped = false;
       try { localStorage.removeItem("luna-camp-music-off"); } catch (_) {}
@@ -6026,13 +5855,8 @@
       }
     }
 
-    function closeCampSpotify() {
-      closeAllCampMusic();
-    }
-
     function updateCampMusicUi() {
       const tpxBtn = document.getElementById("btn-camp-tpx");
-      const spotifyBtn = document.getElementById("btn-camp-spotify");
       const offBtn = document.getElementById("btn-camp-music-off");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
       const active = campMusicIsActive();
@@ -6040,14 +5864,7 @@
         tpxBtn.classList.toggle("active", campMusicSource === "telephantix");
         tpxBtn.title = campMusicSource === "telephantix"
           ? `Telephantix ON — ${track.title} (tap to stop)`
-          : "Telephantix — AI album at camp";
-      }
-      if (spotifyBtn) {
-        spotifyBtn.classList.toggle("active", campMusicSource === "spotify" && campSpotifyOpen);
-        const meta = campSpotifyMeta(campSpotifyKey);
-        spotifyBtn.title = campMusicSource === "spotify" && campSpotifyOpen
-          ? `Spotify ON — ${meta.shortLabel} (tap to stop)`
-          : "Spotify — playlist or liked songs";
+          : "Telephantix — your album at camp";
       }
       if (offBtn) {
         offBtn.classList.toggle("active", !active);
@@ -6057,10 +5874,10 @@
       if (tip) {
         tip.textContent = active
           ? `🎶 ${campMusicStatusLabel()} · swipe toolbar →`
-          : "TX = Telephantix · green = Spotify · 🔇 off · swipe toolbar →";
+          : "TX = Telephantix · 🔇 off · swipe toolbar →";
         tip.classList.toggle("flash", active);
       }
-      document.body.classList.toggle("camp-music-on", campMusicSource === "telephantix" || campMusicSource === "spotify");
+      document.body.classList.toggle("camp-music-on", campMusicSource === "telephantix");
       updateCampMusicPrompt();
     }
 
@@ -6077,7 +5894,7 @@
       }
       if (campMusicSource === "telephantix") closeAllCampMusic({ keepPreference: !opts.auto });
       else stopCampTelephantix({ keepPreference: !opts.auto });
-      if (!opts.quiet && !on) setCampLifeStatus("Camp quiet — tap 🎵 for stoodstrong or Telephantix");
+      if (!opts.quiet && !on) setCampLifeStatus("Camp quiet — tap TX for Telephantix");
       updateCampMusicUi();
       updateCampMusicPrompt();
       return campMusicOn;
@@ -6361,6 +6178,7 @@
       luna: "#d946ef", hermes: "#fbbf24", oracle: "#8b5cf6",
       caduceus: "#34d399", sentinel: "#67e8f9", dionysus: "#e11d48",
       jesus: "#fde68a", michael: "#60a5fa", gabriel: "#f0abfc", raphael: "#6ee7b7", uriel: "#fb923c",
+      aurora: "#f472b6", violet: "#c084fc", seraph: "#fda4af",
     };
     const AGENT_QUIPS = {
       luna: "moon diplomat",
@@ -6370,6 +6188,9 @@
       sentinel: "beep boop prophecy",
       jesus: "peace, then wander",
       dionysus: "crashed the party",
+      aurora: "velvet neon host",
+      violet: "lavender camp friend",
+      seraph: "soft wings, soft truth",
     };
     const agentMeditation = new Map();
     const MEDITATION_QUIPS = {
@@ -6415,6 +6236,24 @@
         "I crashed this meditation and it thanked me.",
         "Grapes would be proud. If grapes had opinions.",
       ],
+      aurora: [
+        "Neon off, glow on — meditation with a runway walk.",
+        "Velvet thoughts only. Bass optional.",
+        "I meditate like the spotlight owes me rent.",
+        "Aurora fizz energy without the spill. Impressive.",
+      ],
+      violet: [
+        "Lavender static tuned to peaceful.",
+        "My aura filed a compliment about yours.",
+        "Violet hour inside my skull. Pleasant.",
+        "Camp blushes when I sit still. Cute.",
+      ],
+      seraph: [
+        "Wings folded. Heart wide open.",
+        "Even the grass feels forgiven from here.",
+        "Gentle light, gentler punchline.",
+        "I bless this patch of meadow. No invoice.",
+      ],
       _default: [
         "Camp energy reorganizing itself around my ego.",
         "Unexpected enlightenment unlocked. No tutorial.",
@@ -6430,6 +6269,9 @@
       sentinel: "Sentinel powers down to 'ominous hum' mode.",
       jesus: "Jesus sits. The meadow exhales.",
       dionysus: "Dionysus meditates like it's a afterparty for the soul.",
+      aurora: "Aurora dims the neon and turns the circle into a slow dance.",
+      violet: "Violet sits down and the meadow smells like rain on lilacs.",
+      seraph: "Seraph folds her wings and the whole camp exhales.",
     };
     const MEDITATION_FINALE = {
       luna: ["Luna opened a diplomatic portal to the cookie table."],
@@ -6439,6 +6281,9 @@
       sentinel: ["Sentinel logged: universe normal, suspiciously nice."],
       jesus: ["A soft light. A softer punchline. Peace wins."],
       dionysus: ["Dionysus turned the circle into a dance floor. Briefly. Sacredly."],
+      aurora: ["Aurora opened the velvet doors to inner peace. Dress code: optional."],
+      violet: ["Violet hummed once and three agents felt braver."],
+      seraph: ["Seraph lit a lantern in the circle. Nobody needed to ask why."],
     };
 
     function roamersBySpeaker(speaker) {
@@ -6464,6 +6309,9 @@
         gabriel: ["📯", "✦", "☁"],
         raphael: ["💚", "✦", "☁"],
         uriel: ["🔥", "✦", "☁"],
+        aurora: ["💃", "✨", "🌸"],
+        violet: ["💜", "🌿", "◇"],
+        seraph: ["🕊", "☀", "✦"],
       };
       return map[id] || ["✦", "○", "◇"];
     }
@@ -6499,7 +6347,7 @@
         circleOx: circle.circleOx,
         circleOy: circle.circleOy,
       });
-      const moods = { luna: "love", hermes: "think", oracle: "neutral", caduceus: "happy", sentinel: "alert", jesus: "love", dionysus: "happy" };
+      const moods = { luna: "love", hermes: "think", oracle: "neutral", caduceus: "happy", sentinel: "alert", jesus: "love", dionysus: "happy", aurora: "flirt", violet: "happy", seraph: "love" };
       setAgentMood(npc.id, moods[npc.id] || "happy");
       const intro = MEDITATION_INTROS[npc.id]
         || `${npc.name} sits down like the universe owes them an explanation.`;
@@ -6861,6 +6709,60 @@
       ctx.fill();
     }
 
+    function drawAuroraFigure(cx, cy, t) {
+      const pulse = 0.45 + Math.sin(t * 3.5) * 0.25;
+      ctx.strokeStyle = `rgba(244, 114, 182, ${0.5 + pulse * 0.35})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 36, 15, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+      drawIsoBox(cx, cy, -0.32, -0.32, 0, 0.64, 0.64, 1.0,
+        { top: "#fbcfe8", left: "#be185d", right: "#f472b6", stroke: "#fce7f3" });
+      drawIsoCylinder(cx, cy, 0, 0.52, 0.2, 0.5,
+        { top: "#ec4899", side: "#db2777", stroke: "#fdf2f8" });
+      const neon = isoPoint(cx, cy, 0.55, -0.15, 1.1);
+      ctx.fillStyle = `rgba(236, 72, 153, ${0.35 + pulse * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(neon.x, neon.y, 6 + pulse * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawVioletFigure(cx, cy, t) {
+      const glow = 0.4 + Math.sin(t * 2.8) * 0.2;
+      drawIsoBox(cx, cy, -0.3, -0.3, 0, 0.6, 0.6, 1.05,
+        { top: "#ddd6fe", left: "#7c3aed", right: "#a78bfa", stroke: "#ede9fe" });
+      ctx.strokeStyle = `rgba(192, 132, 252, ${glow})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 38, 14, 0.15, Math.PI - 0.15);
+      ctx.stroke();
+      drawIsoCylinder(cx, cy, 0, 0.48, 0.18, 0.4,
+        { top: "#8b5cf6", side: "#6d28d9", stroke: "#c4b5fd" });
+    }
+
+    function drawSeraphFigure(cx, cy, t) {
+      const pulse = 0.5 + Math.sin(t * 2.5) * 0.25;
+      const wing = Math.sin(t * 4) * 4;
+      ctx.strokeStyle = `rgba(253, 164, 175, ${0.45 + pulse * 0.35})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 30, 12 + pulse * 3, 0, Math.PI * 2);
+      ctx.stroke();
+      drawIsoBox(cx, cy, -0.28, -0.28, 0, 0.56, 0.56, 0.95,
+        { top: "#ffe4e6", left: "#fb7185", right: "#fda4af", stroke: "#fff1f2" });
+      ctx.fillStyle = `rgba(253, 164, 175, ${0.55 + pulse * 0.2})`;
+      ctx.beginPath();
+      ctx.moveTo(cx - 20, cy - 24 + wing);
+      ctx.lineTo(cx - 6, cy - 32);
+      ctx.lineTo(cx, cy - 22);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx + 20, cy - 24 - wing);
+      ctx.lineTo(cx + 6, cy - 32);
+      ctx.lineTo(cx, cy - 22);
+      ctx.fill();
+    }
+
     function drawDionysusFigure(cx, cy, t) {
       const sway = Math.sin(t * 3) * 4;
       drawIsoBox(cx, cy, -0.3 + sway * 0.01, -0.3, 0, 0.6, 0.6, 1.0,
@@ -6921,6 +6823,9 @@
         luna: drawLunaFigure,
         hermes: drawHermesFigure,
         oracle: drawOracleFigure,
+        aurora: drawAuroraFigure,
+        violet: drawVioletFigure,
+        seraph: drawSeraphFigure,
         caduceus: drawCaduceusFigure,
         sentinel: drawSentinelFigure,
         dionysus: drawDionysusFigure,
@@ -7314,6 +7219,24 @@
         "You called the party, {v}? Dionysus reporting{bond}.",
         "{v}, main-character energy detected{bond}. I'm Dionysus — celebrate something.",
       ],
+      aurora: [
+        "{v} — velvet doors are open. I'm Aurora{bond}. What's your poison?",
+        "Neon looks good on you, {v}{bond}. Aurora Velvet's host — talk to me.",
+        "{v}, bass leaks through the walls and I don't mind{bond}.",
+        "Hey {v} — Aurora here. Sip slow, dance slower{bond}.",
+      ],
+      violet: [
+        "{v}! Lavender static in a good way{bond}. I'm Violet.",
+        "Hi {v} — camp's softer when you show{bond}. Violet's listening.",
+        "{v}, Oracle and I share vibes sometimes. I'm the fun one{bond}.",
+        "Pull up meadow, {v}. Violet's got time{bond}.",
+      ],
+      seraph: [
+        "Peace, {v}. Wings down, heart open{bond}. I'm Seraph.",
+        "{v}, the meadow feels lighter when you walk in{bond}.",
+        "Gentle truth only, {v} — Seraph here{bond}.",
+        "{v}, you're welcome in this circle{bond}. Seraph listening.",
+      ],
       michael: [
         "{v}, Michael here — steady sword, open heart{bond}.",
         "The camp is guarded, {v}. I'm Michael{bond}. Speak.",
@@ -7367,6 +7290,21 @@
         { label: "Toast", q: "Give me a toast for tonight." },
         { label: "Party vibe", q: "How wild should this camp party get?" },
         { label: "Vineyard", q: "What's happening at your vineyard?" },
+      ],
+      aurora: [
+        { label: "Velvet vibe", q: "What's the vibe at Aurora Velvet tonight?" },
+        { label: "Neon read", q: "Read my energy under the neon." },
+        { label: "Dance?", q: "Should I dance or just sip and watch?" },
+      ],
+      violet: [
+        { label: "Camp mood", q: "What's the camp mood from your angle?" },
+        { label: "Lavender truth", q: "Tell me something soft but honest." },
+        { label: "Friend check", q: "How am I doing out here tonight?" },
+      ],
+      seraph: [
+        { label: "Peace", q: "What would bring me peace right now?" },
+        { label: "Light", q: "What light do you see around me?" },
+        { label: "Gentle truth", q: "Say something gentle I need to hear." },
       ],
       michael: [
         { label: "Courage", q: "What do I need courage for right now?" },
@@ -8556,17 +8494,12 @@
       };
     });
     document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
-    document.getElementById("btn-camp-spotify").onclick = () => toggleCampSpotifyDock();
     document.getElementById("btn-camp-music-off").onclick = () => closeAllCampMusic();
     document.getElementById("camp-music-prompt").onclick = () => {
       if (campMusicSource === "telephantix" && (campMusicPlayPending || campMusicMuted)) {
         resumeCampMusicPlayback();
       }
     };
-    document.getElementById("camp-spotify-close").onclick = () => closeCampSpotify();
-    document.getElementById("camp-spotify-layer").onclick = () => closeCampSpotify();
-    document.getElementById("camp-spotify-tab-pl").onclick = () => openCampSpotify("playlist", { force: true });
-    document.getElementById("camp-spotify-tab-liked").onclick = () => openCampSpotify("liked", { force: true });
     document.getElementById("btn-lucid-tv").onclick = () => openLucidTv();
     document.getElementById("btn-camp-shop").onclick = () => openCampShop();
     document.getElementById("camp-token-badge").onclick = () => openCampShop();
@@ -8653,6 +8586,7 @@
       luna: "Luna", oracle: "Oracle", hermes: "Hermes",
       sentinel: "Sentinel", caduceus: "Caduceus", dionysus: "Dionysus",
       jesus: "Jesus", michael: "Michael", gabriel: "Gabriel", raphael: "Raphael", uriel: "Uriel",
+      aurora: "Aurora", violet: "Violet", seraph: "Seraph",
     };
 
     function setDionysusChipVisible(show) {
@@ -9098,10 +9032,6 @@
         closeCampHouse();
         return;
       }
-      if (campSpotifyOpen && e.key === "Escape") {
-        closeCampSpotify();
-        return;
-      }
       if (lucidTvOpen && e.key === "Escape") {
         closeLucidTv();
         return;
@@ -9204,7 +9134,7 @@
           if (!isSlowDevice()) {
             showToast(h.ollama_ok ? "🦙 Ollama brains live — free chat & memory" : "🌫 Aether brains — start Ollama for fuller AI");
           }
-          setCampLifeStatus("Toolbar: TX = Telephantix · green = Spotify · 🔇 off · Luna & Hermes talk below");
+          setCampLifeStatus("Toolbar: TX = Telephantix · 🔇 off · Luna, Aurora & friends talk below");
           const convA = isSlowDevice() ? 52000 : 18000;
           const convB = isSlowDevice() ? 130000 : 42000;
           setTimeout(() => runCampConverse(["luna", "hermes"]), convA);

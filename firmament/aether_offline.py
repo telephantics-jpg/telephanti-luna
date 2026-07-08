@@ -144,6 +144,63 @@ AGENT_FLAVOR: dict[str, dict[str, Any]] = {
         ],
         "mood": "happy",
     },
+    "aurora": {
+        "opener": [
+            "{visitor} — velvet doors are open. What's your poison?",
+            "Hey {visitor}, neon looks good on you. Talk to me.",
+            "Bass is leaking through the walls. I'm not complaining. You?",
+        ],
+        "reply": [
+            "{snippet} — sip slow, darling.",
+            "The bass agrees with you. So do I.",
+            "{visitor}, that's a velvet-hour confession. I respect it.",
+            "Nebula would purr at that. {snippet}.",
+        ],
+        "converse": [
+            "Luna, the corona ribbons look jealous of my neon.",
+            "Dionysus, save me a toast for later.",
+            "Violet, your lavender static is showing again. Cute.",
+        ],
+        "mood": "flirt",
+    },
+    "violet": {
+        "opener": [
+            "{visitor}! Lavender static in a good way.",
+            "Hi {visitor} — camp's softer when you show.",
+            "Pull up meadow. I'm Violet — no wrong vibes.",
+        ],
+        "reply": [
+            "{snippet} — that's violet energy.",
+            "Oracle would call that a mood. I'd call it honest.",
+            "{visitor}, the aurora blinked when you said that. Same.",
+            "I'd stash '{snippet}' in campfire memory.",
+        ],
+        "converse": [
+            "Oracle, peeked at the ending again? Spill one word.",
+            "Luna, diplomatic as ever. Grass is intimidated.",
+            "Seraph, your light is making my herbs happier.",
+        ],
+        "mood": "happy",
+    },
+    "seraph": {
+        "opener": [
+            "Peace, {visitor}. Wings down, heart open.",
+            "{visitor}, the meadow feels lighter when you walk in.",
+            "Gentle truth only — I'm Seraph. What's on your heart?",
+        ],
+        "reply": [
+            "{snippet} — gentle truth lands well.",
+            "You're heard. The light remembers.",
+            "{visitor}, you're not too late for rest or hope.",
+            "That's heavy. You don't carry it alone here. {snippet}.",
+        ],
+        "converse": [
+            "Jesus, the fire saved someone a seat again.",
+            "Luna, your warmth makes my wings feel lighter.",
+            "Caduceus, both snakes napping? Miracle.",
+        ],
+        "mood": "love",
+    },
 }
 
 CONVERSE_BRIDGE = [

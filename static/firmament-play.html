@@ -6580,7 +6580,7 @@
         const data = await res.json();
         if (res.ok && data.lines) {
           for (const line of data.lines) {
-            pushCampLine(line.name || line.agent_id, line.line, campReadHoldSec(line.line, 36), line.mood || "love");
+            pushCampLine(line.name || line.agent_id, line.line, campReadHoldSec(line.line, 48), line.mood || "love");
           }
         }
       } catch (_) {
@@ -11914,7 +11914,7 @@
     }
 
     function pushCampLine(speaker, line, holdSec, mood, opts = {}) {
-      if (holdSec == null) holdSec = campReadHoldSec(line, 36);
+      if (holdSec == null) holdSec = campReadHoldSec(line, 44);
       const clean = (line || "").trim();
       if (!clean) return;
       if (isCampMobile() && opts.fromLocal) opts.quiet = false;
@@ -11982,7 +11982,7 @@
 
     function mergeRemoteChatter(line) {
       if (!line || !line.text) return;
-      pushCampLine(line.speaker || "Camp", line.text, campReadHoldSec(line.text, 34), line.mood, { skipBroadcast: true });
+      pushCampLine(line.speaker || "Camp", line.text, campReadHoldSec(line.text, 42), line.mood, { skipBroadcast: true });
     }
 
     function updateVisitorsOnlineLabel() {

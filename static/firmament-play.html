@@ -97,9 +97,12 @@
     #game {
       display: block;
       position: absolute;
-      left: 0; top: 0; right: 0; bottom: 0;
-      width: 100%;
-      height: 100%;
+      left: 0;
+      top: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+      box-sizing: border-box;
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
@@ -3326,7 +3329,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-stage-sync";
+    const CAMP_BUILD = "2026-07-08-camp-canvas-lock";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3553,11 +3556,22 @@
       document.documentElement.classList.remove("camp-input-focus");
     }
 
-    function getCampCanvasSize() {
-      const stage = campStage || canvas?.parentElement || canvas;
+    function readStagePixelSize() {
+      const stage = campStage || canvas?.parentElement;
+      if (!stage) return { w: 1, h: 1 };
+      const cw = stage.clientWidth;
+      const ch = stage.clientHeight;
+      if (cw > 2 && ch > 2) {
+        return { w: cw, h: ch };
+      }
       const box = stage.getBoundingClientRect();
-      let w = Math.max(1, Math.round(box.width));
-      let h = Math.max(1, Math.round(box.height));
+      return {
+        w: Math.max(1, Math.round(box.width)),
+        h: Math.max(1, Math.round(box.height)),
+      };
+    }
+    function getCampCanvasSize() {
+      let { w, h } = readStagePixelSize();
       if (!isCampMobile()) {
         return { w, h };
       }
@@ -5601,14 +5615,25 @@
       viewH = h;
       const bw = Math.max(1, Math.round(w * campDpr));
       const bh = Math.max(1, Math.round(h * campDpr));
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
       canvas.style.display = "block";
-      if (canvas.width !== bw || canvas.height !== bh) {
-        canvas.width = bw;
-        canvas.height = bh;
-      }
+      canvas.style.position = "absolute";
+      canvas.style.left = "0";
+      canvas.style.top = "0";
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      canvas.style.maxWidth = "none";
+      canvas.style.maxHeight = "none";
+      canvas.width = bw;
+      canvas.height = bh;
       ctx.setTransform(campDpr, 0, 0, campDpr, 0, 0);
+    }
+    function canvasMatchesStage() {
+      const stage = campStage;
+      if (!stage || !canvas) return true;
+      const { w, h } = readStagePixelSize();
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      return Math.abs(cw - w) <= 2 && Math.abs(ch - h) <= 2 && Math.abs(viewW - w) <= 2 && Math.abs(viewH - h) <= 2;
     }
 
     function resizeCore() {
@@ -5629,6 +5654,11 @@
       lastCanvasW = w;
       lastCanvasH = h;
       applyCanvasDimensions(w, h);
+      if (!canvasMatchesStage() && resizeRetry < 24) {
+        resizeRetry += 1;
+        scheduleResize({ debounceMs: 32 });
+        return;
+      }
       ensureViewCamera();
       updateCampViewportDebug();
       const zoom = getWorldZoom();
@@ -12163,7 +12193,9 @@
       if (!campBuildEl) return;
       const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
       if (!isCampMobile()) {
-        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)} ref${DESKTOP_REF_W} d${campDisplayDpr().toFixed(1)}`;
+        const cw = canvas?.clientWidth || 0;
+        const ch = canvas?.clientHeight || 0;
+        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} c${cw}×${ch} z${getWorldZoom().toFixed(2)} d${campDisplayDpr().toFixed(1)}`;
         return;
       }
       campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;

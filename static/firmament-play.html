@@ -111,6 +111,17 @@
       to { box-shadow: 0 0 18px rgba(251, 191, 36, 0.45); }
     }
     #camp-token-badge .tok-amt { font-size: 0.88rem; color: #fff; }
+    #camp-you-badge {
+      pointer-events: auto; flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 11px; border-radius: 999px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(103, 232, 249, 0.4);
+      color: #a5f3fc; font-size: 0.72rem; font-weight: 700;
+      cursor: pointer; touch-action: manipulation;
+      max-width: 108px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #camp-you-badge::before { content: "👤"; font-size: 0.82rem; flex-shrink: 0; }
     .header-row {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
       pointer-events: auto;
@@ -1657,6 +1668,7 @@
       #camp-talk-input { font-size: 0.76rem; padding: 7px 8px; }
       #camp-talk-send { width: 36px; height: 34px; }
       #camp-token-badge { font-size: 0.66rem; padding: 4px 9px; }
+      #camp-you-badge { font-size: 0.66rem; padding: 4px 9px; max-width: 92px; }
       .dock-compact { gap: 5px; }
       .dock-compact .dock-icon { width: 42px; height: 42px; font-size: 1.1rem; }
       #dialogue-panel { padding: 14px; max-height: min(82vh, 600px); transform: none; }
@@ -2097,9 +2109,12 @@
         <h1>🔥 Luna Camp</h1>
         <div class="tagline">trippy iso-3D · talk · shop · shelter · roam free</div>
       </div>
-      <button type="button" id="camp-token-badge" title="Open aurora shop">
-        <span>🪙</span><span class="tok-amt" id="camp-token-amt">…</span><span>tokens</span>
-      </button>
+      <div class="header-row" style="gap:6px;flex-wrap:nowrap;margin-left:auto">
+        <button type="button" id="camp-you-badge" title="Your camp name — tap to change">you</button>
+        <button type="button" id="camp-token-badge" title="Open aurora shop">
+          <span>🪙</span><span class="tok-amt" id="camp-token-amt">…</span><span>tokens</span>
+        </button>
+      </div>
       <div id="status-toast">Loading camp…</div>
       <div id="mini-status">Build <span id="camp-build-tag">…</span> · Server <span id="server-status">…</span></div>
     </div>
@@ -2417,7 +2432,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-odin-portrait";
+    const CAMP_BUILD = "2026-07-07-camp-mobile-speed-name";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -2924,11 +2939,56 @@
     const BEHAVIOR_LABELS = { free: "own thing", roam: "roaming", follow: "following", stand: "still", sit: "sitting", party: "party", visit: "visiting", home: "going home", meditate: "meditating ✦" };
     const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus"]);
 
+    function getPlayerSpeed() {
+      if (isCampMobile()) return 5.6;
+      return 3.5;
+    }
+
     const player = {
-      x: 0, y: -25, tx: 0, ty: -25, speed: 3.5,
+      x: 0, y: -25, tx: 0, ty: -25, speed: getPlayerSpeed(),
       color: localStorage.getItem("luna-play-visitor-color") || VISITOR_COLORS[0],
       name: myVisitorName || "you",
     };
+
+    function visitorDisplayName() {
+      const n = (myVisitorName || player.name || "you").trim();
+      return n || "you";
+    }
+
+    function updateYouBadge() {
+      const el = document.getElementById("camp-you-badge");
+      if (!el) return;
+      const n = visitorDisplayName();
+      el.textContent = n.length > 14 ? `${n.slice(0, 13)}…` : n;
+      el.title = `You: ${n} — tap to change your name`;
+    }
+
+    function openVisitorNameModal(opts = {}) {
+      const input = document.getElementById("visitor-name-input");
+      const btn = document.getElementById("visitor-join-btn");
+      if (input) input.value = myVisitorName || player.name || "";
+      if (btn) btn.textContent = opts.firstJoin ? "Join camp" : "Save name";
+      document.getElementById("visitor-modal")?.classList.add("open");
+      setTimeout(() => input?.focus(), 120);
+    }
+
+    function applyVisitorName(name) {
+      const clean = (name || "").trim().slice(0, 24);
+      if (!clean) return false;
+      myVisitorName = clean;
+      player.name = clean;
+      localStorage.setItem("luna-play-visitor-name", clean);
+      updateYouBadge();
+      if (playWs?.readyState === WebSocket.OPEN) {
+        playWs.send(JSON.stringify({
+          type: "play.join",
+          visitor_id: myVisitorId,
+          name: clean,
+          color: player.color,
+        }));
+      }
+      return true;
+    }
     const camp = { x: 0, y: -80 };
     const HOUSE_SONG_PORTRAITS = [
       { id: "flowing-free", title: "Flowing Free" },
@@ -9413,6 +9473,7 @@
             myVisitorName = player.name;
             localStorage.setItem("luna-play-visitor-color", player.color);
             localStorage.setItem("luna-play-visitor-name", myVisitorName);
+            updateYouBadge();
           }
           applyGlobalNpcMode(msg.npc_mode || npcMode);
           if (msg.visitor_id) {
@@ -9452,11 +9513,19 @@
     }
 
     function startCampSession() {
-      if (!myVisitorName) {
+      const savedName = localStorage.getItem("luna-play-visitor-name") || "";
+      if (savedName) {
+        myVisitorName = savedName;
+        player.name = savedName;
+      } else if (isCampMobile()) {
+        player.name = "you";
+        setTimeout(() => openVisitorNameModal({ firstJoin: true }), 900);
+      } else {
         myVisitorName = "Traveler" + (100 + Math.floor(Math.random() * 900));
+        player.name = myVisitorName;
         localStorage.setItem("luna-play-visitor-name", myVisitorName);
       }
-      player.name = myVisitorName;
+      updateYouBadge();
       if (!localStorage.getItem("luna-play-visitor-color")) {
         player.color = VISITOR_COLORS[Math.floor(Math.random() * VISITOR_COLORS.length)];
         localStorage.setItem("luna-play-visitor-color", player.color);
@@ -9465,15 +9534,15 @@
       else connectPlayLobby();
     }
 
+    document.getElementById("camp-you-badge").onclick = () => openVisitorNameModal();
     document.getElementById("visitor-join-btn").onclick = () => {
       const name = document.getElementById("visitor-name-input").value.trim();
-      if (name) {
-        myVisitorName = name;
-        player.name = name;
-        localStorage.setItem("luna-play-visitor-name", name);
+      if (name) applyVisitorName(name);
+      else if (!myVisitorName) {
+        applyVisitorName(isCampMobile() ? "you" : `Traveler${100 + Math.floor(Math.random() * 900)}`);
       }
       document.getElementById("visitor-modal").classList.remove("open");
-      connectPlayLobby();
+      if (!playWs || playWs.readyState !== WebSocket.OPEN) connectPlayLobby();
     };
 
     bindCampMusicGestureUnlock();
@@ -9542,8 +9611,9 @@
         const dx = player.tx - player.x, dy = player.ty - player.y;
         const d = Math.hypot(dx, dy);
         if (d > 2) {
-          player.x += (dx / d) * player.speed;
-          player.y += (dy / d) * player.speed;
+          const moveSpd = getPlayerSpeed();
+          player.x += (dx / d) * moveSpd;
+          player.y += (dy / d) * moveSpd;
         }
         updateNpcSocial();
         enforceNpcSeparation(0.45);

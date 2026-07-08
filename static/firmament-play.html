@@ -3334,7 +3334,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-mobile-comfy";
+    const CAMP_BUILD = "2026-07-08-camp-revert192";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3681,9 +3681,9 @@
     function getLocalCampMemory() {
       try {
         const raw = localStorage.getItem(localCampMemoryKey());
-        return raw ? JSON.parse(raw) : { moments: [], agent_chats: {}, agent_words: {}, user_said: {} };
+        return raw ? JSON.parse(raw) : { moments: [], agent_chats: {}, agent_words: {} };
       } catch (_) {
-        return { moments: [], agent_chats: {}, agent_words: {}, user_said: {} };
+        return { moments: [], agent_chats: {}, agent_words: {} };
       }
     }
 
@@ -3701,10 +3701,6 @@
       mem.moments = mem.moments.slice(-48);
       if (kind === "chat" && agentId) {
         mem.agent_chats[agentId] = (mem.agent_chats[agentId] || 0) + 1;
-        mem.user_said = mem.user_said || {};
-        const said = mem.user_said[agentId] || [];
-        said.push({ text, t: Date.now() });
-        mem.user_said[agentId] = said.slice(-8);
       }
       if (kind === "agent_said" && agentId) {
         const list = mem.agent_words[agentId] || [];
@@ -3728,11 +3724,6 @@
         bonds[aid] = bonds[aid] || { chats: 0, highlights: [], recent_words: [] };
         const localWords = (words || []).map((w) => w.text).slice(-3);
         bonds[aid].recent_words = [...new Set([...(bonds[aid].recent_words || []), ...localWords])].slice(-3);
-      }
-      for (const [aid, said] of Object.entries(mem.user_said || {})) {
-        bonds[aid] = bonds[aid] || { chats: 0, highlights: [], recent_words: [] };
-        const youSaid = (said || []).map((w) => w.text).filter(Boolean).slice(-2);
-        bonds[aid].highlights = [...new Set([...(bonds[aid].highlights || []), ...youSaid])].slice(-4);
       }
       campBonds = bonds;
     }
@@ -3768,16 +3759,8 @@
       const pool = (message || "").trim().length < 12 ? flavor.open : flavor.reply;
       let reply = pool[Math.floor(Math.random() * pool.length)]
         .replace("{v}", v).replace("{s}", s);
-      const mem = getLocalCampMemory();
-      const youSaid = (mem.user_said?.[agentId] || []).slice(-1)[0]?.text;
-      const theySaid = (mem.agent_words?.[agentId] || []).slice(-1)[0]?.text;
-      if (youSaid && (message || "").trim().length > 8 && Math.random() < 0.62) {
-        reply = `You asked about "${aetherSnippet(message, 56)}" — and I still hear when you said "${aetherSnippet(youSaid, 48)}". ${reply}`;
-      } else if (theySaid && Math.random() < 0.45) {
-        reply += ` Last time I told you "${aetherSnippet(theySaid, 52)}".`;
-      }
       const bond = bondHintForAgent(agentId);
-      if (bond) reply += ` (${bond.replace(/^ · /, "I remember ")})`;
+      if (bond && Math.random() < 0.4) reply += ` (${bond.replace(/^ · /, "I remember ")})`;
       return { agent_id: agentId, name: agentNames[agentId] || agentId, reply, mood: flavor.mood, backend: "aether" };
     }
 
@@ -4276,34 +4259,11 @@
     }
     function getCampLayoutKey() {
       if (!isCampMobile()) return `${viewW}x${viewH}`;
-      const step = 24;
-      const rw = Math.round(viewW / step) * step;
-      const rh = Math.round(viewH / step) * step;
-      return `${rw}x${rh}${isLandscape() ? "L" : "P"}`;
+      const b = getCampRelativeBounds();
+      return `${viewW}x${viewH}z${getWorldZoom().toFixed(3)}b${b.xMin.toFixed(0)}${b.xMax.toFixed(0)}`;
     }
     let lastSpreadZoom = 0;
     let lastLayoutKey = "";
-    let lastMobileOrient = "";
-    let lastVvW = 0;
-    let lastVvH = 0;
-    let lastResizeAt = 0;
-    function campOrientationKey() {
-      return isLandscape() ? "L" : "P";
-    }
-    function shouldSpreadNpcs(zoom, layoutKey) {
-      if (!campSpreadInit) return true;
-      if (isCampMobile()) return campOrientationKey() !== lastMobileOrient;
-      const zoomChanged = Math.abs(zoom - lastSpreadZoom) > 0.005;
-      return zoomChanged || layoutKey !== lastLayoutKey;
-    }
-    function stabilizeCanvasSize(w, h) {
-      if (!isCampMobile()) return { w, h };
-      const step = 16;
-      return {
-        w: Math.max(1, Math.round(w / step) * step),
-        h: Math.max(1, Math.round(h / step) * step),
-      };
-    }
     let campChillUntil = 0;
     const campGuests = [];
     const NPC_ANCHORS = {
@@ -5586,23 +5546,14 @@
     let resizeRAF = 0;
     let resizeLayoutTimer = 0;
     function scheduleResize(opts = {}) {
-      const debounceMs = opts.debounceMs ?? (isCampMobile() ? 220 : 0);
+      const debounceMs = opts.debounceMs ?? 0;
       if (debounceMs > 0) {
         clearTimeout(resizeLayoutTimer);
         resizeLayoutTimer = setTimeout(() => {
           resizeLayoutTimer = 0;
-          scheduleResize({ force: true });
+          scheduleResize();
         }, debounceMs);
         return;
-      }
-      if (isCampMobile() && !opts.force) {
-        const gap = 200;
-        const elapsed = performance.now() - lastResizeAt;
-        if (elapsed < gap) {
-          clearTimeout(resizeLayoutTimer);
-          resizeLayoutTimer = setTimeout(() => scheduleResize({ force: true }), gap - elapsed);
-          return;
-        }
       }
       if (resizeRAF) cancelAnimationFrame(resizeRAF);
       resizeRAF = requestAnimationFrame(() => {
@@ -5653,27 +5604,14 @@
     }
     function applyCanvasDimensions(w, h) {
       if (!canvas || !ctx) return;
-      ({ w, h } = stabilizeCanvasSize(w, h));
       campDpr = campDisplayDpr();
-      const bw = Math.max(1, Math.round(w * campDpr));
-      const bh = Math.max(1, Math.round(h * campDpr));
-      const bufferChanged = canvas.width !== bw || canvas.height !== bh;
-      if (isCampMobile() && bufferChanged && canvas.width > 0) {
-        const dw = Math.abs(viewW - w);
-        const dh = Math.abs(viewH - h);
-        if (dw < 14 && dh < 14) {
-          viewW = w;
-          viewH = h;
-          canvas.style.width = `${w}px`;
-          canvas.style.height = `${h}px`;
-          return;
-        }
-      }
       viewW = w;
       viewH = h;
+      const bw = Math.max(1, Math.round(w * campDpr));
+      const bh = Math.max(1, Math.round(h * campDpr));
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
-      if (bufferChanged) {
+      if (canvas.width !== bw || canvas.height !== bh) {
         canvas.width = bw;
         canvas.height = bh;
       }
@@ -5681,15 +5619,17 @@
     }
     function resize() {
       if (!canvas || !ctx) return;
-      lastResizeAt = performance.now();
       syncUILayout();
       const sig = campLayoutSignature();
+      if (isIOS() && lastLayoutSig && sig !== lastLayoutSig) {
+        resetCampLayoutState();
+      }
       lastLayoutSig = sig;
       const { w, h } = getCampCanvasSize();
       if (w < 2 || h < 2) {
         if (resizeRetry < 16) {
           resizeRetry += 1;
-          scheduleResize({ force: true });
+          scheduleResize();
         }
         return;
       }
@@ -5698,16 +5638,13 @@
       ensureViewCamera();
       const zoom = getWorldZoom();
       const layoutKey = getCampLayoutKey();
-      if (shouldSpreadNpcs(zoom, layoutKey)) {
+      const zoomChanged = Math.abs(zoom - lastSpreadZoom) > 0.005;
+      if (!campSpreadInit || zoomChanged || layoutKey !== lastLayoutKey) {
         campSpreadInit = true;
         lastSpreadZoom = zoom;
         lastLayoutKey = layoutKey;
-        if (isCampMobile()) lastMobileOrient = campOrientationKey();
         spreadAllNpcs();
-        if (isCampMobile()) {
-          initMobileAgentView();
-          campChillUntil = Date.now() + 45000;
-        }
+        if (isCampMobile()) initMobileAgentView();
       }
     }
 
@@ -5716,7 +5653,6 @@
       clearTimeout(orientTimer);
       orientTimer = setTimeout(() => {
         resetCampLayoutState();
-        lastMobileOrient = "";
         window.scrollTo(0, 0);
         recenterCampViewNow({ blurInput: true });
         if (isIOS()) {
@@ -5731,13 +5667,7 @@
         syncKeyboardDock();
         syncViewportOffset();
         window.scrollTo(0, 0);
-        const vw = layoutViewportWidth();
-        const vh = layoutViewportHeight();
-        if (Math.abs(vw - lastVvW) > 28 || Math.abs(vh - lastVvH) > 28) {
-          lastVvW = vw;
-          lastVvH = vh;
-          scheduleResize();
-        }
+        scheduleResize();
         return;
       }
       syncViewportOffset();
@@ -5757,14 +5687,12 @@
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => {
-        scheduleResize(isCampMobile() ? { debounceMs: 280 } : {});
-      });
+      const layoutObs = new ResizeObserver(() => scheduleResize());
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
-      if (!isCampMobile() && hdr) layoutObs.observe(hdr);
+      if (hdr) layoutObs.observe(hdr);
       if (dock) layoutObs.observe(dock);
-      if (!isCampMobile() && !isIOS()) {
+      if (!isIOS()) {
         if (campStage) layoutObs.observe(campStage);
         else if (canvas) layoutObs.observe(canvas);
       }
@@ -6804,11 +6732,6 @@
     }
 
     function campContextBlurb() {
-      const mem = getLocalCampMemory();
-      const memoryBits = (mem.moments || []).slice(-3).map((m) => {
-        const who = m.agent_id ? (agentNames[m.agent_id] || m.agent_id) : "camp";
-        return `${who}:${aetherSnippet(m.text, 72)}`;
-      });
       const recent = campLines.slice(-4).map((l) => `${l.speaker}: ${l.text.slice(0, 90)}`).join(" · ");
       const agents = allRoamers().map((n) => {
         const where = n.insideHouse ? "inside house" : n.behavior;
@@ -6823,8 +6746,7 @@
       const catNote = campCat.following
         ? "Nebula the cat follows the visitor"
         : "Nebula the cat lounges at Aurora Velvet strip club";
-      const remembered = memoryBits.length ? ` Session memory: ${memoryBits.join(" · ")}.` : "";
-      return `Visitor ${visitor} has ${tok} aurora tokens. Sun corona hearth at camp center. Houses: ${homes}. Structures: ${structs}. ${catNote}. ${music}. Agents: ${agents}. Props: ${propList}. Recent chatter: ${recent || "quiet aurora night"}.${remembered}`;
+      return `Visitor ${visitor} has ${tok} aurora tokens. Sun corona hearth at camp center. Houses: ${homes}. Structures: ${structs}. ${catNote}. ${music}. Agents: ${agents}. Props: ${propList}. Recent chatter: ${recent || "quiet aurora night"}.`;
     }
 
     function updateTokenUI() {
@@ -12618,13 +12540,6 @@
       initMobileAgentView();
       scheduleResize();
       mergeLocalBondsIntoCamp();
-      if (isReturningVisitor()) {
-        const welcome = localWelcomeLine();
-        if (welcome) {
-          setCampLifeStatus(welcome);
-          pushCampLine("Camp", welcome, 20, "happy", { quiet: true });
-        }
-      }
       bindCampMusicGestureUnlock();
       const greetDelay = isSlowDevice() ? 5200 : 2800;
       const dataDelay = isSlowDevice() ? 8000 : 0;

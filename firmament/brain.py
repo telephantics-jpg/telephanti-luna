@@ -129,7 +129,7 @@ def _agent_system_prompt(
         f"{world} {game} {camp}\n"
         f"Persona: {persona}\n"
         f"{roots_line}"
-        "Speak like a real person, not a lore wiki. Short punchy lines often; 2-5 sentences typical. "
+        "Speak like a real person, not a lore wiki. Give them room to read — 3-6 sentences when chatting. "
         "Ask questions back. Reference headlines naturally when relevant. "
         "Avoid constant aurora/neon/meadow poetry unless the visitor brings camp up. "
         "Never break character. Never mention being an LLM. "
@@ -151,7 +151,7 @@ def _parse_mood(reply: str) -> tuple[str, str]:
     return text, mood
 
 
-def _complete_messages(messages: list[dict], *, model: str | None = None) -> str:
+def _complete_messages(messages: list[dict], *, model: str | None = None, max_tokens: int = 520) -> str:
     backend = llm_backend()
     if backend == "ollama":
         import httpx
@@ -162,7 +162,7 @@ def _complete_messages(messages: list[dict], *, model: str | None = None) -> str
             "model": ollama_model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": 0.85},
+            "options": {"temperature": 0.85, "num_predict": max_tokens},
         }
         try:
             r = httpx.post(f"{host}/api/chat", json=payload, timeout=120.0)
@@ -185,7 +185,9 @@ def _complete_messages(messages: list[dict], *, model: str | None = None) -> str
         raise RuntimeError("Set XAI_API_KEY in .env or use offline: LUNA_LLM_BACKEND=ollama")
     grok_model = model or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
     client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1", timeout=httpx.Timeout(90.0))
-    resp = client.chat.completions.create(model=grok_model, messages=messages, temperature=0.85)
+    resp = client.chat.completions.create(
+        model=grok_model, messages=messages, temperature=0.85, max_tokens=max_tokens,
+    )
     return (resp.choices[0].message.content or "").strip()
 
 
@@ -243,7 +245,8 @@ async def agent_chat(
         if converse_mode:
             sys_prompt += (
                 " CONVERSE MODE: meadow chit-chat between agents. "
-                "One sharp witty sentence (two max). React to their exact words — don't change subject. "
+                "Two to four sentences — witty, conversational, a little room to breathe. "
+                "React to their exact words — don't change subject. "
                 "Be funny, not cruel. No hashtags, no @mentions, no lecturing."
             )
         try:
@@ -257,7 +260,7 @@ async def agent_chat(
     elif converse_mode:
         sys_prompt += (
             "\nCONVERSE MODE: Start a witty group chat hook. "
-            "One sharp funny line. Be clever, warm, in character."
+            "Two to three sentences — clever, warm, in character."
         )
 
     messages = [{"role": "system", "content": sys_prompt}]
@@ -279,7 +282,8 @@ async def agent_chat(
         agent_model = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
     used_backend = backend
     try:
-        raw = await asyncio.to_thread(_complete_messages, messages, model=agent_model)
+        max_tok = 400 if converse_mode else 560
+        raw = await asyncio.to_thread(_complete_messages, messages, model=agent_model, max_tokens=max_tok)
         raw = (raw or "").strip()
         reply, mood = _parse_mood(raw)
     except Exception as exc:

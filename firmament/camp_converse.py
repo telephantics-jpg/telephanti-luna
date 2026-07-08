@@ -195,7 +195,7 @@ def converse_thread_prompt(
     if not thread:
         return (
             f"Start a witty group chat with {', '.join(others)} about: {topic}. "
-            f"One sharp funny line. Hook them. Your role: {role_for_agent(speaker_id)}."
+            f"Two to three witty sentences. Hook them. Your role: {role_for_agent(speaker_id)}."
         )
     prev = thread[-1]
     transcript = "\n".join(f"{t.get('name', '?')}: {t.get('line', '')}" for t in thread[-5:])
@@ -203,7 +203,7 @@ def converse_thread_prompt(
         f"Group chat ({', '.join(names)}) — topic: {topic}\n"
         f"Thread so far:\n{transcript}\n\n"
         f"Reply DIRECTLY to {prev.get('name', '?')} — riff on their words, be witty and funny. "
-        f"One to three sentences. Your role: {role_for_agent(speaker_id)}. "
+        f"Two to four sentences — let the banter breathe. Your role: {role_for_agent(speaker_id)}. "
         f"Don't repeat yourself. Don't lecture."
     )
 

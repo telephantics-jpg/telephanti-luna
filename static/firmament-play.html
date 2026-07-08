@@ -3368,7 +3368,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-mobile-spread-ui";
+    const CAMP_BUILD = "2026-07-08-longer-chats";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3384,11 +3384,11 @@
       if (!typing) e.stopImmediatePropagation();
     }, true);
     const CAMP_PACE = {
-      readMinSec: 38,
-      readMaxSec: 90,
-      charsPerSec: 9,
-      converseGapMs: 18000,
-      converseGapChillMs: 24000,
+      readMinSec: 48,
+      readMaxSec: 118,
+      charsPerSec: 7.5,
+      converseGapMs: 26000,
+      converseGapChillMs: 34000,
       nextConverseMinMs: 48000,
       nextConverseRandMs: 42000,
       retryConverseMs: 28000,
@@ -3412,7 +3412,7 @@
 
     const MAX_CANVAS_SPEECH_BUBBLES = 3;
 
-    function campReadHoldSec(text, floor = 34) {
+    function campReadHoldSec(text, floor = 42) {
       const len = String(text || "").length;
       return Math.max(
         CAMP_PACE.readMinSec,
@@ -3520,7 +3520,7 @@
       if (!el || !el.classList.contains("show")) return;
     }
 
-    function showMobileReplyBubble(speaker, text, mood, holdSec = 24) {
+    function showMobileReplyBubble(speaker, text, mood, holdSec = 32) {
       if (!isCampMobile()) return;
       const el = document.getElementById("camp-keyboard-reply");
       if (!el) return;
@@ -3539,7 +3539,7 @@
       mobileReplyTimer = setTimeout(() => {
         el.classList.remove("show", "thinking");
         el.hidden = true;
-      }, Math.max(8000, (holdSec || 24) * 1000));
+      }, Math.max(14000, (holdSec || 32) * 1000));
     }
 
     function hideMobileReplyBubble() {
@@ -3967,7 +3967,7 @@
       }
       replyEl.textContent = `${agentNames[agentId] || agentId}: ${data.reply}`;
       if (data.mood) setAgentMood(agentId, data.mood);
-      pushCampLine(agentNames[agentId] || agentId, data.reply, campReadHoldSec(data.reply, 40), data.mood, {
+      pushCampLine(agentNames[agentId] || agentId, data.reply, campReadHoldSec(data.reply, 50), data.mood, {
         fromLocal: true,
         keepDock: isCampMobile() && opts.fromCampBar,
       });
@@ -7974,7 +7974,7 @@
     const speechTextEl = document.getElementById("speech-text");
     const speechWhoEl = document.querySelector("#speech-now .who");
 
-    function showBigSpeech(who, line, holdSec = 30) {
+    function showBigSpeech(who, line, holdSec = 38) {
       const text = (line || "").trim();
       if (!text) return;
       if (pinnedSpeech.has(who)) {
@@ -10016,10 +10016,10 @@
       const mobile = isCampMobile();
       const ios = isIOS() && mobile;
       const expanded = !!(meta?.speaker && expandedCampText.who === meta.speaker);
-      const maxW = expanded ? (ios ? 300 : mobile ? 280 : 300) : (ios ? 210 : mobile ? 188 : 220);
+      const maxW = expanded ? (ios ? 320 : mobile ? 300 : 320) : (ios ? 228 : mobile ? 216 : 240);
       const fontSize = expanded ? (ios ? 13 : mobile ? 12 : 13) : (ios ? 12 : mobile ? 11 : 12);
       const lineH = fontSize + 4;
-      const maxLines = expanded ? 10 : (mobile ? 3 : 3);
+      const maxLines = expanded ? 12 : (mobile ? 5 : 4);
       const pinned = !!(meta && pinnedSpeech.has(meta.speaker));
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
@@ -12075,7 +12075,7 @@
         const who = line.name || line.agent_id || "Camp";
         const text = line.line || "";
         setCampLifeStatus(`${who} is speaking — take your time reading…`);
-        const hold = campReadHoldSec(text, 42);
+        const hold = campReadHoldSec(text, 52);
         pushCampLine(who, text, hold, line.mood, { fromLocal: true });
         await new Promise((r) => setTimeout(r, hold * 1000 + gapMs));
       }

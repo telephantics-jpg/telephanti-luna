@@ -3332,7 +3332,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-simple";
+    const CAMP_BUILD = "2026-07-08-camp-pre-pinch";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3542,7 +3542,6 @@
       stableCampH = 0;
       campLayoutTag = "";
       campSpreadInit = false;
-      lastSpreadCanvasKey = "";
       resetCampViewCamera();
       clearCampStageOverrides();
       document.documentElement.classList.remove("camp-input-focus");
@@ -5537,12 +5536,11 @@
 
     let resizeRetry = 0;
     let lastLayoutSig = "";
-    let lastSpreadKey = "";
-    let lastSpreadCanvasKey = "";
+
     let lastCanvasW = 0;
     let lastCanvasH = 0;
     function applyCanvasDimensions(w, h) {
-      campDpr = Math.min(window.devicePixelRatio || 1, 3);
+      campDpr = Math.min(window.devicePixelRatio || 1, isCampMobile() ? 3 : 2);
       viewW = w;
       viewH = h;
       const bw = Math.round(w * campDpr);
@@ -5578,13 +5576,11 @@
       applyCanvasDimensions(w, h);
       ensureViewCamera();
       const zoom = getBaseWorldZoom();
-      const spreadKey = `${w}x${h}@${layoutViewportWidth()}x${layoutViewportHeight()}z${zoom.toFixed(3)}`;
-      if (!campSpreadInit || spreadKey !== lastSpreadKey) {
+      const layoutKey = getCampLayoutKey();
+      if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005 || layoutKey !== lastLayoutKey) {
         campSpreadInit = true;
-        lastSpreadKey = spreadKey;
-        lastSpreadCanvasKey = spreadKey;
         lastSpreadZoom = zoom;
-        lastLayoutKey = getCampLayoutKey();
+        lastLayoutKey = layoutKey;
         spreadAllNpcs();
         if (isCampMobile()) initMobileAgentView();
       }
@@ -5628,12 +5624,18 @@
       window.visualViewport.addEventListener("resize", onVisualViewportChange);
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
-    if (typeof ResizeObserver !== "undefined" && (isCampMobile() || isIOS())) {
-      const layoutObs = new ResizeObserver(() => scheduleResize({ debounceMs: isCampMobile() ? 160 : 320 }));
-      const hdr = document.getElementById("camp-header");
-      const dock = document.getElementById("action-bar");
-      if (hdr) layoutObs.observe(hdr);
-      if (dock) layoutObs.observe(dock);
+    if (typeof ResizeObserver !== "undefined") {
+      const layoutObs = new ResizeObserver(() => {
+        scheduleResize({ debounceMs: isCampMobile() ? 160 : 240 });
+      });
+      if (isCampMobile() || isIOS()) {
+        const hdr = document.getElementById("camp-header");
+        const dock = document.getElementById("action-bar");
+        if (hdr) layoutObs.observe(hdr);
+        if (dock) layoutObs.observe(dock);
+      }
+      if (campStage) layoutObs.observe(campStage);
+      else layoutObs.observe(canvas);
     }
     scheduleResize();
 
@@ -12431,8 +12433,8 @@
         setTimeout(() => showToast("Tap meadow to walk · tap agent twice to chat"), 2200);
       }
       initCampCat();
-      spreadAllNpcs();
       initMobileAgentView();
+      scheduleResize();
       mergeLocalBondsIntoCamp();
       bindCampMusicGestureUnlock();
       const greetDelay = isSlowDevice() ? 5200 : 2800;

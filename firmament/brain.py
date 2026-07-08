@@ -269,6 +269,10 @@ async def agent_chat(
     import asyncio
 
     backend = llm_backend()
+    if str(profile.get("model", "")).lower() == "grok":
+        key = os.getenv("XAI_API_KEY", "").strip()
+        if key and key != "your_api_key_here":
+            backend = "grok"
     if backend == "ollama":
         agent_model = profile.get("ollama_model") or os.getenv("OLLAMA_MODEL", "llama3.2")
     else:

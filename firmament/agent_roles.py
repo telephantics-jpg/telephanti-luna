@@ -25,6 +25,8 @@ AGENT_ROLES: dict[str, str] = {
     "ambrosia": "comfort & lifestyle",
     "rhea": "community mother",
     "wanderer": "roaming hot take",
+    "ara": "Grok link · @a",
+    "mika": "Grok link · @m",
 }
 
 TWEET_TEMPLATES: dict[str, list[str]] = {

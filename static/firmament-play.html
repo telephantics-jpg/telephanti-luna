@@ -621,12 +621,7 @@
     .dock-compact .dock-icon.dock-spotify svg {
       width: 22px; height: 22px; display: block; pointer-events: none;
     }
-    .dock-compact .dock-icon.dock-spotify-liked .liked-badge {
-      position: absolute; right: 2px; bottom: 2px;
-      font-size: 0.55rem; line-height: 1; color: #fecdd3;
-      text-shadow: 0 0 4px rgba(0,0,0,0.8);
-      pointer-events: none;
-    }
+
     .dock-compact .dock-icon.dock-music-off {
       background: rgba(30, 41, 59, 0.95); border-color: rgba(148, 163, 184, 0.45);
       font-size: 1rem; color: #cbd5e1;
@@ -861,8 +856,12 @@
       border-radius: 8px; width: 32px; height: 28px; font-size: 0.85rem; cursor: pointer;
     }
     #camp-spotify-embed {
-      width: 100%; height: 352px; border: 0; border-radius: 12px;
+      width: 100%; height: 380px; min-height: 320px; border: 0; border-radius: 12px;
       background: #121212;
+    }
+    #camp-spotify-loading {
+      font-size: 0.72rem; color: #86efac; text-align: center; margin: 0;
+      min-height: 1.2em;
     }
     #camp-spotify-open {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -2286,12 +2285,8 @@
     <div class="dock-compact">
       <div class="dock-music-group" aria-label="Camp music">
         <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix — AI album at camp">TX</button>
-        <button type="button" class="dock-icon dock-spotify" id="btn-camp-spotify-pl" data-spotify-key="playlist" title="stoodstrong playlist on Spotify">
+        <button type="button" class="dock-icon dock-spotify" id="btn-camp-spotify" title="Spotify — pick playlist or liked songs">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-        </button>
-        <button type="button" class="dock-icon dock-spotify dock-spotify-liked" id="btn-camp-spotify-liked" data-spotify-key="liked" title="Liked songs on Spotify">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-          <span class="liked-badge" aria-hidden="true">♥</span>
         </button>
         <button type="button" class="dock-icon dock-music-off" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
       </div>
@@ -2323,8 +2318,11 @@
         <button type="button" data-spotify-key="playlist" id="camp-spotify-tab-pl">My playlist</button>
         <button type="button" data-spotify-key="liked" id="camp-spotify-tab-liked">Liked songs</button>
       </div>
+      <p id="camp-spotify-loading">Loading Spotify…</p>
       <iframe id="camp-spotify-embed" title="Spotify at camp"
+        src="https://open.spotify.com/embed/playlist/1UfrZNrliP4h7dCjQfEk6E?utm_source=generator&amp;theme=0"
         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="eager"
         referrerpolicy="strict-origin-when-cross-origin"></iframe>
       <a id="camp-spotify-open" href="https://open.spotify.com/playlist/1UfrZNrliP4h7dCjQfEk6E" target="_blank" rel="noopener">Open in Spotify app ↗</a>
     </div>
@@ -2516,7 +2514,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-07-camp-music-strip";
+    const CAMP_BUILD = "2026-07-07-camp-spotify-fix";
     const CAMP_SPOTIFY_SOURCES = {
       playlist: {
         playlistId: "1UfrZNrliP4h7dCjQfEk6E",
@@ -5933,13 +5931,19 @@
     let campMusicSource = null;
     let campSpotifyKey = "playlist";
 
-    function syncCampSpotifyPanel(key = campSpotifyKey) {
+    function loadCampSpotifyEmbed(key = campSpotifyKey) {
       campSpotifyKey = key in CAMP_SPOTIFY_SOURCES ? key : "playlist";
       const meta = campSpotifyMeta(campSpotifyKey);
       const frame = document.getElementById("camp-spotify-embed");
+      const loading = document.getElementById("camp-spotify-loading");
       const embedUrl = campSpotifyEmbed(campSpotifyKey);
-      if (frame && !String(frame.src || "").includes(meta.playlistId)) {
-        frame.src = embedUrl;
+      if (loading) loading.textContent = `Loading ${meta.shortLabel}…`;
+      if (frame) {
+        const applySrc = () => { frame.src = embedUrl; };
+        requestAnimationFrame(applySrc);
+        frame.onload = () => {
+          if (loading) loading.textContent = "Tap ▶ in the player to start";
+        };
       }
       const titleEl = document.getElementById("camp-spotify-head-title");
       const subEl = document.getElementById("camp-spotify-head-sub");
@@ -5975,24 +5979,28 @@
       if (!opts.quiet) showToast("🔇 Camp music off");
     }
 
-    function openCampSpotify(key = "playlist", opts = {}) {
-      const nextKey = key in CAMP_SPOTIFY_SOURCES ? key : "playlist";
-      if (campMusicSource === "spotify" && campSpotifyKey === nextKey && campSpotifyOpen && !opts.force) {
-        closeAllCampMusic(opts);
+    function toggleCampSpotifyDock() {
+      if (campMusicSource === "spotify" && campSpotifyOpen) {
+        closeAllCampMusic();
         return;
       }
+      openCampSpotify(campSpotifyKey || "playlist");
+    }
+
+    function openCampSpotify(key = "playlist", opts = {}) {
+      const nextKey = key in CAMP_SPOTIFY_SOURCES ? key : "playlist";
       stopCampTelephantix({ keepPreference: true });
       campMusicSource = "spotify";
       campSpotifyKey = nextKey;
       campSpotifyOpen = true;
-      syncCampSpotifyPanel(campSpotifyKey);
       document.body.classList.add("camp-spotify-open", "camp-music-on");
       document.getElementById("camp-spotify-layer")?.classList.add("open");
+      loadCampSpotifyEmbed(campSpotifyKey);
       updateCampMusicUi();
       updateCampMusicPrompt();
       if (!opts.quiet) {
         const meta = campSpotifyMeta(campSpotifyKey);
-        showToast(`${meta.shortLabel} — stoodstrong on Spotify`);
+        showToast(`${meta.shortLabel} — tap ▶ in the player`);
       }
     }
 
@@ -6024,8 +6032,7 @@
 
     function updateCampMusicUi() {
       const tpxBtn = document.getElementById("btn-camp-tpx");
-      const plBtn = document.getElementById("btn-camp-spotify-pl");
-      const likedBtn = document.getElementById("btn-camp-spotify-liked");
+      const spotifyBtn = document.getElementById("btn-camp-spotify");
       const offBtn = document.getElementById("btn-camp-music-off");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
       const active = campMusicIsActive();
@@ -6035,17 +6042,12 @@
           ? `Telephantix ON — ${track.title} (tap to stop)`
           : "Telephantix — AI album at camp";
       }
-      if (plBtn) {
-        plBtn.classList.toggle("active", campMusicSource === "spotify" && campSpotifyKey === "playlist");
-        plBtn.title = campMusicSource === "spotify" && campSpotifyKey === "playlist"
-          ? "My playlist ON (tap to stop)"
-          : "stoodstrong playlist on Spotify";
-      }
-      if (likedBtn) {
-        likedBtn.classList.toggle("active", campMusicSource === "spotify" && campSpotifyKey === "liked");
-        likedBtn.title = campMusicSource === "spotify" && campSpotifyKey === "liked"
-          ? "Liked songs ON (tap to stop)"
-          : "Liked songs on Spotify";
+      if (spotifyBtn) {
+        spotifyBtn.classList.toggle("active", campMusicSource === "spotify" && campSpotifyOpen);
+        const meta = campSpotifyMeta(campSpotifyKey);
+        spotifyBtn.title = campMusicSource === "spotify" && campSpotifyOpen
+          ? `Spotify ON — ${meta.shortLabel} (tap to stop)`
+          : "Spotify — playlist or liked songs";
       }
       if (offBtn) {
         offBtn.classList.toggle("active", !active);
@@ -8554,8 +8556,7 @@
       };
     });
     document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
-    document.getElementById("btn-camp-spotify-pl").onclick = () => openCampSpotify("playlist");
-    document.getElementById("btn-camp-spotify-liked").onclick = () => openCampSpotify("liked");
+    document.getElementById("btn-camp-spotify").onclick = () => toggleCampSpotifyDock();
     document.getElementById("btn-camp-music-off").onclick = () => closeAllCampMusic();
     document.getElementById("camp-music-prompt").onclick = () => {
       if (campMusicSource === "telephantix" && (campMusicPlayPending || campMusicMuted)) {
@@ -9158,7 +9159,6 @@
     const serverStatusEl = document.getElementById("server-status");
     const campBuildEl = document.getElementById("camp-build-tag");
     if (campBuildEl) campBuildEl.textContent = CAMP_BUILD;
-    syncCampSpotifyPanel("playlist");
     updateCampMusicUi();
     function updateBrainStatusChip(h) {
       const ollamaChip = document.getElementById("chip-ollama");

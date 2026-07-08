@@ -70,15 +70,14 @@
     #camp-stage {
       position: fixed; z-index: 1;
       left: 0; top: var(--header-h); right: 0;
-      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
-      width: auto;
-      height: auto;
+      width: 100%;
+      height: calc(100vh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
       max-width: 100vw;
       overflow: hidden;
       touch-action: none;
       transform: none;
       filter: none;
-      background: #050b14;
     }
     @media (min-width: 900px) {
       html.desktop-camp #camp-stage,
@@ -92,9 +91,9 @@
     #game {
       display: block;
       position: absolute;
-      left: 0; top: 0; right: 0; bottom: 0;
-      width: 100% !important;
-      height: 100% !important;
+      left: 0; top: 0;
+      width: 100%;
+      height: 100%;
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
@@ -372,9 +371,9 @@
     #trippy-veil {
       position: fixed; z-index: 2; pointer-events: none;
       left: 0; top: var(--header-h); right: 0;
-      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
-      width: auto;
-      height: auto;
+      width: 100%;
+      height: calc(100vh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
       background:
         radial-gradient(ellipse at 18% 22%, rgba(167, 139, 250, 0.14), transparent 42%),
         radial-gradient(ellipse at 82% 68%, rgba(244, 114, 182, 0.1), transparent 45%),
@@ -1523,79 +1522,10 @@
       box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
     }
     @media (min-width: 900px) {
-      :root {
-        --header-h: 32px;
-        --talk-bar-h: 24px;
-        --dock-icons-h: 26px;
-        --dock-h: 52px;
-        --sidebar-w: min(260px, 22vw);
-        --layer-bar-h: 0px;
-        --text-expand-h: 0px;
-      }
-      #free-tools-row,
-      #weather-row,
-      #unreal-hint,
-      #camp-life-status,
-      #camp-music-now,
-      #status-toast,
-      #camp-header .agents-row,
-      .brand-block .tagline {
-        display: none !important;
-      }
-      #camp-header {
-        min-height: var(--header-h);
-        max-height: var(--header-h);
-        padding: 3px 8px 3px;
-        gap: 0;
-        overflow: hidden;
-      }
-      #camp-header .header-row.top {
-        flex-wrap: nowrap;
-        gap: 6px;
-        align-items: center;
-      }
-      .brand-block h1 { font-size: 0.82rem; }
-      #camp-token-badge, #camp-you-badge {
-        padding: 2px 8px;
-        font-size: 0.62rem;
-      }
-      #camp-token-badge .tok-amt { font-size: 0.72rem; }
-      #mini-status { font-size: 0.58rem; padding: 2px 6px; }
-      #action-bar {
-        padding: 3px 8px 4px;
-        gap: 2px;
-      }
-      .dock-compact .dock-icon {
-        width: 26px !important;
-        height: 26px !important;
-        font-size: 0.78rem !important;
-        border-radius: 8px;
-        border-width: 1px;
-        padding: 0;
-      }
-      .dock-compact { gap: 4px; }
-      #camp-talk-input { font-size: 0.76rem; padding: 4px 8px; }
-      #camp-talk-target { font-size: 0.68rem; }
-      #camp-talk-send { padding: 4px 10px; font-size: 0.72rem; }
       #camp-text-expand,
       #camp-layer-bar {
         display: none !important;
         pointer-events: none !important;
-      }
-      #grok-terminal {
-        left: auto;
-        right: calc(var(--sidebar-w) + var(--gap) * 2);
-        width: min(420px, 38vw);
-        bottom: calc(var(--dock-h, 120px) + env(safe-area-inset-bottom, 0px) + 8px);
-      }
-      html.desktop-camp #camp-stage,
-      html.desktop-camp #trippy-veil {
-        left: 0;
-        right: calc(var(--sidebar-w) + var(--gap) * 2);
-        top: var(--header-h);
-        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
-        width: auto;
-        height: auto;
       }
     }
     #game.dragging { cursor: grabbing; }
@@ -3353,7 +3283,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-canvasfill";
+    const CAMP_BUILD = "2026-07-08-camp-pc-192view";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3536,18 +3466,9 @@
       const style = getComputedStyle(document.documentElement);
       const headerH = parseFloat(style.getPropertyValue("--header-h")) || 56;
       const dockH = parseFloat(style.getPropertyValue("--dock-h")) || 100;
-      const gap = parseFloat(style.getPropertyValue("--gap")) || 10;
-      const sidebar = parseFloat(style.getPropertyValue("--sidebar-w")) || 0;
       const vw = layoutViewportWidth();
       const vh = layoutViewportHeight();
-      const stageW = isCampMobile() ? vw : Math.max(320, vw - sidebar - gap * 2);
-      return { w: stageW, h: Math.max(120, vh - headerH - dockH) };
-    }
-
-    function measureCampStageBox() {
-      const stage = campStage || canvas;
-      if (!stage) return { w: 0, h: 0 };
-      return stage.getBoundingClientRect();
+      return { w: vw, h: Math.max(120, vh - headerH - dockH) };
     }
 
     function commitStableCampSize(w, h) {
@@ -3580,24 +3501,16 @@
     }
 
     function getCampCanvasSize() {
-      const box = measureCampStageBox();
-      let w = Math.max(1, Math.round(box.width));
-      let h = Math.max(1, Math.round(box.height));
-      if (!isCampMobile()) {
-        const sz = getCampCanvasSizeFromLayout();
-        if (w < 240 || h < 240) {
-          w = Math.max(w, Math.round(sz.w));
-          h = Math.max(h, Math.round(sz.h));
-        }
-        return { w, h };
+      if (!isIOS()) {
+        const box = (campStage || canvas).getBoundingClientRect();
+        return {
+          w: Math.max(1, Math.round(box.width)),
+          h: Math.max(1, Math.round(box.height)),
+        };
       }
-      if (isIOS() && (w < 80 || h < 80)) {
-        const sz = getCampCanvasSizeFromLayout();
-        w = sz.w;
-        h = sz.h;
-      }
-      if (isIOS()) commitStableCampSize(w, h);
-      return { w, h };
+      const sz = getCampCanvasSizeFromLayout();
+      commitStableCampSize(sz.w, sz.h);
+      return sz;
     }
 
     function iosDismissKeyboard() {
@@ -3949,9 +3862,7 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.14;
-    const DESKTOP_WORLD_WIDTH = 7200;
-    const DESKTOP_WORLD_HEIGHT = 4200;
+    const WORLD_ZOOM_DESKTOP = 0.38;
     const WORLD_ZOOM_MOBILE = 0.80;
     const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
     const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
@@ -3962,32 +3873,16 @@
     let campViewCamY = null;
     const campPointers = new Map();
     let campPinchState = null;
-    function getDesktopWorldZoom() {
-      if (viewW < 80 || viewH < 80) return WORLD_ZOOM_DESKTOP;
-      const margin = 28;
-      const zx = (viewW - margin * 2) / DESKTOP_WORLD_WIDTH;
-      const zy = (viewH - margin * 2) / DESKTOP_WORLD_HEIGHT;
-      const fit = Math.min(zx, zy) * 0.96;
-      return Math.max(0.10, Math.min(0.16, fit));
-    }
     function campUnitScale() {
-      if (isCampMobile()) return 1;
-      return Math.max(0.42, Math.min(0.72, getWorldZoom() / 0.38));
-    }
-    function getBaseWorldZoom() {
-      if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
-      if (isCampMobile()) return WORLD_ZOOM_MOBILE;
-      return getDesktopWorldZoom();
+      return 1;
     }
     function getWorldZoom() {
-      return getBaseWorldZoom();
+      if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
+      if (isCampMobile()) return WORLD_ZOOM_MOBILE;
+      return WORLD_ZOOM_DESKTOP;
     }
     function ensureViewCamera() {
-      if (!isCampMobile()) {
-        campViewCamX = CAM_X;
-        campViewCamY = getCamYOffset();
-        return;
-      }
+      if (!isCampMobile()) return;
       if (campViewCamX == null) campViewCamX = CAM_X;
       if (campViewCamY == null) campViewCamY = getCamYOffset();
     }
@@ -4155,7 +4050,7 @@
     function getCampAnchorY() {
       if (isIOS()) return isLandscape() ? 0.50 : 0.46;
       if (isCampMobile()) return 0.44;
-      return 0.50;
+      return 0.44;
     }
     function getCamYOffset() {
       if (isIOS()) return isLandscape() ? -62 : -72;
@@ -4254,7 +4149,7 @@
     }
     function getCampLayoutKey() {
       const b = getCampRelativeBounds();
-      return `${viewW}x${viewH}z${getBaseWorldZoom().toFixed(3)}b${b.xMin.toFixed(0)}${b.xMax.toFixed(0)}`;
+      return `${viewW}x${viewH}z${getWorldZoom().toFixed(3)}b${b.xMin.toFixed(0)}${b.xMax.toFixed(0)}`;
     }
     let lastSpreadZoom = 0;
     let lastLayoutKey = "";
@@ -5520,28 +5415,21 @@
       document.documentElement.style.setProperty("--viewport-h", `${layoutViewportHeight()}px`);
       const header = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
-      if (!isCampMobile()) {
-        hideCampTextExpand();
-        document.documentElement.style.setProperty("--header-h", "32px");
-        document.documentElement.style.setProperty("--talk-bar-h", "24px");
-        document.documentElement.style.setProperty("--dock-icons-h", "26px");
-        document.documentElement.style.setProperty("--dock-h", "52px");
-      } else {
-        if (header) {
-          let h = Math.ceil(header.getBoundingClientRect().height);
-          h = Math.min(h, 64);
-          document.documentElement.style.setProperty("--header-h", `${h}px`);
-        }
-        if (dock) {
-          const d = Math.ceil(dock.getBoundingClientRect().height);
-          const talkBar = document.getElementById("camp-talk-bar");
-          const icons = document.querySelector(".dock-compact");
-          const talkH = talkBar ? Math.ceil(talkBar.getBoundingClientRect().height) : 40;
-          const iconH = icons ? Math.ceil(icons.getBoundingClientRect().height) : 52;
-          document.documentElement.style.setProperty("--talk-bar-h", `${talkH}px`);
-          document.documentElement.style.setProperty("--dock-icons-h", `${iconH}px`);
-          document.documentElement.style.setProperty("--dock-h", `${d}px`);
-        }
+      if (!isCampMobile()) hideCampTextExpand();
+      if (header) {
+        let h = Math.ceil(header.getBoundingClientRect().height);
+        if (isCampMobile()) h = Math.min(h, 64);
+        document.documentElement.style.setProperty("--header-h", `${h}px`);
+      }
+      if (dock) {
+        const d = Math.ceil(dock.getBoundingClientRect().height);
+        const talkBar = document.getElementById("camp-talk-bar");
+        const icons = document.querySelector(".dock-compact");
+        const talkH = talkBar ? Math.ceil(talkBar.getBoundingClientRect().height) : 40;
+        const iconH = icons ? Math.ceil(icons.getBoundingClientRect().height) : 52;
+        document.documentElement.style.setProperty("--talk-bar-h", `${talkH}px`);
+        document.documentElement.style.setProperty("--dock-icons-h", `${iconH}px`);
+        document.documentElement.style.setProperty("--dock-h", `${d}px`);
       }
     }
 
@@ -5587,10 +5475,9 @@
       clearCampStageOverrides();
       document.documentElement.style.setProperty("--tilt-x", "0deg");
       document.documentElement.style.setProperty("--tilt-y", "0deg");
-      if (isCampMobile()) {
-        minimizeSpeechBubble();
-        scheduleResize();
-      }
+      if (isCampMobile()) minimizeSpeechBubble();
+      scheduleResize();
+      setTimeout(scheduleResize, 280);
     }
 
     function recenterCampView(opts = {}) {
@@ -5604,14 +5491,13 @@
     let lastCanvasW = 0;
     let lastCanvasH = 0;
     function applyCanvasDimensions(w, h) {
-      campDpr = Math.min(window.devicePixelRatio || 1, isCampMobile() ? 3 : 2);
+      campDpr = Math.min(window.devicePixelRatio || 1, 3);
       viewW = w;
       viewH = h;
       const bw = Math.round(w * campDpr);
       const bh = Math.round(h * campDpr);
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.style.display = "block";
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
       if (canvas.width !== bw || canvas.height !== bh) {
         canvas.width = bw;
         canvas.height = bh;
@@ -5641,7 +5527,7 @@
       applyCanvasDimensions(w, h);
       ensureViewCamera();
       updateCampViewportDebug();
-      const zoom = getBaseWorldZoom();
+      const zoom = getWorldZoom();
       const layoutKey = getCampLayoutKey();
       if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005 || layoutKey !== lastLayoutKey) {
         campSpreadInit = true;
@@ -5691,22 +5577,17 @@
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => {
-        scheduleResize({ debounceMs: isCampMobile() ? 160 : 240 });
-      });
-      if (isCampMobile() || isIOS()) {
-        const hdr = document.getElementById("camp-header");
-        const dock = document.getElementById("action-bar");
-        if (hdr) layoutObs.observe(hdr);
-        if (dock) layoutObs.observe(dock);
+      const layoutObs = new ResizeObserver(() => scheduleResize());
+      const hdr = document.getElementById("camp-header");
+      const dock = document.getElementById("action-bar");
+      if (hdr) layoutObs.observe(hdr);
+      if (dock) layoutObs.observe(dock);
+      if (!isIOS()) {
+        if (campStage) layoutObs.observe(campStage);
+        else layoutObs.observe(canvas);
       }
-      if (campStage) layoutObs.observe(campStage);
-      else layoutObs.observe(canvas);
     }
     scheduleResize();
-    if (!isCampMobile()) {
-      [50, 180, 420, 900].forEach((ms) => setTimeout(scheduleResize, ms));
-    }
 
     function setCampTilt(_sx, _sy) {
       document.documentElement.style.setProperty("--tilt-x", "0deg");
@@ -5714,9 +5595,16 @@
     }
 
     function worldToScreen(wx, wy) {
-      ensureViewCamera();
       const zoom = getWorldZoom();
       const anchorY = getCampAnchorY();
+      if (!isCampMobile()) {
+        const camY = getCamYOffset();
+        return {
+          x: viewW / 2 + (wx - CAM_X) * zoom,
+          y: viewH * anchorY + (wy - camY) * zoom,
+        };
+      }
+      ensureViewCamera();
       return {
         x: viewW / 2 + (wx - campViewCamX) * zoom,
         y: viewH * anchorY + (wy - campViewCamY) * zoom,
@@ -5724,9 +5612,16 @@
     }
 
     function screenToWorld(sx, sy) {
-      ensureViewCamera();
       const zoom = getWorldZoom();
       const anchorY = getCampAnchorY();
+      if (!isCampMobile()) {
+        const camY = getCamYOffset();
+        return {
+          x: CAM_X + (sx - viewW / 2) / zoom,
+          y: camY + (sy - viewH * anchorY) / zoom,
+        };
+      }
+      ensureViewCamera();
       return {
         x: campViewCamX + (sx - viewW / 2) / zoom,
         y: campViewCamY + (sy - viewH * anchorY) / zoom,
@@ -10109,8 +10004,7 @@
 
     function drawPerson(wx, wy, color, label, sub, mood, isVisitor = false) {
       const s = worldToScreen(wx, wy);
-      const u = campUnitScale();
-      const r = (isVisitor ? 11 : 17) * u;
+      const r = isVisitor ? 11 : 17;
       ctx.fillStyle = color + "44";
       ctx.beginPath();
       ctx.ellipse(s.x, s.y + 14, r + 2, 6, 0, 0, Math.PI * 2);
@@ -12146,7 +12040,7 @@
       if (!campBuildEl) return;
       const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
       if (!isCampMobile()) {
-        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)}`;
+        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)} (192)`;
         return;
       }
       campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;

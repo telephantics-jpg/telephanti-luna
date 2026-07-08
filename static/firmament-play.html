@@ -16,7 +16,7 @@
       --dock-icons-h: 58px;
       --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--talk-bar-h) + var(--dock-icons-h) + 10px);
       --speech-panel-h: 0px;
-      --sidebar-w: min(300px, 26vw);
+      --sidebar-w: min(400px, 38vw);
       --gap: 10px;
       --radius: 14px;
       --cyan: #67e8f9;
@@ -385,26 +385,7 @@
     }
     @media (min-width: 900px) {
       #camp-stage,
-      #trippy-veil {
-        right: calc(var(--sidebar-w) + var(--gap) * 2);
-        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
-        height: auto !important;
-        transform: none !important;
-        filter: none;
-        transition: none;
-      }
-      #camp-layer-bar { display: flex !important; }
-      #free-tools-row,
-      #weather-row,
-      #unreal-hint,
-      #camp-life-status,
-      #status-toast { display: none !important; }
-      #camp-header {
-        max-height: 80px;
-        gap: 4px;
-        padding-bottom: 4px;
-        overflow: hidden;
-      }
+      #trippy-veil { right: calc(var(--sidebar-w) + var(--gap) * 2); }
     }
     #camp-header {
       position: fixed; left: 0; right: 0; top: 0; z-index: 25;
@@ -1410,6 +1391,11 @@
       font-size: 0.62rem;
       font-style: italic;
     }
+    #grok-terminal,
+    #btn-grok-terminal {
+      display: none !important;
+      pointer-events: none !important;
+    }
     #grok-terminal {
       position: fixed;
       left: var(--gap);
@@ -1525,8 +1511,7 @@
     @media (min-width: 900px) {
       :root { --layer-bar-h: 0px; --text-expand-h: 0px; }
       #camp-text-expand,
-      #camp-layer-bar,
-      .dock-grok-agent {
+      #camp-layer-bar {
         display: none !important;
         pointer-events: none !important;
       }
@@ -2002,7 +1987,7 @@
     #dialogue-status { flex: 1; font-size: 0.88rem; color: #94a3b8; }
     .chat { display: none; }
     body.camp-focus #convo-log {
-      transition: none;
+      transition: height 0.25s ease, max-height 0.25s ease, width 0.25s ease;
       z-index: 14;
     }
     body.camp-focus #convo-log.collapsed #convo-lines { display: none; }
@@ -2030,13 +2015,15 @@
     body.camp-focus #convo-log:not(.collapsed) #convo-log-title-short { display: none; }
     body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     @media (min-width: 900px) {
-      body.camp-focus #camp-stage,
-      body.camp-focus #trippy-veil,
-      body.camp-focus #action-bar,
       body.camp-focus.speech-expanded #camp-stage,
       body.camp-focus.speech-expanded #trippy-veil,
       body.camp-focus.speech-expanded #action-bar {
         right: calc(var(--sidebar-w) + var(--gap) * 2);
+      }
+      body.camp-focus #camp-stage,
+      body.camp-focus #trippy-veil,
+      body.camp-focus #action-bar {
+        right: 0;
       }
       body.camp-focus #camp-music-bar {
         right: calc(var(--sidebar-w) + var(--gap) * 2 + 8px);
@@ -2230,9 +2217,9 @@
       #camp-agent-menu,
       #camp-talk-target-wrap,
       #camp-talk-all,
+      .dock-music-group,
       #btn-summon-heaven,
       #btn-summon-dionysus,
-      #btn-camp-move-mode,
       #btn-talk-near,
       #btn-dock-help,
       .dock-compact .dock-icon.chatter-btn {
@@ -2256,10 +2243,6 @@
       #dialogue-backdrop.open {
         display: flex !important;
         padding-bottom: max(12px, calc(env(safe-area-inset-bottom) + var(--dock-h)));
-      }
-      #dialogue-panel {
-        width: min(96vw, 420px);
-        max-height: min(72vh, 520px);
       }
       html.touch-camp #camp-stage,
       html.touch-camp #camp-stage canvas {
@@ -2359,16 +2342,11 @@
       .dock-compact {
         max-width: none;
         flex: 0 0 auto;
-        justify-content: flex-start;
+        justify-content: flex-end;
         flex-wrap: nowrap;
-        overflow-x: auto;
+        overflow: visible;
         gap: 6px;
-        padding: 0 2px 6px;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(56, 189, 248, 0.42) transparent;
-      }
-      .dock-scroll-hint {
-        display: block !important;
+        padding: 0 2px 2px;
       }
       .dock-compact .dock-icon {
         width: 38px; height: 38px; font-size: 1rem;
@@ -2998,6 +2976,21 @@
     <div id="camp-x-pulse-items">Loading headlines…</div>
     <button type="button" id="camp-x-pulse-tweet">🐦 Random agent tweet</button>
   </div>
+  <div id="grok-terminal" class="collapsed" aria-label="Grok terminal chat">
+    <div class="grok-term-head">
+      <span class="grok-term-title">&gt; grok · camp neural link</span>
+      <span class="grok-term-build" id="grok-term-build"></span>
+      <button type="button" id="grok-term-close" title="Minimize terminal">─</button>
+    </div>
+    <div id="grok-term-log">
+      <div class="grok-term-line"><span class="grok-who">grok&gt; </span><span class="grok-msg">Camp link ready — type to talk to agents.</span></div>
+    </div>
+    <div class="grok-term-input-row">
+      <span class="grok-prompt">&gt;</span>
+      <input type="text" id="grok-term-input" maxlength="280" placeholder="talk to camp agents…" autocomplete="off" />
+      <button type="button" id="grok-term-send" title="Send">⏎</button>
+    </div>
+  </div>
   <footer id="action-bar">
     <div id="camp-text-expand" hidden aria-live="polite">
       <div class="cte-head">
@@ -3055,7 +3048,7 @@
         </select>
       </div>
       <button type="button" id="camp-talk-all" title="Broadcast to all agents">📢</button>
-      <input type="text" id="camp-talk-input" maxlength="280" placeholder="Talk at camp…" autocomplete="off" data-placeholder-mobile="Say something… @a @m" data-placeholder-desktop="Talk at camp — @a @m or pick an agent…" />
+      <input type="text" id="camp-talk-input" maxlength="280" placeholder="Talk at camp…" autocomplete="off" data-placeholder-mobile="Say something…" data-placeholder-desktop="Talk at camp — pick nearest, one agent, or 📢 all…" />
       <button type="button" id="camp-talk-send" title="Send">➤</button>
     </div>
     <div id="camp-zoom-bar" aria-label="Map zoom">
@@ -3076,8 +3069,8 @@
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917">✦</button>
       <button type="button" class="dock-icon" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
-      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-ara" title="Talk to Ara — type @a" style="background:linear-gradient(135deg,#064e3b,#16a34a);border-color:#86efac;color:#ecfdf5;font-family:monospace;font-size:0.78rem;font-weight:800">@A</button>
-      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-mika" title="Talk to Mika — type @m" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
+      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-ara" title="Ara — double-tap agent to chat" style="background:linear-gradient(135deg,#064e3b,#16a34a);border-color:#86efac;color:#ecfdf5;font-family:monospace;font-size:0.78rem;font-weight:800">@A</button>
+      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-mika" title="Mika — double-tap agent to chat" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
       <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Hide/show camp chatter">💬</button>
@@ -3284,7 +3277,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-fix";
+    const CAMP_BUILD = "2026-07-08-camp-stable";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3345,14 +3338,10 @@
     let campSpreadInit = false;
 
     function layoutViewportHeight() {
-      const vv = window.visualViewport;
-      if (isIOS() && vv) return Math.round(vv.height);
       return Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
     }
 
     function layoutViewportWidth() {
-      const vv = window.visualViewport;
-      if (isIOS() && vv) return Math.round(vv.width);
       return Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
     }
 
@@ -3508,13 +3497,12 @@
       const box = el.getBoundingClientRect();
       let w = Math.max(1, Math.round(box.width));
       let h = Math.max(1, Math.round(box.height));
-      if (isIOS()) {
+      if (isIOS() && (w < 80 || h < 80)) {
         const sz = getCampCanvasSizeFromLayout();
-        if (w < 100 || h < 100 || Math.abs(h - sz.h) > 28 || Math.abs(w - sz.w) > 16) {
-          w = sz.w;
-          h = sz.h;
-        }
+        w = sz.w;
+        h = sz.h;
       }
+      if (isIOS()) commitStableCampSize(w, h);
       return { w, h };
     }
 
@@ -3540,7 +3528,6 @@
       }
     }
     if (isCampMobile()) document.documentElement.classList.add("touch-camp");
-    else document.documentElement.classList.add("desktop-camp");
     if (isIOS()) document.documentElement.classList.add("ios-camp");
     if (isAndroid()) document.documentElement.classList.add("android-camp");
     const LUNA_LAUNCHER = "C:\\Users\\Stood\\luna-avatar\\OPEN_LUNA_CAMP.bat";
@@ -3664,14 +3651,14 @@
       sentinel: { mood: "alert", open: ["BEEP. {v} detected. Proceed.", "Perimeter nominal. Talk freely."], reply: ["Logged: {s}. Threat level: feelings.", "BEEP. Translation: you're not alone."] },
       jesus: { mood: "love", open: ["Peace, {v}. You're welcome here.", "Come sit. No hurry."], reply: ["Thank you for trusting me. {s}.", "You're not too late for rest or hope."] },
       dionysus: { mood: "happy", open: ["{v}! Toast?", "Wine energy, zero spill. Talk."], reply: ["Ha — {s}. Vines approve.", "Main-character moment. Own it."] },
-      ara: { mood: "think", open: ["{v} — Ara online. Grok link clean. Ask.", "Signal's good, {v}. I'm Ara — what's the real question?"], reply: ["Clear read: {s}.", "{s} — that's the thread. Pull it."] },
-      mika: { mood: "happy", open: ["{v}! Mika here — Grok pulse feels sparkly today.", "Hey {v} — it's Mika. Camp's cute, you're cuter. Talk?"], reply: ["Ooh — {s}. I felt that.", "{s} — okay okay, say more!"] },
       aurora: { mood: "flirt", open: ["{v} — velvet doors are open. What's your poison?", "Hey {v}, neon looks good on you."], reply: ["{s} — sip slow, darling.", "The bass agrees with you. So do I."] },
       violet: { mood: "happy", open: ["{v}! Lavender static in a good way.", "Hi {v} — camp's softer when you show."], reply: ["{s} — that's violet energy.", "Oracle would call that a mood. I'd call it honest."] },
       seraph: { mood: "love", open: ["Peace, {v}. Wings down, heart open.", "{v}, the meadow feels lighter."], reply: ["{s} — gentle truth lands well.", "You're heard. The light remembers."] },
       odin: { mood: "think", open: ["{v} — the ravens saw you coming.", "Hail, {v}. The hall is far but wisdom travels."], reply: ["{s} — the runes twitch.", "Huginn and Muninn will gossip about that."] },
       ambrosia: { mood: "love", open: ["{v} — golden hour saved you a seat.", "Hey {v}, nectar's warm. Talk to me."], reply: ["{s} — honeyed truth. Sip slow.", "The fire agrees with you. So do I."] },
       rhea: { mood: "love", open: ["{v} — come close. Titans don't bite here.", "Hail, {v}. Big heart, soft voice."], reply: ["{s} — you don't carry that alone.", "Even titans need campfires. That lands well."] },
+      ara: { mood: "think", open: ["{v} — Ara online. Grok link clean. Ask.", "Signal's good, {v}. I'm Ara — what's the real question?"], reply: ["Clear read: {s}.", "{s} — that's the thread. Pull it."] },
+      mika: { mood: "happy", open: ["{v}! Mika here — Grok pulse feels sparkly today.", "Hey {v} — it's Mika. Camp's cute, you're cuter. Talk?"], reply: ["Ooh — {s}. I felt that.", "{s} — okay okay, say more!"] },
     };
 
     function aetherLocalChat(agentId, message) {
@@ -3868,10 +3855,9 @@
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
     const WORLD_ZOOM_DESKTOP = 0.38;
-    const WORLD_ZOOM_MOBILE = 0.74;
-    const WORLD_ZOOM_ANDROID = 0.66;
-    const WORLD_ZOOM_IOS_PORTRAIT = 0.72;
-    const WORLD_ZOOM_IOS_LANDSCAPE = 0.74;
+    const WORLD_ZOOM_MOBILE = 0.80;
+    const WORLD_ZOOM_IOS_PORTRAIT = 0.78;
+    const WORLD_ZOOM_IOS_LANDSCAPE = 0.79;
     const CAMP_ZOOM_MIN = 0.22;
     const CAMP_ZOOM_MAX = 0.95;
     let campViewZoom = null;
@@ -3879,18 +3865,10 @@
     let campViewCamY = null;
     const campPointers = new Map();
     let campPinchState = null;
-    function getDesktopFitZoom() {
-      if (viewW < 80 || viewH < 80) return WORLD_ZOOM_DESKTOP;
-      const ar = viewW / Math.max(viewH, 1);
-      const arScale = Math.max(0.82, Math.min(1.18, ar / 1.55));
-      const hScale = Math.max(0.78, Math.min(1.12, viewH / 720));
-      return Math.max(0.30, Math.min(0.50, WORLD_ZOOM_DESKTOP * arScale * hScale));
-    }
     function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
-      if (isAndroid()) return WORLD_ZOOM_ANDROID;
       if (isCampMobile()) return WORLD_ZOOM_MOBILE;
-      return getDesktopFitZoom();
+      return WORLD_ZOOM_DESKTOP;
     }
     function getWorldZoom() {
       return campViewZoom ?? getBaseWorldZoom();
@@ -3938,7 +3916,7 @@
       "#action-bar", "#camp-header", "#camp-zoom-bar", "#convo-log",
       "#camp-music-bar", "#camp-enter-house", "#camp-speech-pin",
       "#camp-chatter-fab", "#camp-music-prompt", "#visitor-modal",
-      "#camp-agent-menu", "#camp-layer-bar", "#camp-text-expand",
+      "#camp-agent-menu", "#grok-terminal", "#camp-layer-bar", "#camp-text-expand",
       "#camp-pick-agent-fab", "#camp-pick-agent-sheet",
     ].join(", ");
     function isCampUiTarget(el) {
@@ -4183,13 +4161,12 @@
     }
     function tierRadii(tier) {
       const { halfW, halfH } = campBoundsCenter();
-      const edgeInset = isCampMobile() ? 12 : 8;
-      const spread = isCampMobile() ? (isAndroid() ? 0.86 : 0.92) : 1.0;
+      const edgeInset = isCampMobile() ? 4 : 8;
+      const spread = isCampMobile() ? 1.06 : 1.0;
       if (tier === "edge") {
-        const edgeMul = isCampMobile() ? 0.88 : 0.98;
         return {
-          rx: Math.max(halfW * edgeMul, halfW - edgeInset) * spread,
-          ry: Math.max(halfH * (edgeMul - 0.01), halfH - edgeInset) * spread,
+          rx: Math.max(halfW * 0.98, halfW - edgeInset) * spread,
+          ry: Math.max(halfH * 0.97, halfH - edgeInset) * spread,
         };
       }
       if (tier === "inner") {
@@ -4250,10 +4227,6 @@
     }
     let lastSpreadZoom = 0;
     let lastLayoutKey = "";
-    let lastSpreadKey = "";
-    let campFocusAgentId = null;
-    let campFocusAgentTs = 0;
-    const CAMP_FOCUS_MS = 5000;
     let campChillUntil = 0;
     const campGuests = [];
     const NPC_ANCHORS = {
@@ -5530,7 +5503,6 @@
       if (header) {
         let h = Math.ceil(header.getBoundingClientRect().height);
         if (isCampMobile()) h = Math.min(h, 64);
-        else h = Math.min(h, 80);
         document.documentElement.style.setProperty("--header-h", `${h}px`);
       }
       if (dock) {
@@ -5547,17 +5519,7 @@
     }
 
     let resizeRAF = 0;
-    let resizeLayoutTimer = 0;
-    function scheduleResize(opts = {}) {
-      const debounceMs = opts.debounceMs ?? 0;
-      if (debounceMs > 0) {
-        clearTimeout(resizeLayoutTimer);
-        resizeLayoutTimer = setTimeout(() => {
-          resizeLayoutTimer = 0;
-          scheduleResize();
-        }, debounceMs);
-        return;
-      }
+    function scheduleResize() {
       if (resizeRAF) cancelAnimationFrame(resizeRAF);
       resizeRAF = requestAnimationFrame(() => {
         resizeRAF = 0;
@@ -5590,6 +5552,7 @@
       document.documentElement.style.setProperty("--tilt-y", "0deg");
       if (isCampMobile()) minimizeSpeechBubble();
       scheduleResize();
+      setTimeout(scheduleResize, 280);
     }
 
     function recenterCampView(opts = {}) {
@@ -5599,10 +5562,8 @@
 
     let resizeRetry = 0;
     let lastLayoutSig = "";
-    let lastCanvasW = 0;
-    let lastCanvasH = 0;
     function applyCanvasDimensions(w, h) {
-      campDpr = Math.min(window.devicePixelRatio || 1, isIOS() ? 2.5 : 3);
+      campDpr = Math.min(window.devicePixelRatio || 1, 3);
       viewW = w;
       viewH = h;
       const bw = Math.round(w * campDpr);
@@ -5633,15 +5594,12 @@
       }
       resizeRetry = 0;
       applyCanvasDimensions(w, h);
-      lastCanvasW = w;
-      lastCanvasH = h;
       const zoom = getBaseWorldZoom();
-      const spreadKey = `${layoutViewportWidth()}x${layoutViewportHeight()}@${isLandscape() ? "L" : "P"}z${zoom.toFixed(3)}`;
-      if (!campSpreadInit || spreadKey !== lastSpreadKey) {
+      const layoutKey = getCampLayoutKey();
+      if (!campSpreadInit || Math.abs(zoom - lastSpreadZoom) > 0.005 || layoutKey !== lastLayoutKey) {
         campSpreadInit = true;
-        lastSpreadKey = spreadKey;
         lastSpreadZoom = zoom;
-        lastLayoutKey = getCampLayoutKey();
+        lastLayoutKey = layoutKey;
         spreadAllNpcs();
         if (isCampMobile()) initMobileAgentView();
       }
@@ -5661,24 +5619,19 @@
         }
       }, isIOS() ? 80 : 30);
     }
-    let vvChangeTimer = 0;
     function onVisualViewportChange() {
-      clearTimeout(vvChangeTimer);
-      vvChangeTimer = setTimeout(() => {
-        vvChangeTimer = 0;
-        if (isIOS()) {
-          syncKeyboardDock();
-          syncViewportOffset();
-          window.scrollTo(0, 0);
-          scheduleResize({ debounceMs: 80 });
-          return;
-        }
+      if (isIOS()) {
+        syncKeyboardDock();
         syncViewportOffset();
         window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-        scheduleResize({ debounceMs: 120 });
-      }, isIOS() ? 60 : 100);
+        scheduleResize();
+        return;
+      }
+      syncViewportOffset();
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      scheduleResize();
     }
     window.addEventListener("resize", () => scheduleResize());
     window.addEventListener("orientationchange", onCampOrientationChange);
@@ -5686,23 +5639,36 @@
       screen.orientation.addEventListener("change", onCampOrientationChange);
     }
     window.addEventListener("pageshow", () => setTimeout(scheduleResize, 50));
-    if (window.visualViewport && (isIOS() || isCampMobile())) {
+    if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", onVisualViewportChange);
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => scheduleResize({ debounceMs: isCampMobile() ? 140 : 280 }));
+      const layoutObs = new ResizeObserver(() => scheduleResize());
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (hdr) layoutObs.observe(hdr);
       if (dock) layoutObs.observe(dock);
+      if (campStage) layoutObs.observe(campStage);
+      else layoutObs.observe(canvas);
     }
     scheduleResize();
 
-    function setCampTilt(_sx, _sy) {
-      document.documentElement.style.setProperty("--tilt-x", "0deg");
-      document.documentElement.style.setProperty("--tilt-y", "0deg");
+    function setCampTilt(sx, sy) {
+      if (isCampMobile()) {
+        document.documentElement.style.setProperty("--tilt-x", "0deg");
+        document.documentElement.style.setProperty("--tilt-y", "0deg");
+        return;
+      }
+      const nx = (sx / Math.max(1, window.innerWidth)) - 0.5;
+      const ny = (sy / Math.max(1, window.innerHeight)) - 0.5;
+      const max = 3.2;
+      document.documentElement.style.setProperty("--tilt-y", `${(nx * max).toFixed(2)}deg`);
+      document.documentElement.style.setProperty("--tilt-x", `${(-ny * max * 0.65).toFixed(2)}deg`);
     }
+    window.addEventListener("pointermove", (ev) => {
+      if (!ev.pointerType || ev.pointerType === "mouse") setCampTilt(ev.clientX, ev.clientY);
+    }, { passive: true });
 
     function worldToScreen(wx, wy) {
       ensureViewCamera();
@@ -6397,14 +6363,13 @@
       if (!force && (campTalkPickerOpen || document.activeElement === sel)) return;
       const heavenHere = heavenSummoned || campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving);
       const dionHere = campGuests.some((g) => g.id === "dionysus" && !g.leaving);
-      const sig = `${nearestId || ""}|${heavenHere ? 1 : 0}|${dionHere ? 1 : 0}|${ouijaSpiritName || ""}`;
+      const sig = `${heavenHere ? 1 : 0}|${dionHere ? 1 : 0}|${ouijaSpiritName || ""}`;
       if (!force && sig === campTalkTargetSig) return;
       campTalkTargetSig = sig;
       const nearOpt = sel.querySelector('option[value="nearest"]');
-      const nearName = nearestId ? (agentNames[nearestId] || nearestId) : "Luna";
-      if (nearOpt) nearOpt.textContent = `📍 ${nearName} (nearest)`;
+      if (nearOpt) nearOpt.textContent = "📍 Nearest";
       const allNearOpt = sel.querySelector('option[value="all-near"]');
-      if (allNearOpt) allNearOpt.textContent = `📍📢 ${nearName} first, all hear`;
+      if (allNearOpt) allNearOpt.textContent = "📍📢 Nearest + all hear";
       ARCHANGEL_IDS.forEach((id) => {
         const opt = sel.querySelector(`option[value="${id}"]`);
         if (opt) opt.hidden = !heavenHere;
@@ -6546,7 +6511,7 @@
     }
 
     function focusGrokAgent(agentId) {
-      tryOpenFocusedAgentChat(agentId);
+      onAgentTap(findRoamAgent(agentId) || { id: agentId, name: agentNames[agentId] || agentId });
     }
 
     async function sendCampTalk() {
@@ -6584,14 +6549,14 @@
           if (qInput) qInput.value = text;
           await startCampOuijaContact();
         } else if (target === "all") {
-          await chatAllCampAgents(text);
+          await chatAllCampAgents(talkText);
         } else if (target === "all-near") {
           const primary = nearestId || "luna";
           const label = agentNames[primary] || primary;
           setCampLifeStatus(`${label} answers first — everyone else hears too…`);
           await chat(
             primary,
-            `(The visitor speaks directly to ${label}, but the whole aurora camp overhears: "${text}" — answer as ${label} in your true voice, 2-5 sentences.)`,
+            `(The visitor speaks directly to ${label}, but the whole aurora camp overhears: "${talkText}" — answer as ${label} in your true voice, 2-5 sentences.)`,
             { useDialogue: false, fromCampBar: true },
           );
           await new Promise((r) => setTimeout(r, 500));
@@ -6605,7 +6570,7 @@
           for (const id of order) {
             await chat(
               id,
-              `(You overheard the visitor say to ${label}: "${text}" — add your own brief reaction in character, 1-3 sentences.)`,
+              `(You overheard the visitor say to ${label}: "${talkText}" — add your own brief reaction in character, 1-3 sentences.)`,
               { useDialogue: false, fromCampBar: true },
             );
             await new Promise((r) => setTimeout(r, 550));
@@ -6665,10 +6630,7 @@
           : "Chatter mini bar";
         showToast(msg);
       }
-      setTimeout(() => {
-        syncUILayout();
-        if (isCampMobile()) scheduleResize();
-      }, 50);
+      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
     }
 
     function cycleMobileChatter() {
@@ -6701,10 +6663,7 @@
       try {
         localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
       } catch (_) {}
-      setTimeout(() => {
-        syncUILayout();
-        if (isCampMobile()) scheduleResize();
-      }, 50);
+      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
     }
 
     function expandSpeechBubble() { setSpeechBubbleDock(false); }
@@ -8000,7 +7959,6 @@
       jesus: "#fde68a", michael: "#60a5fa", gabriel: "#f0abfc", raphael: "#6ee7b7", uriel: "#fb923c",
       aurora: "#f472b6", violet: "#c084fc", seraph: "#fda4af", odin: "#94a3b8",
       ambrosia: "#f59e0b", rhea: "#d4a574",
-      ara: "#4ade80", mika: "#a78bfa",
     };
     const AGENT_ROLES = {
       luna: "today's curator", hermes: "breaking-signal scout", oracle: "culture forecaster",
@@ -8010,10 +7968,7 @@
       aurora: "pop culture host", violet: "internet mood reader", seraph: "gentle commentary",
       odin: "history & power lens", ambrosia: "comfort & lifestyle", rhea: "community mother",
       wanderer: "roaming hot take",
-      ara: "Grok link · @a",
-      mika: "Grok link · @m",
     };
-    const GROK_CAMP_AGENTS = new Set(["ara", "mika"]);
     const AGENT_QUIPS = AGENT_ROLES;
     let campPulseItems = [];
     let campTweetTimer = 0;
@@ -8690,26 +8645,6 @@
       ctx.fillText("🏔", cx, cy - 52 + Math.sin(t * 2.5) * 2);
     }
 
-    function drawGrokFigure(cx, cy, t, accent = "#4ade80") {
-      const pulse = 0.85 + Math.sin(t * 0.004) * 0.15;
-      ctx.fillStyle = `${accent}33`;
-      ctx.beginPath();
-      ctx.arc(cx, cy - 6, 22 * pulse, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = accent;
-      ctx.beginPath();
-      ctx.arc(cx, cy - 6, 14, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#ecfdf5";
-      ctx.font = "bold 11px Segoe UI";
-      ctx.textAlign = "center";
-      ctx.fillText("G", cx, cy - 2);
-      ctx.font = "9px Segoe UI";
-      ctx.fillStyle = "#d1fae5";
-      ctx.fillText("link", cx, cy + 12);
-      ctx.textAlign = "center";
-    }
-
     function drawDionysusFigure(cx, cy, t) {
       const sway = Math.sin(t * 3) * 4;
       drawIsoBox(cx, cy, -0.3 + sway * 0.01, -0.3, 0, 0.6, 0.6, 1.0,
@@ -8788,8 +8723,6 @@
         caduceus: drawCaduceusFigure,
         sentinel: drawSentinelFigure,
         dionysus: drawDionysusFigure,
-        ara: (x, y, tt) => drawGrokFigure(x, y, tt, "#4ade80"),
-        mika: (x, y, tt) => drawGrokFigure(x, y, tt, "#a78bfa"),
         jesus: drawJesusCrossFigure,
         michael: drawHeavenFigure,
         gabriel: drawHeavenFigure,
@@ -9214,16 +9147,6 @@
         "{v}! Toast? I'm Dionysus{bond} — vineyard's close if we need more wine.",
         "You called the party, {v}? Dionysus reporting{bond}.",
         "{v}, main-character energy detected{bond}. I'm Dionysus — celebrate something.",
-      ],
-      ara: [
-        "{v} — Ara here. Grok link's live{bond}. What's actually on your mind?",
-        "Signal clean, {v}. I'm Ara — skip the small talk{bond}.",
-        "{v}, neural link open{bond}. Ask me anything sharp.",
-      ],
-      mika: [
-        "{v}! Mika online — Grok pulse feels sparkly{bond}.",
-        "Hey {v} — it's Mika. Camp's glowing and so are you{bond}.",
-        "{v}, @m reached me{bond}. Talk to me?",
       ],
       aurora: [
         "{v} — velvet doors are open. I'm Aurora{bond}. What's your poison?",
@@ -10361,7 +10284,7 @@
         player.ty = pw.y;
         return;
       }
-      if (nearestId) tryOpenFocusedAgentChat(nearestId);
+      if (nearestId) openDialogue(nearestId);
       else {
         replyEl.textContent = "Tap meadow to walk · tap agents & objects to interact";
       }
@@ -10428,9 +10351,7 @@
         const d = dist(player, { x: camp.x + n.x, y: camp.y + n.y });
         if (d < bestD) { bestD = d; best = n.id; }
       }
-      const prevNearest = nearestId;
       nearestId = best;
-      if (prevNearest !== nearestId) refreshCampTalkTarget();
 
       const enterBtn = document.getElementById("camp-enter-house");
       if (enterBtn) {
@@ -10565,49 +10486,32 @@
       player.tx = wx;
       player.ty = wy;
     }
-    function selectCampAgent(agentId, opts = {}) {
-      const id = (agentId || "").toLowerCase();
-      if (!id) return;
-      campFocusAgentId = id;
-      campFocusAgentTs = Date.now();
-      const npc = findRoamAgent(id);
-      if (npc) {
-        const pos = agentWorldPos(npc);
-        panCampCameraTo(pos.x, pos.y);
-        if (dist(player, pos) > 68) walkPlayerTo(pos.x, pos.y - 6);
+    const AGENT_DOUBLE_TAP_MS = 520;
+    let agentTalkPending = null;
+    function onAgentTap(npc) {
+      if (!npc || npc.leaving) return;
+      const now = Date.now();
+      const pos = agentWorldPos(npc);
+      if (agentTalkPending?.id === npc.id && now - agentTalkPending.t < AGENT_DOUBLE_TAP_MS) {
+        agentTalkPending = null;
+        pendingCampAction = null;
+        void openDialogueWindow(npc.id);
+        return;
       }
-      if (!opts.quiet) {
-        showToast(`${agentNames[id] || id} selected — click again to chat`);
+      agentTalkPending = { id: npc.id, t: now };
+      pendingCampAction = null;
+      if (dist(player, pos) > 68) {
+        walkPlayerTo(pos.x, pos.y - 6);
+        showToast(`→ ${npc.name} — tap again to chat`);
+      } else {
+        showToast(`${npc.name} — tap again to chat`);
       }
-    }
-    function tryOpenFocusedAgentChat(agentId) {
-      const id = (agentId || "").toLowerCase();
-      if (!id) return false;
-      const focused = campFocusAgentId === id && (Date.now() - campFocusAgentTs) < CAMP_FOCUS_MS;
-      if (!focused) {
-        selectCampAgent(id);
-        return false;
-      }
-      campFocusAgentId = null;
-      void openDialogueWindow(id);
-      return true;
     }
     function interactCampHit(hit) {
       if (!hit?.kind) return;
       switch (hit.kind) {
         case "agent": {
-          const npc = hit.ref;
-          if (!npc || npc.leaving) return;
-          const pos = agentWorldPos(npc);
-          if (dist(player, pos) > 68) {
-            walkPlayerTo(pos.x, pos.y - 6);
-            pendingCampAction = null;
-            selectCampAgent(npc.id, { quiet: true });
-            showToast(`→ ${npc.name} — click again to talk`);
-            return;
-          }
-          pendingCampAction = null;
-          tryOpenFocusedAgentChat(npc.id);
+          onAgentTap(hit.ref);
           break;
         }
         case "prop": {
@@ -10744,11 +10648,11 @@
       const pos = campLayerWorldPos(hit.kind, hit.ref);
       if (pos) panCampCameraTo(pos.x, pos.y);
       if (hit.kind === "agent" && hit.ref) {
-        const npc = hit.ref;
-        const ap = agentWorldPos(npc);
+        const ap = agentWorldPos(hit.ref);
         walkPlayerTo(ap.x, ap.y - 6);
-        selectCampAgent(npc.id, { quiet: true });
-        if (!opts.quiet) showToast(`→ ${npc.name} — click again to talk`);
+        agentTalkPending = { id: hit.ref.id, t: Date.now() };
+        pendingCampAction = null;
+        if (!opts.quiet) showToast(`→ ${hit.ref.name} — tap again to chat`);
       } else {
         interactCampHit(hit);
         if (!opts.quiet) {
@@ -10833,7 +10737,7 @@
         h = Math.max(58, Math.ceil(panel.offsetHeight) + 6);
       }
       document.documentElement.style.setProperty("--text-expand-h", `${h}px`);
-      syncUILayout();
+      scheduleResize();
     }
 
     function showCampTextExpand(who, text, opts = {}) {
@@ -10931,7 +10835,7 @@
       refreshCampLayerPicker();
       const sel = document.getElementById("camp-layer-select");
       const go = document.getElementById("camp-layer-go");
-      const runWalkPick = () => {
+      const runPick = () => {
         const val = sel?.value;
         if (!val) {
           showToast("Pick someone or something from the list");
@@ -10943,15 +10847,10 @@
       go?.addEventListener("click", (ev) => {
         ev.preventDefault();
         ev.stopPropagation();
-        runWalkPick();
+        runPick();
       });
       sel?.addEventListener("change", () => {
-        const val = sel?.value;
-        if (!val) {
-          hideCampTextExpand();
-          return;
-        }
-        if (isCampMobile()) syncSelectTextExpand(sel, "🎯", "Tap → to go · tap agent twice to chat");
+        if (!sel.value) hideCampTextExpand();
       });
     }
 
@@ -11062,7 +10961,8 @@
             spawnDionysusVisit({ manual: true });
             return;
           }
-          tryOpenFocusedAgentChat(id);
+          const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
+          openAgentChat(npc);
         });
       });
     }
@@ -11115,7 +11015,7 @@
     function openAgentChat(npc) {
       if (!npc || npc.leaving) return;
       hideAgentActionMenu();
-      tryOpenFocusedAgentChat(npc.id || npc);
+      void openDialogueWindow(npc.id || npc);
     }
 
     function placeDragAt(sx, sy, target) {
@@ -11198,7 +11098,7 @@
           color: bubbleHit.color,
           agentId: bubbleHit.agentId,
         });
-        if (npc) tryOpenFocusedAgentChat(npc.id);
+        if (npc) openAgentChat(npc);
         return;
       }
       const hit = hitTestCamp(sx, sy);
@@ -11325,12 +11225,10 @@
       canvas.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
     });
     canvas.addEventListener("dblclick", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      if (isCampMobile()) return;
       const { sx, sy } = campPointerPos(ev);
       const hit = hitTestCamp(sx, sy);
       if (hit?.kind === "agent") {
+        ev.preventDefault();
         clearAgentClickPending();
         void openDialogueWindow(hit.ref.id);
         return;
@@ -11340,12 +11238,6 @@
         showToast("Map zoom reset — use Zoom bar in toolbar");
       }
     });
-    document.addEventListener("dblclick", (ev) => {
-      if (isMapSurfaceTarget(ev.target)) {
-        ev.preventDefault();
-        ev.stopPropagation();
-      }
-    }, true);
 
     document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
     document.getElementById("btn-find-bar").onclick = () => gatherNpcsAtCamp(false);
@@ -11412,9 +11304,11 @@
     document.querySelectorAll("#agent-strip .agent-chip").forEach((btn) => {
       btn.onclick = () => {
         const id = btn.dataset.agent;
-        if (id) tryOpenFocusedAgentChat(id);
+        if (id) onAgentTap(findRoamAgent(id) || { id, name: agentNames[id] || id });
       };
     });
+    document.getElementById("btn-talk-ara")?.addEventListener("click", () => focusGrokAgent("ara"));
+    document.getElementById("btn-talk-mika")?.addEventListener("click", () => focusGrokAgent("mika"));
     document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
     document.getElementById("btn-camp-music-off").onclick = () => closeAllCampMusic();
     document.getElementById("camp-music-prompt").onclick = () => {
@@ -11449,8 +11343,17 @@
         sendCampTalk();
       }
     });
-    document.getElementById("btn-talk-ara")?.addEventListener("click", () => focusGrokAgent("ara"));
-    document.getElementById("btn-talk-mika")?.addEventListener("click", () => focusGrokAgent("mika"));
+    document.getElementById("btn-grok-terminal")?.addEventListener("click", () => toggleGrokTerminal());
+    document.getElementById("grok-term-close")?.addEventListener("click", () => setGrokTerminalOpen(false));
+    document.getElementById("grok-term-send")?.addEventListener("click", () => sendGrokTerminalTalk());
+    document.getElementById("grok-term-input")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendGrokTerminalTalk();
+      }
+    });
+    document.getElementById("grok-term-input")?.addEventListener("focus", onCampInputFocus);
+    document.getElementById("grok-term-input")?.addEventListener("blur", onCampInputBlur);
     function onCampInputFocus() {
       if (isIOS()) {
         setTimeout(syncKeyboardDock, 60);
@@ -11611,7 +11514,7 @@
     }
 
     async function openDialogueWindow(agentId) {
-      let id = (agentId || nearestId || "luna").toLowerCase();
+      let id = (agentId || "luna").toLowerCase();
       if (id === "dionysus" && !findRoamAgent("dionysus")) {
         await spawnDionysusVisit({ manual: true });
         id = "dionysus";
@@ -11628,18 +11531,10 @@
       dialogueStatus.textContent = "Type below · Enter = send";
       dialogueBackdrop.classList.add("open");
       chatterPaused = true;
-      const talkSel = document.getElementById("camp-talk-target");
+      agentTalkPending = null;
+      pendingCampAction = null;
       const layerSel = document.getElementById("camp-layer-select");
-      if (talkSel) {
-        talkSel.value = id;
-        syncCampTalkAllBtn();
-        refreshCampTalkTarget();
-      }
       if (layerSel) layerSel.value = "";
-      hideCampTextExpand();
-      if (npc.x != null && npc.y != null) {
-        panCampCameraTo(camp.x + npc.x, camp.y + npc.y);
-      }
       setTimeout(() => dialogueInput?.focus(), isCampMobile() ? 80 : 140);
     }
 
@@ -11650,7 +11545,6 @@
     function closeDialogue() {
       dialogueBackdrop.classList.remove("open");
       chatterPaused = false;
-      dialogueInput?.blur();
     }
 
     dialogueBackdrop.onclick = closeDialogue;
@@ -11846,6 +11740,52 @@
       updateConvoScrollLockUi();
     }
 
+    let grokTerminalOpen = false;
+
+    function setGrokTerminalOpen(open) {
+      grokTerminalOpen = !!open;
+      const panel = document.getElementById("grok-terminal");
+      const btn = document.getElementById("btn-grok-terminal");
+      if (panel) panel.classList.toggle("collapsed", !grokTerminalOpen);
+      if (btn) btn.classList.toggle("active", grokTerminalOpen);
+      if (grokTerminalOpen) {
+        scheduleResize();
+        setTimeout(() => document.getElementById("grok-term-input")?.focus(), 100);
+      }
+    }
+
+    function toggleGrokTerminal() {
+      setGrokTerminalOpen(!grokTerminalOpen);
+    }
+
+    function appendGrokTerminalLine(speaker, text, mood) {
+      const log = document.getElementById("grok-term-log");
+      if (!log) return;
+      const line = document.createElement("div");
+      line.className = "grok-term-line";
+      const who = document.createElement("span");
+      who.className = "grok-who";
+      who.textContent = `${speaker}> `;
+      const msg = document.createElement("span");
+      msg.className = `grok-msg ${moodClass(mood || "neutral")}`;
+      msg.textContent = text;
+      line.append(who, msg);
+      log.appendChild(line);
+      while (log.children.length > 100) log.removeChild(log.firstChild);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function sendGrokTerminalTalk() {
+      const input = document.getElementById("grok-term-input");
+      const talkInput = document.getElementById("camp-talk-input");
+      const text = (input?.value || "").trim();
+      if (!text || campTalkBusy) return;
+      if (talkInput) talkInput.value = text;
+      input.value = "";
+      recenterCampView({ blurInput: true });
+      await sendCampTalk();
+    }
+
     function pushCampLine(speaker, line, holdSec, mood, opts = {}) {
       if (holdSec == null) holdSec = campReadHoldSec(line, 36);
       const clean = (line || "").trim();
@@ -11866,6 +11806,7 @@
         campLines.push(entry);
         while (campLines.length > 100) campLines.shift();
         renderConvoLog();
+        appendGrokTerminalLine(speaker, clean, moodVal);
       }
       if (isCampMobile() && clean && !opts.quiet && speaker !== "Camp" && !isVisitorSpeaker(speaker)) {
         showCampTextExpand(speaker, clean, {
@@ -12149,7 +12090,9 @@
       const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
       campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;
     }
-
+    const grokBuildEl = document.getElementById("grok-term-build");
+    if (grokBuildEl) grokBuildEl.textContent = CAMP_BUILD;
+    if (isCampMobile()) setGrokTerminalOpen(false);
     updateCampMusicUi();
     function updateBrainStatusChip(h) {
       const ollamaChip = document.getElementById("chip-ollama");
@@ -12506,11 +12449,11 @@
         else setSpeechBubbleDock(true);
       }
       setCampLifeStatus(isCampMobile()
-        ? "🎯 dropdown — pick anyone or anything · tap meadow to walk"
-        : "🎯 Pick in dropdown + → to walk · click agent twice to chat");
+        ? "Tap meadow to walk · tap agent twice to chat · 🎯 + → to go"
+        : "Tap meadow to walk · double-tap agent to chat · type in talk bar");
       syncCampZoomSliderUi();
       if (isCampMobile()) {
-        setTimeout(() => showToast("Tap meadow to walk · tap anyone or anything"), 2200);
+        setTimeout(() => showToast("Tap meadow to walk · tap agent twice to chat"), 2200);
       } else {
         setTimeout(() => showToast("Use the Zoom bar above the icons — slider or +/− buttons"), 2800);
       }

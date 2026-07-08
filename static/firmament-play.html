@@ -70,9 +70,9 @@
     #camp-stage {
       position: fixed; z-index: 1;
       left: 0; top: var(--header-h); right: 0;
-      width: 100%;
-      height: calc(100vh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
-      height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
+      width: auto;
+      height: auto;
       max-width: 100vw;
       overflow: hidden;
       touch-action: none;
@@ -91,7 +91,7 @@
     #game {
       display: block;
       position: absolute;
-      left: 0; top: 0;
+      left: 0; top: 0; right: 0; bottom: 0;
       width: 100%;
       height: 100%;
       touch-action: none;
@@ -371,9 +371,9 @@
     #trippy-veil {
       position: fixed; z-index: 2; pointer-events: none;
       left: 0; top: var(--header-h); right: 0;
-      width: 100%;
-      height: calc(100vh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
-      height: calc(100svh - var(--header-h) - var(--dock-h) - env(safe-area-inset-bottom, 0px));
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px));
+      width: auto;
+      height: auto;
       background:
         radial-gradient(ellipse at 18% 22%, rgba(167, 139, 250, 0.14), transparent 42%),
         radial-gradient(ellipse at 82% 68%, rgba(244, 114, 182, 0.1), transparent 45%),
@@ -3283,7 +3283,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-camp-pc-192view";
+    const CAMP_BUILD = "2026-07-08-camp-pc-native";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3501,16 +3501,19 @@
     }
 
     function getCampCanvasSize() {
-      if (!isIOS()) {
-        const box = (campStage || canvas).getBoundingClientRect();
-        return {
-          w: Math.max(1, Math.round(box.width)),
-          h: Math.max(1, Math.round(box.height)),
-        };
+      const el = campStage || canvas;
+      const box = el.getBoundingClientRect();
+      let w = Math.max(1, Math.round(box.width));
+      let h = Math.max(1, Math.round(box.height));
+      if (isIOS()) {
+        const sz = getCampCanvasSizeFromLayout();
+        if (w < 100 || h < 100 || Math.abs(h - sz.h) > 28 || Math.abs(w - sz.w) > 16) {
+          w = sz.w;
+          h = sz.h;
+        }
+        commitStableCampSize(w, h);
       }
-      const sz = getCampCanvasSizeFromLayout();
-      commitStableCampSize(sz.w, sz.h);
-      return sz;
+      return { w, h };
     }
 
     function iosDismissKeyboard() {
@@ -3876,10 +3879,20 @@
     function campUnitScale() {
       return 1;
     }
-    function getWorldZoom() {
+    function getDesktopFitZoom() {
+      if (viewW < 80 || viewH < 80) return WORLD_ZOOM_DESKTOP;
+      const ar = viewW / Math.max(viewH, 1);
+      const arScale = Math.max(0.82, Math.min(1.18, ar / 1.55));
+      const hScale = Math.max(0.78, Math.min(1.12, viewH / 720));
+      return Math.max(0.30, Math.min(0.50, WORLD_ZOOM_DESKTOP * arScale * hScale));
+    }
+    function getBaseWorldZoom() {
       if (isIOS()) return isLandscape() ? WORLD_ZOOM_IOS_LANDSCAPE : WORLD_ZOOM_IOS_PORTRAIT;
       if (isCampMobile()) return WORLD_ZOOM_MOBILE;
-      return WORLD_ZOOM_DESKTOP;
+      return getDesktopFitZoom();
+    }
+    function getWorldZoom() {
+      return getBaseWorldZoom();
     }
     function ensureViewCamera() {
       if (!isCampMobile()) return;
@@ -5419,6 +5432,7 @@
       if (header) {
         let h = Math.ceil(header.getBoundingClientRect().height);
         if (isCampMobile()) h = Math.min(h, 64);
+        else h = Math.min(h, 80);
         document.documentElement.style.setProperty("--header-h", `${h}px`);
       }
       if (dock) {
@@ -5490,14 +5504,19 @@
 
     let lastCanvasW = 0;
     let lastCanvasH = 0;
+    function campDisplayDpr() {
+      const dpr = window.devicePixelRatio || 1;
+      if (isCampMobile()) return Math.min(dpr, isIOS() ? 2.5 : 3);
+      return dpr;
+    }
     function applyCanvasDimensions(w, h) {
-      campDpr = Math.min(window.devicePixelRatio || 1, 3);
+      campDpr = campDisplayDpr();
       viewW = w;
       viewH = h;
-      const bw = Math.round(w * campDpr);
-      const bh = Math.round(h * campDpr);
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
+      const bw = Math.max(1, Math.round(w * campDpr));
+      const bh = Math.max(1, Math.round(h * campDpr));
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
       if (canvas.width !== bw || canvas.height !== bh) {
         canvas.width = bw;
         canvas.height = bh;
@@ -5572,7 +5591,7 @@
       screen.orientation.addEventListener("change", onCampOrientationChange);
     }
     window.addEventListener("pageshow", () => setTimeout(scheduleResize, 50));
-    if (window.visualViewport && (isIOS() || isCampMobile())) {
+    if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", onVisualViewportChange);
       window.visualViewport.addEventListener("scroll", onVisualViewportChange);
     }
@@ -12040,7 +12059,7 @@
       if (!campBuildEl) return;
       const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
       if (!isCampMobile()) {
-        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)} (192)`;
+        campBuildEl.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} z${getWorldZoom().toFixed(2)} d${campDisplayDpr().toFixed(1)}`;
         return;
       }
       campBuildEl.textContent = `${CAMP_BUILD} · ${plat}`;

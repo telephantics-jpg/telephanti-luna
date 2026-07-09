@@ -1446,6 +1446,153 @@
       border-radius: 8px; padding: 8px 10px; font-size: 0.84rem;
       touch-action: manipulation;
     }
+    /* Dedicated chat panel — select anyone, type, scroll long LLM monologues */
+    #camp-chat-panel {
+      position: fixed;
+      z-index: 48;
+      display: none;
+      flex-direction: column;
+      left: max(8px, env(safe-area-inset-left, 0px));
+      right: max(8px, env(safe-area-inset-right, 0px));
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 6px);
+      top: auto;
+      max-height: min(72vh, 640px);
+      height: min(68vh, 600px);
+      background: rgba(4, 10, 18, 0.98);
+      border: 2px solid rgba(103, 232, 249, 0.45);
+      border-radius: 16px;
+      box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0,0,0,0.35);
+      pointer-events: auto;
+      touch-action: manipulation;
+      overflow: hidden;
+    }
+    #camp-chat-panel.open { display: flex !important; }
+    @media (min-width: 900px) {
+      #camp-chat-panel {
+        left: auto;
+        right: calc(var(--sidebar-w) + var(--gap) * 2);
+        width: min(420px, 36vw);
+        max-width: 440px;
+        bottom: calc(var(--dock-h) + 12px);
+        height: min(70vh, 620px);
+        max-height: min(74vh, 640px);
+      }
+    }
+    #camp-chat-panel .ccp-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(103, 232, 249, 0.25);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(6, 12, 24, 0.95));
+      flex-shrink: 0;
+    }
+    #camp-chat-panel .ccp-title {
+      font-size: 0.78rem; font-weight: 900; color: #67e8f9;
+      letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
+    }
+    #camp-chat-who {
+      flex: 1; min-width: 0;
+      background: #0f172a; color: #e2e8f0;
+      border: 1px solid rgba(167, 139, 250, 0.4);
+      border-radius: 8px; padding: 7px 8px; font-size: 0.8rem;
+    }
+    #camp-chat-close {
+      flex: 0 0 auto; width: 34px; height: 32px;
+      border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.95); color: #e2e8f0;
+      font-size: 1rem; font-weight: 800; cursor: pointer;
+    }
+    #camp-chat-meta {
+      flex-shrink: 0; padding: 4px 10px;
+      font-size: 0.62rem; color: #94a3b8;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #camp-chat-meta .ccm-brain { color: #6ee7b7; font-weight: 700; }
+    #camp-chat-thread {
+      flex: 1 1 auto; min-height: 120px;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 10px 10px 12px;
+      display: flex; flex-direction: column; gap: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(103, 232, 249, 0.5) rgba(15, 23, 42, 0.4);
+    }
+    #camp-chat-thread::-webkit-scrollbar { width: 8px; }
+    #camp-chat-thread::-webkit-scrollbar-thumb {
+      background: rgba(103, 232, 249, 0.45); border-radius: 99px;
+    }
+    .ccp-msg {
+      display: flex; flex-direction: column; gap: 4px;
+      max-width: 100%;
+    }
+    .ccp-msg.you { align-items: flex-end; }
+    .ccp-msg.agent { align-items: flex-start; }
+    .ccp-msg .ccp-who {
+      font-size: 0.65rem; font-weight: 800; color: #67e8f9;
+      letter-spacing: 0.02em;
+    }
+    .ccp-msg.you .ccp-who { color: #c4b5fd; }
+    .ccp-msg .ccp-bubble {
+      max-width: min(100%, 100%);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 0.88rem; line-height: 1.5;
+      white-space: pre-wrap; word-break: break-word;
+      /* open-ended scroll inside each long reply */
+      max-height: min(42vh, 360px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    .ccp-msg.you .ccp-bubble {
+      background: linear-gradient(135deg, rgba(76, 29, 149, 0.55), rgba(30, 27, 75, 0.9));
+      border: 1px solid rgba(167, 139, 250, 0.45);
+      color: #f5f3ff;
+      border-bottom-right-radius: 4px;
+    }
+    .ccp-msg.agent .ccp-bubble {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(103, 232, 249, 0.35);
+      color: #f8fafc;
+      border-bottom-left-radius: 4px;
+    }
+    .ccp-msg .ccp-tag {
+      font-size: 0.58rem; color: #64748b; font-weight: 600;
+    }
+    .ccp-msg.thinking .ccp-bubble {
+      color: #94a3b8; font-style: italic; max-height: none;
+    }
+    #camp-chat-compose {
+      flex-shrink: 0;
+      display: flex; gap: 8px; align-items: flex-end;
+      padding: 8px 10px max(8px, env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid rgba(103, 232, 249, 0.22);
+      background: rgba(6, 12, 24, 0.98);
+    }
+    #camp-chat-input {
+      flex: 1; min-width: 0; min-height: 44px; max-height: 120px;
+      resize: vertical;
+      background: #0f172a; color: #f8fafc;
+      border: 1px solid rgba(103, 232, 249, 0.35);
+      border-radius: 10px; padding: 10px 12px;
+      font-size: 0.92rem; line-height: 1.4;
+      font-family: inherit;
+      touch-action: manipulation;
+    }
+    #camp-chat-input:focus {
+      outline: none; border-color: rgba(103, 232, 249, 0.7);
+      box-shadow: 0 0 0 2px rgba(103, 232, 249, 0.15);
+    }
+    #camp-chat-send {
+      flex: 0 0 auto; min-width: 52px; height: 44px;
+      border: none; border-radius: 10px;
+      background: linear-gradient(135deg, #0e7490, #0891b2);
+      color: #ecfeff; font-weight: 800; font-size: 0.9rem;
+      cursor: pointer; padding: 0 14px;
+    }
+    #camp-chat-send:disabled { opacity: 0.45; cursor: wait; }
+    body.camp-chat-open #convo-log { opacity: 0.35; pointer-events: none; }
     #camp-talk-target { touch-action: manipulation; }
     #camp-talk-input::placeholder { color: #64748b; }
     #camp-talk-input:focus { outline: none; border-color: rgba(103, 232, 249, 0.55); box-shadow: 0 0 0 2px rgba(103, 232, 249, 0.12); }
@@ -3379,7 +3526,8 @@
       </div>
       <button type="button" id="camp-talk-all" title="Broadcast to all agents">📢</button>
       <button type="button" id="camp-talk-heaven" title="Summon Jesus &amp; archangels">✦ Heaven</button>
-      <input type="text" id="camp-talk-input" maxlength="280" placeholder="Talk at camp…" autocomplete="off" data-placeholder-mobile="Say something…" data-placeholder-desktop="Talk at camp — pick nearest, one agent, or 📢 all…" />
+      <input type="text" id="camp-talk-input" maxlength="800" placeholder="Talk at camp…" autocomplete="off" data-placeholder-mobile="Say something…" data-placeholder-desktop="Talk at camp — or open 💬 Chat for full thread…" />
+      <button type="button" id="camp-talk-open-panel" title="Open full chat — pick anyone, scroll monologues" aria-label="Open chat panel" style="flex:0 0 auto;border:1px solid rgba(103,232,249,0.45);border-radius:8px;background:linear-gradient(135deg,#0c4a6e,#0369a1);color:#e0f2fe;font-size:0.78rem;font-weight:800;padding:0 10px;height:36px;cursor:pointer">💬</button>
       <button type="button" id="camp-talk-send" title="Send">➤</button>
     </div>
     <div id="camp-zoom-bar" aria-label="Map zoom">
@@ -3405,6 +3553,7 @@
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
       <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Hide/show camp chatter">💬</button>
+      <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Chat panel — pick anyone, type, scroll long replies" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">💬</button>
       <button type="button" class="dock-icon talk" id="btn-talk-near" title="Talk to nearest">🗣️</button>
       <button type="button" class="dock-icon" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
 
@@ -3416,6 +3565,19 @@
   </footer>
   <audio id="camp-music-audio" preload="none" playsinline></audio>
   <iframe id="camp-music-yt-fallback" title="Telephantix fallback" allow="autoplay; encrypted-media" hidden></iframe>
+  <div id="camp-chat-panel" role="dialog" aria-label="Camp chat" aria-hidden="true">
+    <div class="ccp-head">
+      <span class="ccp-title">Chat</span>
+      <select id="camp-chat-who" title="Who to talk to"></select>
+      <button type="button" id="camp-chat-close" title="Close chat" aria-label="Close">✕</button>
+    </div>
+    <div id="camp-chat-meta">Pick anyone · type below · scroll long replies · brains evolve with each turn</div>
+    <div id="camp-chat-thread" aria-live="polite"></div>
+    <div id="camp-chat-compose">
+      <textarea id="camp-chat-input" rows="2" maxlength="1200" placeholder="Type to anyone… open-ended, real conversation"></textarea>
+      <button type="button" id="camp-chat-send">Send</button>
+    </div>
+  </div>
   <button type="button" id="camp-heaven-fab" title="Summon Jesus and the archangels to camp">✦ Summon Heaven</button>
   <button type="button" id="camp-enter-house" aria-live="polite">🚪 Enter house</button>
   <div id="prop-hint"></div>
@@ -3608,7 +3770,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-09-scroll-bubbles";
+    const CAMP_BUILD = "2026-07-09-camp-chat-panel";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4300,8 +4462,33 @@
       pushCampLine(agentNames[agentId] || agentId, data.reply, campReadHoldSec(data.reply, 50), data.mood, {
         fromLocal: true,
         keepDock: isCampMobile() && opts.fromCampBar,
+        noScrollBubble: !!opts.fromChatPanel, // panel already shows full scroll
       });
-      if (opts.fromCampBar) setCampLifeStatus(`${agentNames[agentId] || agentId} replied`);
+      // Feed dedicated chat panel (scrollable open-ended monologue + brain tag)
+      if (typeof appendCampChatMessage === "function" && !opts.fromChatPanel) {
+        const thr = getCampChatThread(agentId);
+        if (thr.length && thr[thr.length - 1].thinking) thr.pop();
+        // Avoid exact dup of last agent line
+        const last = thr[thr.length - 1];
+        if (!(last && last.role === "agent" && last.text === data.reply)) {
+          appendCampChatMessage(agentId, {
+            role: "agent",
+            who: data.name || agentNames[agentId] || agentId,
+            text: data.reply,
+            mood: data.mood || "happy",
+            backend: data.backend || "",
+            model: data.model || "",
+          });
+        }
+        if (opts.fromCampBar && !campChatOpen) openCampChatPanel(agentId);
+        else if (campChatOpen) renderCampChatThread(campChatActiveId || agentId);
+      }
+      if (opts.fromCampBar) {
+        const brain = data.backend
+          ? `${data.backend}${data.model ? " · " + data.model : ""}`
+          : "camp";
+        setCampLifeStatus(`${agentNames[agentId] || agentId} · ${brain} — scroll 💬 Chat`);
+      }
       pushLocalCampMemory({ kind: "agent_said", agent_id: agentId, text: data.reply });
       applyWalletFromResponse(data);
       loadCampBonds();
@@ -4373,10 +4560,12 @@
       "#camp-chatter-fab", "#visitor-modal",
       "#camp-agent-menu", "#grok-terminal", "#camp-layer-bar", "#camp-text-expand",
       "#camp-pick-agent-fab", "#camp-pick-agent-sheet", "#camp-tpx-fab",
-      "#camp-heaven-fab", "#btn-header-heaven",
+      "#camp-heaven-fab", "#btn-header-heaven", "#camp-chat-panel",
     ].join(", ");
     function isCampUiTarget(el) {
-      return !!(el && el.closest && el.closest(CAMP_UI_SELECTOR));
+      if (!el) return false;
+      if (el.id === "camp-chat-panel" || el.closest?.("#camp-chat-panel")) return true;
+      return !!(el.closest && el.closest(CAMP_UI_SELECTOR));
     }
     function isMapSurfaceTarget(el) {
       if (!el) return false;
@@ -6505,6 +6694,279 @@
     let ouijaIdleToken = 0;
     let campTalkBusy = false;
 
+    // ── Full chat panel: select anyone · type · scroll evolving LLM monologues ──
+    const campChatThreads = new Map(); // agentId -> [{ role, who, text, mood, backend, model, t }]
+    let campChatOpen = false;
+    let campChatActiveId = "luna";
+
+    function campChatThreadKey(agentId) {
+      return String(agentId || "luna").toLowerCase();
+    }
+
+    function getCampChatThread(agentId) {
+      const key = campChatThreadKey(agentId);
+      if (!campChatThreads.has(key)) campChatThreads.set(key, []);
+      return campChatThreads.get(key);
+    }
+
+    function syncCampChatWhoOptions() {
+      const sel = document.getElementById("camp-chat-who");
+      const src = document.getElementById("camp-talk-target");
+      if (!sel || !src) return;
+      const prev = sel.value || campChatActiveId;
+      sel.innerHTML = "";
+      // Clone talk-target options so Heaven / guests stay in sync
+      src.querySelectorAll("optgroup").forEach((og) => {
+        const g = document.createElement("optgroup");
+        g.label = og.label;
+        og.querySelectorAll("option").forEach((o) => {
+          if (o.hidden || o.disabled) return;
+          const opt = document.createElement("option");
+          opt.value = o.value;
+          opt.textContent = o.textContent;
+          g.appendChild(opt);
+        });
+        if (g.children.length) sel.appendChild(g);
+      });
+      // Also list anyone currently roaming not already present
+      allRoamers().forEach((n) => {
+        if (n.leaving) return;
+        if ([...sel.options].some((o) => o.value === n.id)) return;
+        const opt = document.createElement("option");
+        opt.value = n.id;
+        opt.textContent = n.name || n.id;
+        sel.appendChild(opt);
+      });
+      if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+      else if (sel.options.length) sel.selectedIndex = 0;
+      campChatActiveId = sel.value || "luna";
+    }
+
+    function renderCampChatThread(agentId) {
+      const threadEl = document.getElementById("camp-chat-thread");
+      const metaEl = document.getElementById("camp-chat-meta");
+      if (!threadEl) return;
+      const key = campChatThreadKey(agentId);
+      const thread = getCampChatThread(key);
+      if (!thread.length) {
+        const name = agentNames[key] || key;
+        threadEl.innerHTML = `<div class="ccp-msg agent"><span class="ccp-who">${escapeHtml(name)}</span><div class="ccp-bubble">Pick who to talk to above. Type anything — replies are open-ended monologues you can scroll. Brains evolve with each turn (Ollama / Hermes / free chain / Grok when linked).</div></div>`;
+        if (metaEl) metaEl.innerHTML = `Ready · <span class="ccm-brain">live agent brains</span>`;
+        return;
+      }
+      threadEl.innerHTML = thread.map((m) => {
+        const kind = m.role === "you" ? "you" : (m.thinking ? "agent thinking" : "agent");
+        const who = m.role === "you" ? (myVisitorName || player.name || "You") : (m.who || agentNames[key] || key);
+        const tag = m.backend
+          ? `<span class="ccp-tag">${escapeHtml(m.backend)}${m.model ? " · " + escapeHtml(m.model) : ""} · evolves</span>`
+          : (m.thinking ? `<span class="ccp-tag">thinking…</span>` : "");
+        return `<div class="ccp-msg ${kind}"><span class="ccp-who">${escapeHtml(who)}</span><div class="ccp-bubble">${escapeHtml(m.text)}</div>${tag}</div>`;
+      }).join("");
+      threadEl.scrollTop = threadEl.scrollHeight;
+      // Scroll newest agent bubble to top of its own overflow if huge
+      const lastAgent = [...threadEl.querySelectorAll(".ccp-msg.agent .ccp-bubble")].pop();
+      if (lastAgent) lastAgent.scrollTop = 0;
+      const last = thread[thread.length - 1];
+      if (metaEl && last) {
+        const brain = last.backend
+          ? `${last.backend}${last.model ? " · " + last.model : ""}`
+          : "camp brain";
+        metaEl.innerHTML = `${thread.length} turns · <span class="ccm-brain">${escapeHtml(brain)}</span> · scroll replies`;
+      }
+    }
+
+    function appendCampChatMessage(agentId, msg) {
+      const key = campChatThreadKey(agentId);
+      const thread = getCampChatThread(key);
+      thread.push({
+        role: msg.role || "agent",
+        who: msg.who || "",
+        text: String(msg.text || "").trim(),
+        mood: msg.mood || "neutral",
+        backend: msg.backend || "",
+        model: msg.model || "",
+        thinking: !!msg.thinking,
+        t: Date.now(),
+      });
+      while (thread.length > 40) thread.shift();
+      if (campChatOpen && campChatThreadKey(campChatActiveId) === key) {
+        renderCampChatThread(key);
+      }
+    }
+
+    function buildEvolvingPrompt(agentId, userText) {
+      const thread = getCampChatThread(agentId);
+      const prior = thread
+        .filter((m) => !m.thinking && m.text)
+        .slice(-6)
+        .map((m) => `${m.role === "you" ? "Visitor" : (m.who || agentId)}: ${m.text.slice(0, 280)}`)
+        .join("\n");
+      if (!prior) return userText;
+      return (
+        `(Ongoing private camp chat — evolve from this thread, do not restart as a stranger. ` +
+        `Reference earlier beats with NEW wording. Logic + ethics + esoteric truth in character.)\n` +
+        `Recent thread:\n${prior}\n\n` +
+        `Visitor now says: ${userText}`
+      );
+    }
+
+    function openCampChatPanel(agentId) {
+      syncCampChatWhoOptions();
+      const panel = document.getElementById("camp-chat-panel");
+      const whoSel = document.getElementById("camp-chat-who");
+      if (!panel) return;
+      if (agentId && whoSel) {
+        const id = String(agentId).toLowerCase();
+        if ([...whoSel.options].some((o) => o.value === id)) whoSel.value = id;
+      }
+      campChatActiveId = whoSel?.value || agentId || "luna";
+      // Mirror talk-bar target
+      const talkSel = document.getElementById("camp-talk-target");
+      if (talkSel && campChatActiveId && [...talkSel.options].some((o) => o.value === campChatActiveId)) {
+        talkSel.value = campChatActiveId;
+        syncCampTalkAllBtn?.();
+      }
+      panel.classList.add("open");
+      panel.setAttribute("aria-hidden", "false");
+      campChatOpen = true;
+      document.body.classList.add("camp-chat-open");
+      renderCampChatThread(campChatActiveId);
+      setTimeout(() => document.getElementById("camp-chat-input")?.focus(), 80);
+    }
+
+    function closeCampChatPanel() {
+      const panel = document.getElementById("camp-chat-panel");
+      if (panel) {
+        panel.classList.remove("open");
+        panel.setAttribute("aria-hidden", "true");
+      }
+      campChatOpen = false;
+      document.body.classList.remove("camp-chat-open");
+    }
+
+    function toggleCampChatPanel() {
+      if (campChatOpen) closeCampChatPanel();
+      else openCampChatPanel(document.getElementById("camp-talk-target")?.value || "luna");
+    }
+
+    async function sendCampChatPanel() {
+      const input = document.getElementById("camp-chat-input");
+      const sendBtn = document.getElementById("camp-chat-send");
+      const whoSel = document.getElementById("camp-chat-who");
+      const text = (input?.value || "").trim();
+      if (!text || campTalkBusy) return;
+      let agentId = whoSel?.value || campChatActiveId || "luna";
+      if (agentId === "nearest") agentId = nearestId || "luna";
+      if (agentId === "all" || agentId === "all-near" || agentId === "spirit") {
+        // Fall through to talk-bar routes
+        const talkIn = document.getElementById("camp-talk-input");
+        const talkSel = document.getElementById("camp-talk-target");
+        if (talkIn) talkIn.value = text;
+        if (talkSel) talkSel.value = agentId;
+        input.value = "";
+        appendCampChatMessage(agentId, { role: "you", text });
+        await sendCampTalk();
+        return;
+      }
+      // Summon if needed
+      if (
+        (agentId === "thor" || agentId === "zeus" || ARCHANGEL_IDS.includes(agentId) || agentId === "jesus")
+        && !findRoamAgent(agentId)
+      ) {
+        showToast(`✦ Bringing ${agentNames[agentId] || agentId}…`);
+        await summonArchangelCouncil();
+      }
+      if (isGrokLinkAgent(agentId) && !findRoamAgent(agentId)) {
+        await spawnGrokAgent(agentId, { quiet: true });
+      }
+      if (agentId === "dionysus" && !findRoamAgent(agentId)) {
+        await spawnDionysusVisit({ manual: true });
+      }
+
+      campChatActiveId = agentId;
+      appendCampChatMessage(agentId, { role: "you", text });
+      appendCampChatMessage(agentId, {
+        role: "agent",
+        who: agentNames[agentId] || agentId,
+        text: "…thinking (live brain)…",
+        thinking: true,
+      });
+      input.value = "";
+      campTalkBusy = true;
+      if (sendBtn) sendBtn.disabled = true;
+      const evolved = buildEvolvingPrompt(agentId, text);
+      try {
+        if (!campServerOnline) throw new Error("offline");
+        const { res, data } = await firmamentSecurePost("/api/firmament/agent/chat", {
+          agent_id: agentId,
+          message: evolved,
+          speak: false,
+          force_grok: isGrokLinkAgent(agentId),
+          ...visitorPayload(),
+        });
+        if (!res.ok) throw new Error(data.detail || "chat failed");
+        // Drop thinking placeholder
+        const thr = getCampChatThread(agentId);
+        if (thr.length && thr[thr.length - 1].thinking) thr.pop();
+        const reply = String(data.reply || "").trim() || "…";
+        appendCampChatMessage(agentId, {
+          role: "agent",
+          who: data.name || agentNames[agentId] || agentId,
+          text: reply,
+          mood: data.mood || "happy",
+          backend: data.backend || "",
+          model: data.model || "",
+        });
+        // Also feed meadow / pin / chatter
+        applyChatResult(agentId, data, { fromCampBar: true, fromChatPanel: true });
+        const brain = data.backend
+          ? `${data.backend}${data.model ? " · " + data.model : ""}`
+          : "camp";
+        setCampLifeStatus(`${data.name || agentId} · ${brain} · scroll chat panel`);
+      } catch (err) {
+        const thr = getCampChatThread(agentId);
+        if (thr.length && thr[thr.length - 1].thinking) thr.pop();
+        const data = aetherLocalChat(agentId, text);
+        appendCampChatMessage(agentId, {
+          role: "agent",
+          who: data.name || agentNames[agentId] || agentId,
+          text: data.reply,
+          mood: data.mood,
+          backend: "aether",
+          model: "offline",
+        });
+        applyChatResult(agentId, data, { fromCampBar: true, fromChatPanel: true });
+        showToast(isFetchOfflineError(err) ? "Offline aether brain" : (err.message || "chat hiccup"));
+      }
+      campTalkBusy = false;
+      if (sendBtn) sendBtn.disabled = false;
+      document.getElementById("camp-chat-input")?.focus();
+    }
+
+    function wireCampChatPanel() {
+      document.getElementById("btn-camp-chat")?.addEventListener("click", () => toggleCampChatPanel());
+      document.getElementById("camp-talk-open-panel")?.addEventListener("click", () => {
+        openCampChatPanel(document.getElementById("camp-talk-target")?.value || "luna");
+      });
+      document.getElementById("camp-chat-close")?.addEventListener("click", () => closeCampChatPanel());
+      document.getElementById("camp-chat-send")?.addEventListener("click", () => { void sendCampChatPanel(); });
+      document.getElementById("camp-chat-who")?.addEventListener("change", (ev) => {
+        campChatActiveId = ev.target.value || "luna";
+        const talkSel = document.getElementById("camp-talk-target");
+        if (talkSel && [...talkSel.options].some((o) => o.value === campChatActiveId)) {
+          talkSel.value = campChatActiveId;
+        }
+        renderCampChatThread(campChatActiveId);
+      });
+      document.getElementById("camp-chat-input")?.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" && !ev.shiftKey) {
+          ev.preventDefault();
+          void sendCampChatPanel();
+        }
+        if (ev.key === "Escape") closeCampChatPanel();
+      });
+    }
+
     function buildCampOuijaBoard() {
       if (ouijaBoardBuilt) return;
       const board = document.getElementById("camp-ouija-board");
@@ -6938,6 +7400,7 @@
       }
       const guestsGroup = document.getElementById("talk-opt-guests");
       if (guestsGroup) guestsGroup.label = dionHere ? "Guests" : "Guests (🍷 = invite)";
+      if (typeof syncCampChatWhoOptions === "function" && campChatOpen) syncCampChatWhoOptions();
     }
 
     async function chatAllCampAgents(text) {
@@ -7297,6 +7760,19 @@
         }
       }
       const talkText = mention.agentId ? mention.message : text;
+      // Open full chat panel so replies have a place to live + scroll
+      let panelAgent = target === "nearest" ? (nearestId || "luna") : target;
+      if (panelAgent === "all" || panelAgent === "all-near") panelAgent = nearestId || "luna";
+      if (panelAgent !== "spirit") {
+        appendCampChatMessage(panelAgent, { role: "you", text: talkText });
+        openCampChatPanel(panelAgent);
+        appendCampChatMessage(panelAgent, {
+          role: "agent",
+          who: agentNames[panelAgent] || panelAgent,
+          text: "…thinking (live brain)…",
+          thinking: true,
+        });
+      }
       try {
         if (target === "spirit") {
           if (!ouijaSpiritName) {
@@ -7354,13 +7830,27 @@
             await spawnGrokAgent(agentId, { quiet: true });
           }
           if (agentId === "luna" && !canvasCampChatOnly()) {
-            showToast("Luna hears you — check the chatter panel");
+            showToast("Luna hears you — scroll 💬 Chat for the full monologue");
           }
-          await chat(agentId, talkText, { useDialogue: false, fromCampBar: true });
+          // Evolving thread context for live Ollama/Hermes/Grok chain
+          const evolved = typeof buildEvolvingPrompt === "function"
+            ? buildEvolvingPrompt(agentId, talkText)
+            : talkText;
+          await chat(agentId, evolved, { useDialogue: false, fromCampBar: true });
         }
       } catch (err) {
         const hint = isFetchOfflineError(err) ? "Server offline" : (err.message || "send failed");
         showToast("Talk: " + hint);
+        if (panelAgent && panelAgent !== "spirit") {
+          const thr = getCampChatThread(panelAgent);
+          if (thr.length && thr[thr.length - 1].thinking) thr.pop();
+          appendCampChatMessage(panelAgent, {
+            role: "agent",
+            who: "Camp",
+            text: `Brain hiccup — ${hint}. Try again; Ollama/Hermes free chain evolves when online.`,
+            backend: "error",
+          });
+        }
       }
       campTalkBusy = false;
       bar?.classList.remove("busy");
@@ -12661,6 +13151,7 @@
       if (e.key === "Enter") { e.preventDefault(); startCampOuijaContact(); }
     });
     document.getElementById("camp-talk-send").onclick = () => sendCampTalk();
+    wireCampChatPanel();
     document.getElementById("camp-talk-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();

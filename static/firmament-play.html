@@ -3597,7 +3597,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-09-tpx-banner-deleted";
+    const CAMP_BUILD = "2026-07-09-logic-ethics-esoteric";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10026,13 +10026,15 @@
           `(Live AI campside banter) ${replyTo.name} just spoke about (idea only, DO NOT copy their wording): "${idea}". ` +
           `Reply TO ${replyTo.name} as yourself at camp in ~400 words (350–450). Multi-paragraph monologue. ` +
           `Invent completely new phrases — never reuse their metaphors or punchlines. ` +
-          `Character comedy, mind-bend ok. Camp vibe: ${ctx}. Visitor nearby: ${v}.` +
+          `Weave: clean logic, ethical stake, esoteric truth, your character wit. ` +
+          `Camp vibe: ${ctx}. Visitor nearby: ${v}.` +
           (whoNear ? ` Also nearby: ${whoNear}.` : "")
         );
       }
       return (
         `(Live AI ambient) You are at Luna Camp right now. Speak out loud — ~400 words (350–450) of real character monologue. ` +
         `Multi-paragraph. Not a canned idle quote. Never copy other agents' recent phrases. ` +
+        `Include logic (cause→effect), ethics (compassion without cowardice), and esoteric truth (perennial mystery in plain speech). ` +
         `Reference what you notice (fire, music, pond, church, ${v}, other agents) in YOUR unique voice. ` +
         `Camp vibe: ${ctx}.` +
         (whoNear ? ` Agents nearby: ${whoNear}.` : "")

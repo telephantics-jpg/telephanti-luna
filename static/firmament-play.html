@@ -378,6 +378,39 @@
       #camp-pick-agent-fab,
       #camp-pick-agent-sheet { display: none !important; }
     }
+    #camp-tpx-fab {
+      position: fixed;
+      z-index: 22;
+      left: max(12px, env(safe-area-inset-left));
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 10px);
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      border: 2px solid #7dd3fc;
+      background: linear-gradient(135deg, #0c4a6e, #0284c7 45%, #38bdf8);
+      color: #e0f2fe;
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      touch-action: manipulation;
+      pointer-events: auto;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #camp-tpx-fab.active {
+      border-color: #e0f2fe;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.65);
+    }
+    #camp-tpx-fab:active { transform: scale(0.94); }
+    @media (max-width: 899px) {
+      #camp-tpx-fab { display: flex; }
+    }
+    @media (min-width: 900px) {
+      #camp-tpx-fab { display: none !important; }
+    }
     #trippy-veil {
       position: fixed; z-index: 2; pointer-events: none;
       left: 0; top: var(--header-h); right: 0;
@@ -2270,7 +2303,6 @@
       .dock-scroll-hint,
       #dock-tip,
       #camp-music-now,
-      #camp-music-prompt,
       #camp-agent-menu,
       #btn-summon-dionysus,
       #btn-talk-near,
@@ -2432,24 +2464,58 @@
         display: inline-flex !important;
         pointer-events: auto !important;
         flex-shrink: 0;
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        background: rgba(4, 8, 18, 0.98);
+        box-shadow: 10px 0 14px rgba(4, 8, 18, 0.92);
       }
       #btn-camp-tpx,
       #btn-camp-music-off {
         display: inline-flex !important;
         pointer-events: auto !important;
+        flex-shrink: 0;
+      }
+      #camp-music-prompt {
+        display: none;
+        pointer-events: auto !important;
+      }
+      #camp-music-prompt.visible {
+        display: flex !important;
+        pointer-events: auto !important;
+        top: auto;
+        bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 72px);
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.92rem;
+        padding: 12px 18px;
+        z-index: 24;
       }
       .dock-compact {
-        max-width: none;
-        flex: 0 0 auto;
-        justify-content: flex-end;
+        width: 100%;
+        max-width: 100%;
+        flex: 1 1 100%;
+        justify-content: flex-start;
         flex-wrap: nowrap;
-        overflow: visible;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.42) transparent;
         gap: 6px;
-        padding: 0 2px 2px;
+        padding: 0 2px 4px;
+      }
+      .dock-compact::-webkit-scrollbar { display: block; height: 4px; }
+      .dock-compact::-webkit-scrollbar-thumb {
+        background: rgba(56, 189, 248, 0.42);
+        border-radius: 999px;
       }
       .dock-compact .dock-icon {
         width: 38px; height: 38px; font-size: 1rem;
+        flex-shrink: 0;
       }
+      #chip-camp-tpx { border-color: rgba(125, 211, 252, 0.65); }
+      #chip-camp-tpx .amood { display: none; }
     }
     @media (max-width: 899px) and (orientation: landscape) {
       :root { --header-h: 48px; }
@@ -2988,6 +3054,7 @@
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
+        <button type="button" class="agent-chip visitor-chip" id="chip-camp-tpx" title="Telephantix music at camp"><span class="dot" style="background:#38bdf8;color:#38bdf8"></span><span class="chip-text"><span class="aname">TX</span><span class="amood">music</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-summon-heaven" title="Summon Jesus &amp; archangels"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">✦ Heaven</span><span class="amood">summon</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus-invite" title="Invite Dionysus to camp"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">🍷 Dionysus</span><span class="amood">invite</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
@@ -3037,6 +3104,7 @@
     <div class="csp-body"></div>
   </div>
   <button type="button" id="camp-pick-agent-fab" title="Pick an agent to chat" aria-label="Pick agent to chat">💬</button>
+  <button type="button" id="camp-tpx-fab" title="Telephantix — play album at camp" aria-label="Play Telephantix music">TX</button>
   <div id="camp-pick-agent-sheet" hidden aria-hidden="true" role="dialog" aria-label="Pick agent">
     <div class="cpas-backdrop" id="camp-pick-agent-backdrop"></div>
     <div class="cpas-panel">
@@ -3377,7 +3445,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-08-grok-spawn-tx";
+    const CAMP_BUILD = "2026-07-08-android-tx-fab";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4051,7 +4119,7 @@
       "#camp-music-bar", "#camp-enter-house", "#camp-speech-pin",
       "#camp-chatter-fab", "#camp-music-prompt", "#visitor-modal",
       "#camp-agent-menu", "#grok-terminal", "#camp-layer-bar", "#camp-text-expand",
-      "#camp-pick-agent-fab", "#camp-pick-agent-sheet",
+      "#camp-pick-agent-fab", "#camp-pick-agent-sheet", "#camp-tpx-fab",
     ].join(", ");
     function isCampUiTarget(el) {
       return !!(el && el.closest && el.closest(CAMP_UI_SELECTOR));
@@ -7581,17 +7649,20 @@
       const prompt = document.getElementById("camp-music-prompt");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
       const tpxPending = campMusicSource === "telephantix" && (campMusicPlayPending || campMusicMuted);
+      const showMobileCue = isCampMobile() && !campMusicIsActive();
       if (prompt) {
-        prompt.classList.toggle("visible", tpxPending);
+        prompt.classList.toggle("visible", tpxPending || showMobileCue);
         if (campMusicSource === "telephantix" && campMusicMuted) {
-          prompt.textContent = "🔊 Tap to hear Telephantix";
+          prompt.textContent = "🔊 Tap TX to hear Telephantix";
         } else if (campMusicSource === "telephantix" && campMusicPlayPending) {
-          prompt.textContent = `🔊 Tap to play — ${track?.title || "Telephantix"}`;
+          prompt.textContent = `🔊 Tap TX — ${track?.title || "Telephantix"}`;
+        } else if (showMobileCue) {
+          prompt.textContent = "🎵 Tap TX — Telephantix album";
         } else {
           prompt.textContent = "🎵 Tap TX in the toolbar";
         }
       }
-      document.body.classList.toggle("camp-music-pending", tpxPending);
+      document.body.classList.toggle("camp-music-pending", tpxPending || showMobileCue);
     }
 
     function campMusicPlaySucceeded() {
@@ -7792,7 +7863,7 @@
     }
 
     function openCampTelephantix(opts = {}) {
-      if (campMusicSource === "telephantix" && campMusicOn && !opts.force) {
+      if (campMusicSource === "telephantix" && campMusicOn && !opts.force && !campMusicPlayPending) {
         closeAllCampMusic(opts);
         return;
       }
@@ -7814,14 +7885,25 @@
 
     function updateCampMusicUi() {
       const tpxBtn = document.getElementById("btn-camp-tpx");
+      const tpxFab = document.getElementById("camp-tpx-fab");
+      const tpxChip = document.getElementById("chip-camp-tpx");
       const offBtn = document.getElementById("btn-camp-music-off");
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
       const active = campMusicIsActive();
+      const tpxOn = campMusicSource === "telephantix";
       if (tpxBtn) {
-        tpxBtn.classList.toggle("active", campMusicSource === "telephantix");
-        tpxBtn.title = campMusicSource === "telephantix"
+        tpxBtn.classList.toggle("active", tpxOn);
+        tpxBtn.title = tpxOn
           ? `Telephantix ON — ${track.title} (tap to stop)`
           : "Telephantix — your album at camp";
+      }
+      if (tpxFab) {
+        tpxFab.classList.toggle("active", tpxOn);
+        tpxFab.title = tpxOn ? `TX on — ${track.title}` : "Telephantix — play album";
+      }
+      if (tpxChip) {
+        tpxChip.classList.toggle("speaking", tpxOn);
+        tpxChip.title = tpxOn ? `TX playing — ${track.title}` : "Tap for Telephantix music";
       }
       if (offBtn) {
         offBtn.classList.toggle("active", !active);
@@ -11602,6 +11684,16 @@
     document.getElementById("btn-talk-ara")?.addEventListener("click", () => { void focusGrokAgent("ara"); });
     document.getElementById("btn-talk-mika")?.addEventListener("click", () => { void focusGrokAgent("mika"); });
     document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
+    document.getElementById("camp-tpx-fab")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openCampTelephantix();
+    });
+    document.getElementById("chip-camp-tpx")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openCampTelephantix();
+    });
     document.getElementById("btn-camp-music-off").onclick = () => closeAllCampMusic();
     document.getElementById("camp-music-prompt").onclick = () => {
       if (campMusicSource === "telephantix" && (campMusicPlayPending || campMusicMuted)) {

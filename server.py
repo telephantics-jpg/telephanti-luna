@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "247-android-tx-fab"
+LUNA_BUILD = "249-no-tpx-banner"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -161,6 +161,57 @@ async def _prewarm_lipsync_background() -> None:
 async def prewarm_lipsync() -> None:
     """Start lip-sync prewarm without blocking — keeps /api/health instant for deploy."""
     asyncio.create_task(_prewarm_lipsync_background())
+    try:
+        from firmament.crypto_box import crypto_enabled, migrate_plaintext_sensitive
+
+        if crypto_enabled():
+            migrated = migrate_plaintext_sensitive()
+            if migrated:
+                log.info("camp at-rest encrypt migrated: %s", ", ".join(migrated))
+    except Exception as exc:
+        log.warning("camp crypto migrate skipped: %s", exc)
+
+
+async def _firmament_parse_body(request: Request) -> tuple[dict, bool]:
+    """Parse JSON body; decrypt LUNA1 transit envelope when present."""
+    try:
+        raw = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="invalid JSON body") from exc
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=400, detail="JSON object required")
+    try:
+        from firmament.crypto_box import crypto_enabled, is_envelope, open_json_envelope
+
+        if is_envelope(raw):
+            if not crypto_enabled():
+                raise HTTPException(status_code=400, detail="encrypted body but LUNA_CRYPTO is off")
+            opened = open_json_envelope(raw)
+            if not isinstance(opened, dict):
+                raise HTTPException(status_code=400, detail="decrypted body must be object")
+            return opened, True
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"decrypt failed: {exc}") from exc
+    return raw, False
+
+
+def _firmament_maybe_seal(payload: dict, *, sealed_req: bool, request: Request | None = None) -> dict:
+    """Re-seal responses when client sent an envelope or asked for crypto."""
+    want = sealed_req
+    if request is not None and (request.headers.get("x-luna-crypto") or "").strip() == "1":
+        want = True
+    if not want:
+        return payload
+    try:
+        from firmament.crypto_box import crypto_enabled, seal_json
+
+        if crypto_enabled():
+            return seal_json(payload)
+    except Exception as exc:
+        log.warning("transit seal failed: %s", exc)
+    return payload
 
 
 ACTION_SCHEMA = """You control Luna's entire 3D world — her body, face, voice, outfit, scene, lighting, and camera.
@@ -2077,19 +2128,105 @@ def _mobile_visit_query() -> str:
     return f"/?avatar=1&web=1&mobile=1&v={LUNA_BUILD}"
 
 
+def _share_image_url() -> str:
+    """Absolute Mercury preview used in Discord / X / Beacons link cards."""
+    base = (public_base_url() or "https://telephanti.com").rstrip("/")
+    if "127.0.0.1" in base or "localhost" in base:
+        base = "https://telephanti.com"
+    return f"{base}/static/share/mercury-og.jpg"
+
+
+def _share_landing_html(
+    *,
+    title: str,
+    description: str,
+    dest_path: str,
+    canonical: str | None = None,
+) -> str:
+    """HTML with Open Graph tags so shared URLs show Mercury before redirect."""
+    img = _share_image_url()
+    base = (public_base_url() or "https://telephanti.com").rstrip("/")
+    if "127.0.0.1" in base or "localhost" in base:
+        base = "https://telephanti.com"
+    canon = canonical or f"{base}{dest_path.split('?')[0]}"
+    dest = dest_path if dest_path.startswith("http") else dest_path
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{title}</title>
+<meta name="description" content="{description}"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Luna Camp"/>
+<meta property="og:title" content="{title}"/>
+<meta property="og:description" content="{description}"/>
+<meta property="og:url" content="{canon}"/>
+<meta property="og:image" content="{img}"/>
+<meta property="og:image:secure_url" content="{img}"/>
+<meta property="og:image:type" content="image/jpeg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Planet Mercury — cratered world lit by a brilliant sun"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="{title}"/>
+<meta name="twitter:description" content="{description}"/>
+<meta name="twitter:image" content="{img}"/>
+<link rel="image_src" href="{img}"/>
+<meta http-equiv="refresh" content="0;url={dest}"/>
+<style>
+body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#05070f;color:#e8e6e3;
+font-family:system-ui,sans-serif;text-align:center;padding:1.5rem}}
+img{{max-width:min(92vw,520px);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.55)}}
+a{{color:#fbbf24}}
+p{{opacity:.85;max-width:28rem;line-height:1.45}}
+</style>
+</head>
+<body>
+<a href="{dest}"><img src="/static/share/mercury-og.jpg" width="1200" height="630" alt="Mercury"/></a>
+<p><strong>{title}</strong><br/>{description}<br/><a href="{dest}">Enter camp →</a></p>
+<script>location.replace({json.dumps(dest)});</script>
+</body></html>"""
+
+
+def _is_link_preview_bot(request: Request) -> bool:
+    ua = (request.headers.get("user-agent") or "").lower()
+    needles = (
+        "bot", "crawl", "spider", "slurp", "facebookexternalhit", "facebot",
+        "twitterbot", "linkedinbot", "discordbot", "slackbot", "telegrambot",
+        "whatsapp", "preview", "embedly", "quora link preview", "pinterest",
+        "vkshare", "w3c_validator", "redditbot", "applebot", "iframely",
+        "opengraph", "skypeuripreview", "nuzzel", "tumblr", "bitlybot",
+        "outbrain", "yahoo", "duckduckbot", "baiduspider", "yandex",
+        "bingpreview", "developers.google.com",
+    )
+    return any(n in ua for n in needles)
+
+
 @app.get("/")
 async def index(
+    request: Request,
     avatar: str | None = None,
     web: str | None = None,
     mobile: str | None = None,
     desktop: str | None = None,
     pet: str | None = None,
 ):
+    from fastapi.responses import HTMLResponse
+
+    dest = f"/firmament/play?v={LUNA_BUILD}"
     if is_cloud_mode() and not (avatar == "1" and web == "1"):
-        return RedirectResponse(
-            f"/firmament/play?v={LUNA_BUILD}",
-            status_code=302,
-        )
+        if _is_link_preview_bot(request):
+            return HTMLResponse(
+                _share_landing_html(
+                    title="Luna Camp — Telephanti",
+                    description="Step into the aurora camp. Agents, chatter, and cosmic vibes.",
+                    dest_path=dest,
+                    canonical="https://telephanti.com/",
+                ),
+                headers={"Cache-Control": "public, max-age=300"},
+            )
+        return RedirectResponse(dest, status_code=302)
     if mobile == "1" and web != "1" and desktop != "1" and pet != "1":
         return RedirectResponse(_mobile_visit_query(), status_code=302)
     return FileResponse(
@@ -2100,16 +2237,43 @@ async def index(
 
 @app.get("/camp")
 @app.get("/play")
-async def luna_camp_aliases():
+async def luna_camp_aliases(request: Request):
     """Short URLs for Beacons / link-in-bio buttons."""
-    return RedirectResponse(f"/firmament/play?v={LUNA_BUILD}", status_code=302)
+    from fastapi.responses import HTMLResponse
+
+    dest = f"/firmament/play?v={LUNA_BUILD}"
+    if _is_link_preview_bot(request):
+        return HTMLResponse(
+            _share_landing_html(
+                title="Luna Camp — Telephanti",
+                description="Step into the aurora camp. Agents, chatter, and cosmic vibes.",
+                dest_path=dest,
+                canonical="https://telephanti.com/camp",
+            ),
+            headers={"Cache-Control": "public, max-age=300"},
+        )
+    return RedirectResponse(dest, status_code=302)
 
 
 @app.get("/visit")
 async def luna_visit(request: Request):
     """Public web entry — telephanti.com opens Luna Camp."""
-    if is_cloud_mode():
-        return RedirectResponse(f"/firmament/play?v={LUNA_BUILD}", status_code=302)
+    from fastapi.responses import HTMLResponse
+
+    if is_cloud_mode() or _is_link_preview_bot(request):
+        dest = f"/firmament/play?v={LUNA_BUILD}"
+        if _is_link_preview_bot(request):
+            return HTMLResponse(
+                _share_landing_html(
+                    title="Luna Camp — Telephanti",
+                    description="Step into the aurora camp. Agents, chatter, and cosmic vibes.",
+                    dest_path=dest,
+                    canonical="https://telephanti.com/visit",
+                ),
+                headers={"Cache-Control": "public, max-age=300"},
+            )
+        if is_cloud_mode():
+            return RedirectResponse(dest, status_code=302)
     params = ["avatar=1", "web=1", f"v={LUNA_BUILD}"]
     if request.query_params.get("fresh") == "1":
         params.append("fresh=1")
@@ -2286,7 +2450,17 @@ async def firmament_play_page():
     """Playable browser camp — walk, talk to NPCs, same Luna server brains."""
     path = STATIC_DIR / "firmament-play.html"
     if path.is_file():
-        return FileResponse(path)
+        # Always serve disk file fresh — PC browsers were sticky-caching old camp HTML
+        return FileResponse(
+            path,
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "X-Luna-Camp-File": str(path.resolve()),
+                "X-Luna-Build": LUNA_BUILD,
+            },
+        )
     raise HTTPException(status_code=404, detail="firmament-play.html missing")
 
 
@@ -2342,6 +2516,13 @@ async def firmament_config_api(request: Request):
                 ollama_ok = client.get(f"{host}/api/tags").status_code == 200
         except Exception:
             ollama_ok = False
+    crypto: dict = {}
+    try:
+        from firmament.crypto_box import crypto_status
+
+        crypto = crypto_status()
+    except Exception as exc:
+        crypto = {"enabled": False, "error": str(exc)}
     return {
         "pack_id": "aurora_playground",
         "pixel_stream_url": pixel_url,
@@ -2353,6 +2534,17 @@ async def firmament_config_api(request: Request):
         "ollama_ok": ollama_ok,
         "chat_free": True,
         "aether_fallback": True,
+        "free_brains": True,
+        "free_llm": {
+            "ollama": ollama_ok,
+            "groq": bool(os.getenv("GROQ_API_KEY", "").strip() not in ("", "your_api_key_here")),
+            "gemini": bool(
+                (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
+                not in ("", "your_api_key_here")
+            ),
+            "openrouter": bool(os.getenv("OPENROUTER_API_KEY", "").strip() not in ("", "your_api_key_here")),
+        },
+        "crypto": crypto,
         "free_tools": {
             "browser_camp": "/firmament/play",
             "luna_avatar": "/?avatar=1&web=1",
@@ -2366,6 +2558,19 @@ async def firmament_config_api(request: Request):
             "stream": "/firmament/stream",
         },
     }
+
+
+@app.get("/api/firmament/crypto/status")
+async def firmament_crypto_status_api():
+    from firmament.crypto_box import crypto_status, migrate_plaintext_sensitive
+
+    st = crypto_status()
+    if st.get("enabled"):
+        st["migrated"] = migrate_plaintext_sensitive()
+    # Never echo full transit key on a public status probe unless crypto on
+    if not st.get("enabled"):
+        st.pop("transit_key", None)
+    return {"ok": True, **st}
 
 
 class FirmamentWeatherBody(BaseModel):
@@ -2454,6 +2659,8 @@ class FirmamentAgentChatBody(BaseModel):
     visitor_id: str = ""
     visitor_name: str = ""
     force_grok: bool = False
+    ambient: bool = False
+    skip_memory: bool = False
 
 
 class FirmamentAgentTweetBody(BaseModel):
@@ -2490,15 +2697,75 @@ class FirmamentGameEventBody(BaseModel):
     payload: dict | None = None
 
 
+@app.get("/api/firmament/live-feed")
+async def firmament_live_feed_get_api(limit: int = 20):
+    """Free shared brain feed — recent camp lines + free world pulse."""
+    from firmament.live_feed import recent_events, status
+
+    st = status()
+    return {
+        "ok": True,
+        **st,
+        "events": recent_events(max(1, min(40, int(limit or 20)))),
+    }
+
+
+class FirmamentLiveFeedBody(BaseModel):
+    kind: str = "note"
+    text: str = ""
+    agent_id: str = ""
+    speaker: str = ""
+    visitor_id: str = ""
+
+
+@app.post("/api/firmament/live-feed")
+async def firmament_live_feed_post_api(body: FirmamentLiveFeedBody):
+    from firmament.live_feed import push_event
+
+    if not (body.text or "").strip():
+        raise HTTPException(status_code=400, detail="text required")
+    ev = push_event(
+        kind=body.kind or "note",
+        text=body.text,
+        agent_id=body.agent_id,
+        speaker=body.speaker,
+        visitor_id=body.visitor_id,
+    )
+    return {"ok": True, "event": ev}
+
+
 @app.get("/api/firmament/llm")
 async def firmament_llm_status_api():
-    from firmament.brain import llm_backend
+    from firmament.brain import free_backends_status, llm_backend
 
+    free = free_backends_status()
+    ollama_ok = False
+    host = free.get("ollama_host") or "http://127.0.0.1:11434"
+    try:
+        import httpx
+
+        with httpx.Client(timeout=2.5) as client:
+            ollama_ok = client.get(f"{str(host).rstrip('/')}/api/tags").status_code == 200
+    except Exception:
+        ollama_ok = False
     return {
         "backend": llm_backend(),
-        "ollama_host": os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434"),
-        "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
-        "grok_configured": bool(os.getenv("XAI_API_KEY", "").strip() not in ("", "your_api_key_here")),
+        "free_brains": free.get("free_brains"),
+        "ollama_host": host,
+        "ollama_model": free.get("ollama_model"),
+        "ollama_ok": ollama_ok,
+        "character_models": free.get("character_models"),
+        "groq_configured": free.get("groq"),
+        "gemini_configured": free.get("gemini"),
+        "openrouter_configured": free.get("openrouter"),
+        "grok_configured": free.get("grok"),
+        "hint": (
+            "Direct chat uses free Ollama (hermes3/llama3.2) first for paragraph comedy. "
+            "Live camp feed feeds every brain (free). "
+            "Optional free cloud: GROQ_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY. "
+            "@a/@m still need XAI_API_KEY."
+        ),
+        "live_feed": "/api/firmament/live-feed",
     }
 
 
@@ -2526,12 +2793,17 @@ async def firmament_camp_memory_get_api(visitor_id: str = ""):
 
 
 @app.post("/api/firmament/camp/memory")
-async def firmament_camp_memory_post_api(body: FirmamentCampMemoryBody):
+async def firmament_camp_memory_post_api(request: Request):
     from firmament.camp_memory import record_moment
 
+    raw, sealed = await _firmament_parse_body(request)
+    try:
+        body = FirmamentCampMemoryBody(**raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     if not body.visitor_id.strip():
         raise HTTPException(status_code=400, detail="visitor_id required")
-    return record_moment(
+    result = record_moment(
         body.visitor_id.strip(),
         visitor_name=body.visitor_name,
         agent_id=body.agent_id,
@@ -2539,6 +2811,7 @@ async def firmament_camp_memory_post_api(body: FirmamentCampMemoryBody):
         text=body.text,
         prop_id=body.prop_id,
     )
+    return _firmament_maybe_seal(result if isinstance(result, dict) else {"ok": True, "data": result}, sealed_req=sealed, request=request)
 
 
 @app.get("/api/firmament/shop/catalog")
@@ -2629,10 +2902,15 @@ async def firmament_shop_buy_api(body: FirmamentShopBuyBody):
 
 
 @app.post("/api/firmament/agents/converse")
-async def firmament_agents_converse_api(body: FirmamentAgentsConverseBody):
+async def firmament_agents_converse_api(request: Request):
     from firmament.brain import agents_converse
     from firmament.core import get_hub
 
+    raw, sealed = await _firmament_parse_body(request)
+    try:
+        body = FirmamentAgentsConverseBody(**raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     hub = get_hub()
     try:
         result = await agents_converse(
@@ -2676,7 +2954,7 @@ async def firmament_agents_converse_api(body: FirmamentAgentsConverseBody):
         )
     hub._persist()
     await hub.broadcast({"type": "firmament.agents.converse", "data": result})
-    return {"ok": True, **result}
+    return _firmament_maybe_seal({"ok": True, **result}, sealed_req=sealed, request=request)
 
 
 @app.get("/api/firmament/psychic/status")
@@ -2731,13 +3009,19 @@ async def firmament_game_event_api(body: FirmamentGameEventBody):
 
 
 @app.post("/api/firmament/agent/chat")
-async def firmament_agent_chat_api(body: FirmamentAgentChatBody):
+async def firmament_agent_chat_api(request: Request):
     from firmament.brain import agent_chat
     from firmament.core import get_hub
 
+    raw, sealed = await _firmament_parse_body(request)
+    try:
+        body = FirmamentAgentChatBody(**raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     if not body.message.strip():
         raise HTTPException(status_code=400, detail="message required")
     hub = get_hub()
+    ambient = bool(getattr(body, "ambient", False) or getattr(body, "skip_memory", False))
     try:
         result = await agent_chat(
             body.agent_id,
@@ -2747,13 +3031,16 @@ async def firmament_agent_chat_api(body: FirmamentAgentChatBody):
             visitor_id=body.visitor_id,
             visitor_name=body.visitor_name,
             force_grok=body.force_grok,
+            ambient=bool(getattr(body, "ambient", False)),
+            skip_memory=ambient,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    if body.visitor_id.strip():
+    # Ambient campside AI barks: no wallet spam, light memory only on agent_said
+    if body.visitor_id.strip() and not ambient:
         try:
             from firmament.camp_memory import record_moment
 
@@ -2773,9 +3060,16 @@ async def firmament_agent_chat_api(body: FirmamentAgentChatBody):
             )
         except Exception:
             pass
+    elif body.visitor_id.strip() and ambient:
+        try:
+            from firmament.camp_memory import record_camp_chatter
+
+            record_camp_chatter(body.agent_id, str(result.get("reply") or "")[:280])
+        except Exception:
+            pass
 
     wallet_earn = None
-    if body.visitor_id.strip():
+    if body.visitor_id.strip() and not ambient:
         try:
             from firmament.camp_economy import earn_tokens
 
@@ -2817,7 +3111,7 @@ async def firmament_agent_chat_api(body: FirmamentAgentChatBody):
         "mood": result.get("mood", "happy"),
     }
     await hub.broadcast(event)
-    return payload
+    return _firmament_maybe_seal(payload, sealed_req=sealed, request=request)
 
 
 @app.post("/api/firmament/load-pack")

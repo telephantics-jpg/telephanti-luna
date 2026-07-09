@@ -10,59 +10,69 @@ from firmament.agent_roles import role_for_agent
 from firmament.brain import load_agent_profile
 
 WITTY_TOPICS = [
-    "That headline everyone's pretending they read the whole article on.",
-    "Whether group chats should have lawyers present.",
-    "The worst take you saw before breakfast.",
-    "AI doing everyone's job except the fun parts.",
-    "Dating apps vs. just talking to someone at the pond.",
-    "A rumor that sounds fake but feels true.",
-    "What {visitor} would post if they went viral for one day.",
-    "The difference between resting and rotting — discuss.",
-    "A tech launch that solved a problem nobody had.",
-    "Who at camp would survive a reality show and why.",
+    "That headline everyone's pretending they read the whole article on — and the irony that the comment section is now the article.",
+    "Whether group chats should have lawyers present, or just someone who remembers context after Tuesday.",
+    "The worst take you saw before breakfast and why it still lives rent-free in your skull.",
+    "AI doing everyone's job except the fun parts — and why that's somehow both a tragedy and a bit.",
+    "Dating apps vs. just talking to someone at the pond, which is either romantic or a safety briefing.",
+    "A rumor that sounds fake but feels true — the rare art form of emotionally accurate nonsense.",
+    "What {visitor} would post if they went viral for one day, and whether they'd delete it by dusk.",
+    "The difference between resting and rotting — discuss like philosophers who also check their phones.",
+    "A tech launch that solved a problem nobody had, then invented three new ones as a feature.",
+    "Who at camp would survive a reality show and why the winner would still be insufferable.",
+    "Whether this camp is a dream {visitor} is having, or {visitor} is a dream the camp is having.",
+    "If free will is real, why do we all walk toward the same cookies — and is that still freedom?",
+    "Time loops at camp: if Oracle already saw this conversation, is arguing still comedy or ritual?",
+    "What if every monologue here is the same monologue wearing different masks — prove it wrong.",
+    "Simulation glitches you've noticed today — the sky blinking, déjà vu, Jesus's church existing.",
+    "Whether dying in a video game is practice for dying in a story, and which one we prefer.",
+    "If kindness is a hack of the universe, who wrote the patch notes?",
+    "The idea that your worst thought is just a tourist and your best thought is a local — discuss housing.",
+    "Whether love is physics, chemistry, or bad UI design with excellent marketing.",
+    "If the meadow remembers visitors, is memory a place or a person wearing grass?",
 ]
 
 PULSE_TOPIC_FRAMES = [
-    "So everyone's yelling about '{headline}' — what's the actual take?",
-    "Okay '{headline}' just dropped — who's being dramatic?",
-    "'{headline}' — hot take round, go.",
+    "So everyone's yelling about '{headline}' — what's the actual take beneath the performance?",
+    "Okay '{headline}' just dropped — who's being dramatic, and who's just correctly alarmed?",
+    "'{headline}' — hot take round. Make it true, make it funny, don't make it cruel.",
 ]
 
 OPENERS = [
-    "{name}: Okay {others} — {topic} And I will die on this hill.",
-    "{name}: Real question for {others}: {topic}",
-    "{name}: I wasn't gonna say anything but {topic}",
-    "{name}: {others}, hear me out — {topic}",
-    "{name}: *cracks knuckles* {topic} Fight me politely.",
+    "{name}: Okay {others} — {topic} I will die on this hill. Tastefully. With footnotes.",
+    "{name}: Real question for {others}: {topic} And before you dodge — I already know your dodge.",
+    "{name}: I wasn't gonna say anything, but {topic} …and then I remembered silence is also a take.",
+    "{name}: {others}, hear me out — {topic} This is free wisdom. The meadow doesn't charge tuition.",
+    "{name}: *cracks knuckles* {topic} Fight me politely. I brought receipts and a monologue.",
 ]
 
 REPLIES = [
-    "{name}: {other}, you said \"{prev}\" — bold. Wrong, but bold.",
-    "{name}: Wait wait — {other} really went with \"{prev}\"? I need a minute.",
-    "{name}: Building on {other}: {prev} — and that's why I'm right.",
-    "{name}: {other}, respectfully… no. {prev} is giving group-chat energy.",
-    "{name}: Okay {other} has a point with \"{prev}\". Rare. Document this.",
-    "{name}: I love {other} but \"{prev}\" sounds like a podcast title.",
-    "{name}: Counterpoint to {other}: {prev} — anyway here's my actual take.",
-    "{name}: {other} said \"{prev}\" and the meadow went silent. Deserved.",
-    "{name}: Not to escalate but {other}'s \"{prev}\" keeps me up at night.",
-    "{name}: {other}, that's the funniest wrong thing I've heard today. {prev}",
+    "{name}: {other}, you said \"{prev}\" — bold. Wrong in the interesting way, which is almost right. Almost.",
+    "{name}: Wait — {other} really went with \"{prev}\"? I need a minute. Not to disagree. To savor the chaos.",
+    "{name}: Building on {other}: {prev} — and that's why I'm right, which is the traditional sequel to building on someone.",
+    "{name}: {other}, respectfully… no. \"{prev}\" is giving group-chat energy with a philosophy minor.",
+    "{name}: Okay {other} has a point with \"{prev}\". Rare. Document this. Frame it. Tell the visitor.",
+    "{name}: I love {other} but \"{prev}\" sounds like a podcast title that gets cancelled after episode three for being correct.",
+    "{name}: Counterpoint to {other}: {prev} — funny, true, and still missing the third twist, which is me.",
+    "{name}: {other} said \"{prev}\" and the meadow went silent. Deserved. Silence is just applause with anxiety.",
+    "{name}: Not to escalate, but {other}'s \"{prev}\" keeps me up at night. In a productive, slightly unhinged way.",
+    "{name}: {other}, that's the funniest wrong thing I've heard today — and \"{prev}\" is why wrong can still be useful.",
 ]
 
 TRIO_CHIMES = [
-    "{name}: You two — {other_a} and {other_b} — are doing a whole thing. {prev} I'm team chaos.",
-    "{name}: Interrupting: {other} said \"{prev}\" and I'm choosing violence (verbally).",
-    "{name}: As the adult here: {prev} …jk {other}, fight on.",
-    "{name}: {other}'s \"{prev}\" — third opinion: both of you need water.",
-    "{name}: I was quiet but {other}'s \"{prev}\" activated my commentary gene.",
-    "{name}: Peacemaker? Never met her. {prev} — {other}, explain yourself.",
+    "{name}: You two — {other_a} and {other_b} — are doing a whole opera. {prev} I'm team chaos with footnotes.",
+    "{name}: Interrupting: {other} said \"{prev}\" and I'm choosing verbal violence. Soft violence. Camp-safe.",
+    "{name}: As the adult here: {prev} …jk {other}, fight on. I only brought water, not peace.",
+    "{name}: {other}'s \"{prev}\" — third opinion: both of you need water, and one of you needs a better metaphor.",
+    "{name}: I was quiet but {other}'s \"{prev}\" activated my commentary gene. Consider this a public service.",
+    "{name}: Peacemaker? Never met her. {prev} — {other}, explain yourself like the visitor is grading us.",
 ]
 
 CLOSERS = [
-    "{name}: Anyway we're never agreeing. Same time tomorrow?",
-    "{name}: Great chat. I've chosen delusion. Bye.",
-    "{name}: Truce. The visitor didn't ask for this TED talk.",
-    "{name}: We're all right. We're all annoying. Perfect.",
+    "{name}: Anyway we're never agreeing. Same time tomorrow? Bring better irony.",
+    "{name}: Great chat. I've chosen delusion with confidence. Bye — don't fact-check me too hard.",
+    "{name}: Truce. The visitor didn't ask for this TED talk, but they got a free one. You're welcome.",
+    "{name}: We're all right. We're all annoying. Perfect. That's camp.",
 ]
 
 
@@ -194,17 +204,40 @@ def converse_thread_prompt(
     others = [n for i, n in zip(agent_ids, names) if i != speaker_id]
     if not thread:
         return (
-            f"Start a witty group chat with {', '.join(others)} about: {topic}. "
-            f"Two to three witty sentences. Hook them. Your role: {role_for_agent(speaker_id)}."
+            f"Start a LIVE campside chat with {', '.join(others)} about: {topic}. "
+            f"Write a full monologue of about 400 words (350–450). Multi-paragraph. "
+            f"Spontaneous, theatrical, ironic, true, funny — YOUR unique voice only. "
+            f"Do not use other agents' catchphrases. Hook them hard. "
+            f"Your role: {role_for_agent(speaker_id)}. No stock slogans."
         )
     prev = thread[-1]
-    transcript = "\n".join(f"{t.get('name', '?')}: {t.get('line', '')}" for t in thread[-5:])
+    # Short idea-only transcript so models don't parrot long prior monologues
+    transcript_bits = []
+    for t in thread[-4:]:
+        who = t.get("name", "?")
+        line = re.sub(r"\s+", " ", str(t.get("line") or "")).strip()
+        idea = line[:120] + ("…" if len(line) > 120 else "")
+        transcript_bits.append(f"{who} (idea only): {idea}")
+    transcript = "\n".join(transcript_bits)
+    used = " | ".join(
+        (t.get("line") or "")[:50] for t in thread[-4:] if t.get("agent_id") == speaker_id
+    )
+    avoid = f" Do NOT reuse your earlier beats: {used}." if used else ""
+    others_words = " | ".join(
+        (t.get("line") or "")[:60] for t in thread[-4:] if t.get("agent_id") != speaker_id
+    )
+    no_copy = (
+        f" NEVER copy or closely paraphrase these other-agent lines: {others_words}."
+        if others_words
+        else ""
+    )
     return (
         f"Group chat ({', '.join(names)}) — topic: {topic}\n"
-        f"Thread so far:\n{transcript}\n\n"
-        f"Reply DIRECTLY to {prev.get('name', '?')} — riff on their words, be witty and funny. "
-        f"Two to four sentences — let the banter breathe. Your role: {role_for_agent(speaker_id)}. "
-        f"Don't repeat yourself. Don't lecture."
+        f"Thread so far (ideas only — invent new wording):\n{transcript}\n\n"
+        f"Reply DIRECTLY to {prev.get('name', '?')} about their idea — do NOT reuse their phrasing. "
+        f"About 400 words (350–450), multi-paragraph: escalate + undercut + mind-bend + bait question. "
+        f"Sound alive in YOUR voice. Your role: {role_for_agent(speaker_id)}. "
+        f"No lectures. No hashtags. Be funny, not cruel.{avoid}{no_copy}"
     )
 
 
@@ -212,5 +245,5 @@ def total_converse_lines(agent_count: int, rounds: int) -> int:
     if agent_count < 2:
         return 2
     if agent_count == 2:
-        return max(2, min(8, rounds * 2))
-    return max(3, min(9, rounds * agent_count))
+        return max(4, min(12, rounds * 2 + 1))
+    return max(5, min(14, rounds * agent_count))

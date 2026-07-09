@@ -820,7 +820,7 @@
       background: rgba(103, 232, 249, 0.08);
       border-bottom: 1px solid rgba(103, 232, 249, 0.2);
       font-size: 0.72rem; line-height: 1.32; min-height: 0;
-      max-height: min(28vh, 180px); overflow: hidden;
+      max-height: min(42vh, 320px); overflow: hidden;
       display: flex; flex-direction: column; gap: 2px;
     }
     #now-speaking .ns-who {
@@ -829,10 +829,11 @@
     }
     #now-speaking .ns-text {
       color: #f1f5f9; display: block;
-      max-height: min(22vh, 150px); overflow-y: auto; -webkit-overflow-scrolling: touch;
-      font-size: 0.74rem; line-height: 1.4;
+      max-height: min(36vh, 280px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+      font-size: 0.78rem; line-height: 1.45;
       white-space: pre-wrap; word-break: break-word;
-      padding-right: 4px;
+      padding-right: 6px;
+      overscroll-behavior: contain;
     }
     #convo-lines, #now-speaking .ns-text, #camp-speech-pin .csp-body {
       scrollbar-width: thin;
@@ -890,12 +891,14 @@
     #convo-lines .text {
       display: block; margin-top: 3px; color: #ffffff;
       white-space: pre-wrap; word-break: break-word;
-      font-size: 0.76rem; line-height: 1.42;
+      font-size: 0.78rem; line-height: 1.48;
       text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-      padding: 6px 8px; border-radius: 6px;
+      padding: 8px 10px; border-radius: 6px;
       background: rgba(15, 23, 42, 0.65);
       border: 1px solid rgba(148, 163, 184, 0.2);
-      max-height: min(28vh, 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+      /* Open-ended monologues — scroll inside each bubble */
+      max-height: min(52vh, 460px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       scrollbar-width: thin;
       scrollbar-color: rgba(103, 232, 249, 0.55) rgba(15, 23, 42, 0.4);
     }
@@ -949,11 +952,17 @@
       font-size: 0.85rem; cursor: pointer; flex-shrink: 0;
     }
     #camp-speech-pin .csp-body {
-      max-height: min(42vh, 320px); overflow-y: auto; -webkit-overflow-scrolling: touch;
-      padding: 8px 10px 10px;
-      font-size: 0.82rem; line-height: 1.45; color: #f8fafc;
+      max-height: min(62vh, 560px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 10px 12px 14px;
+      font-size: 0.9rem; line-height: 1.55; color: #f8fafc;
       white-space: pre-wrap; word-break: break-word;
       scrollbar-width: thin;
+      scrollbar-color: rgba(103, 232, 249, 0.55) rgba(15, 23, 42, 0.35);
+    }
+    #camp-speech-pin .csp-body::-webkit-scrollbar { width: 8px; }
+    #camp-speech-pin .csp-body::-webkit-scrollbar-thumb {
+      background: rgba(103, 232, 249, 0.5); border-radius: 99px;
     }
     @media (min-width: 900px) {
       #camp-speech-pin {
@@ -1556,15 +1565,16 @@
     }
     #camp-text-expand .cte-body {
       color: #f8fafc;
-      font-size: 0.98rem;
-      line-height: 1.5;
+      font-size: 1rem;
+      line-height: 1.55;
       white-space: pre-wrap;
       word-break: break-word;
-      max-height: min(48vh, 380px);
+      max-height: min(58vh, 520px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       scrollbar-width: thin;
-      padding-right: 4px;
+      padding-right: 6px;
     }
     #camp-text-expand .cte-body::-webkit-scrollbar { width: 7px; }
     #camp-text-expand .cte-body::-webkit-scrollbar-thumb {
@@ -2063,8 +2073,8 @@
       margin: 0; font-size: 0.82rem; color: #94a3b8; line-height: 1.45; font-style: italic;
     }
     #camp-house-host-bubble {
-      flex: 1; min-height: 96px; max-height: min(40vh, 320px); overflow-y: auto;
-      -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+      flex: 1; min-height: 110px; max-height: min(52vh, 480px); overflow-y: auto;
+      -webkit-overflow-scrolling: touch; scrollbar-width: thin; overscroll-behavior: contain;
       padding: 12px 14px; border-radius: 12px;
       background: rgba(15, 23, 42, 0.92);
       border: 1px solid color-mix(in srgb, var(--house-accent, #38bdf8) 40%, transparent);
@@ -2204,12 +2214,13 @@
     }
     #dialogue-panel h2 { font-size: 1.65rem; color: #67e8f9; margin-bottom: 12px; }
     #npc-bubble {
-      background: rgba(15, 24, 40, 0.95); border-radius: 12px; padding: 10px 12px;
-      min-height: 88px; max-height: min(48vh, 400px); overflow-y: auto; font-size: 0.96rem;
-      line-height: 1.48; color: #f8fafc; margin-bottom: 10px;
+      background: rgba(15, 24, 40, 0.95); border-radius: 12px; padding: 12px 14px;
+      min-height: 100px; max-height: min(58vh, 520px); overflow-y: auto; font-size: 1rem;
+      line-height: 1.55; color: #f8fafc; margin-bottom: 10px;
       white-space: pre-wrap; word-break: break-word;
       border: 1px solid rgba(103, 232, 249, 0.25);
       scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     .quick-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
     .quick-btns button {
@@ -2680,7 +2691,7 @@
       :root { --talk-bar-h: 38px; --dock-icons-h: 48px; }
       #camp-talk-target-wrap { max-width: 40%; }
       #camp-talk-target { font-size: 0.68rem; padding: 6px 5px; }
-      #camp-speech-pin .csp-body { max-height: min(40vh, 280px); font-size: 0.8rem; }
+      #camp-speech-pin .csp-body { max-height: min(58vh, 480px); font-size: 0.88rem; }
       #camp-talk-input { font-size: 0.76rem; padding: 7px 8px; }
       #camp-talk-send { width: 36px; height: 34px; }
       #camp-token-badge { font-size: 0.66rem; padding: 4px 9px; }
@@ -3597,7 +3608,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-09-logic-ethics-esoteric";
+    const CAMP_BUILD = "2026-07-09-scroll-bubbles";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4248,11 +4259,12 @@
         setCampLifeStatus(data.backend === "aether" ? "Luna replied (offline aether)" : "Luna replied");
         return;
       }
-      // Over-world bubble text for permanent agents AND guests (Thor/Zeus/heaven)
+      // Over-world bubble — keep full open-ended monologue (scroll via pin / chatter)
       const roamNpc = findRoamAgent(agentId);
       if (roamNpc && data.reply) {
-        roamNpc.line = String(data.reply).slice(0, 220);
-        roamNpc.fullLine = String(data.reply);
+        const full = String(data.reply);
+        roamNpc.fullLine = full;
+        roamNpc.line = full; // full text held; canvas may preview, pin shows all
         if (data.mood) roamNpc.mood = data.mood;
       }
       const bubble = opts.useHouse
@@ -8701,17 +8713,48 @@
     }
 
     function showCampSpeechPin(speaker, text, mood) {
-      if (canvasCampChatOnly()) return;
+      // Always show on phone too — open-ended monologues need a scroll surface
       const panel = document.getElementById("camp-speech-pin");
       const whoEl = panel?.querySelector(".csp-who");
       const bodyEl = panel?.querySelector(".csp-body");
+      const hintEl = panel?.querySelector(".csp-hint");
       if (!panel || !whoEl || !bodyEl) return;
       const moodLabel = mood ? ` · ${mood}` : "";
+      const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
       whoEl.textContent = `${speaker}${moodLabel}`;
       bodyEl.textContent = text;
+      if (hintEl) {
+        hintEl.textContent = words > 40
+          ? "scroll full monologue · tap bubble to pin"
+          : "tap bubble to pin · tap agent to talk";
+      }
       panel.hidden = false;
       panel.classList.add("show");
       bodyEl.scrollTop = 0;
+      // Focus scroll region for keyboard / accessibility
+      try { bodyEl.focus?.(); } catch (_) {}
+    }
+
+    /** Open scrollable monologue reader (pin panel) without losing full text */
+    function openAgentScrollBubble(speaker, text, mood, opts = {}) {
+      const clean = (text || "").trim();
+      if (!clean || !speaker) return;
+      const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase());
+      if (npc) {
+        npc.fullLine = clean;
+        npc.line = clean;
+      }
+      speechHold.set(speaker, { line: clean, until: Date.now() + Math.max(90000, campReadHoldSec(clean, 60) * 1000) });
+      pinCampSpeech(speaker, clean, mood || "neutral", {
+        color: opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9",
+        agentId: opts.agentId || npc?.id || "",
+      });
+      if (isCampMobile()) {
+        showCampTextExpand(speaker, clean, {
+          mood: mood || "neutral",
+          hint: "Scroll full monologue — tap ✕ to collapse",
+        });
+      }
     }
 
     function hideCampSpeechPin() {
@@ -11015,20 +11058,28 @@
       let line = "";
       const fs = fontSize || (isMobileView() ? 14 : 16);
       ctx.font = `600 ${fs}px Segoe UI`;
+      let consumed = 0;
       for (const word of words) {
         const test = line ? `${line} ${word}` : word;
         if (ctx.measureText(test).width > maxWidth && line) {
           lines.push(line);
           line = word;
-          if (lines.length >= maxLines) {
-            lines[lines.length - 1] += "…";
-            return lines;
-          }
+          consumed += 1;
+          if (lines.length >= maxLines - 1) break;
         } else {
           line = test;
+          consumed += 1;
         }
       }
-      if (line) lines.push(line);
+      if (line && lines.length < maxLines - 1) {
+        lines.push(line);
+      }
+      const truncated = consumed < words.length || words.length > 48;
+      if (truncated) {
+        const hint = "↕ tap · scroll full monologue";
+        if (lines.length >= maxLines) lines[maxLines - 1] = hint;
+        else lines.push(hint);
+      }
       return lines.slice(0, maxLines);
     }
 
@@ -11072,17 +11123,22 @@
       if (!text) return null;
       const mobile = isCampMobile();
       const ios = isIOS() && mobile;
-      const expanded = !!(meta?.speaker && expandedCampText.who === meta.speaker);
-      const maxW = expanded ? (ios ? 320 : mobile ? 300 : 320) : (ios ? 228 : mobile ? 216 : 240);
+      const fullText = String(meta?.fullLine || text || "").trim() || String(text || "");
+      const expanded = !!(meta?.speaker && (
+        expandedCampText.who === meta.speaker
+        || pinnedSpeech.has(meta.speaker)
+      ));
+      const maxW = expanded ? (ios ? 300 : mobile ? 280 : 340) : (ios ? 240 : mobile ? 230 : 280);
       const fontSize = expanded ? (ios ? 13 : mobile ? 12 : 13) : (ios ? 12 : mobile ? 11 : 12);
       const lineH = fontSize + 4;
-      const maxLines = expanded ? 22 : (mobile ? 12 : 14);
+      // Canvas preview only — full monologue scrolls in pin / chatter bubbles
+      const maxLines = expanded ? (mobile ? 16 : 20) : (mobile ? 10 : 12);
       const pinned = !!(meta && pinnedSpeech.has(meta.speaker));
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
-      const lines = wrapCanvasLines(text, maxW - 24, maxLines, fontSize);
+      const lines = wrapCanvasLines(fullText, maxW - 24, maxLines, fontSize);
       const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 56);
-      const boxW = textW + 28;
+      const boxW = Math.min(maxW, textW + 28);
       const boxH = lines.length * lineH + 14;
       let bx = sx - boxW / 2;
       let by = above ? sy - boxH - 22 : sy + 16;
@@ -11113,10 +11169,20 @@
       ctx.fill();
       ctx.fillStyle = "#f8fafc";
       lines.forEach((ln, i) => {
+        const isHint = ln.startsWith("↕");
+        ctx.fillStyle = isHint ? "#67e8f9" : "#f8fafc";
         ctx.fillText(ln, bx + 9, by + 12 + i * lineH);
       });
       ctx.textAlign = "center";
-      const rect = { bx, by, boxW, boxH, speaker: meta?.speaker || "", agentId: meta?.agentId || "", line: text, color, mood: meta?.mood || "neutral" };
+      // Hit target carries FULL monologue for scroll reader
+      const rect = {
+        bx, by, boxW, boxH,
+        speaker: meta?.speaker || "",
+        agentId: meta?.agentId || "",
+        line: fullText,
+        color,
+        mood: meta?.mood || "neutral",
+      };
       speechBubbleRects.push(rect);
       return rect;
     }
@@ -11157,10 +11223,12 @@
         const held = speechHold.get(n.name);
         const active = pinned || (held && held.until > now ? held : null);
         if (!active?.line) continue;
+        const full = (n.fullLine || active.line || "").trim() || active.line;
         drawSpeechBubble(s.x, s.y - 8, active.line, color, true, {
           speaker: n.name,
           agentId: n.id,
           mood: pinned?.mood || n.mood || "neutral",
+          fullLine: full,
         });
         drawn += 1;
       }
@@ -11921,7 +11989,13 @@
     }
 
     function showCampTextExpand(who, text, opts = {}) {
-      if (!isCampMobile()) return;
+      // Mobile dock strip; PC uses speech-pin for long monologues
+      if (!isCampMobile()) {
+        if ((text || "").trim().split(/\s+/).length >= 35) {
+          openAgentScrollBubble(who, text, opts.mood || "neutral");
+        }
+        return;
+      }
       const panel = document.getElementById("camp-text-expand");
       if (!panel) return;
       const clean = (text || "").trim();
@@ -12305,17 +12379,11 @@
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       if (bubbleHit?.speaker) {
         const npc = roamersBySpeaker(bubbleHit.speaker);
-        showCampTextExpand(bubbleHit.speaker, bubbleHit.line, {
-          mood: bubbleHit.mood,
-          hint: "Full speech — tap bubble again to pin",
-        });
-        if (pinnedSpeech.has(bubbleHit.speaker) && npc) {
-          startCampDrag({ kind: "agent", ref: npc }, sx, sy, ev.pointerId, { fromPin: true });
-          return;
-        }
-        pinCampSpeech(bubbleHit.speaker, bubbleHit.line, bubbleHit.mood, {
+        const full = (npc?.fullLine || bubbleHit.line || "").trim();
+        // Open scrollable full monologue reader
+        openAgentScrollBubble(bubbleHit.speaker, full, bubbleHit.mood, {
           color: bubbleHit.color,
-          agentId: bubbleHit.agentId,
+          agentId: bubbleHit.agentId || npc?.id,
         });
         if (npc && playerNearAgent(npc)) onAgentTap(npc);
         return;
@@ -13117,6 +13185,17 @@
       if (npc) {
         npc.line = clean;
         npc.fullLine = clean;
+      }
+      // Open-ended monologues → scrollable chat bubble / pin reader
+      const wordCount = clean.split(/\s+/).filter(Boolean).length;
+      if (
+        !quiet
+        && speaker !== "Camp"
+        && !isVisitorSpeaker(speaker)
+        && wordCount >= 35
+        && !opts.noScrollBubble
+      ) {
+        openAgentScrollBubble(speaker, clean, moodVal, { agentId });
       }
       if (!opts.skipBroadcast && playWs && playWs.readyState === WebSocket.OPEN && opts.fromLocal) {
         playWs.send(JSON.stringify({

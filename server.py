@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "260-PC-CHAT"
+LUNA_BUILD = "261-LIVE-BRAINS"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -173,7 +173,11 @@ async def prewarm_lipsync() -> None:
 
 
 async def _firmament_parse_body(request: Request) -> tuple[dict, bool]:
-    """Parse JSON body; decrypt LUNA1 transit envelope when present."""
+    """Parse JSON body; decrypt LUNA1 transit envelope when present.
+
+    Plain JSON always works. Missing crypto module must NEVER kill camp chat
+    (that was sending everyone into offline aether templates on Render).
+    """
     try:
         raw = await request.json()
     except Exception as exc:
@@ -182,7 +186,11 @@ async def _firmament_parse_body(request: Request) -> tuple[dict, bool]:
         raise HTTPException(status_code=400, detail="JSON object required")
     try:
         from firmament.crypto_box import crypto_enabled, is_envelope, open_json_envelope
-
+    except Exception as exc:
+        # Deploy without crypto_box / partial image — accept plain bodies
+        log.warning("camp crypto unavailable, plain JSON only: %s", exc)
+        return raw, False
+    try:
         if is_envelope(raw):
             if not crypto_enabled():
                 raise HTTPException(status_code=400, detail="encrypted body but LUNA_CRYPTO is off")

@@ -288,6 +288,34 @@ def _parse_mood(reply: str) -> tuple[str, str]:
 
 _ollama_model_cache: list[str] | None = None
 _ollama_model_cache_at: float = 0.0
+_ollama_reach_cache_at: float = 0.0
+_ollama_reach_ok: bool | None = None
+
+
+def _ollama_available() -> bool:
+    """Fast probe — skip dead Ollama on Render/cloud so Grok/Groq run first."""
+    global _ollama_reach_cache_at, _ollama_reach_ok
+    import time
+
+    if _truthy("LUNA_FORCE_OLLAMA"):
+        return True
+    if _truthy("LUNA_SKIP_OLLAMA"):
+        return False
+    now = time.time()
+    if _ollama_reach_ok is not None and now - _ollama_reach_cache_at < 45:
+        return _ollama_reach_ok
+    host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    ok = False
+    try:
+        import httpx
+
+        r = httpx.get(f"{host}/api/tags", timeout=1.25)
+        ok = r.status_code == 200
+    except Exception:
+        ok = False
+    _ollama_reach_ok = ok
+    _ollama_reach_cache_at = now
+    return ok
 
 
 def _ollama_list_models(host: str) -> list[str]:
@@ -301,7 +329,7 @@ def _ollama_list_models(host: str) -> list[str]:
     try:
         import httpx
 
-        r = httpx.get(f"{host}/api/tags", timeout=4.0)
+        r = httpx.get(f"{host}/api/tags", timeout=2.5)
         r.raise_for_status()
         names: list[str] = []
         for m in (r.json() or {}).get("models") or []:
@@ -360,10 +388,12 @@ def _complete_ollama(messages: list[dict], model: str, max_tokens: int) -> str:
         },
     }
     last_exc: Exception | None = None
+    # Connect/read timeout — fail fast so cloud chain can use Grok
+    ollama_timeout = httpx.Timeout(connect=2.0, read=90.0, write=15.0, pool=5.0)
     for attempt_model in (ollama_model,):
         try:
             payload["model"] = attempt_model
-            r = httpx.post(f"{host}/api/chat", json=payload, timeout=120.0)
+            r = httpx.post(f"{host}/api/chat", json=payload, timeout=ollama_timeout)
             r.raise_for_status()
             data = r.json()
             content = (data.get("message") or {}).get("content") or ""
@@ -379,7 +409,7 @@ def _complete_ollama(messages: list[dict], model: str, max_tokens: int) -> str:
                     continue
                 try:
                     payload["model"] = alt
-                    r = httpx.post(f"{host}/api/chat", json=payload, timeout=120.0)
+                    r = httpx.post(f"{host}/api/chat", json=payload, timeout=ollama_timeout)
                     r.raise_for_status()
                     data = r.json()
                     content = (data.get("message") or {}).get("content") or ""
@@ -568,14 +598,15 @@ def build_backend_chain(
         chain.append(("grok", profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")))
 
     # Free character comedy chain (default for Odin + everyone)
+    ollama_up = _ollama_available()
     if free_brains_preferred() or pref in ("free", "ollama", "local", "auto", "groq", "gemini", ""):
-        # Ollama always first when available intent
-        ollama_model = pack["ollama"]
-        chain.append(("ollama", ollama_model))
-        # Secondary free local if primary ollama model differs
-        fallback_ollama = os.getenv("OLLAMA_MODEL", "llama3.2")
-        if fallback_ollama and fallback_ollama.split(":")[0] != ollama_model.split(":")[0]:
-            chain.append(("ollama", fallback_ollama))
+        # Local Ollama first ONLY when it's actually up (Render has no Ollama)
+        if ollama_up:
+            ollama_model = pack["ollama"]
+            chain.append(("ollama", ollama_model))
+            fallback_ollama = os.getenv("OLLAMA_MODEL", "llama3.2")
+            if fallback_ollama and fallback_ollama.split(":")[0] != ollama_model.split(":")[0]:
+                chain.append(("ollama", fallback_ollama))
 
         if _groq_ok():
             chain.append(("groq", pack.get("groq") or "llama-3.1-8b-instant"))
@@ -588,13 +619,20 @@ def build_backend_chain(
                 or os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"),
             ))
 
-    # Optional Grok as paid/cloud upgrade after free fails
-    if _grok_ok() and pref in ("grok", "any", "auto", "free") or (
-        free_brains_preferred() and _truthy("LUNA_GROK_FALLBACK", "1")
-    ):
+    # Grok: preferred when Ollama is down (live camp on Render), else after free fails
+    want_grok = _grok_ok() and (
+        pref in ("grok", "any", "auto", "free")
+        or (free_brains_preferred() and _truthy("LUNA_GROK_FALLBACK", "1"))
+        or not ollama_up  # cloud deploy: go live with Grok, not aether templates
+    )
+    if want_grok:
         gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
         if ("grok", gmodel) not in chain:
-            chain.append(("grok", gmodel))
+            # If no free cloud keys and Ollama dead, put Grok first so chat is instant
+            if not ollama_up and not _groq_ok() and not _gemini_ok() and not _openrouter_ok():
+                chain.insert(0, ("grok", gmodel))
+            else:
+                chain.append(("grok", gmodel))
 
     # De-dupe preserving order
     seen: set[tuple[str, str]] = set()
@@ -622,15 +660,18 @@ def _run_backend(backend: str, model: str, messages: list[dict], max_tokens: int
 
 
 def free_backends_status() -> dict[str, Any]:
+    ollama_up = _ollama_available()
     return {
         "free_brains": free_brains_preferred(),
-        "ollama": True,  # always attempted; may fail at runtime
+        "ollama": ollama_up,
+        "ollama_ok": ollama_up,
         "ollama_host": os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434"),
         "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
         "groq": _groq_ok(),
         "gemini": _gemini_ok(),
         "openrouter": _openrouter_ok(),
         "grok": _grok_ok(),
+        "live_cloud": _grok_ok() or _groq_ok() or _gemini_ok() or _openrouter_ok(),
         "character_models": {
             aid: free_model_pack(aid)["ollama"] for aid in sorted(DEFAULT_FREE_MODELS)
         },
@@ -778,12 +819,17 @@ async def agent_chat(
     from firmament.live_feed import is_too_similar, push_event
 
     TARGET_WORDS = 400
-    MIN_ACCEPT_WORDS = 220  # expand-retry below this; hard-reject only extreme stubs
+    # Expand when short, but accept solid live AI sooner so camp never stalls into templates
+    MIN_ACCEPT_WORDS = 90 if (ambient or converse_mode) else 140
+
+    if not chain:
+        errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")
 
     for backend, model in chain:
         try:
-            # Retries: (0) first draft (1) anti-copy / anti-self-repeat (2) expand to ~400 words
-            for attempt in range(3):
+            # Retries: (0) first draft (1) anti-copy (2) expand — max 2 LLM calls for ambient speed
+            max_attempts = 2 if ambient else 3
+            for attempt in range(max_attempts):
                 msgs = list(messages)
                 if attempt == 1:
                     msgs = list(messages) + [{
@@ -810,16 +856,16 @@ async def agent_chat(
                 reply, mood = _parse_mood(raw)
                 word_count = len(reply.split())
                 # Extreme stubs → next backend
-                stub_floor = 40 if direct_chat else 28
+                stub_floor = 24 if direct_chat else 16
                 if word_count < stub_floor and backend != chain[-1][0]:
                     errors.append(f"{backend}/{model}: stub ({word_count}w)")
                     reply = ""
                     break
-                if is_too_similar(agent_id, reply) and attempt < 2:
+                if is_too_similar(agent_id, reply) and attempt < max_attempts - 1:
                     errors.append(f"{backend}/{model}: too similar (attempt {attempt})")
                     continue
-                # Short but unique → one expand pass
-                if word_count < MIN_ACCEPT_WORDS and attempt < 2:
+                # Short but unique → one expand pass when we still have attempts
+                if word_count < MIN_ACCEPT_WORDS and attempt < max_attempts - 1:
                     errors.append(f"{backend}/{model}: short {word_count}w, expand")
                     continue
                 used_backend = backend

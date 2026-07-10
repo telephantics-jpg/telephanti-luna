@@ -3429,7 +3429,7 @@
 <body class="camp-trippy">
   <!-- Always-visible live stamp so you know the correct deploy is loaded -->
   <div id="camp-live-stamp" style="position:fixed;z-index:99999;left:8px;bottom:calc(var(--dock-h,90px) + 10px);max-width:min(92vw,360px);padding:8px 12px;border-radius:999px;border:2px solid #86efac;background:linear-gradient(135deg,#052e16,#14532d);color:#bbf7d0;font:800 0.72rem/1.25 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:auto;touch-action:manipulation;cursor:pointer" title="Click to hide for this session">
-    ✦ LIVE 260 PC · chat · scroll monologues
+    ✦ LIVE 261 · real AI brains (Grok chain)
   </div>
 
   <div id="camp-stage"><canvas id="game"></canvas></div>
@@ -3501,7 +3501,7 @@
       <button type="button" class="weather-chip" data-weather="rain">Rain</button>
       <button type="button" class="weather-chip" data-weather="night">Night</button>
     </div>
-    <div id="unreal-hint">PC &amp; phone share this camp — free Ollama/aether brains, memory, and chatter. Unreal 3D is optional on your PC.</div>
+    <div id="unreal-hint">PC &amp; phone share this camp — live multi-AI brains (Grok chain + free Ollama when local), memory, and chatter.</div>
     <div id="camp-life-status" class="live">Waking Luna, Hermes, Oracle &amp; Caduceus…</div>
     <div id="camp-music-now" aria-live="polite" hidden>
       <div class="camp-music-now-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
@@ -3888,7 +3888,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-10-260-PC-CHAT";
+    const CAMP_BUILD = "2026-07-10-261-LIVE-BRAINS";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10809,9 +10809,9 @@
           throw new Error("aether-only — ollama offline?");
         }
         if (data.backend === "aether" && words >= 28) {
-          setCampLifeStatus(`🧠 ${data.name || npc.name} via aether backup — start Ollama for fuller free brains`);
+          setCampLifeStatus(`🧠 ${data.name || npc.name} · aether backup — cloud brains retry next beat`);
         } else if (data.backend && data.backend !== "aether") {
-          setCampLifeStatus(`🧠 ${data.name || npc.name} · ${data.backend}${data.model ? " · " + data.model : ""}`);
+          setCampLifeStatus(`🧠 ${data.name || npc.name} · LIVE ${data.backend}${data.model ? " · " + data.model : ""}`);
         }
         pushCampLine(
           data.name || npc.name,
@@ -10828,7 +10828,7 @@
         }
         if (!opts.noFallback) {
           if (String(err?.message || "").includes("ollama") || String(err?.message || "").includes("aether")) {
-            setCampLifeStatus("🧠 Start Ollama (hermes3 / llama3.2) for live free agent brains");
+            setCampLifeStatus("🧠 Live AI retrying — use 💬 Chat for full monologues");
           }
           const data = aetherLocalChat(npc.id, campAmbientPrompt(npc, opts.replyTo));
           const line = String(data.reply || "").trim();
@@ -14082,9 +14082,9 @@
         // If server returned pure aether stubs only, still play them but toast honestly
         const backend = data.backend || "ollama";
         if (backend === "aether") {
-          setCampLifeStatus(`${label} — free offline aether (start Ollama for live AI)`);
+          setCampLifeStatus(`${label} — aether backup (cloud brain hiccup — retry chat)`);
         } else {
-          setCampLifeStatus(`${label} chatting via ${backend}${data.model ? " · " + data.model : ""}`);
+          setCampLifeStatus(`${label} · live ${backend}${data.model ? " · " + data.model : ""} — unique AI monologues`);
         }
         await playConverseLines(
           lines,
@@ -14130,14 +14130,14 @@
         }
         if (!rescued) {
           const lines = aetherLocalConverse(pick, topic, rounds);
-          setCampLifeStatus(`${label} — template fallback (start Ollama for live AI)`);
-          showToast("🌫 Offline templates — run Ollama (hermes3/llama3.2) for real agent chat");
+          setCampLifeStatus(`${label} — temporary backup lines (live AI reconnecting)`);
+          showToast("Brain hiccup — retry talk bar / 💬 Chat for full live AI");
           await playConverseLines(
             lines,
             campChillUntil > Date.now() ? CAMP_PACE.converseGapChillMs : CAMP_PACE.converseGapMs,
           );
           if (!isFetchOfflineError(err)) {
-            pushCampLine("Camp", `Brain hiccup — ${err.message || "ok"}. Templates filled in.`, 14, "think");
+            pushCampLine("Camp", `Live brain hiccup — ${err.message || "retry"}. Backup lines only this round.`, 14, "think");
           }
         }
       }
@@ -14245,7 +14245,7 @@
             .then((r) => r.json())
             .then((h) => {
               stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server ${h.build || "?"}`;
-              if (String(h.build || "").includes("260") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("259")) {
+              if (String(h.build || "").includes("261") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("260")) {
                 stamp.style.borderColor = "#86efac";
               } else {
                 stamp.style.borderColor = "#fbbf24";
@@ -14266,18 +14266,19 @@
       if (!ollamaChip) return;
       campBrainMode = h?.llm_backend || campBrainMode;
       campOllamaOk = !!h?.ollama_ok;
+      const keyOk = !!h?.api_key_configured || campBrainMode === "grok";
       if (!campServerOnline) {
-        ollamaChip.textContent = "🌫 Aether offline";
-        ollamaChip.title = "Server down — agents use free aether brains in your browser";
-      } else if (campBrainMode === "ollama" && campOllamaOk) {
-        ollamaChip.textContent = "🦙 Ollama live (free)";
-        ollamaChip.title = "Local Ollama brains — free, remembers you per visit";
-      } else if (campBrainMode === "ollama") {
-        ollamaChip.textContent = "🌫 Aether + Ollama";
-        ollamaChip.title = "Ollama not running — server uses aether fallback (still free). Run: ollama serve";
+        ollamaChip.textContent = "🌫 Offline backup";
+        ollamaChip.title = "Server down — browser aether lines only until reconnect";
+      } else if (campOllamaOk) {
+        ollamaChip.textContent = "🦙 Ollama live";
+        ollamaChip.title = "Local Ollama free brains + cloud fallback";
+      } else if (keyOk || campBrainMode === "grok" || campBrainMode === "free") {
+        ollamaChip.textContent = "☁️ Live AI (Grok)";
+        ollamaChip.title = "Cloud brains live — each agent uses real LLM monologues (not templates)";
       } else {
-        ollamaChip.textContent = "☁️ Grok cloud";
-        ollamaChip.title = "Cloud brains — set LUNA_LLM_BACKEND=ollama for free local";
+        ollamaChip.textContent = "🌫 Backup mode";
+        ollamaChip.title = "No cloud key / Ollama — set XAI_API_KEY on server for live AI";
       }
     }
 
@@ -14285,14 +14286,16 @@
       fetch("/api/health").then((r) => r.json()).then((h) => {
         campServerOnline = !!h.ok;
         if (h.ok) {
-          serverStatusEl.textContent = h.ollama_ok ? "online · ollama ✓" : "online · aether";
+          const live = h.api_key_configured || h.ollama_ok || h.llm_backend === "grok";
+          serverStatusEl.textContent = h.ollama_ok
+            ? "online · ollama ✓"
+            : (live ? "online · live AI ✓" : "online · backup");
           updateBrainStatusChip(h);
         }
       }).catch(() => {
         campServerOnline = false;
-        serverStatusEl.textContent = "aether mode";
+        serverStatusEl.textContent = "offline backup";
         updateBrainStatusChip(null);
-        showToast("🌫 Server offline — aether brains still chat in-browser (free)");
       });
       setTimeout(pollServerHealth, 12000);
     }
@@ -14300,12 +14303,21 @@
       fetch("/api/health").then((r) => r.json()).then((h) => {
         campServerOnline = !!h.ok;
         if (h.ok) {
-          serverStatusEl.textContent = h.ollama_ok ? "online · ollama ✓" : "online · aether";
+          const live = h.api_key_configured || h.ollama_ok || h.llm_backend === "grok";
+          serverStatusEl.textContent = h.ollama_ok
+            ? "online · ollama ✓"
+            : (live ? "online · live AI ✓" : "online · backup");
           updateBrainStatusChip(h);
           if (!isSlowDevice()) {
-            showToast(h.ollama_ok ? "🦙 Ollama brains live — free chat & memory" : "🌫 Aether brains — start Ollama for fuller AI");
+            showToast(
+              h.ollama_ok
+                ? "🦙 Ollama brains live"
+                : (live ? "☁️ Live AI brains on — talk to anyone for unique monologues" : "Backup mode — set API keys for full AI"),
+            );
           }
-          setCampLifeStatus("Toolbar: TX = Telephantix · 🔇 off · Luna, Aurora & friends talk below");
+          setCampLifeStatus(live
+            ? "Live multi-brains · pick an agent · type · long unique replies"
+            : "Toolbar: TX · talk below · brains reconnecting");
           const convA = isSlowDevice() ? 52000 : 18000;
           const convB = isSlowDevice() ? 130000 : 42000;
           setTimeout(() => runCampConverse(["luna", "hermes"]), convA);
@@ -14313,12 +14325,12 @@
         }
       }).catch(() => {
         campServerOnline = false;
-        serverStatusEl.textContent = "aether mode";
+        serverStatusEl.textContent = "offline backup";
         updateBrainStatusChip(null);
         if (!isSlowDevice()) {
-          showToast("🌫 Aether mode — agents still roleplay offline. For Ollama: OPEN_LUNA_CAMP.bat");
+          showToast("Server offline — open telephanti.com for live camp AI");
         }
-        pushCampLine("Camp", "Aether brains online in-browser — chat free. Start OPEN_LUNA_CAMP.bat for full Ollama memory sync.", 28, "think");
+        pushCampLine("Camp", "Camp server offline — reconnect to telephanti.com for live agent brains.", 28, "think");
       });
       pollServerHealth();
     };

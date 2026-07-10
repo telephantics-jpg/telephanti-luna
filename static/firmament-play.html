@@ -2851,9 +2851,14 @@
       #camp-shop-panel { transform: none; max-height: min(85vh, 560px); }
       #lucid-tv-panel { transform: none; max-height: min(86vh, 620px); }
       #lucid-tv-thought { font-size: 0.76rem; }
-      .camp-ouija-board-wrap { max-height: min(28vh, 260px); }
-      .camp-ouija-chat-panel { min-height: min(34vh, 200px); max-height: min(42vh, 280px); }
-      .camp-ouija-msg-text { font-size: 0.94rem; }
+      .camp-ouija-board-wrap { max-height: min(22vh, 200px); }
+      .camp-ouija-chat-panel { min-height: min(42vh, 280px); max-height: min(58vh, 440px); }
+      .camp-ouija-msg-text { font-size: 0.96rem; line-height: 1.55; }
+      .camp-ouija-msg.spirit .camp-ouija-msg-text {
+        max-height: min(38vh, 320px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
     }
     #camp-ouija-layer {
       position: fixed; inset: 0; z-index: 45;
@@ -3081,10 +3086,10 @@
       50% { filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 22px rgba(167, 139, 250, 0.55)); }
     }
     .camp-ouija-chat-panel {
-      width: min(96vw, 720px);
+      width: min(96vw, 760px);
       display: flex; flex-direction: column;
-      min-height: min(30vh, 240px);
-      max-height: min(38vh, 320px);
+      min-height: min(36vh, 300px);
+      max-height: min(52vh, 480px);
       border-radius: 16px;
       background: rgba(6, 4, 14, 0.88);
       border: 2px solid rgba(167, 139, 250, 0.32);
@@ -3768,7 +3773,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-09-talk-to-selected";
+    const CAMP_BUILD = "2026-07-09-ouija-mindbend";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -6954,6 +6959,7 @@
         if (talkSel && [...talkSel.options].some((o) => o.value === campChatActiveId)) {
           talkSel.value = campChatActiveId;
         }
+        syncCampTalkSendLabel();
         renderCampChatThread(campChatActiveId);
       });
       document.getElementById("camp-chat-input")?.addEventListener("keydown", (ev) => {
@@ -7645,8 +7651,7 @@
         el.classList.add("heaven-live");
         el.textContent = "✦ Heaven here";
       });
-      const talkH = document.getElementById("camp-talk-heaven");
-      if (talkH) talkH.textContent = "✦ Here";
+
       const dockH = document.getElementById("btn-summon-heaven");
       if (dockH) dockH.textContent = "✦ Here";
       expandSpeechBubble();
@@ -13143,14 +13148,12 @@
         "btn-header-heaven",
         "chip-summon-heaven",
         "chip-summon-heaven-tools",
-        "camp-talk-heaven",
         "camp-heaven-fab",
       ].forEach((id) => {
         const el = document.getElementById(id);
         if (!el || el.dataset.heavenWired === "1") return;
         el.dataset.heavenWired = "1";
         el.addEventListener("click", run);
-        // Force-visible in case any media query hid them
         try {
           el.style.setProperty("display", "inline-flex", "important");
           el.style.setProperty("pointer-events", "auto", "important");
@@ -13160,9 +13163,13 @@
       });
     }
     wireHeavenSummonButtons();
-    // Re-assert after layout / mobile class toggles
     setTimeout(wireHeavenSummonButtons, 400);
     setTimeout(wireHeavenSummonButtons, 1500);
+    syncCampTalkSendLabel();
+    setInterval(() => {
+      // Keep send label fresh when nearest agent changes while roaming
+      if (document.getElementById("camp-talk-target")?.value === "nearest") syncCampTalkSendLabel();
+    }, 2500);
     // Thor / Zeus chips → summon Heaven (they only appear after Jesus/Heaven press)
     ["chip-summon-thor-hint", "chip-summon-zeus-hint"].forEach((id) => {
       document.getElementById(id)?.addEventListener("click", (ev) => {

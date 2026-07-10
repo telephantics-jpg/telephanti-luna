@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "253-talk-to-selected"
+LUNA_BUILD = "254-ouija-mindbend"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -4984,12 +4984,12 @@ def parse_ouija_action(raw: str, fallback: dict) -> dict:
     board = _sanitize_ouija_board(str(data.get("board") or ""))
     reading = clean_speech_text(
         str(data.get("reading") or data.get("text") or "").strip(),
-        max_len=720,
+        max_len=2800,
     )
     if not board and reading:
         board = _sanitize_ouija_board(reading)
     if not reading:
-        reading = clean_speech_text(str(data.get("text") or fallback.get("reading", "")), max_len=720)
+        reading = clean_speech_text(str(data.get("text") or fallback.get("reading", "")), max_len=2800)
     if not board:
         board = _sanitize_ouija_board(str(fallback.get("board") or "YES"))
     if not reading:
@@ -5016,11 +5016,14 @@ async def ask_ouija_spirit(
         {
             "role": "system",
             "content": (
-                "You channel Ouija spirit messages. Reply with ONLY valid JSON — no markdown. "
-                'Keys: board (uppercase A-Z 0-9 spaces, max 55 chars — short punchy phrase for the planchette), '
-                "reading (open-ended conversational reply: 4-7 sentences, natural voice, can ask follow-ups, "
-                "specific and uncanny — not terse), text (same as reading), mood (happy|love|flirt|neutral|think|afraid). "
-                "board may use YES NO GOODBYE as whole words. reading carries the real message; board is just the headline."
+                "You are a spirit speaking through an Ouija board — not a chatbot, not a fortune cookie. "
+                "Reply with ONLY valid JSON — no markdown. "
+                "Keys: board (uppercase A-Z 0-9 spaces, max 55 chars — short planchette headline), "
+                "reading (OPEN-ENDED monologue: ~250–450 words, multi-paragraph if needed — "
+                "mind-bending, esoteric, logically strange, emotionally true, uncanny specificity; "
+                "logic + ethics + mystery; leave the seeker altered; end with a piercing question back), "
+                "text (same as reading), mood (happy|love|flirt|neutral|think|afraid). "
+                "board may use YES NO GOODBYE as whole words. board is a headline; reading is the full blow-your-mind channel."
             ),
         },
         {"role": "user", "content": user_prompt},
@@ -5028,7 +5031,7 @@ async def ask_ouija_spirit(
     response = client.chat.completions.create(
         model=model,
         messages=messages,
-        max_tokens=560,
+        max_tokens=1100,
         temperature=temperature,
     )
     choices = getattr(response, "choices", None) or []
@@ -5050,31 +5053,35 @@ async def ouija(request: OuijaRequest):
     recent = ""
     if request.history:
         lines = []
-        for turn in request.history[-5:]:
+        for turn in request.history[-8:]:
             role = turn.get("role", "")
             content = (turn.get("content") or "").strip()
             if content and role in ("user", "assistant"):
-                lines.append(f"{role}: {content[:100]}")
+                lines.append(f"{role}: {content[:220]}")
         if lines:
-            recent = "Recent chat:\n" + "\n".join(lines) + "\n"
-    qbit = f'The seeker asks: "{question}"\n' if question else "No question — open channel; the spirit speaks first.\n"
+            recent = "Recent chat (evolve — do not restart as a stranger):\n" + "\n".join(lines) + "\n"
+    qbit = f'The seeker asks: "{question}"\n' if question else "No question — open channel; the spirit pours a full monologue first.\n"
     camp_note = ""
     if "firmament camp" in ctx.lower() or "luna camp" in ctx.lower():
         camp_note = (
             " Setting: outdoor Luna camp — aurora, campfire, agents Luna Hermes Oracle Caduceus Sentinel nearby. "
             "Spirit speaks with eerie specificity about camp, visitor, or agents — convincing other-side voice. "
-            "reading should be open-ended: 4-7 sentences, like a real conversation through the veil — "
-            "answer the question fully, add unsettling detail, invite another question. Not one-liners."
+            "reading MUST be open-ended and long: ~250–450 words (multi-paragraph ok), mind-bending, "
+            "logic-twisting, ethically sharp, esoterically true — blow-the-mind fab. "
+            "Answer fully, invent uncanny detail, reframe reality, invite another question. Never one-liners."
         )
     prompt = (
-        "INTERDIMENSIONAL OUIJA CHANNEL — Luna channels a spirit message through a physical board. "
+        "INTERDIMENSIONAL OUIJA CHANNEL — full open-ended spirit monologue through a physical board. "
         f"Context: {ctx}\n{recent}{qbit}{camp_note}"
         "Return JSON only with keys: board, reading, text, mood. "
-        "board = uppercase A-Z 0-9 and spaces only, max 55 chars — short headline the planchette spells "
-        "(may use YES NO GOODBYE as whole words). "
-        "reading = open-ended 4-7 plain English sentences — full conversational spirit reply, intimate and convincing, "
-        "may end with a question back to the seeker. text = same as reading (for voice). "
-        "mood = happy|love|flirt|neutral|afraid|think. Mystical, cinematic, specific — not generic oracle filler."
+        "board = uppercase A-Z 0-9 and spaces only, max 55 chars — short planchette headline "
+        "(YES NO GOODBYE allowed as whole words). "
+        "reading = OPEN-ENDED ~250–450 words plain English monologue — theatrical, intimate, mind-blowing, "
+        "specific, funny when true, never generic. Weave logic + ethics + esoteric truth. "
+        "Leave the seeker changed. End with a real piercing question back. "
+        "text = same as reading (for voice). "
+        "mood = happy|love|flirt|neutral|afraid|think. "
+        "Mystical, cinematic, fab — short answers are a failure."
         f"{avoid_note}"
     )
     fallbacks = [

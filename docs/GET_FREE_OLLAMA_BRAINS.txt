@@ -1,0 +1,102 @@
+GET FREE OLLAMA BRAINS INTO LUNA CAMP
+====================================
+
+Why telephanti.com agents sound the same
+----------------------------------------
+telephanti.com runs on Render (cloud). Your free Ollama lives on THIS PC
+at http://127.0.0.1:11434. The cloud cannot reach your laptop Ollama.
+When Grok credits are empty, the website falls to backup monologues.
+
+For polished, individualized FREE minds → run camp LOCALLY on this PC.
+
+
+You already have (checked)
+--------------------------
+  Ollama 0.31.x installed and running
+  Models: hermes3  +  llama3.2
+  .env: LUNA_LLM_BACKEND=ollama
+
+
+ONE-CLICK (recommended)
+-----------------------
+  Double-click:
+
+    OPEN_LOCAL_OLLAMA_CAMP.bat
+
+  It will:
+    1) wake Ollama
+    2) start Luna server (python server.py)
+    3) open  http://127.0.0.1:8767/firmament/play
+
+
+Manual steps
+------------
+  1. Keep Ollama running (tray icon or: ollama serve)
+  2. Confirm models:
+       ollama list
+       ollama pull hermes3
+       ollama pull llama3.2
+  3. In luna-avatar folder:
+       python server.py
+  4. Browser:
+       http://127.0.0.1:8767/firmament/play
+  5. Hard refresh: Ctrl+Shift+R
+  6. Status chip should say:  Ollama live
+  7. Talk to Thor / Zeus — reply tag should show:  ollama · hermes3
+
+
+How you know it's REAL free brains
+----------------------------------
+  Chat bubble / life status shows:
+    backend: ollama
+    model: hermes3   or   llama3.2
+  NOT: aether / aether-local
+  NOT: offline template
+
+
+Who uses which free model
+-------------------------
+  hermes3  → Thor, Zeus, Odin, Luna, Hermes, Oracle, Dionysus, Jesus, …
+  llama3.2 → Sentinel, many archangels, Rhea, Ambrosia, …
+
+
+Want free minds on telephanti.com (phone + friends)?
+----------------------------------------------------
+  Cloud cannot use PC Ollama. Add a FREE cloud key on Render:
+
+  A) Groq (fast free tier)
+     https://console.groq.com  → create key
+     Render → Environment → GROQ_API_KEY = gsk_...
+     Save + redeploy
+
+  B) Gemini free
+     https://aistudio.google.com/apikey
+     Render → GEMINI_API_KEY = ...
+
+  Then live site uses Groq/Gemini instead of empty Grok credits.
+
+
+Env knobs (.env on this PC)
+---------------------------
+  LUNA_LLM_BACKEND=ollama
+  LUNA_FREE_BRAINS=1
+  LUNA_FORCE_OLLAMA=1
+  LUNA_GROK_FALLBACK=0
+  OLLAMA_HOST=http://127.0.0.1:11434
+  OLLAMA_MODEL=llama3.2
+
+
+Troubleshoot
+------------
+  ollama list empty?
+    ollama pull hermes3
+    ollama pull llama3.2
+
+  Server says ollama_ok false?
+    Open Ollama app, wait 5s, refresh camp
+
+  Still "aether"?
+    You are probably on telephanti.com — switch to 127.0.0.1:8767
+
+  Slow answers?
+    Normal on first load of hermes3 (big model). Later replies faster.

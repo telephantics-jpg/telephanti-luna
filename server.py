@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "262-BRAIN-FIX"
+LUNA_BUILD = "263-CAMP-MINDS"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2514,16 +2514,16 @@ async def firmament_config_api(request: Request):
     stream_up = port_is_open(port, "127.0.0.1")
     game = game_load()
     backend = llm_backend()
+    # Always probe Ollama — free local minds work even when default backend is grok
     ollama_ok = False
-    if backend == "ollama":
-        try:
-            import httpx
+    try:
+        import httpx
 
-            host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
-            with httpx.Client(timeout=2.5) as client:
-                ollama_ok = client.get(f"{host}/api/tags").status_code == 200
-        except Exception:
-            ollama_ok = False
+        host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+        with httpx.Client(timeout=2.5) as client:
+            ollama_ok = client.get(f"{host}/api/tags").status_code == 200
+    except Exception:
+        ollama_ok = False
     crypto: dict = {}
     try:
         from firmament.crypto_box import crypto_status
@@ -3258,22 +3258,27 @@ async def health():
         lipsync = model.is_file() and portrait.is_file()
     backend = llm_backend()
     ollama_ok = False
-    if backend == "ollama":
-        try:
-            import httpx
+    try:
+        import httpx
 
-            host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
-            async with httpx.AsyncClient(timeout=2.5) as client:
-                resp = await client.get(f"{host}/api/tags")
-                ollama_ok = resp.status_code == 200
-        except Exception:
-            ollama_ok = False
+        host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+        async with httpx.AsyncClient(timeout=2.5) as client:
+            resp = await client.get(f"{host}/api/tags")
+            ollama_ok = resp.status_code == 200
+    except Exception:
+        ollama_ok = False
+    free_live = ollama_ok or configured or bool(
+        (os.getenv("GROQ_API_KEY") or "").strip() not in ("", "your_api_key_here")
+        or (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
+        not in ("", "your_api_key_here")
+    )
     return {
         "ok": True,
         "api_key_configured": configured,
         "llm_backend": backend,
         "ollama_ok": ollama_ok,
         "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
+        "free_minds": free_live,
         "tts": "edge-tts (free)",
         "lipsync": lipsync,
         "build": LUNA_BUILD,

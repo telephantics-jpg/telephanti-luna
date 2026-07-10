@@ -3429,7 +3429,7 @@
 <body class="camp-trippy">
   <!-- Always-visible live stamp so you know the correct deploy is loaded -->
   <div id="camp-live-stamp" style="position:fixed;z-index:99999;left:8px;bottom:calc(var(--dock-h,90px) + 10px);max-width:min(92vw,360px);padding:8px 12px;border-radius:999px;border:2px solid #86efac;background:linear-gradient(135deg,#052e16,#14532d);color:#bbf7d0;font:800 0.72rem/1.25 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:auto;touch-action:manipulation;cursor:pointer" title="Click to hide for this session">
-    ✦ LIVE 262 · brains + long monologues
+    ✦ LIVE 263 · camp chat → free minds
   </div>
 
   <div id="camp-stage"><canvas id="game"></canvas></div>
@@ -3689,7 +3689,7 @@
       <select id="camp-chat-who" title="Who to talk to"></select>
       <button type="button" id="camp-chat-close" title="Close chat" aria-label="Close">✕</button>
     </div>
-    <div id="camp-chat-meta">Pick anyone · type below · scroll long replies · brains evolve with each turn</div>
+    <div id="camp-chat-meta">Camp chat ↔ free minds · pick anyone · type · scroll monologues</div>
     <div id="camp-chat-thread" aria-live="polite"></div>
     <div id="camp-chat-compose">
       <textarea id="camp-chat-input" rows="2" maxlength="1200" placeholder="Type to anyone… open-ended, real conversation"></textarea>
@@ -3888,7 +3888,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-10-262-BRAIN-FIX";
+    const CAMP_BUILD = "2026-07-10-263-CAMP-MINDS";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3926,6 +3926,109 @@
       let data;
       try { data = await res.json(); } catch (_) { data = {}; }
       return { res, data };
+    }
+
+    /** Plain POST — always hits server minds (no crypto envelope). */
+    async function firmamentPlainPost(url, body) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Luna-Plain": "1" },
+        body: JSON.stringify(body),
+      });
+      let data;
+      try { data = await res.json(); } catch (_) { data = {}; }
+      return { res, data };
+    }
+
+    /**
+     * Camp chat → live free minds (Ollama/Groq/Gemini/Grok).
+     * Never silently drop into short browser templates while the server is up.
+     */
+    async function callAgentMind(agentId, message, opts = {}) {
+      const id = String(agentId || "luna").toLowerCase();
+      const msg = String(message || "").trim();
+      if (!id || !msg) throw new Error("empty mind request");
+
+      // Re-probe if we thought the server was offline
+      if (!campServerOnline) {
+        try {
+          const h = await fetch("/api/health", { cache: "no-store" }).then((r) => r.json());
+          campServerOnline = !!h.ok;
+          campOllamaOk = !!h.ollama_ok;
+          campBrainMode = h.llm_backend || campBrainMode;
+          updateBrainStatusChip?.(h);
+        } catch (_) { /* stay offline */ }
+      }
+      if (!campServerOnline) throw new Error("offline");
+
+      const body = {
+        agent_id: id,
+        message: msg,
+        speak: false,
+        force_grok: !!(opts.force_grok || isGrokLinkAgent(id)),
+        ambient: !!opts.ambient,
+        skip_memory: !!opts.skip_memory || !!opts.ambient,
+        ...visitorPayload(),
+      };
+
+      let res;
+      let data;
+      try {
+        ({ res, data } = await firmamentSecurePost("/api/firmament/agent/chat", body));
+      } catch (secErr) {
+        // Crypto / network hiccup → plain mind access
+        ({ res, data } = await firmamentPlainPost("/api/firmament/agent/chat", body));
+      }
+      if (!res.ok) {
+        // One plain retry on 4xx decrypt-style failures
+        const detail = String(data?.detail || "");
+        if (res.status >= 400 && /decrypt|crypto|envelope/i.test(detail)) {
+          ({ res, data } = await firmamentPlainPost("/api/firmament/agent/chat", body));
+        }
+      }
+      if (!res.ok) throw new Error(data?.detail || `mind failed (${res.status})`);
+
+      // Server returned aether while Ollama is live → retry once with clean short prompt
+      const be = String(data?.backend || "");
+      if (
+        be === "aether"
+        && !opts._retried
+        && (campOllamaOk || campBrainMode === "ollama")
+      ) {
+        const clean = String(opts.cleanMessage || msg).replace(/\s+/g, " ").slice(0, 600);
+        setCampLifeStatus?.(`${agentNames[id] || id} · free mind retry (Ollama)…`);
+        return callAgentMind(id, clean, {
+          ...opts,
+          _retried: true,
+          cleanMessage: clean,
+          ambient: false,
+          skip_memory: false,
+        });
+      }
+      return data;
+    }
+
+    async function refreshCampMindStatus() {
+      try {
+        const llm = await fetch("/api/firmament/llm", { cache: "no-store" }).then((r) => r.json());
+        campOllamaOk = !!llm.ollama_ok;
+        campBrainMode = llm.backend || campBrainMode;
+        const bits = [];
+        if (llm.ollama_ok) bits.push(`Ollama · ${llm.ollama_model || "local"}`);
+        if (llm.groq_configured) bits.push("Groq");
+        if (llm.gemini_configured) bits.push("Gemini");
+        if (llm.grok_configured) bits.push("Grok");
+        const line = bits.length
+          ? `Minds online: ${bits.join(" · ")}`
+          : "No free minds online — run Ollama + OPEN_LOCAL_OLLAMA_CAMP.bat";
+        const meta = document.getElementById("camp-chat-meta");
+        if (meta && !campChatThreads.get(campChatThreadKey(campChatActiveId))?.length) {
+          meta.innerHTML = `<span class="ccm-brain">${escapeHtml(line)}</span>`;
+        }
+        return llm;
+      } catch (_) {
+        return null;
+      }
     }
 
     // T is only a letter — block any shortcut handler (incl. stale cached scripts)
@@ -6970,6 +7073,8 @@
       campChatOpen = true;
       document.body.classList.add("camp-chat-open");
       renderCampChatThread(campChatActiveId);
+      // Keep 💬 panel wired to free minds (Ollama etc.)
+      void refreshCampMindStatus();
       setTimeout(() => document.getElementById("camp-chat-input")?.focus(), 80);
     }
 
@@ -7024,26 +7129,25 @@
 
       campChatActiveId = agentId;
       appendCampChatMessage(agentId, { role: "you", text });
+      const mindHint = campOllamaOk
+        ? "…free mind thinking (Ollama)… scroll when ready"
+        : "…live mind thinking… scroll when ready";
       appendCampChatMessage(agentId, {
         role: "agent",
         who: agentNames[agentId] || agentId,
-        text: "…thinking (live brain)…",
+        text: mindHint,
         thinking: true,
       });
       input.value = "";
       campTalkBusy = true;
       if (sendBtn) sendBtn.disabled = true;
       const evolved = buildEvolvingPrompt(agentId, text);
+      setCampLifeStatus(`${agentNames[agentId] || agentId} · connecting free mind…`);
       try {
-        if (!campServerOnline) throw new Error("offline");
-        const { res, data } = await firmamentSecurePost("/api/firmament/agent/chat", {
-          agent_id: agentId,
-          message: evolved,
-          speak: false,
+        const data = await callAgentMind(agentId, evolved, {
+          cleanMessage: text,
           force_grok: isGrokLinkAgent(agentId),
-          ...visitorPayload(),
         });
-        if (!res.ok) throw new Error(data.detail || "chat failed");
         // Drop thinking placeholder
         const thr = getCampChatThread(agentId);
         if (thr.length && thr[thr.length - 1].thinking) thr.pop();
@@ -7062,25 +7166,38 @@
           ? `${data.backend}${data.model ? " · " + data.model : ""}`
           : "camp";
         if (data.backend === "aether") {
-          setCampLifeStatus(`${data.name || agentId} · long backup monologue · ${data.brain_hint || "add free GROQ key for live AI"}`);
+          setCampLifeStatus(`${data.name || agentId} · backup · ${data.brain_hint || "start Ollama for free minds"}`);
           if (data.brain_hint) showToast(String(data.brain_hint).slice(0, 140));
         } else {
-          setCampLifeStatus(`${data.name || agentId} · LIVE ${brain} · scroll chat panel`);
+          setCampLifeStatus(`${data.name || agentId} · LIVE MIND ${brain} · scroll 💬`);
+          showToast(`🧠 ${brain}`);
         }
       } catch (err) {
         const thr = getCampChatThread(agentId);
         if (thr.length && thr[thr.length - 1].thinking) thr.pop();
-        const data = aetherLocalChat(agentId, text);
-        appendCampChatMessage(agentId, {
-          role: "agent",
-          who: data.name || agentNames[agentId] || agentId,
-          text: data.reply,
-          mood: data.mood,
-          backend: "aether",
-          model: "offline",
-        });
-        applyChatResult(agentId, data, { fromCampBar: true, fromChatPanel: true });
-        showToast(isFetchOfflineError(err) ? "Server offline — reconnect telephanti.com" : (err.message || "chat hiccup"));
+        // Only browser templates when server truly offline
+        if (!campServerOnline || isFetchOfflineError(err)) {
+          const data = aetherLocalChat(agentId, text);
+          appendCampChatMessage(agentId, {
+            role: "agent",
+            who: data.name || agentNames[agentId] || agentId,
+            text: data.reply,
+            mood: data.mood,
+            backend: "aether",
+            model: "offline",
+          });
+          applyChatResult(agentId, data, { fromCampBar: true, fromChatPanel: true });
+          showToast("Server offline — open http://127.0.0.1:8767 for free Ollama minds");
+        } else {
+          appendCampChatMessage(agentId, {
+            role: "agent",
+            who: "Camp",
+            text: `Mind busy or unreachable: ${err.message || "retry"}. Free minds: keep Ollama running + local camp (127.0.0.1:8767).`,
+            backend: "error",
+            model: "",
+          });
+          showToast(`Mind error — ${err.message || "retry"}`);
+        }
       }
       campTalkBusy = false;
       if (sendBtn) sendBtn.disabled = false;
@@ -10798,15 +10915,12 @@
         return null;
       }
       try {
-        const { res, data } = await firmamentSecurePost("/api/firmament/agent/chat", {
-          agent_id: npc.id,
-          message: campAmbientPrompt(npc, opts.replyTo),
-          speak: false,
+        const data = await callAgentMind(npc.id, campAmbientPrompt(npc, opts.replyTo), {
           ambient: true,
           skip_memory: true,
-          ...visitorPayload(),
+          cleanMessage: campAmbientPrompt(npc, opts.replyTo).slice(0, 500),
         });
-        if (!res.ok || !data.reply) throw new Error(data.detail || "ambient failed");
+        if (!data?.reply) throw new Error(data?.detail || "ambient failed");
         const line = String(data.reply || "").trim();
         if (!line) throw new Error("empty ambient");
         const words = line.split(/\s+/).filter(Boolean).length;
@@ -10817,7 +10931,7 @@
         if (data.backend === "aether" && words >= 28) {
           setCampLifeStatus(`🧠 ${data.name || npc.name} · aether backup — cloud brains retry next beat`);
         } else if (data.backend && data.backend !== "aether") {
-          setCampLifeStatus(`🧠 ${data.name || npc.name} · LIVE ${data.backend}${data.model ? " · " + data.model : ""}`);
+          setCampLifeStatus(`🧠 ${data.name || npc.name} · LIVE MIND ${data.backend}${data.model ? " · " + data.model : ""}`);
         }
         pushCampLine(
           data.name || npc.name,
@@ -13586,23 +13700,20 @@
       }
       recordCampMemory({ kind: "chat", agent_id: id, text: text.trim() });
       try {
-        if (!campServerOnline) throw new Error("offline");
-        const { res, data } = await firmamentSecurePost("/api/firmament/agent/chat", {
-          agent_id: id,
-          message: text,
-          speak: false,
+        const data = await callAgentMind(id, text, {
+          cleanMessage: text,
           force_grok: isGrokLinkAgent(id),
-          ...visitorPayload(),
+          ambient: !!opts.ambient,
+          skip_memory: !!opts.skip_memory,
         });
-        if (!res.ok) throw new Error(data.detail || "chat failed");
         if (isGrokLinkAgent(id) && data.backend === "grok") {
           showToast(`Grok · ${agentNames[id] || id} replied`);
         } else if (data.backend === "ollama" || data.backend === "groq" || data.backend === "gemini") {
-          setCampLifeStatus(`${agentNames[id] || id} · live ${data.backend}${data.model ? " · " + data.model : ""}`);
+          setCampLifeStatus(`${agentNames[id] || id} · LIVE MIND ${data.backend}${data.model ? " · " + data.model : ""}`);
         } else if (data.backend === "aether") {
-          showToast(isGrokLinkAgent(id)
-            ? "🌫 Grok offline — aether backup for @a/@m"
-            : "🌫 Aether brain — Ollama sleeping, local roleplay on");
+          showToast(data.brain_hint
+            ? String(data.brain_hint).slice(0, 120)
+            : "Backup monologue — start local Ollama camp for free minds");
         }
         // Ensure full reply lands in scrollable UI
         if (npc && data.reply) {
@@ -13619,19 +13730,27 @@
           );
         }
       } catch (err) {
-        const data = aetherLocalChat(id, text);
-        if (npc && data.reply) {
-          npc.fullLine = String(data.reply);
-          npc.line = String(data.reply);
-        }
-        applyChatResult(id, data, opts);
-        if (isCampMobile() && data.reply) {
-          showMobileReplyBubble(data.name || agentNames[id] || id, data.reply, data.mood || "happy", 60);
-        }
         if (!campServerOnline || isFetchOfflineError(err)) {
-          showToast("🌫 Aether offline brains — agents still roleplay (free)");
+          const data = aetherLocalChat(id, text);
+          if (npc && data.reply) {
+            npc.fullLine = String(data.reply);
+            npc.line = String(data.reply);
+          }
+          applyChatResult(id, data, opts);
+          if (isCampMobile() && data.reply) {
+            showMobileReplyBubble(data.name || agentNames[id] || id, data.reply, data.mood || "happy", 60);
+          }
+          showToast("Offline — open http://127.0.0.1:8767 for free Ollama minds");
         } else {
-          showToast(`Aether fallback — ${err.message || "brain hiccup"}`);
+          showToast(`Mind error — ${err.message || "retry"}`);
+          if (opts.fromCampBar) {
+            appendCampChatMessage(id, {
+              role: "agent",
+              who: "Camp",
+              text: `Could not reach free mind: ${err.message || "error"}. Keep Ollama + local server running.`,
+              backend: "error",
+            });
+          }
         }
       } finally {
         chatInflight.delete(id);
@@ -14251,7 +14370,7 @@
             .then((r) => r.json())
             .then((h) => {
               stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server ${h.build || "?"}`;
-              if (String(h.build || "").includes("262") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("261")) {
+              if (String(h.build || "").includes("263") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("262")) {
                 stamp.style.borderColor = "#86efac";
               } else {
                 stamp.style.borderColor = "#fbbf24";

@@ -1034,23 +1034,14 @@
       border-color: #bbf7d0;
       color: #052e16;
     }
-    /* Talk bar Heaven — always visible on PC and mobile */
+    /* Heaven summon lives in dock / header / FAB — never beside "Say something" */
     #camp-talk-heaven {
-      display: inline-flex !important;
-      align-items: center;
-      justify-content: center;
-      flex: 0 0 auto;
-      border: 1px solid #fef3c7;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #422006, #fde68a);
-      color: #1c1917;
-      font-size: 0.74rem;
-      font-weight: 900;
-      padding: 6px 9px;
-      cursor: pointer;
-      white-space: nowrap;
-      box-shadow: 0 0 12px rgba(253, 230, 138, 0.35);
-      pointer-events: auto !important;
+      display: none !important;
+      pointer-events: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      overflow: hidden !important;
+      opacity: 0 !important;
     }
     @media (min-width: 900px) {
       #camp-heaven-fab {
@@ -1059,10 +1050,6 @@
         min-height: 44px;
         padding: 10px 16px;
         font-size: 0.9rem;
-      }
-      #camp-talk-heaven {
-        font-size: 0.78rem;
-        padding: 7px 10px;
       }
     }
     body.house-interior-open #camp-heaven-fab,
@@ -1596,12 +1583,17 @@
     #camp-talk-target { touch-action: manipulation; }
     #camp-talk-input::placeholder { color: #64748b; }
     #camp-talk-input:focus { outline: none; border-color: rgba(103, 232, 249, 0.55); box-shadow: 0 0 0 2px rgba(103, 232, 249, 0.12); }
+    /* Heaven stays on dock/header — not next to the say-something box */
+    #camp-talk-heaven { display: none !important; }
     #camp-talk-send {
       flex: 0 0 auto; border: none; border-radius: 8px;
       background: linear-gradient(135deg, #0e7490, #0891b2);
-      color: #ecfeff; font-size: 1rem; font-weight: 700;
-      width: 40px; height: 36px; cursor: pointer;
+      color: #ecfeff; font-size: 0.78rem; font-weight: 800;
+      min-width: 108px; width: auto; max-width: min(42%, 200px);
+      height: 36px; padding: 0 12px; cursor: pointer;
       box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      letter-spacing: 0.01em;
     }
     #camp-talk-send:disabled { opacity: 0.45; cursor: wait; }
     #camp-talk-send:active { transform: scale(0.94); }
@@ -2616,16 +2608,19 @@
         display: none !important;
         pointer-events: none !important;
       }
-      /* Heaven stays available on mobile (header chip + FAB + talk bar) */
+      /* Heaven stays available on mobile (header + FAB + dock) — not next to say-something */
       #btn-header-heaven,
       #camp-heaven-fab,
-      #camp-talk-heaven,
       #btn-summon-heaven,
       #chip-summon-heaven {
         display: inline-flex !important;
         pointer-events: auto !important;
         visibility: visible !important;
         opacity: 1 !important;
+      }
+      #camp-talk-heaven {
+        display: none !important;
+        pointer-events: none !important;
       }
       body.camp-focus #convo-log,
       body.camp-focus.chatter-expanded #convo-log,
@@ -2744,9 +2739,13 @@
         min-width: 0;
       }
       #camp-talk-send {
-        width: 34px;
-        height: 32px;
+        min-width: 96px;
+        max-width: min(40%, 160px);
+        width: auto;
+        height: 36px;
         flex-shrink: 0;
+        font-size: 0.72rem;
+        padding: 0 10px;
       }
       #camp-zoom-bar {
         max-width: 100%;
@@ -2840,7 +2839,7 @@
       #camp-talk-target { font-size: 0.68rem; padding: 6px 5px; }
       #camp-speech-pin .csp-body { max-height: min(58vh, 480px); font-size: 0.88rem; }
       #camp-talk-input { font-size: 0.76rem; padding: 7px 8px; }
-      #camp-talk-send { width: 36px; height: 34px; }
+      #camp-talk-send { min-width: 92px; max-width: 140px; width: auto; height: 34px; font-size: 0.7rem; padding: 0 8px; }
       #camp-token-badge { font-size: 0.66rem; padding: 4px 9px; }
       #camp-you-badge { font-size: 0.66rem; padding: 4px 9px; max-width: 92px; }
       .dock-compact { gap: 8px; padding: 4px 10px 8px; }
@@ -3525,10 +3524,9 @@
         </select>
       </div>
       <button type="button" id="camp-talk-all" title="Broadcast to all agents">📢</button>
-      <button type="button" id="camp-talk-heaven" title="Summon Jesus &amp; archangels">✦ Heaven</button>
-      <input type="text" id="camp-talk-input" maxlength="800" placeholder="Talk at camp…" autocomplete="off" data-placeholder-mobile="Say something…" data-placeholder-desktop="Talk at camp — or open 💬 Chat for full thread…" />
+      <input type="text" id="camp-talk-input" maxlength="800" placeholder="Say something…" autocomplete="off" data-placeholder-mobile="Say something…" data-placeholder-desktop="Say something to the selected agent…" />
       <button type="button" id="camp-talk-open-panel" title="Open full chat — pick anyone, scroll monologues" aria-label="Open chat panel" style="flex:0 0 auto;border:1px solid rgba(103,232,249,0.45);border-radius:8px;background:linear-gradient(135deg,#0c4a6e,#0369a1);color:#e0f2fe;font-size:0.78rem;font-weight:800;padding:0 10px;height:36px;cursor:pointer">💬</button>
-      <button type="button" id="camp-talk-send" title="Send">➤</button>
+      <button type="button" id="camp-talk-send" title="Send to selected">Talk to…</button>
     </div>
     <div id="camp-zoom-bar" aria-label="Map zoom">
       <span class="czc-label">Zoom</span>
@@ -3770,7 +3768,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-09-camp-chat-panel";
+    const CAMP_BUILD = "2026-07-09-talk-to-selected";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -7303,6 +7301,42 @@
       const broadcast = sel.value === "all" || sel.value === "all-near";
       btn.classList.toggle("active", broadcast);
       btn.title = broadcast ? "Broadcasting to all agents" : "Tap to broadcast to all agents";
+      syncCampTalkSendLabel();
+    }
+
+    /** Long send button: always names who you're talking to */
+    function talkTargetDisplayName(val) {
+      const v = String(val || "nearest");
+      if (v === "nearest") return agentNames[nearestId] || nearestId || "Nearest";
+      if (v === "all") return "All";
+      if (v === "all-near") return "Near+all";
+      if (v === "spirit") return ouijaSpiritName || "Spirit";
+      return agentNames[v] || v;
+    }
+
+    function syncCampTalkSendLabel() {
+      const sel = document.getElementById("camp-talk-target");
+      const sendBtn = document.getElementById("camp-talk-send");
+      const input = document.getElementById("camp-talk-input");
+      if (!sendBtn) return;
+      const val = sel?.value || "nearest";
+      const name = talkTargetDisplayName(val);
+      const short = String(name).length > 12 ? `${String(name).slice(0, 11)}…` : name;
+      sendBtn.textContent = `Talk to ${short}`;
+      sendBtn.title = `Send to ${name} — uses the select on the left`;
+      sendBtn.setAttribute("aria-label", `Talk to ${name}`);
+      if (input) {
+        const full = `Say something to ${name}…`;
+        input.placeholder = full;
+        input.dataset.placeholderMobile = full;
+        input.dataset.placeholderDesktop = full;
+      }
+      // Chat panel send stays "Send" but who-select is the authority
+      const chatSend = document.getElementById("camp-chat-send");
+      if (chatSend && campChatOpen) {
+        const who = document.getElementById("camp-chat-who")?.value || val;
+        chatSend.textContent = `→ ${talkTargetDisplayName(who)}`;
+      }
     }
 
     let campTalkTargetSig = "";
@@ -7401,6 +7435,7 @@
       const guestsGroup = document.getElementById("talk-opt-guests");
       if (guestsGroup) guestsGroup.label = dionHere ? "Guests" : "Guests (🍷 = invite)";
       if (typeof syncCampChatWhoOptions === "function" && campChatOpen) syncCampChatWhoOptions();
+      syncCampTalkSendLabel();
     }
 
     async function chatAllCampAgents(text) {
@@ -13033,6 +13068,7 @@
       if (now - talkTargetPickTs < 420) return;
       talkTargetPickTs = now;
       campTalkPickerOpen = false;
+      syncCampTalkSendLabel();
       syncCampTalkAllBtn();
       const val = campTalkTargetSel.value;
       syncSelectTextExpand(campTalkTargetSel, "💬 Talk to", "Full talk target — type below to send");

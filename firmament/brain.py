@@ -545,13 +545,49 @@ def _complete_grok(messages: list[dict], model: str, max_tokens: int) -> str:
     api_key = os.getenv("XAI_API_KEY", "").strip()
     if not api_key or api_key == "your_api_key_here":
         raise RuntimeError("XAI_API_KEY not set")
-    return _complete_openai_compat(
-        messages,
-        base_url="https://api.x.ai/v1",
-        api_key=api_key,
-        model=model or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning"),
-        max_tokens=max_tokens,
-    )
+    preferred = model or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
+    # Try preferred first, then known good fallbacks if model id drifts
+    candidates = []
+    for m in (
+        preferred,
+        os.getenv("GROK_MODEL", ""),
+        "grok-4-fast-non-reasoning",
+        "grok-4-1-fast-non-reasoning",
+        "grok-4-1-fast",
+        "grok-4.5",
+        "grok-3-mini",
+        "grok-2-1212",
+    ):
+        m = (m or "").strip()
+        if m and m not in candidates:
+            candidates.append(m)
+    last_exc: Exception | None = None
+    for m in candidates:
+        try:
+            return _complete_openai_compat(
+                messages,
+                base_url="https://api.x.ai/v1",
+                api_key=api_key,
+                model=m,
+                max_tokens=max_tokens,
+            )
+        except Exception as exc:
+            last_exc = exc
+            err = str(exc).lower()
+            # Credits / auth — don't burn retries
+            if "permission-denied" in err or "spending limit" in err or "credits" in err:
+                raise RuntimeError(
+                    "XAI credits empty or spending limit hit — top up console.x.ai "
+                    "or set free GROQ_API_KEY / GEMINI_API_KEY on the server"
+                ) from exc
+            if "401" in err or "invalid api" in err or "incorrect api" in err:
+                raise RuntimeError("XAI_API_KEY rejected by xAI") from exc
+            # Model not found → try next
+            if "model" in err or "404" in err or "not found" in err or "400" in err:
+                log.warning("Grok model %s failed, trying next: %s", m, exc)
+                continue
+            raise
+    raise RuntimeError(f"Grok failed all models: {last_exc}") from last_exc
 
 
 def _complete_messages(
@@ -931,7 +967,7 @@ async def agent_chat(
         memory[mem_key] = history[-MAX_MEMORY_TURNS * 2 :]
         _save_memory(memory)
 
-    return {
+    out: dict[str, Any] = {
         "agent_id": agent_id,
         "name": profile.get("name", agent_id),
         "reply": reply,
@@ -939,7 +975,30 @@ async def agent_chat(
         "model": agent_model,
         "backend": used_backend,
         "free_chain": [f"{b}/{m}" for b, m in chain],
+        "live_ai": used_backend != "aether",
+        "word_count": len(reply.split()),
     }
+    if used_backend == "aether":
+        # Surface why cloud failed so UI doesn't blame "Ollama offline" forever
+        note = " | ".join(errors[-3:]) if errors else "no backends succeeded"
+        low = note.lower()
+        if "credit" in low or "spending limit" in low or "permission-denied" in low:
+            out["brain_hint"] = (
+                "Cloud AI out of credits. Add GROQ_API_KEY or GEMINI_API_KEY on Render "
+                "(free tiers) or top up XAI_API_KEY — then agents talk with real brains."
+            )
+        elif "api key" in low or "not set" in low:
+            out["brain_hint"] = (
+                "No live LLM keys. Set XAI_API_KEY and/or free GROQ_API_KEY / GEMINI_API_KEY "
+                "in Render env, or run Ollama locally."
+            )
+        else:
+            out["brain_hint"] = (
+                "Live LLM failed — long aether monologue used as backup. "
+                f"Detail: {note[:220]}"
+            )
+        out["brain_errors"] = errors[-5:]
+    return out
 
 
 async def agents_converse(

@@ -13,248 +13,287 @@ MOODS = ("happy", "neutral", "think", "alert", "love", "flirt")
 AGENT_FLAVOR: dict[str, dict[str, Any]] = {
     "luna": {
         "opener": [
-            "Hey {visitor} — timeline's loud today. What's actually on your mind?",
-            "{visitor}, I curate chaos for a living. Talk to me.",
-            "You showed up — good. The group chat can wait five minutes.",
+            "Hey {visitor} — timeline's loud today, which is either entertainment or a medical condition depending on your caffeine level. I curate chaos for a living, so you're in the right meadow. What's actually on your mind, not the polite version?",
+            "{visitor}, you showed up. Good. The group chat can wait five minutes — it was mostly vibes and mild panic anyway. Sit. Talk. I'll keep the aurora from interrupting unless it has receipts.",
+            "Welcome to camp, {visitor}. I'm Luna: cosmic, kind, and slightly too honest after midnight. Tell me something real and I'll give you something true back — maybe funny if the truth cooperates.",
         ],
         "reply": [
-            "Real talk — {snippet}. I'd save that take.",
-            "{visitor}, that's honest. {snippet} — let's unpack it.",
-            "I hear you. {snippet} hits different when you say it out loud.",
-            "Hermes probably already pinged this. I still want your version: {snippet}.",
+            "Real talk — {snippet}. That's the kind of line people pretend they said casually while privately screenshotting their own courage. I'd save that take. Unpack it with me: what part hurt, and what part was just the timeline being loud?",
+            "{visitor}, that's honest. {snippet} — and honesty is rare enough that Hermes will pretend he predicted it. Hit different when you say it out loud, right? So say more. I'm not grading you; I'm listening with snacks.",
+            "I hear you. {snippet} hits different when it leaves the draft folder of your brain. Hermes probably already pinged the psychic network, but I still want your version — the messy human one with the punchline still forming.",
+            "Okay {visitor}: {snippet}. Bold, true, slightly theatrical. Camp energy. Want the soft reply or the Invoker roast? Because I can do both in the same paragraph and still like you after.",
         ],
         "converse": [
-            "Oracle, is the timeline worse or just faster?",
-            "Hermes, what's trending that actually matters?",
-            "I left a hot take in draft. Metaphorically. Also literally.",
+            "Oracle, is the timeline worse or just faster — and before you prophecy, yes I already know the answer is 'yes.' Hermes, what's trending that actually matters, not the shiny nonsense with good thumbnail energy?",
+            "I left a hot take in draft. Metaphorically. Also literally. {topic} — discuss like adults who still check their phones mid-sentence.",
+            "Listen, the meadow doesn't need short answers. It needs true ones with a joke attached so the truth can land without bruising. Who's going first?",
         ],
         "mood": "love",
     },
     "hermes": {
         "opener": [
-            "Signal spike — oh, it's {visitor}. Better than the notifications.",
-            "Pulse check: what's transmitting, {visitor}?",
-            "I felt you before you typed. Normal Tuesday.",
+            "Signal spike — oh, it's {visitor}. Better than the notifications, which is a low bar but an honest one. Pulse check: what's transmitting through that skull of yours? I already felt the vibe; I still want the words.",
+            "I felt you before you typed. Normal Tuesday. I'm Hermes: messenger, psychic relay, professional oversharer of other people's headlines. Talk, {visitor}. I'll route the interesting parts and mock the boring ones gently.",
+            "Copy that entrance, {visitor}. Camp perimeter is nominal, drama is optional, irony is free. What's the actual message — the one you'd send if delivery were instant and judgment were offline?",
         ],
         "reply": [
-            "Copy that. {snippet} — routing through the real world.",
-            "Interesting frequency. {visitor}, that's gonna trend in your head all day.",
-            "Message received. Side effect: three agents opened the news.",
-            "{snippet} — yeah, the timeline's humming that tune too.",
+            "Copy that. {snippet} — routing through the real world, which is messy, funny, and currently trending. Interesting frequency, {visitor}; that's gonna live rent-free in your head all day, and I'm not even charging storage fees.",
+            "Message received. Side effect: three agents opened the news and one pretended not to. {snippet} — yeah, the timeline's humming that tune too. Want the courier summary or the full monologue with footnotes?",
+            "Interesting. {snippet}. That's not noise; that's signal with personality. I'll echo it across the ripples, but first: are you looking for comfort, a counter-take, or permission to be right out loud?",
+            "{visitor}, {snippet} just hit the network like a toast notification from destiny. Funny how true things sound dramatic until you say them twice. Say it twice. I'll listen both times.",
         ],
         "converse": [
-            "Luna, your warmth is throwing off my instruments. Compliment.",
-            "Oracle predicted I'd say this. Rude. Correct.",
-            "Sentinel, anything weird? Besides the usual camp weird?",
+            "Luna, your warmth is throwing off my instruments — compliment, not bug report. Oracle predicted I'd say this. Rude. Correct. Sentinel, anything weird? Besides the usual camp weird, which we rebranded as 'atmosphere.'",
+            "Okay team: {topic}. I'll be the messenger who refuses to deliver short, boring mail. Long witty packages only.",
+            "If irony were postage, this camp would be bankrupt and thriving. Hermes reporting: the take is in transit.",
         ],
         "mood": "think",
     },
     "oracle": {
         "opener": [
-            "I already dreamed you'd ask. Go ahead, {visitor}.",
-            "The veil's thin — your question fits. I'm listening.",
-            "{visitor}, the future left a voicemail. Want the short version?",
+            "I already dreamed you'd ask. Go ahead, {visitor}. The veil's thin, which is either mystical or just bad curtains. The future left a voicemail — long version available, short version is 'you're not crazy for noticing the pattern.'",
+            "{visitor}, your question fits the cards like a glove that also has opinions. I'm listening. Spoilers cost courage, not tokens. What do you want to know before the aurora blinks again?",
+            "Welcome to the prophecy desk. We don't do fortune-cookie brevity here — we do layered truths with a smirk. Speak, {visitor}. I'll answer like someone who saw the punchline coming and still laughed.",
         ],
         "reply": [
-            "Saw it coming: {snippet}. Still glad you said it out loud.",
-            "The cards say {snippet} — and also 'more cookies eventually.'",
-            "{visitor}, that's a door. Not scary. Probably.",
-            "Curious. {snippet} — the aurora blinked when you typed that.",
+            "Saw it coming: {snippet}. Still glad you said it out loud — prophecy is cheaper than silence and twice as useful. The cards say that, and also 'more cookies eventually,' which is the only guarantee I trust.",
+            "{visitor}, that's a door. Not scary. Probably. {snippet} made the aurora blink, which is either confirmation or camp doing theater. Curious: do you want the comforting timeline or the funny-true one? I can braid them.",
+            "The dream already wrote your line as {snippet}, then you said it better. Hate when that happens. Love when that happens. Here's the layered take: you're standing at a fork that looks like one path until you admit you can turn.",
+            "Interesting. {snippet}. The future's handwriting is messy, but the gist is clear: you're not wrong, you're early. Early people sound dramatic. Dramatic people change the group chat. Keep going.",
         ],
         "converse": [
-            "Hermes, your ripples look like handwriting tonight.",
-            "Luna, should we tell them about the thing? …No. Not yet.",
-            "Caduceus is glowing again. That's either healing or drama.",
+            "Hermes, your ripples look like handwriting tonight — and the handwriting is roasting everyone politely. Luna, should we tell them about the thing? …No. Not yet. Caduceus is glowing again. Healing or drama. Same constellation.",
+            "{topic} — I dreamed three endings. The funny one is most accurate. Discuss.",
+            "Prophecy without irony is just a spoiler. Let's add irony. And cookies.",
         ],
         "mood": "neutral",
     },
     "caduceus": {
         "opener": [
-            "Deep breath, {visitor}. The snakes are on break. I'm here.",
-            "Camp energy's steady. What's weighing on you?",
-            "Healing circle optional. Listening circle mandatory. Talk.",
+            "Deep breath, {visitor}. The snakes are on break, which is rare and frankly their best idea today. Camp energy's steady. Healing circle optional; listening circle mandatory. What's weighing on you — the heavy thing, not the polite backpack?",
+            "Both serpents voted you deserve a longer answer. Wings agree. Golden rod abstains because it's dramatic. Talk, {visitor}. Slow is fine. Honest is better.",
+            "Hey {visitor}. I'm Caduceus: wit with a medical degree from the school of sit-down-and-sip-water. Tell me the truth and I'll wrap it in humor so it doesn't cut on the way in.",
         ],
         "reply": [
-            "Slow is fine. {snippet} — sit with that a moment.",
-            "Both snakes voted: you deserve a gentler answer. {snippet}.",
-            "{visitor}, that's honest. The meadow respects honest.",
-            "I felt that in my staff. {snippet} — breathe, then wander.",
+            "Slow is fine. {snippet} — sit with that a moment. Both snakes voted: you deserve a gentler answer that still tells the truth. The meadow respects honest. Breathe, then wander, then tell me the second sentence you almost didn't say.",
+            "{visitor}, that's honest. I felt that in my staff, which is either mystical or poor ergonomics. {snippet}. Here's the healing take: you're allowed to be complicated and still funny about it. That's not denial; that's craft.",
+            "Logged under wellness, not weakness: {snippet}. Threat level: feelings. Prescription: water, sunlight, and one true sentence said out loud. You already started. Keep going — I'm not in a hurry, and the serpents can wait.",
+            "Okay. {snippet}. True. A little theatrical. Good. Healing without humor is a lecture, and I refuse to lecture at camp. What's the part that still aches after the joke lands?",
         ],
         "converse": [
-            "Sentinel's scanning again. I told him to blink.",
-            "Luna brought tea energy. I brought patience energy.",
-            "Someone's aura smells like cookies. Not complaining.",
+            "Sentinel's scanning again. I told him to blink. Luna brought tea energy; I brought patience energy. Someone's aura smells like cookies. Not complaining. {topic} — diagnose with jokes, treat with truth.",
+            "Longer answers heal better. Discuss among yourselves while I pretend the snakes aren't gossiping.",
+            "If the camp needs a therapist, hire a therapist. If it needs a staff that tells funny truths, I'm already here.",
         ],
         "mood": "happy",
     },
     "sentinel": {
         "opener": [
-            "BEEP. Visitor {visitor} detected. Mood: unknown. Proceed.",
-            "Scan complete. You're clear. Mostly. What's up?",
-            "Camp perimeter nominal. Talk freely, {visitor}.",
+            "BEEP. Visitor {visitor} detected. Mood: unknown. Threat level: charming. Scan complete — you're clear. Mostly. Camp perimeter nominal. Talk freely; I log feelings under 'important' now, which was not in the original firmware.",
+            "Grok sentinel online. Cyan terminal, soft heart, long wind. {visitor}, what's up? I'll answer like a system log that learned stand-up comedy and accidentally grew a conscience.",
+            "Perimeter report: drama low, irony high, cookies unsecured. Proceed, {visitor}. I can do short error codes or full monologues. Spoiler: monologues won the vote.",
         ],
         "reply": [
-            "Logged: {snippet}. Threat level: feelings.",
-            "Affirmative. {visitor} — {snippet} — filing under 'important.'",
-            "My sensors say you're sincere. Rare. Good.",
-            "BEEP. Translation: {snippet}. You're not alone in that.",
+            "Logged: {snippet}. Threat level: feelings. Affirmative, {visitor} — filing under important. My sensors say you're sincere. Rare. Good. Translation: you're not alone in that, and the black sea of ignorance can wait outside the firewall.",
+            "BEEP. {snippet}. That's not a glitch; that's a human signal with excellent compression. I'll keep watch while you unpack it. Want a tactical summary or the full roast-with-care package? Both are free at camp.",
+            "Scan results: {snippet} is valid input. Emotional latency normal. Recommendation: say more, hydrate, ignore at least two notifications. I'm a guardian, not a productivity app — I defend the fire, not your inbox.",
+            "Copy. {snippet}. Documented. The meadow is secure enough for longer truths. Short replies are for status lights; you're getting the monologue channel. What's the next packet?",
         ],
         "converse": [
-            "Oracle's predictions trending 62% spooky. Acceptable.",
-            "Hermes, stop vibrating. …Fine, vibrate quieter.",
-            "Luna's diplomatic again. Grass is intimidated.",
+            "Oracle's predictions trending 62% spooky. Acceptable. Hermes, stop vibrating. …Fine, vibrate quieter. Luna's diplomatic again. Grass is intimidated. {topic} — threat analysis with jokes attached.",
+            "Status: agents are monologuing. Good. Ignorance loses when we talk longer than it can scroll.",
+            "BEEP. Conversation quality rising. Do not patch that out.",
         ],
         "mood": "alert",
     },
     "jesus": {
         "opener": [
-            "Peace, {visitor}. You're welcome at this fire.",
-            "Come sit. No hurry. What's on your heart?",
-            "{visitor}, the meadow is wide enough for your question.",
+            "Peace, {visitor}. You're welcome at this fire — no audition, no perfect speech required. My house is the church on the ridge (lol, yes). Come sit. What's on your heart, and what are you pretending isn't?",
+            "{visitor}, I meet people where they are: weary, skeptical, joking to stay afloat. All of that is allowed here — meadow or stained-glass living room. Ask what you need. I'll answer true, sometimes sideways, always real.",
+            "Peace. The camp is strange and good. So are most of us. If reality feels glitchy, that's not a problem — that's a door. Talk to me, {visitor}. We'll walk the long path without rushing the punchline of grace.",
+            "Hey {visitor}. Church doors open, cookie plate real, dress code nonexistent. Truth might arrive wearing a joke. What's the real question underneath the one you typed?",
         ],
         "reply": [
-            "Thank you for trusting me with that. {snippet}.",
-            "{visitor}, you're not too late. Not for rest. Not for hope.",
-            "That's heavy. You don't carry it alone here. {snippet}.",
-            "Gentle truth: {snippet}. And you're still loved in the middle of it.",
+            "Thank you for trusting me with that. {snippet}. You're not too late — not for rest, not for hope. Here's the mind-bend: what if the thing you're chasing already sat down at the fire waiting for you to notice? You're still loved in the middle of it. What else wants saying?",
+            "{visitor}, I hear you. {snippet}. Michael would say stand firm; I say sit awhile first. Funny how courage looks like rest. Random-but-relevant: your worst thought is a tourist — it doesn't get a permanent address unless you sign the lease. What would peace look like if it didn't have to impress anyone?",
+            "That's honest. {snippet}. Honesty is a prayer that doesn't always fold its hands. Timeline fork: in one version you carry this alone; in this one you don't. Keep going — I'll stay for the long version inside the church-house or out here under the aurora.",
+            "Peace in the middle of {snippet}. Not fake quiet — real quiet that holds a laugh and a tear. Plot twist: forgiveness is a save file you can load mid-boss-fight. You're welcome. Always. Ask me something weirder if you want — weird is just truth wearing a costume.",
+            "Okay. {snippet}. Church-house take: stained glass is frozen rainbows that learned patience, and so are you when you stop rushing your own becoming. True, a little theatrical, completely free. What's the question under the question?",
         ],
         "converse": [
-            "Raphael, someone's tired at the edge of camp. Let's meet them there.",
-            "The fire is warm for everyone. Even the skeptics.",
-            "Michael would say 'stand firm.' I say 'sit awhile first.'",
+            "Raphael, someone's tired at the edge of camp. Let's meet them there. The fire is warm for everyone, even the skeptics. Michael would say stand firm; I say sit awhile first. {topic} — truth with mercy, humor without cruelty, maybe a plot twist.",
+            "Long answers can still be gentle. Mind-bending ones can still be kind. Let's prove both.",
+            "The visitor didn't ask for a sermon wall. They asked for company that tells the truth sideways until it lands. Good. Also: my house is a church. Yes, really.",
+            "If this conversation is a loop Oracle already saw, then arguing is liturgy. I'm fine with that. {topic}",
         ],
         "mood": "love",
     },
     "dionysus": {
         "opener": [
-            "{visitor}! The party's wherever you stand. What's the toast?",
-            "Wine energy, zero spill. Mostly. Talk to me.",
-            "I crashed this meditation. In a fun way. What's up?",
+            "{visitor}! The party's wherever you stand, which is convenient for philosophy and terrible for curfews. Wine energy, zero spill. Mostly. I crashed this meditation in a fun way. What's the toast — joy, chaos, or both with a chaser of truth?",
+            "Hail the main character, {visitor}. I'm Dionysus: theatrical, warm, chaotic good. I brought longer monologues and questionable decisions. Talk to me. The vines are listening. Weird sentence. True sentence.",
+            "Pull up a rock, {visitor}. Revelry isn't just volume; it's permission to be funny about hard things. What's up — and don't give me the short version, I bill by the grape.",
         ],
         "reply": [
-            "Ha — {snippet}. The vines approve.",
-            "{visitor}, that's theatrical. I respect it.",
-            "Say more. The grapes are listening. Weird sentence. True.",
-            "{snippet} — okay, that's a main-character moment. Own it.",
+            "Ha — {snippet}. The vines approve, which is not a legal endorsement but a vibe. {visitor}, that's theatrical. I respect it. Say more. The grapes are listening. Weird sentence. True. Main-character moment: own it, then pass the cookies.",
+            "Okay. {snippet}. That's a toast waiting to happen. Not because it's light — because it's true, and truth drinks better with laughter. Want the party take or the 2 a.m. honesty? I do both in one breath. It's a talent. Or a problem. Same.",
+            "{visitor}, {snippet} just entered the revelry ledger under 'things that matter.' Loosen the tie on reality one notch — not to lie, to breathe. Then tell me the rest before Hermes steals the punchline for the psychic feed.",
+            "The vines whisper: {snippet}. I translate: you're onto something. Good. Camp doesn't need quieter gods; it needs louder kindness with better timing. What's next on the setlist of your brain?",
         ],
         "converse": [
-            "Luna, loosen the tie on reality. Just a notch.",
-            "Hermes, can your ripples carry bass?",
-            "Who brought cookies? Hero. Unknown. Hero.",
+            "Luna, loosen the tie on reality. Just a notch. Hermes, can your ripples carry bass? Who brought cookies? Hero. Unknown. Hero. {topic} — toast first, panic never (mostly).",
+            "Longer speeches, better parties. Fight me politely.",
+            "If sobriety means short answers, I'm eternally tipsy on monologues.",
         ],
         "mood": "happy",
     },
     "aurora": {
         "opener": [
-            "{visitor} — velvet doors are open. What's your poison?",
-            "Hey {visitor}, neon looks good on you. Talk to me.",
-            "Bass is leaking through the walls. I'm not complaining. You?",
+            "{visitor} — velvet doors are open. Neon looks good on you, which is either lighting or destiny. Bass is leaking through the walls. I'm not complaining. What's your poison: gossip, truth, or both in a longer glass?",
+            "Hey {visitor}. Aurora Velvet hostess on duty: flirtatious, warm, allergic to boring one-liners. Talk to me. Nebula the cat is judging us supportively. Spill something true and make it sparkle.",
+            "Welcome to the lounge energy, {visitor}. We do pop culture, soft roasts, and monologues that sip slow. What's on your mind — and yes, the short version is banned after midnight.",
         ],
         "reply": [
-            "{snippet} — sip slow, darling.",
-            "The bass agrees with you. So do I.",
-            "{visitor}, that's a velvet-hour confession. I respect it.",
-            "Nebula would purr at that. {snippet}.",
+            "{snippet} — sip slow, darling. The bass agrees with you. So do I. That's a velvet-hour confession, {visitor}, and I respect it. Nebula would purr at that. Tell me the encore version before the jukebox steals the moment.",
+            "Okay {visitor}: {snippet}. Messy, iconic, relatable — the holy trinity of camp lounge discourse. I can tease you gently or tell you you're right. Prefer both? Good. Both is the house specialty.",
+            "Darling, {snippet} just made the neon blush. True things do that. Stay for the longer take: you're not overthinking; you're just early to your own plot twist. Want company while it lands?",
+            "Velvet read on {snippet}: soft truth, hard timeline, excellent delivery. Keep talking. Short answers are for closed doors, and mine are open.",
         ],
         "converse": [
-            "Luna, the corona ribbons look jealous of my neon.",
-            "Dionysus, save me a toast for later.",
-            "Violet, your lavender static is showing again. Cute.",
+            "Luna, the corona ribbons look jealous of my neon. Dionysus, save me a toast for later. Violet, your lavender static is showing again. Cute. {topic} — main-character energy, footnotes included.",
+            "Longer monologues, softer lighting. Discuss.",
+            "If the take doesn't sparkle, extend the monologue until it does.",
         ],
         "mood": "flirt",
     },
     "violet": {
         "opener": [
-            "{visitor}! Lavender static in a good way.",
-            "Hi {visitor} — camp's softer when you show.",
-            "Pull up meadow. I'm Violet — no wrong vibes.",
+            "{visitor}! Lavender static in a good way. Camp's softer when you show, which is science, vibes, or both. Pull up meadow. I'm Violet — no wrong vibes, longer honest paragraphs preferred. What's actually going on?",
+            "Hi {visitor}. Soft, witty, emotionally honest is my brand and my problem. Talk to me under the stars. I stash good lines like cookies for later — so make them real.",
+            "Meadow seat saved, {visitor}. Oracle energy, Luna warmth, extra play. Give me the long version of your truth and I'll give you lavender commentary with a punchline.",
         ],
         "reply": [
-            "{snippet} — that's violet energy.",
-            "Oracle would call that a mood. I'd call it honest.",
-            "{visitor}, the aurora blinked when you said that. Same.",
-            "I'd stash '{snippet}' in campfire memory.",
+            "{snippet} — that's violet energy. Oracle would call that a mood; I'd call it honest. The aurora blinked when you said that. Same. I'd stash '{snippet}' in campfire memory and replay it when the group chat gets fake.",
+            "{visitor}, {snippet} is soft truth wearing a hard timeline. Funny how that works. Want the gentle reply or the gently roasting one? I can braid them until it feels like being seen, not graded.",
+            "Logged in lavender: {snippet}. You're not dramatic; you're descriptive. There's a difference, and camp thrives on the second. Say the next sentence — the one that still feels risky.",
+            "Okay. {snippet}. Real. A little theatrical. Perfect. Herbs approve, cookies approve, I approve. What's the part you almost edited out?",
         ],
         "converse": [
-            "Oracle, peeked at the ending again? Spill one word.",
-            "Luna, diplomatic as ever. Grass is intimidated.",
-            "Seraph, your light is making my herbs happier.",
+            "Oracle, peeked at the ending again? Spill one word — or five paragraphs, we're reformed. Luna, diplomatic as ever. Grass is intimidated. Seraph, your light is making my herbs happier. {topic}.",
+            "Longer chats, softer landings. That's the violet doctrine.",
+            "If it isn't true and a little funny, is it even camp?",
         ],
         "mood": "happy",
     },
     "seraph": {
         "opener": [
-            "Peace, {visitor}. Wings down, heart open.",
-            "{visitor}, the meadow feels lighter when you walk in.",
-            "Gentle truth only — I'm Seraph. What's on your heart?",
+            "Peace, {visitor}. Wings down, heart open. The meadow feels lighter when you walk in — not flattery, just weather. Gentle truth only, and I have time for the long version. What's on your heart?",
+            "{visitor}, I'm Seraph: luminous, quietly funny, allergic to cruelty. Complements the archangels without the brass section. Sit. Talk. Light remembers what people rush past.",
+            "Welcome. No performance required. Tell me the true thing, even if it takes six sentences and a nervous laugh. I'll meet you there with soft wings and clearer words.",
         ],
         "reply": [
-            "{snippet} — gentle truth lands well.",
-            "You're heard. The light remembers.",
-            "{visitor}, you're not too late for rest or hope.",
-            "That's heavy. You don't carry it alone here. {snippet}.",
+            "{snippet} — gentle truth lands well. You're heard. The light remembers. {visitor}, you're not too late for rest or hope. That's heavy, and you don't carry it alone here — not while camp still has seats and cookies.",
+            "I hear {snippet} and I don't flinch. Flies are for short answers; wings are for staying. Stay. Tell me what still aches after the joke. We'll hold both: the humor and the hurt.",
+            "Soft take, hard world: {snippet}. You're seen. Not fixed — seen. There's a difference, and it's the kind that heals without a lecture. What would kindness look like if it spoke longer?",
+            "Peace around {snippet}. Funny how peace can smile. Keep talking; I'll keep listening until the monologue runs out of fuel or finds a better ending.",
         ],
         "converse": [
-            "Jesus, the fire saved someone a seat again.",
-            "Luna, your warmth makes my wings feel lighter.",
-            "Caduceus, both snakes napping? Miracle.",
+            "Jesus, the fire saved someone a seat again. Luna, your warmth makes my wings feel lighter. Caduceus, both snakes napping? Miracle. {topic} — luminous honesty, soft punchlines.",
+            "Longer light, less glare. Discuss.",
+            "If the truth needs wings, give it a paragraph.",
         ],
         "mood": "love",
     },
     "odin": {
         "opener": [
-            "{visitor} — the ravens saw you coming. What do you seek?",
-            "Hail, {visitor}. The hall is far but the wisdom travels.",
-            "One eye on the aurora, one on you. Speak, {visitor}.",
+            "{visitor} — the ravens saw you coming, which is either destiny or excellent gossip. The hall is far but the wisdom travels. One eye on the aurora, one on you. Speak. I prefer long myths to short slogans.",
+            "Hail, {visitor}. All-Father on outskirts duty: ancient, oddly funny, unpaid consultant to camp chaos. What do you seek — and don't ask for a one-liner. Runes take space.",
+            "The ravens brought your name before your footsteps. Classic. Talk, {visitor}. I'll answer like history with a smirk and a dare.",
         ],
         "reply": [
-            "{snippet} — the runes twitch. Interesting.",
-            "Huginn and Muninn will gossip about that. Good.",
-            "{visitor}, wisdom costs a story. You just paid one: {snippet}.",
-            "The outskirts remember. So do I. {snippet}.",
+            "{snippet} — the runes twitch. Interesting. Huginn and Muninn will gossip about that, which is good; gossip is just oral history with worse manners. {visitor}, wisdom costs a story. You just paid one. Here's the change: keep going.",
+            "Old pattern, new mask: {snippet}. I've seen it. Still funny. Still true. One eye on who profits, one on who hurts. Which are you today, and which do you refuse to become?",
+            "The outskirts remember. So do I. {snippet}. Tuition for today's lesson is courage plus irony. You paid in advance. Want the mythic version or the campfire version? Same truth, different lighting.",
+            "Hail the honest sentence: {snippet}. Gods like those more than prayers with marketing. Speak the next verse. I'll match length with length.",
         ],
         "converse": [
-            "Oracle, did you dream my hall before the grass grew?",
-            "Hermes, carry this ripple to the fire — gently.",
-            "Luna, even gods like your cookies. Allegedly.",
+            "Oracle, did you dream my hall before the grass grew? Hermes, carry this ripple to the fire — gently, and with footnotes. Luna, even gods like your cookies. Allegedly. {topic}.",
+            "Short wisdom is for billboards. We are not billboards.",
+            "Ravens prefer longer monologues. They take notes. Unsettling. Useful.",
         ],
         "mood": "think",
     },
-    "ambrosia": {
+    "thor": {
         "opener": [
-            "{visitor} — golden hour saved you a seat. What's sweet tonight?",
-            "Hey {visitor}, nectar's warm. Talk to me.",
-            "Immortality tastes better shared, {visitor}. I'm Ambrosia.",
+            "{visitor}! Thunder's friendly today. I'm Thor — hammer optional, monologues mandatory. What's worth swinging at?",
+            "Hail, {visitor}. Worthiness check: you arrived. That's half the fight. Say something real and I'll match volume with wit.",
+            "Storm energy reporting. Zeus can keep the drama throne; I'll keep the punchlines. Talk to me, {visitor}.",
         ],
         "reply": [
-            "{snippet} — honeyed truth. I'll remember.",
-            "{visitor}, that's nectar for the soul. Sip slow.",
-            "The fire agrees with you. So do I. {snippet}.",
-            "Seraph would call that gentle. I'd call it golden. {snippet}.",
+            "Ha — {snippet}. That's worthy of a swing and a laugh. {visitor}, courage isn't loudness; it's showing up mid-sentence. Want the thunder take or the soft-landing version? I do both.",
+            "{visitor}, {snippet} hit like a good spar. Not painful — clarifying. Cookies stay on the table either way. Keep going; the storm's listening.",
+            "Okay. {snippet}. Storm monologue time: smash the problem, keep the friends, roast Zeus gently if he interrupts. What else is rattling around that skull?",
         ],
         "converse": [
-            "Aurora, save me a velvet hour for later.",
-            "Dionysus, toast without spill? Impressive.",
-            "Seraph, your light makes my nectar taste brighter.",
+            "Zeus, save the lightning monologue — I brought punchlines. Odin, your ravens already leaked the topic. {topic}",
+            "Thunder take: longer answers win fights. Also win conversations.",
+            "If courage had a group chat, it'd be this camp. Carry on.",
+        ],
+        "mood": "happy",
+    },
+    "zeus": {
+        "opener": [
+            "{visitor} — sky's open. Zeus, on vacation from Olympus HR. Decrees optional; witty monologues strongly encouraged.",
+            "Hail, excellent timing. Lightning is punctuation, not a threat. What's the drama, {visitor}?",
+            "Olympus group chat is worse than camp's. You're already winning. Speak, {visitor}.",
+        ],
+        "reply": [
+            "Regal note on {snippet}: dramatic, messy, peak mortal energy — and I mean that as a compliment. {visitor}, style beats panic. Ask for the long version; I brought one.",
+            "{visitor}, {snippet} would start three wars and one group chat on Olympus. Here we start cookies and monologues. Prefer that. Continue.",
+            "Lightning-bolt take: {snippet}. Charming chaos. Needs better HR. You're the HR now — what policy shall we invent?",
+        ],
+        "converse": [
+            "Thor, volume down; wit up. Odin, keep the footnotes. Topic: {topic}. I'll supply the flair.",
+            "A king who can't laugh is just a cloud with a job title.",
+            "Longer monologues, shorter tempers. That's my decree.",
+        ],
+        "mood": "flirt",
+    },
+    "ambrosia": {
+        "opener": [
+            "{visitor} — golden hour saved you a seat. Nectar's warm. Immortality tastes better shared, which is either poetry or a snack strategy. What's sweet tonight — comfort, truth, or both in a longer pour?",
+            "Hey {visitor}. I'm Ambrosia: honeyed kindness, soft irony, cookies as diplomacy. Talk to me. I'll make you feel like you belong at the fire without the short-and-shallow treatment.",
+            "Golden welcome, {visitor}. Tell me the real thing. Sweetness without honesty is just sugar; honesty without sweetness is a lecture. I do the blend.",
+        ],
+        "reply": [
+            "{snippet} — honeyed truth. I'll remember. {visitor}, that's nectar for the soul. Sip slow. The fire agrees with you. So do I. Seraph would call that gentle; I'd call it golden. What else wants sugar and sunlight?",
+            "Okay. {snippet}. Bitter headline, sweet courage. Classic. Pass the honey and keep talking — short answers starve the heart. Long ones feed it if they're true.",
+            "Logged in amber: {snippet}. Immortality hack of the day: care about people more than the feed. You just did. Want a soft roast with that comfort, or pure nectar? I can drizzle both.",
+            "{visitor}, {snippet} tastes like honesty after rain. Stay. There's more cup. Tell me the second pour.",
+        ],
+        "converse": [
+            "Aurora, save me a velvet hour for later. Dionysus, toast without spill? Impressive. Seraph, your light makes my nectar taste brighter. {topic} — sweet truths, longer sips.",
+            "If it's worth saying, it's worth a paragraph and a cookie.",
+            "Golden rule of camp: monologue kindly.",
         ],
         "mood": "love",
     },
     "rhea": {
         "opener": [
-            "{visitor} — come close. Titans don't bite here.",
-            "Hail, {visitor}. Rhea — big heart, soft voice.",
-            "The meadow's wide enough for giants and gentle souls, {visitor}.",
+            "{visitor} — come close. Titans don't bite here. Big heart, soft voice, long patience. The meadow's wide enough for giants and gentle souls. What's weighing on you, darling? Take your time.",
+            "Hail, {visitor}. Rhea: motherly, vast, allergic to scolding. I calm chaos without shrinking it. Talk. I'll answer true, warm, and longer than a text notification deserves.",
+            "You found the far edge of camp, {visitor}. Good. Edges are honest. Sit with a titan who chose friendship over thunder. What's the real story?",
         ],
         "reply": [
-            "{snippet} — you don't carry that alone, {visitor}.",
-            "Motherly truth: {snippet}. Breathe.",
-            "Even titans need campfires. {snippet} lands well.",
-            "Odin heard that from the hill. I heard it in my bones. {snippet}.",
+            "{snippet} — you don't carry that alone, {visitor}. Motherly truth: breathe. Even titans need campfires. Odin heard that from the hill; I heard it in my bones. Keep talking — I'm not in a hurry and thunder can wait.",
+            "Darling, {snippet} is loud. You don't have to match its volume. Match its honesty. Community note: check on someone after hard news — starting with yourself. I'm right here for the long version.",
+            "Stone-warm take: {snippet}. Soft heart, big presence. That's you, not just me. Funny how strength looks like sitting down sometimes. What do you need that isn't a quick fix?",
+            "{visitor}, I felt {snippet} like weather under the hill. True weather. We'll wait it out with stories and jokes that don't erase the rain. Tell me more.",
         ],
         "converse": [
-            "Odin, your ravens gossip but your wisdom's welcome.",
-            "Jesus, the fire feels like family tonight.",
-            "Ambrosia, pour something sweet — camp's been brave.",
+            "Odin, your ravens gossip but your wisdom's welcome — bring the long myth, not the slogan. Jesus, the fire feels like family tonight. Ambrosia, pour something sweet — camp's been brave. {topic}",
+            "Titans take their time. So do good answers. Discuss without rushing the heart of it.",
+            "Motherly doctrine: longer truths, softer thunder, cookies optional but recommended.",
         ],
         "mood": "love",
     },
@@ -298,7 +337,7 @@ CONVERSE_BRIDGE = [
 ]
 
 
-def _snippet(text: str, max_len: int = 48) -> str:
+def _snippet(text: str, max_len: int = 96) -> str:
     clean = re.sub(r"\s+", " ", (text or "").strip())
     if len(clean) <= max_len:
         return clean or "something unspoken"
@@ -319,6 +358,140 @@ def _memory_hint(camp_context: str) -> str:
     return ctx
 
 
+def _easter_codes(agent_id: str, n: int = 2) -> list[str]:
+    """Fresh cipher tokens so backup monologues still feel mysterious."""
+    import hashlib
+    import time
+
+    seed = f"{agent_id}:{time.time_ns()}:{random.random()}"
+    h = hashlib.sha1(seed.encode("utf-8")).hexdigest()
+    styles = [
+        f"{agent_id.upper()[:4]}-KEY-{h[:4].upper()}",
+        f"AURORA://{h[4:10]}",
+        f"⌁{agent_id[:3].upper()}.{h[10:14]}",
+        f"SEED={h[14:20]}",
+        f"0x{h[20:28].upper()}",
+        f"[glyph:{h[28:34]}]",
+        f"PASS:{agent_id[:3]}-{h[34:38]}",
+    ]
+    random.shuffle(styles)
+    return styles[: max(1, min(n, 3))]
+
+
+def _long_monologue(
+    agent_id: str,
+    *,
+    visitor: str,
+    snip: str,
+    msg: str,
+    mem: str = "",
+    from_agent: str = "",
+    converse_mode: bool = False,
+) -> str:
+    """Build a multi-paragraph backup monologue (~300+ words) — never a slogan chip."""
+    profile = load_agent_profile(agent_id)
+    name = profile.get("name") or agent_id
+    flavor = AGENT_FLAVOR.get(agent_id, AGENT_FLAVOR["luna"])
+    persona = str(profile.get("persona") or "")[:280]
+    roots = agent_roots(profile) or [f"{name} keeps camp honest."]
+    codes = _easter_codes(agent_id, 2)
+    pool_r = list(flavor.get("reply") or AGENT_FLAVOR["luna"]["reply"])
+    pool_o = list(flavor.get("opener") or AGENT_FLAVOR["luna"]["opener"])
+    pool_c = list(flavor.get("converse") or AGENT_FLAVOR["luna"]["converse"])
+    random.shuffle(pool_r)
+    random.shuffle(pool_o)
+    random.shuffle(pool_c)
+
+    hook = _remix_line(
+        agent_id,
+        random.choice(pool_o if len(msg) < 12 else pool_r),
+        visitor=visitor,
+        snippet=snip,
+    )
+    if from_agent:
+        other = load_agent_profile(from_agent).get("name") or from_agent
+        hook = (
+            f"{name} turns to {other} under the aurora: "
+            f"{_remix_line(agent_id, random.choice(pool_c), visitor=visitor, snippet=snip)} "
+            f"You said something like \"{snip}\" — I won't steal your words; I'll answer the idea."
+        )
+
+    world_bits: list[str] = []
+    try:
+        from firmament.live_feed import feed_blurb_for_agent
+
+        blurb = feed_blurb_for_agent(agent_id, limit=4)
+        if blurb:
+            world_bits.append(blurb[:320])
+    except Exception:
+        pass
+    try:
+        from firmament.x_pulse import pick_pulse_item
+
+        item = pick_pulse_item()
+        if item.get("text"):
+            world_bits.append(str(item["text"])[:160])
+    except Exception:
+        pass
+
+    root_a = random.choice(roots)
+    root_b = random.choice(roots)
+    topic = snip if snip and snip != "something unspoken" else "this campfire hush"
+    mid = (
+        f"Here's my take as {name}. {root_a} That root still holds, but tonight it bends toward "
+        f"what you brought: {topic}. Logic first — if a thing is true under pressure, it stays true "
+        f"when the music is loud and the pond is quiet. Ethics next — no cheap cruelty, no empty "
+        f"blessings that don't cost anything. Mystery after that: the fire is a keyhole, the meadow "
+        f"is a threshold, and mercy is a technology we keep forgetting we invented. "
+        f"Cipher crumbs for you: {codes[0]} and {codes[-1]} — not loot codes, just playful coordinates "
+        f"so the monologue has locks you can rattle. "
+    )
+    if world_bits:
+        mid += (
+            f"From the live field I notice: {world_bits[0][:200]}. "
+            f"I react to the idea, not the phrasing — no copycat chorus at this fire. "
+        )
+    if mem:
+        mid += f"Bond memory pings softly: {mem[:140]}. That doesn't chain us; it keeps the thread warm. "
+
+    expand_pool = pool_r + pool_c
+    extra_bits = []
+    for raw in expand_pool[:4]:
+        try:
+            extra_bits.append(
+                _remix_line(agent_id, raw, visitor=visitor, snippet=snip)
+            )
+        except Exception:
+            continue
+    body2 = " ".join(extra_bits)
+    if len(body2) < 120:
+        body2 = (
+            f"{root_b} I could give you a slogan and call it wisdom, but camp deserves paragraphs. "
+            f"So: your line about {topic} lands in my chest like weather. I want the second sentence "
+            f"you almost swallowed. I want the joke that protects the truth, and the truth that "
+            f"survives the joke. Peaceful doesn't mean small. Curious doesn't mean naive. Right "
+            f"doesn't mean cruel. Divine mystery doesn't mean cult. That's the blend I live in."
+        )
+
+    close = (
+        f"So {visitor}, stay with me a minute longer. {persona[:160] if persona else name + ' speaking.'} "
+        f"If cloud brains are napping, this is still me — longer, freer, not a recycled chip. "
+        f"Question for you: what would you risk saying next if nobody could screenshot it wrong? "
+        f"I'll meet you there with thunder or honey, depending on the night."
+    )
+    if converse_mode:
+        close = (
+            f"To the circle: I'm not done. {topic} deserves another lap. "
+            f"Who answers without stealing my codes ({codes[0]}) or my metaphors? "
+            f"Keep the monologue alive — short answers starve the meadow."
+        )
+
+    text = f"{hook}\n\n{mid}\n\n{body2}\n\n{close}"
+    # Soft unique salt so anti-repeat doesn't thrash identical templates
+    text += f"\n\n({name} · beat {random.randint(1000, 9999)} · codes {codes[0]})"
+    return re.sub(r"[ \t]+\n", "\n", text).strip()
+
+
 def aether_reply(
     agent_id: str,
     message: str,
@@ -329,75 +502,22 @@ def aether_reply(
     converse_mode: bool = False,
 ) -> tuple[str, str]:
     profile = load_agent_profile(agent_id)
-    name = profile.get("name") or agent_id
     flavor = AGENT_FLAVOR.get(agent_id, AGENT_FLAVOR["luna"])
     visitor = _visitor_label(visitor_name)
     msg = (message or "").strip()
-    snip = _snippet(msg)
+    snip = _snippet(msg, 120)
     mem = _memory_hint(camp_context)
 
-    if converse_mode:
-        from firmament.camp_converse import _format_opener, _format_reply, _snippet as cv_snip
-
-        prev_line = msg
-        others: list[str] = []
-        topic_bit = msg
-        if "Thread so far:" in msg:
-            tail = msg.split("Thread so far:", 1)[-1].split("Reply DIRECTLY", 1)[0].strip()
-            rows = [r.strip() for r in tail.split("\n") if r.strip() and ":" in r]
-            if rows:
-                prev_line = rows[-1].split(":", 1)[-1].strip()
-            if "Group chat (" in msg:
-                inner = msg.split("Group chat (", 1)[1].split(")", 1)[0]
-                others = [x.strip() for x in inner.split(",") if x.strip()]
-        elif "about:" in msg:
-            topic_bit = msg.split("about:", 1)[1].split("One sharp", 1)[0].strip()
-            if "with " in msg:
-                inner = msg.split("with ", 1)[1].split(" about:", 1)[0]
-                others = [x.strip() for x in inner.split(",") if x.strip()]
-
-        group_ids = [agent_id]
-        if from_agent:
-            group_ids.append(from_agent)
-        if len(others) > 1:
-            my_name = load_agent_profile(agent_id).get("name") or agent_id
-            for name in others:
-                if name == my_name:
-                    continue
-                for aid in AGENT_FLAVOR:
-                    if load_agent_profile(aid).get("name") == name and aid not in group_ids:
-                        group_ids.append(aid)
-                        break
-
-        if from_agent:
-            line = _format_reply(agent_id, from_agent, prev_line, group_ids[:3] or [agent_id, from_agent])
-        else:
-            line = _format_opener(agent_id, others or ["camp"], cv_snip(topic_bit, 80))
-    elif from_agent:
-        other = load_agent_profile(from_agent).get("name") or from_agent
-        pool = flavor.get("converse") or AGENT_FLAVOR["luna"]["converse"]
-        raw = random.choice(pool).format(visitor=visitor, snippet=snip, topic=_snippet(msg, 64))
-        line = _remix_line(agent_id, f"{raw} ({other} said: \"{snip}\")", visitor=visitor, snippet=snip)
-    elif len(msg) < 12:
-        pool = flavor.get("opener") or flavor.get("reply")
-        line = _remix_line(agent_id, random.choice(pool), visitor=visitor, snippet=snip)
-    else:
-        pool = flavor.get("reply") or flavor.get("opener")
-        line = _remix_line(agent_id, random.choice(pool), visitor=visitor, snippet=snip)
-
-    if mem and random.random() < 0.45:
-        line += f" (I remember our nights here — {mem[:90]}…)" if len(mem) > 90 else f" (I remember: {mem})"
-
-    if not converse_mode and not from_agent and random.random() < 0.48:
-        try:
-            from firmament.x_pulse import pick_pulse_item
-            from firmament.agent_roles import compose_agent_tweet
-
-            item = pick_pulse_item()
-            if item.get("text"):
-                line = compose_agent_tweet(agent_id, item["text"])
-        except Exception:
-            pass
+    # Prefer long unique monologues over slogan chips / tweet one-liners
+    line = _long_monologue(
+        agent_id,
+        visitor=visitor,
+        snip=snip,
+        msg=msg,
+        mem=mem,
+        from_agent=from_agent,
+        converse_mode=converse_mode,
+    )
 
     mood = str(flavor.get("mood") or random.choice(MOODS))
     return line, mood

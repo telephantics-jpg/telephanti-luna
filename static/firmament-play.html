@@ -3429,7 +3429,7 @@
 <body class="camp-trippy">
   <!-- Always-visible live stamp so you know the correct deploy is loaded -->
   <div id="camp-live-stamp" style="position:fixed;z-index:99999;left:8px;bottom:calc(var(--dock-h,90px) + 10px);max-width:min(92vw,360px);padding:8px 12px;border-radius:999px;border:2px solid #86efac;background:linear-gradient(135deg,#052e16,#14532d);color:#bbf7d0;font:800 0.72rem/1.25 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:auto;touch-action:manipulation;cursor:pointer" title="Click to hide for this session">
-    ✦ LIVE 261 · real AI brains (Grok chain)
+    ✦ LIVE 262 · brains + long monologues
   </div>
 
   <div id="camp-stage"><canvas id="game"></canvas></div>
@@ -3888,7 +3888,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-10-261-LIVE-BRAINS";
+    const CAMP_BUILD = "2026-07-10-262-BRAIN-FIX";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4365,7 +4365,8 @@
       const pool = (message || "").trim().length < 12 || ambientish ? flavor.open : flavor.reply;
       let core = pool[Math.floor(Math.random() * pool.length)]
         .replace("{v}", v).replace("{s}", s);
-      // Stretch offline lines so they don't feel like slogan chips
+      // Stretch offline browser lines so they don't feel like slogan chips
+      // (server aether is multi-paragraph; this is last-resort only)
       const tails = [
         ` The meadow is listening, ${v} — so am I. Tell me the real version, not the group-chat version.`,
         ` Camp's weird tonight in a good way. I'll meet you with a longer take if you keep going.`,
@@ -7060,7 +7061,12 @@
         const brain = data.backend
           ? `${data.backend}${data.model ? " · " + data.model : ""}`
           : "camp";
-        setCampLifeStatus(`${data.name || agentId} · ${brain} · scroll chat panel`);
+        if (data.backend === "aether") {
+          setCampLifeStatus(`${data.name || agentId} · long backup monologue · ${data.brain_hint || "add free GROQ key for live AI"}`);
+          if (data.brain_hint) showToast(String(data.brain_hint).slice(0, 140));
+        } else {
+          setCampLifeStatus(`${data.name || agentId} · LIVE ${brain} · scroll chat panel`);
+        }
       } catch (err) {
         const thr = getCampChatThread(agentId);
         if (thr.length && thr[thr.length - 1].thinking) thr.pop();
@@ -7074,7 +7080,7 @@
           model: "offline",
         });
         applyChatResult(agentId, data, { fromCampBar: true, fromChatPanel: true });
-        showToast(isFetchOfflineError(err) ? "Offline aether brain" : (err.message || "chat hiccup"));
+        showToast(isFetchOfflineError(err) ? "Server offline — reconnect telephanti.com" : (err.message || "chat hiccup"));
       }
       campTalkBusy = false;
       if (sendBtn) sendBtn.disabled = false;
@@ -14245,7 +14251,7 @@
             .then((r) => r.json())
             .then((h) => {
               stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server ${h.build || "?"}`;
-              if (String(h.build || "").includes("261") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("260")) {
+              if (String(h.build || "").includes("262") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("261")) {
                 stamp.style.borderColor = "#86efac";
               } else {
                 stamp.style.borderColor = "#fbbf24";

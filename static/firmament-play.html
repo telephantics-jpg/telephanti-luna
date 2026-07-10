@@ -952,13 +952,14 @@
       font-size: 0.85rem; cursor: pointer; flex-shrink: 0;
     }
     #camp-speech-pin .csp-body {
-      max-height: min(62vh, 560px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+      max-height: min(68vh, 620px); overflow-y: auto; -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
-      padding: 10px 12px 14px;
-      font-size: 0.9rem; line-height: 1.55; color: #f8fafc;
+      padding: 12px 14px 16px;
+      font-size: 0.95rem; line-height: 1.58; color: #f8fafc;
       white-space: pre-wrap; word-break: break-word;
       scrollbar-width: thin;
       scrollbar-color: rgba(103, 232, 249, 0.55) rgba(15, 23, 42, 0.35);
+      min-height: 120px;
     }
     #camp-speech-pin .csp-body::-webkit-scrollbar { width: 8px; }
     #camp-speech-pin .csp-body::-webkit-scrollbar-thumb {
@@ -1034,14 +1035,19 @@
       border-color: #bbf7d0;
       color: #052e16;
     }
-    /* Heaven summon lives in dock / header / FAB — never beside "Say something" */
-    #camp-talk-heaven {
+    /* One Heaven button only (dock). Hide all other Heaven UI. */
+    #camp-talk-heaven,
+    #camp-heaven-fab,
+    #btn-header-heaven,
+    #chip-summon-heaven,
+    #chip-summon-heaven-tools {
       display: none !important;
       pointer-events: none !important;
       width: 0 !important;
       height: 0 !important;
       overflow: hidden !important;
       opacity: 0 !important;
+      visibility: hidden !important;
     }
     @media (min-width: 900px) {
       #camp-heaven-fab {
@@ -1427,11 +1433,21 @@
     }
     #camp-talk-target:focus { outline: none; border-color: rgba(167, 139, 250, 0.65); }
     #camp-talk-input {
-      flex: 1; min-width: 0;
+      flex: 1 1 auto; min-width: 0;
       background: #0f172a; color: #f8fafc;
       border: 1px solid rgba(103, 232, 249, 0.25);
-      border-radius: 8px; padding: 8px 10px; font-size: 0.84rem;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      min-height: 48px;
+      height: 48px;
       touch-action: manipulation;
+    }
+    /* Bigger compose surface — room to type real thoughts */
+    #camp-talk-bar #camp-talk-input {
+      flex: 1 1 42%;
+      min-width: 140px;
     }
     /* Dedicated chat panel — select anyone, type, scroll long LLM monologues */
     #camp-chat-panel {
@@ -1897,11 +1913,13 @@
       }
       /* PC: keep Heaven + Dionysus summon visible in the dock */
       #btn-summon-heaven,
-      #btn-summon-dionysus,
-      #btn-header-heaven {
+      #btn-summon-dionysus {
         display: inline-flex !important;
         pointer-events: auto !important;
         flex-shrink: 0;
+      }
+      #btn-header-heaven {
+        display: none !important;
       }
       #btn-summon-heaven {
         min-width: 34px !important;
@@ -2609,18 +2627,21 @@
         pointer-events: none !important;
       }
       /* Heaven stays available on mobile (header + FAB + dock) — not next to say-something */
-      #btn-header-heaven,
-      #camp-heaven-fab,
-      #btn-summon-heaven,
-      #chip-summon-heaven {
+      /* Single Heaven control on mobile = dock button only */
+      #btn-summon-heaven {
         display: inline-flex !important;
         pointer-events: auto !important;
         visibility: visible !important;
         opacity: 1 !important;
       }
+      #btn-header-heaven,
+      #camp-heaven-fab,
+      #chip-summon-heaven,
+      #chip-summon-heaven-tools,
       #camp-talk-heaven {
         display: none !important;
         pointer-events: none !important;
+        visibility: hidden !important;
       }
       body.camp-focus #convo-log,
       body.camp-focus.chatter-expanded #convo-log,
@@ -3549,7 +3570,7 @@
         </select>
       </div>
       <button type="button" id="camp-talk-all" title="Broadcast to all agents">📢</button>
-      <input type="text" id="camp-talk-input" maxlength="800" placeholder="Say something…" autocomplete="off" data-placeholder-mobile="Say something…" data-placeholder-desktop="Say something to the selected agent…" />
+      <textarea id="camp-talk-input" rows="2" maxlength="1200" placeholder="Say something…" autocomplete="off" data-placeholder-mobile="Say something to them…" data-placeholder-desktop="Say something — pick who (or All) in the menu…" style="resize:vertical;max-height:120px;font-family:inherit"></textarea>
       <button type="button" id="camp-talk-open-panel" title="Open full chat — pick anyone, scroll monologues" aria-label="Open chat panel" style="flex:0 0 auto;border:1px solid rgba(103,232,249,0.45);border-radius:8px;background:linear-gradient(135deg,#0c4a6e,#0369a1);color:#e0f2fe;font-size:0.78rem;font-weight:800;padding:0 10px;height:36px;cursor:pointer">💬</button>
       <button type="button" id="camp-talk-send" title="Send to selected">Talk to…</button>
     </div>
@@ -3793,7 +3814,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-09-fix-agentnames-tdz";
+    const CAMP_BUILD = "2026-07-10-peaceful-multi-brain-ui";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -3845,17 +3866,18 @@
     }, true);
     // Open the throttle — camp dialogue runs hotter, less dead air
     const CAMP_PACE = {
-      readMinSec: 40,
-      readMaxSec: 280,
-      charsPerSec: 12,
-      converseGapMs: 9000,
-      converseGapChillMs: 14000,
-      nextConverseMinMs: 22000,
-      nextConverseRandMs: 24000,
-      retryConverseMs: 12000,
-      idleChatterMinMs: 12000,
-      idleChatterRandMs: 14000,
-      proximityMinMs: 18000,
+      // Longer hold so peaceful monologues can be read fully
+      readMinSec: 55,
+      readMaxSec: 360,
+      charsPerSec: 10,
+      converseGapMs: 11000,
+      converseGapChillMs: 16000,
+      nextConverseMinMs: 26000,
+      nextConverseRandMs: 28000,
+      retryConverseMs: 14000,
+      idleChatterMinMs: 14000,
+      idleChatterRandMs: 16000,
+      proximityMinMs: 20000,
     };
     const CAMP_TRAVERSE_PAD = { x: 40, y: 32 };
     const DESKTOP_REF_W = 1280;
@@ -7491,19 +7513,23 @@
         showToast("No agents at camp to hear you");
         return;
       }
-      setCampLifeStatus(`📢 All agents heard you — ${order.length} voices answering…`);
-      showToast(`Broadcasting to ${order.length} agents`);
-      for (const id of order) {
-        const label = agentNames[id] || id;
-        setCampLifeStatus(`${label} is thinking…`);
-        await chat(
+      // Real-time multi-brain: fire free-chain agents in parallel waves (3 at a time)
+      const WAVE = 3;
+      setCampLifeStatus(`📢 Free multi-brain field — ${order.length} agents thinking live…`);
+      showToast(`Broadcasting · ${order.length} free brains in parallel`);
+      for (let i = 0; i < order.length; i += WAVE) {
+        const wave = order.slice(i, i + WAVE);
+        setCampLifeStatus(`Wave ${Math.floor(i / WAVE) + 1}: ${wave.map((id) => agentNames[id] || id).join(" · ")}`);
+        await Promise.allSettled(wave.map((id) => chat(
           id,
-          `(The whole aurora camp hears the visitor say: "${text}" — answer in your own true voice, 5-9 sentences. Invoker energy: ironic, funny, actually true. Random-but-relevant mind-bend welcome. In character.)`,
+          `(Multi-agent free-brain circle — other AIs may answer at the same time. ` +
+          `The visitor said: "${text}". Peaceful, curious, accurate voice. ` +
+          `~400 words if you have them. Unique wording. End with a real question.)`,
           { useDialogue: false, fromCampBar: true },
-        );
-        await new Promise((r) => setTimeout(r, 700));
+        )));
+        await new Promise((r) => setTimeout(r, 400));
       }
-      setCampLifeStatus("Camp is alive — agents wandering & chatting");
+      setCampLifeStatus("Camp is peaceful — free multi-brains finished this circle");
     }
 
     function isGrokLinkAgent(agentId) {
@@ -9300,24 +9326,30 @@
       try { bodyEl.focus?.(); } catch (_) {}
     }
 
-    /** Open scrollable monologue reader (pin panel) without losing full text */
+    /** Open scrollable monologue reader for long replies (typical chat UI) */
     function openAgentScrollBubble(speaker, text, mood, opts = {}) {
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
+      const words = clean.split(/\s+/).filter(Boolean).length;
+      // Short lines don't need the reader panel
+      if (!opts.force && words < 28) return;
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase());
       if (npc) {
         npc.fullLine = clean;
         npc.line = clean;
       }
-      speechHold.set(speaker, { line: clean, until: Date.now() + Math.max(90000, campReadHoldSec(clean, 60) * 1000) });
+      const holdMs = Math.max(120000, campReadHoldSec(clean, 70) * 1000);
+      speechHold.set(speaker, { line: clean, until: Date.now() + holdMs });
+      // forceOpen: new chats always re-show the reader even if panel was closed
       pinCampSpeech(speaker, clean, mood || "neutral", {
+        forceOpen: true,
         color: opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9",
         agentId: opts.agentId || npc?.id || "",
       });
       if (isCampMobile()) {
         showCampTextExpand(speaker, clean, {
           mood: mood || "neutral",
-          hint: "Scroll full monologue — tap ✕ to collapse",
+          hint: "Scroll the monologue · ✕ collapses (new chats reopen)",
         });
       }
     }
@@ -9337,7 +9369,8 @@
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
       const key = `${speaker}::${clean}`;
-      if (pinnedSpeechKey === key) {
+      // Manual pin toggle only when user re-taps same line (not force-open from new chat)
+      if (!opts.forceOpen && pinnedSpeechKey === key) {
         hideCampSpeechPin();
         pinnedSpeech.clear();
         return;
@@ -13178,13 +13211,8 @@
         try { ev?.preventDefault?.(); ev?.stopPropagation?.(); } catch (_) {}
         summonArchangelCouncil();
       };
-      [
-        "btn-summon-heaven",
-        "btn-header-heaven",
-        "chip-summon-heaven",
-        "chip-summon-heaven-tools",
-        "camp-heaven-fab",
-      ].forEach((id) => {
+      // Single Heaven control — dock only
+      ["btn-summon-heaven"].forEach((id) => {
         const el = document.getElementById(id);
         if (!el || el.dataset.heavenWired === "1") return;
         el.dataset.heavenWired = "1";
@@ -13745,16 +13773,16 @@
         npc.line = clean;
         npc.fullLine = clean;
       }
-      // Open-ended monologues → scrollable chat bubble / pin reader
+      // Long monologues → scrollable reader (reopens for new chats; short lines skip)
       const wordCount = clean.split(/\s+/).filter(Boolean).length;
       if (
         !quiet
         && speaker !== "Camp"
         && !isVisitorSpeaker(speaker)
-        && wordCount >= 35
+        && wordCount >= 28
         && !opts.noScrollBubble
       ) {
-        openAgentScrollBubble(speaker, clean, moodVal, { agentId });
+        openAgentScrollBubble(speaker, clean, moodVal, { agentId, force: true });
       }
       if (!opts.skipBroadcast && playWs && playWs.readyState === WebSocket.OPEN && opts.fromLocal) {
         playWs.send(JSON.stringify({

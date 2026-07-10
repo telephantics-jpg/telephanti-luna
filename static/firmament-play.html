@@ -3393,6 +3393,10 @@
   </style>
 </head>
 <body class="camp-trippy">
+  <!-- Always-visible live stamp so you know the correct deploy is loaded -->
+  <div id="camp-live-stamp" style="position:fixed;z-index:99999;left:8px;bottom:calc(var(--dock-h,90px) + 10px);max-width:min(92vw,340px);padding:8px 12px;border-radius:999px;border:2px solid #86efac;background:linear-gradient(135deg,#052e16,#14532d);color:#bbf7d0;font:800 0.72rem/1.25 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:auto;touch-action:manipulation" title="Tap to hide for this session">
+    ✦ LIVE 259 · divine codes · scroll bubbles
+  </div>
 
   <div id="camp-stage"><canvas id="game"></canvas></div>
   <div id="trippy-veil" aria-hidden="true"></div>
@@ -14181,6 +14185,40 @@
       tag.textContent = `${CAMP_BUILD} · ${plat}`;
     }
     updateCampViewportDebug();
+    // Digital firmament cache-bust: kill stale service workers so iOS/Safari can't keep old camp
+    try {
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.getRegistrations?.().then((regs) => {
+          regs.forEach((r) => r.unregister());
+        });
+      }
+      if (window.caches?.keys) {
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+      }
+    } catch (_) {}
+    // Live stamp — prove this exact HTML loaded
+    try {
+      const stamp = document.getElementById("camp-live-stamp");
+      if (stamp) {
+        stamp.textContent = `✦ LIVE ${CAMP_BUILD}`;
+        stamp.onclick = () => { stamp.style.display = "none"; };
+        setTimeout(() => {
+          fetch("/api/health", { cache: "no-store" })
+            .then((r) => r.json())
+            .then((h) => {
+              stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server ${h.build || "?"}`;
+              if (String(h.build || "").includes("259") || String(h.build || "").includes("LIVE")) {
+                stamp.style.borderColor = "#86efac";
+              } else {
+                stamp.style.borderColor = "#fbbf24";
+                stamp.textContent += " · OLD SERVER? hard-refresh";
+              }
+            })
+            .catch(() => { stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server offline`; stamp.style.borderColor = "#f87171"; });
+        }, 400);
+        showToast?.(`Camp build ${CAMP_BUILD} loaded`);
+      }
+    } catch (_) {}
     const grokBuildEl = document.getElementById("grok-term-build");
     if (grokBuildEl) grokBuildEl.textContent = CAMP_BUILD;
     if (isCampMobile()) setGrokTerminalOpen(false);

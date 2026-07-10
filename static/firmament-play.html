@@ -1481,14 +1481,48 @@
     }
     #camp-chat-panel.open { display: flex !important; }
     @media (min-width: 900px) {
+      /* PC: big readable chat on the left of the sidebar chatter */
       #camp-chat-panel {
-        left: auto;
-        right: calc(var(--sidebar-w) + var(--gap) * 2);
-        width: min(420px, 36vw);
-        max-width: 440px;
-        bottom: calc(var(--dock-h) + 12px);
-        height: min(70vh, 620px);
-        max-height: min(74vh, 640px);
+        left: var(--gap);
+        right: auto;
+        width: min(480px, 38vw);
+        max-width: 520px;
+        bottom: calc(var(--dock-h) + 14px);
+        top: calc(var(--header-h) + 12px);
+        height: auto;
+        max-height: none;
+      }
+      #camp-chat-panel .ccp-bubble {
+        max-height: min(46vh, 420px) !important;
+        font-size: 0.95rem !important;
+      }
+      #camp-speech-pin {
+        left: auto !important;
+        right: calc(var(--sidebar-w) + var(--gap) * 2) !important;
+        width: min(420px, 34vw) !important;
+        max-width: 460px !important;
+        top: calc(var(--header-h) + var(--gap) + 8px) !important;
+        z-index: 40 !important;
+      }
+      #camp-speech-pin .csp-body {
+        max-height: min(62vh, 560px) !important;
+        font-size: 1rem !important;
+        line-height: 1.55 !important;
+      }
+      #camp-live-stamp {
+        left: auto !important;
+        right: calc(var(--sidebar-w) + 16px) !important;
+        bottom: auto !important;
+        top: 10px !important;
+      }
+      #camp-talk-input {
+        min-height: 56px !important;
+        font-size: 1rem !important;
+        padding: 12px 14px !important;
+      }
+      #convo-lines .text {
+        max-height: min(42vh, 380px) !important;
+        overflow-y: auto !important;
       }
     }
     #camp-chat-panel .ccp-head {
@@ -7910,7 +7944,7 @@
         }
       }
       const talkText = mention.agentId ? mention.message : text;
-      // Open full chat panel so replies have a place to live + scroll
+      // PC + mobile: always open full chat panel so long monologues have a scroll home
       let panelAgent = target === "nearest" ? (nearestId || "luna") : target;
       if (panelAgent === "all" || panelAgent === "all-near") panelAgent = nearestId || "luna";
       if (panelAgent !== "spirit") {
@@ -7919,9 +7953,13 @@
         appendCampChatMessage(panelAgent, {
           role: "agent",
           who: agentNames[panelAgent] || panelAgent,
-          text: "…thinking (live brain)…",
+          text: "…thinking (live multi-brain)… full reply will scroll in this bubble",
           thinking: true,
         });
+        // PC: also force monologue reader for long replies after they land (applyChatResult)
+        if (!isCampMobile()) {
+          showToast(`Chat open → ${agentNames[panelAgent] || panelAgent} · scroll their bubble`);
+        }
       }
       try {
         if (target === "spirit") {
@@ -14207,7 +14245,7 @@
             .then((r) => r.json())
             .then((h) => {
               stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server ${h.build || "?"}`;
-              if (String(h.build || "").includes("259") || String(h.build || "").includes("LIVE")) {
+              if (String(h.build || "").includes("260") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("259")) {
                 stamp.style.borderColor = "#86efac";
               } else {
                 stamp.style.borderColor = "#fbbf24";
@@ -14694,4 +14732,5 @@
       startGameLoop();
     }
   </script>
-<
+</body>
+</html>

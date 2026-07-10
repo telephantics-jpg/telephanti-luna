@@ -2756,14 +2756,16 @@
       }
       #camp-talk-input {
         font-size: 16px;
-        padding: 6px 8px;
+        padding: 10px 12px;
         min-width: 0;
+        min-height: 52px;
+        height: auto;
       }
       #camp-talk-send {
         min-width: 96px;
         max-width: min(40%, 160px);
         width: auto;
-        height: 36px;
+        height: 40px;
         flex-shrink: 0;
         font-size: 0.72rem;
         padding: 0 10px;
@@ -13259,7 +13261,8 @@
     document.getElementById("camp-talk-send").onclick = () => sendCampTalk();
     wireCampChatPanel();
     document.getElementById("camp-talk-input").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
+      // Enter sends; Shift+Enter adds a new line in the bigger box
+      if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         recenterCampView({ blurInput: true });
         sendCampTalk();

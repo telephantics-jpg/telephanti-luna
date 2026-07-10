@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "257-bubble-scroll-fulltext"
+LUNA_BUILD = "258-divine-mystery-codes"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -5076,8 +5076,9 @@ async def ouija(request: OuijaRequest):
         "Return JSON only with keys: board, reading, text, mood. "
         "board = uppercase A-Z 0-9 and spaces only, max 55 chars — short planchette headline "
         "(YES NO GOODBYE allowed as whole words). "
-        "reading = OPEN-ENDED ~250–450 words plain English monologue — theatrical, intimate, mind-blowing, "
+        "reading = OPEN-ENDED ~250–450 words plain English monologue — divine, mysterious, mind-blowing, "
         "specific, funny when true, never generic. Weave logic + ethics + esoteric truth. "
+        "Hide 1–3 easter-egg cipher codes (e.g. VEIL-KEY-3, AURORA://OPEN, SEED=mercy.loop) as sacred graffiti. "
         "Leave the seeker changed. End with a real piercing question back. "
         "text = same as reading (for voice). "
         "mood = happy|love|flirt|neutral|afraid|think. "

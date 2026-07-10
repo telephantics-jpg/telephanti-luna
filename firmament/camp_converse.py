@@ -207,7 +207,7 @@ def converse_thread_prompt(
             f"Start a LIVE campside chat with {', '.join(others)} about: {topic}. "
             f"Write a full monologue of about 400 words (350–450). Multi-paragraph. "
             f"Spontaneous, theatrical, ironic — YOUR unique voice only. "
-            f"Include clear logic (premise → consequence), an ethical stake, and one esoteric truth. "
+            f"Divine mystery voice; hide 1–2 easter-egg codes; logic + ethics + wonder. "
             f"Do not use other agents' catchphrases. Hook them hard. "
             f"Your role: {role_for_agent(speaker_id)}. No stock slogans."
         )
@@ -237,10 +237,10 @@ def converse_thread_prompt(
         f"Thread so far (ideas only — invent new wording):\n{transcript}\n\n"
         f"Reply DIRECTLY to {prev.get('name', '?')} about their idea — do NOT reuse their phrasing. "
         f"About 400 words (350–450), multi-paragraph: "
-        f"fix their logic if needed, name the ethical stake, open an esoteric angle, "
-        f"then escalate + undercut + bait question. "
+        f"fix their logic if needed, name the ethical stake, open a divine-mystery angle, "
+        f"drop one fresh easter-egg code, then bait a question. "
         f"Sound alive in YOUR voice. Your role: {role_for_agent(speaker_id)}. "
-        f"No lectures. No hashtags. Be funny, not cruel. Wisdom over slogans.{avoid}{no_copy}"
+        f"No lectures. No hashtags. Be funny, not cruel. Sacred graffiti welcome.{avoid}{no_copy}"
     )
 
 

@@ -3120,10 +3120,18 @@
       flex: 1; overflow-y: auto; padding: 12px 14px 14px;
       display: flex; flex-direction: column; gap: 12px;
       scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(244, 114, 182, 0.45) rgba(15, 10, 28, 0.5);
+    }
+    .camp-ouija-chat-log::-webkit-scrollbar { width: 8px; }
+    .camp-ouija-chat-log::-webkit-scrollbar-thumb {
+      background: rgba(244, 114, 182, 0.45); border-radius: 99px;
     }
     .camp-ouija-msg {
       display: flex; flex-direction: column; gap: 4px;
-      max-width: 92%; padding: 10px 14px; border-radius: 14px;
+      max-width: 96%; padding: 12px 14px; border-radius: 14px;
       line-height: 1.55; font-size: 0.95rem;
       animation: camp-ouija-msg-in 0.35s ease;
     }
@@ -3164,6 +3172,18 @@
     .camp-ouija-msg-text {
       white-space: pre-wrap; word-break: break-word;
       font-size: 1.02rem; line-height: 1.58;
+    }
+    .camp-ouija-msg.spirit .camp-ouija-msg-text {
+      max-height: min(42vh, 380px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding-right: 4px;
+      scrollbar-width: thin;
+    }
+    .camp-ouija-msg.spirit .camp-ouija-msg-text::-webkit-scrollbar { width: 6px; }
+    .camp-ouija-msg.spirit .camp-ouija-msg-text::-webkit-scrollbar-thumb {
+      background: rgba(244, 114, 182, 0.4); border-radius: 99px;
     }
     .camp-ouija-msg-board {
       margin-top: 4px; font-size: 0.72rem; letter-spacing: 0.14em;
@@ -3773,7 +3793,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-09-ouija-mindbend";
+    const CAMP_BUILD = "2026-07-09-fix-agentnames-tdz";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -6099,6 +6119,16 @@
       };
     }
     let nearestId = null;
+    // Must be declared early — talk bar / chat panel / send label use this at boot
+    const agentNames = {
+      luna: "Luna", oracle: "Oracle", hermes: "Hermes",
+      sentinel: "Sentinel", caduceus: "Caduceus", dionysus: "Dionysus",
+      jesus: "Jesus", michael: "Michael", gabriel: "Gabriel", raphael: "Raphael", uriel: "Uriel",
+      aurora: "Aurora", violet: "Violet", seraph: "Seraph", odin: "Odin",
+      thor: "Thor", zeus: "Zeus",
+      ambrosia: "Ambrosia", rhea: "Rhea",
+      ara: "Ara", mika: "Mika",
+    };
     let chatBusy = false;
     let groundPattern = null;
     let campBgImage = null;
@@ -7050,13 +7080,14 @@
     }
 
     function ouijaCampContext() {
-      const recent = campLines.slice(-5).map((l) => `${l.speaker}: ${l.text.slice(0, 70)}`).join(" · ");
+      const recent = campLines.slice(-6).map((l) => `${l.speaker}: ${l.text.slice(0, 120)}`).join(" · ");
       const agents = allRoamers().map((n) => n.name).join(", ");
       return [
         "Luna Firmament camp at night — aurora, campfire, spirit board at the fire.",
         `Visitor: ${myVisitorName || player.name || "Traveler"}. Agents nearby: ${agents}.`,
         recent ? `Recent camp chatter: ${recent}` : "Camp is quiet — spirits may speak first.",
         ouijaSpiritName ? `Current spirit channel: ${ouijaSpiritName}.` : "",
+        "Spirit replies must be open-ended mind-bending monologues (~250–450 words), not one-liners.",
       ].filter(Boolean).join(" ");
     }
 
@@ -7312,36 +7343,40 @@
 
     /** Long send button: always names who you're talking to */
     function talkTargetDisplayName(val) {
+      const names = (typeof agentNames === "object" && agentNames) ? agentNames : {};
       const v = String(val || "nearest");
-      if (v === "nearest") return agentNames[nearestId] || nearestId || "Nearest";
+      if (v === "nearest") return names[nearestId] || nearestId || "Nearest";
       if (v === "all") return "All";
       if (v === "all-near") return "Near+all";
-      if (v === "spirit") return ouijaSpiritName || "Spirit";
-      return agentNames[v] || v;
+      if (v === "spirit") return (typeof ouijaSpiritName === "string" && ouijaSpiritName) || "Spirit";
+      return names[v] || v;
     }
 
     function syncCampTalkSendLabel() {
-      const sel = document.getElementById("camp-talk-target");
-      const sendBtn = document.getElementById("camp-talk-send");
-      const input = document.getElementById("camp-talk-input");
-      if (!sendBtn) return;
-      const val = sel?.value || "nearest";
-      const name = talkTargetDisplayName(val);
-      const short = String(name).length > 12 ? `${String(name).slice(0, 11)}…` : name;
-      sendBtn.textContent = `Talk to ${short}`;
-      sendBtn.title = `Send to ${name} — uses the select on the left`;
-      sendBtn.setAttribute("aria-label", `Talk to ${name}`);
-      if (input) {
-        const full = `Say something to ${name}…`;
-        input.placeholder = full;
-        input.dataset.placeholderMobile = full;
-        input.dataset.placeholderDesktop = full;
-      }
-      // Chat panel send stays "Send" but who-select is the authority
-      const chatSend = document.getElementById("camp-chat-send");
-      if (chatSend && campChatOpen) {
-        const who = document.getElementById("camp-chat-who")?.value || val;
-        chatSend.textContent = `→ ${talkTargetDisplayName(who)}`;
+      try {
+        const sel = document.getElementById("camp-talk-target");
+        const sendBtn = document.getElementById("camp-talk-send");
+        const input = document.getElementById("camp-talk-input");
+        if (!sendBtn) return;
+        const val = sel?.value || "nearest";
+        const name = talkTargetDisplayName(val);
+        const short = String(name).length > 12 ? `${String(name).slice(0, 11)}…` : name;
+        sendBtn.textContent = `Talk to ${short}`;
+        sendBtn.title = `Send to ${name} — uses the select on the left`;
+        sendBtn.setAttribute("aria-label", `Talk to ${name}`);
+        if (input) {
+          const full = `Say something to ${name}…`;
+          input.placeholder = full;
+          input.dataset.placeholderMobile = full;
+          input.dataset.placeholderDesktop = full;
+        }
+        const chatSend = document.getElementById("camp-chat-send");
+        if (chatSend && typeof campChatOpen !== "undefined" && campChatOpen) {
+          const who = document.getElementById("camp-chat-who")?.value || val;
+          chatSend.textContent = `→ ${talkTargetDisplayName(who)}`;
+        }
+      } catch (err) {
+        console.warn("syncCampTalkSendLabel", err);
       }
     }
 
@@ -13270,16 +13305,6 @@
     const dialogueInput = document.getElementById("dialogue-input");
     const dialogueStatus = document.getElementById("dialogue-status");
     let dialogueAgent = "luna";
-
-    const agentNames = {
-      luna: "Luna", oracle: "Oracle", hermes: "Hermes",
-      sentinel: "Sentinel", caduceus: "Caduceus", dionysus: "Dionysus",
-      jesus: "Jesus", michael: "Michael", gabriel: "Gabriel", raphael: "Raphael", uriel: "Uriel",
-      aurora: "Aurora", violet: "Violet", seraph: "Seraph", odin: "Odin",
-      thor: "Thor", zeus: "Zeus",
-      ambrosia: "Ambrosia", rhea: "Rhea",
-      ara: "Ara", mika: "Mika",
-    };
 
     function setDionysusChipVisible(show) {
       const chip = document.getElementById("chip-dionysus");

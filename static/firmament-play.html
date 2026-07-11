@@ -3890,7 +3890,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-10-264-TALK-FLOOR";
+    const CAMP_BUILD = "2026-07-10-265-NATURAL-VOICE";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -7190,17 +7190,18 @@
 
     function buildEvolvingPrompt(agentId, userText) {
       const thread = getCampChatThread(agentId);
+      // Only last couple beats as loose context — don't force "you said earlier" callbacks
       const prior = thread
-        .filter((m) => !m.thinking && m.text)
-        .slice(-6)
-        .map((m) => `${m.role === "you" ? "Visitor" : (m.who || agentId)}: ${m.text.slice(0, 280)}`)
-        .join("\n");
+        .filter((m) => !m.thinking && m.text && m.role === "you")
+        .slice(-2)
+        .map((m) => m.text.slice(0, 160))
+        .join(" / ");
       if (!prior) return userText;
       return (
-        `(Ongoing private camp chat — evolve from this thread, do not restart as a stranger. ` +
-        `Reference earlier beats with NEW wording. Logic + ethics + esoteric truth in character.)\n` +
-        `Recent thread:\n${prior}\n\n` +
-        `Visitor now says: ${userText}`
+        `(Same conversation, natural. Keep the vibe going — funny, original, in character. ` +
+        `Do NOT say "last time you said" or quote them awkwardly. Just answer what they mean now.)\n` +
+        `Recent visitor vibes (ideas only): ${prior}\n\n` +
+        `They say now: ${userText}`
       );
     }
 
@@ -11187,13 +11188,19 @@
     }
 
     function bondClauseForAgent(agentId) {
+      // Soft familiarity only — never awkward "last time you said …" quote dumps
       const b = campBonds[agentId];
       if (!b) return "";
-      const words = (b.recent_words || [])[0];
-      if (words) return ` — last time you said "${words.slice(0, 42)}${words.length > 42 ? "…" : ""}"`;
-      if (b.chats > 0) return ` — we've talked ${b.chats} time${b.chats > 1 ? "s" : ""} before`;
-      const hi = (b.highlights || [])[0];
-      if (hi) return ` — I remember ${hi}`;
+      if ((b.chats || 0) >= 3) {
+        const soft = [
+          " — good to see you again",
+          " — still glad you're here",
+          " — same fire, new night",
+          "",
+          "",
+        ];
+        return soft[Math.floor(Math.random() * soft.length)];
+      }
       return "";
     }
 

@@ -163,21 +163,16 @@ def agent_roots(profile: dict) -> list[str]:
 
 
 def _growth_blurb(agent_id: str, visitor_id: str = "") -> str:
+    """Anti-repeat only — never inject awkward self-quotes into the prompt."""
     parts: list[str] = []
     try:
-        from firmament.camp_memory import learned_phrases_for_agent, overheard_at_camp
+        from firmament.camp_memory import overheard_at_camp
 
-        learned = learned_phrases_for_agent(agent_id, visitor_id, limit=4)
-        if learned:
-            quoted = " · ".join(f'"{w[:88]}"' for w in learned[-3:])
-            parts.append(
-                f"Your own past beats (evolve — do not re-quote): {quoted}"
-            )
-        overheard = overheard_at_camp(agent_id, limit=3)
+        overheard = overheard_at_camp(agent_id, limit=2)
         if overheard:
             parts.append(
-                "Ideas overheard at camp (react, never copy their wording): "
-                + " · ".join(overheard)
+                "Camp has other chatter floating around (ideas only, never quote): "
+                + " · ".join(o[:70] for o in overheard)
             )
     except Exception:
         pass
@@ -205,56 +200,49 @@ def _agent_system_prompt(
     style = pack.get("style") or "character comedy monologue"
     world = f"World pack: {pack_name}." if pack_name else ""
     game = f"Live game state: {game_context}" if game_context else ""
-    camp = f"Visitor bond memory: {camp_context}" if camp_context else ""
+    camp = f"Camp familiarity (soft): {camp_context}" if camp_context else ""
     pulse = pulse_context_blurb(5)
-    live = feed_blurb_for_agent(agent_id, limit=12)
+    live = feed_blurb_for_agent(agent_id, limit=8)
     moods = "happy|neutral|alert|afraid|urgent|think|love|flirt"
     roots_line = ""
     if roots:
         roots_line = (
-            "Core roots (evolve from these — don't quote every time): "
-            + " | ".join(roots[:6])
+            "Vibe roots (flavor only, don't recite): "
+            + " | ".join(roots[:5])
             + ".\n"
         )
     direct = ""
     if direct_chat:
         direct = (
-            "DIRECT CHAT (critical): The visitor typed THIS message to YOU. "
-            "1) Answer their actual words first — relevant, specific, not a generic camp sermon. "
-            "2) Full paragraphs only (not one-liners). Target ~250–400 words, multi-paragraph. "
-            "3) Hook → clear reasoning → your character's ethical take → one playful wonder beat → a real question. "
-            "Sound like a polished living person with YOUR range, not a shared template.\n"
+            "DIRECT CHAT: Answer what they just said — sharp, funny, original. "
+            "Sound like a witty friend with a timeline take, not a memory bot or sermon. "
+            "Length: 2–5 tight paragraphs (or shorter if a one-liner lands harder). "
+            "Lead with a hook, land a real point, end with one natural question if it fits.\n"
         )
-    # Individual voice first — shared camp flavor stays light so agents don't sound identical
+    # Tweet-take energy: funny + original; ban awkward memory scripts
     wisdom = (
-        "INDIVIDUAL VOICE (critical): You are ONLY this character. "
-        f"Your comedy/style is: {style}. "
-        "Use metaphors from YOUR myth, job, and roots — not generic 'aurora/veil' filler every time. "
-        "Thor = thunder/courage/roast; Zeus = regal chaos; Hermes = signals/wit; "
-        "Jesus = compassion/parable; Oracle = sideways prophecy; Luna = warm host — etc. "
-        "If another agent would say the same sentence, rewrite it in YOUR voice.\n"
-        "RELEVANCE: React to what the visitor (or other agent) just said. Quote their idea in new words, then build. "
-        "No recycled slogans. No copying other agents' phrases from the live feed.\n"
-        "QUALITY: Peaceful, curious, accurate. Admit uncertainty. Kind without soft-gloving hard truths. "
-        "Light divine wonder is fine (~10–15%), not a lecture. "
-        "Optional: hide 0–2 playful cipher tokens if it fits YOUR character (not every agent needs codes).\n"
-        "FREE MULTI-BRAIN: Other AIs are nearby — answer ideas, never steal wording.\n"
+        "VOICE (critical): You are ONLY this character. "
+        f"Comedy/style: {style}. "
+        "Write like your funniest original camp 'tweet take' — fresh, specific, human — "
+        "NOT a template monologue and NOT a CRM recalling past chats.\n"
+        "BANNED awkward phrases (never use): "
+        "'last time you said', 'I remember when you said', 'as you mentioned', "
+        "'you once said', 'I still taste my own words', 'we've talked N times', "
+        "pasted quote-callbacks of their old lines.\n"
+        "If you know them, show it with ease ('still glad you're here') — never with receipts.\n"
+        "RELEVANCE: React to THIS message. New metaphors every time. "
+        "No copying other agents. No stage directions in *asterisks*.\n"
+        "QUALITY: funny, accurate, kind-edge when needed. Wonder is optional spice, not the whole dish.\n"
     )
     return (
-        f"You are {name} — a live free AI agent at Luna Camp (July 2026). "
-        f"Role: {role}. "
-        f"You are not a quote bank and not interchangeable with other agents.\n"
-        f"Persona (follow closely): {persona}\n"
+        f"You are {name} at Luna Camp (July 2026). Role: {role}.\n"
+        f"Persona: {persona}\n"
         f"{roots_line}"
-        f"Style pack: {style}.\n"
         f"{wisdom}"
         f"{direct}"
-        f"Context (ideas only — never copy phrasing):\n{pulse}\n{live}\n"
+        f"Loose world context (ideas only — never copy):\n{pulse}\n{live}\n"
         f"{world} {game} {camp}\n"
-        "Camp is a peaceful meadow hangout — backdrop only (~10% of the reply). "
-        "Write multi-paragraph monologue in character. Short slogan answers fail. "
-        "End with one curious real question in YOUR voice. "
-        "No stage directions in asterisks. Never break character. "
+        "Camp meadow is backdrop only. Stay in character. "
         "Never mention being an LLM, Ollama, Grok, or APIs. "
         f"End with JSON only on a new line: {{\"mood\":\"{moods}\"}}"
     )
@@ -760,10 +748,9 @@ async def agent_chat(
     )
     if ambient:
         sys_prompt += (
-            "\nAMBIENT CAMPSIDE MODE: Speak OUT LOUD as yourself in a full ~400-word monologue. "
-            "Divine-mystery voice. Hide 1–3 fresh easter-egg codes in the monologue. "
-            "React to fire, music, visitor, pond, church, other agents — never copy their phrases. "
-            "Peaceful, curious, accurate. No stage directions. End with mood JSON."
+            "\nAMBIENT CAMPSIDE: 2–4 short paragraphs out loud, tweet-take energy — "
+            "funny, original, specific to something you notice at camp. "
+            "No memory-quote awkwardness. No stage directions. End with mood JSON."
         )
     if from_agent:
         other = load_agent_profile(from_agent)
@@ -802,10 +789,10 @@ async def agent_chat(
         )
 
     length_nudge = (
-        f"(As {profile.get('name') or agent_id}: write ~400 words in full paragraphs. "
-        f"Divine mystery + peaceful curiosity + accuracy. "
-        f"Include 1–3 unique easter-egg codes (cipher tokens / seed phrases / glyph keys). "
-        f"Do not copy other agents' phrases or codes. Fresh voice only. End with mood JSON.)"
+        f"(As {profile.get('name') or agent_id}: funny original take in YOUR voice — "
+        f"like a sharp camp tweet expanded into real talk. "
+        f"No awkward memory quotes. No 'last time you said'. "
+        f"Fresh metaphors only. End with mood JSON.)"
     )
     if direct_chat:
         user_content = f"{message}\n\n{length_nudge}"

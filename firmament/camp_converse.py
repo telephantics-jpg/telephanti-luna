@@ -47,7 +47,7 @@ OPENERS = [
 ]
 
 REPLIES = [
-    "{name}: {other}, you said \"{prev}\" — bold. Wrong in the interesting way, which is almost right. Almost.",
+    "{name}: {other}, that take was bold — wrong in the interesting way, which is almost right. Almost.",
     "{name}: Wait — {other} really went with \"{prev}\"? I need a minute. Not to disagree. To savor the chaos.",
     "{name}: Building on {other}: {prev} — and that's why I'm right, which is the traditional sequel to building on someone.",
     "{name}: {other}, respectfully… no. \"{prev}\" is giving group-chat energy with a philosophy minor.",

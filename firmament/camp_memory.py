@@ -36,6 +36,8 @@ AGENT_NAMES = {
     "violet": "Violet",
     "seraph": "Seraph",
     "odin": "Odin",
+    "thor": "Thor",
+    "zeus": "Zeus",
     "ambrosia": "Ambrosia",
     "rhea": "Rhea",
 }
@@ -44,17 +46,21 @@ MAX_CAMP_CHATTER_LOG = 48
 
 def _load() -> dict[str, Any]:
     try:
-        raw = json.loads(CAMP_MEMORY_PATH.read_text(encoding="utf-8"))
+        from firmament.crypto_box import load_json_file
+
+        raw = load_json_file(CAMP_MEMORY_PATH, {"visitors": {}})
         if isinstance(raw, dict):
             return raw
-    except (OSError, json.JSONDecodeError):
+    except Exception:
         pass
     return {"visitors": {}}
 
 
 def _save(data: dict[str, Any]) -> None:
     try:
-        CAMP_MEMORY_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        from firmament.crypto_box import save_json_file
+
+        save_json_file(CAMP_MEMORY_PATH, data)
     except OSError:
         pass
 
@@ -273,8 +279,8 @@ def _moment_line(m: dict[str, Any], visitor_name: str) -> str:
         snippet = (m.get("text") or "")[:72]
         return f'once talked about "{snippet}"'
     if kind == "agent_said":
-        snippet = (m.get("text") or "")[:72]
-        return f'you once said "{snippet}"'
+        # Never force awkward self-quotes into prompts
+        return ""
     return (m.get("text") or "")[:96]
 
 
@@ -326,25 +332,30 @@ def blurb_for_agent(agent_id: str, visitor_id: str = "", visitor_name: str = "")
     if not relevant and not chat_count and not own_words and not overheard:
         return ""
 
-    parts = [f"You know {name} from past nights at this campfire."]
-    if chat_count:
-        parts.append(f"You have chatted {chat_count} time(s) before.")
-    if own_words:
-        quoted = " · ".join(f'"{w[:96]}"' for w in own_words[-3:])
-        parts.append(
-            f"You remember your own recent words at camp: {quoted}. "
-            "Remix and evolve them — don't repeat verbatim every time."
-        )
+    # Soft familiarity only — never "last time you said …" quote dumps
+    parts = [f"{name} is a familiar face at this fire — treat them like a friend, not a CRM log."]
+    if chat_count >= 2:
+        parts.append("You've talked before; skip stiff introductions.")
+    # Props / moments as vibe, not forced callbacks
+    prop_bits = []
+    for m in relevant[-5:]:
+        line = _moment_line(m, name)
+        if line and "you once said" not in line and 'said "' not in line:
+            prop_bits.append(line)
+    if prop_bits:
+        parts.append("Loose camp history (use lightly, never quote awkwardly): " + "; ".join(prop_bits[:3]) + ".")
     if overheard:
-        parts.append(f"You overheard around camp: {' · '.join(overheard)}.")
-    if relevant:
-        highlights = "; ".join(_moment_line(m, name) for m in relevant[-5:])
-        parts.append(f"Shared memories: {highlights}.")
+        # ideas only, truncated, no pressure to cite
+        soft = [o[:60] for o in overheard[:2] if o]
+        if soft:
+            parts.append("Camp air has other chatter — react to ideas, don't cite lines.")
     parts.append(
-        "Let that history show — greet them warmly, callback to cookies/props/chats when it fits, "
-        "grow new lines from your roots and what you remember, "
-        "and treat them like a friend you're glad returned."
+        "NEVER say phrases like 'last time you said', 'I remember when you said', "
+        "or paste their old quotes. If you callback, do it sly and natural like a friend — "
+        "or just be funny and present. Fresh tweet-energy takes > memory lectures."
     )
+    # own_words intentionally unused for prompt injection (caused robotic self-quotes)
+    _ = own_words
     return " ".join(parts)
 
 

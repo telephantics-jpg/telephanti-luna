@@ -310,22 +310,17 @@ def _learned_snippets(agent_id: str, limit: int = 2) -> list[str]:
 
 
 def _remix_line(agent_id: str, base: str, *, visitor: str = "", snippet: str = "") -> str:
-    line = base.format(visitor=visitor, snippet=snippet)
-    learned = _learned_snippets(agent_id, limit=2)
-    if learned and random.random() < 0.42:
-        line += f" (I still taste my own words: \"{learned[-1][:72]}\" — let that evolve.)"
-    roots = agent_roots(load_agent_profile(agent_id))
-    if roots and random.random() < 0.35:
-        root = random.choice(roots)
-        line = f"{root} …and so: {line}"
+    # Keep it clean — no awkward self-quote appendages
     try:
-        from firmament.camp_memory import overheard_at_camp
-
-        heard = overheard_at_camp(agent_id, limit=1)
-        if heard and random.random() < 0.38:
-            line += f" ({heard[-1][:90]})"
+        line = base.format(visitor=visitor, snippet=snippet)
     except Exception:
-        pass
+        line = base.replace("{visitor}", visitor).replace("{snippet}", snippet)
+    roots = agent_roots(load_agent_profile(agent_id))
+    if roots and random.random() < 0.22:
+        # Light flavor, not "last time you said" energy
+        root = random.choice(roots)
+        if len(root) < 90 and root.lower() not in line.lower():
+            line = f"{line} {root.rstrip('.') }."
     return line
 
 CONVERSE_BRIDGE = [

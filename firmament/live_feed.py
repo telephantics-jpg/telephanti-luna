@@ -270,20 +270,17 @@ def feed_blurb_for_agent(agent_id: str, *, limit: int = 10) -> str:
 
     banned = recent_phrases_for_agent(aid, MAX_BAN)
     if banned:
-        ban_snip = " | ".join(f'"{b[:90]}"' for b in banned[-6:])
+        # Short guidance only — full quote dumps made models sound robotic
         parts.append(
-            "ANTI-REPEAT SELF (critical): Do NOT reuse these recent beats or openings YOU already said: "
-            + ban_snip
-            + ". Brand-new hooks only."
+            "ANTI-REPEAT: invent a brand-new hook; do not recycle your last openings. "
+            "Never say 'last time you said' or paste old quotes."
         )
 
-    other_bans = other_agents_banned_phrases(aid, limit=12)
+    other_bans = other_agents_banned_phrases(aid, limit=6)
     if other_bans:
         parts.append(
-            "ANTI-COPY OTHER AGENTS (critical — zero tolerance): Never say, paraphrase closely, "
-            "or reuse catchphrases/metaphors from other agents' recent lines. Banned seeds:\n- "
-            + "\n- ".join(other_bans)
-            + "\nRespond in YOUR unique voice only. If you react to them, invent new language."
+            "ANTI-COPY: other agents already spoke — react to their ideas in YOUR voice, "
+            "never steal their wording or catchphrases. Be funnier and more original."
         )
 
     pulse = free_world_pulse(4)

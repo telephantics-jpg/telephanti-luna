@@ -943,7 +943,7 @@
       pointer-events: auto;
       touch-action: manipulation;
     }
-    #camp-speech-pin.show { display: flex; }
+    #camp-speech-pin.show { display: none !important; }
     #camp-speech-pin .csp-head {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
       padding: 8px 10px 6px;
@@ -3890,7 +3890,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-268-DYNAMIC-BANTER";
+    const CAMP_BUILD = "2026-07-11-269-NO-PIN";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -9665,55 +9665,24 @@
       speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
     }
 
-    function showCampSpeechPin(speaker, text, mood) {
-      // Always show on phone too — open-ended monologues need a scroll surface
-      const panel = document.getElementById("camp-speech-pin");
-      const whoEl = panel?.querySelector(".csp-who");
-      const bodyEl = panel?.querySelector(".csp-body");
-      const hintEl = panel?.querySelector(".csp-hint");
-      if (!panel || !whoEl || !bodyEl) return;
-      const moodLabel = mood ? ` · ${mood}` : "";
-      const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
-      whoEl.textContent = `${speaker}${moodLabel}`;
-      bodyEl.textContent = text;
-      if (hintEl) {
-        hintEl.textContent = words > 40
-          ? "scroll full monologue · tap bubble to pin"
-          : "tap bubble to pin · tap agent to talk";
-      }
-      panel.hidden = false;
-      panel.classList.add("show");
-      bodyEl.scrollTop = 0;
-      // Focus scroll region for keyboard / accessibility
-      try { bodyEl.focus?.(); } catch (_) {}
+    function showCampSpeechPin(_speaker, _text, _mood) {
+      // Disabled — "full monologue / tap to pin" panel off; use 💬 Chat
+      hideCampSpeechPin();
     }
 
-    /** Open scrollable monologue reader for long replies (typical chat UI) */
+    /** Keep agent line in world/chat — do NOT open pin reader window */
     function openAgentScrollBubble(speaker, text, mood, opts = {}) {
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
-      const words = clean.split(/\s+/).filter(Boolean).length;
-      // Short lines don't need the reader panel
-      if (!opts.force && words < 28) return;
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase());
       if (npc) {
         npc.fullLine = clean;
         npc.line = clean;
       }
-      const holdMs = Math.max(120000, campReadHoldSec(clean, 70) * 1000);
+      const holdMs = Math.max(45000, campReadHoldSec(clean, 40) * 1000);
       speechHold.set(speaker, { line: clean, until: Date.now() + holdMs });
-      // forceOpen: new chats always re-show the reader even if panel was closed
-      pinCampSpeech(speaker, clean, mood || "neutral", {
-        forceOpen: true,
-        color: opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9",
-        agentId: opts.agentId || npc?.id || "",
-      });
-      if (isCampMobile()) {
-        showCampTextExpand(speaker, clean, {
-          mood: mood || "neutral",
-          hint: "Scroll the monologue · ✕ collapses (new chats reopen)",
-        });
-      }
+      // Full text lives in 💬 panel / convo log — not the pin overlay
+      hideCampSpeechPin();
     }
 
     function hideCampSpeechPin() {
@@ -9728,29 +9697,11 @@
     }
 
     function pinCampSpeech(speaker, text, mood, opts = {}) {
+      // Pin overlay disabled — still hold speech on agent bubble only
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
-      const key = `${speaker}::${clean}`;
-      // Manual pin toggle only when user re-taps same line (not force-open from new chat)
-      if (!opts.forceOpen && pinnedSpeechKey === key) {
-        hideCampSpeechPin();
-        pinnedSpeech.clear();
-        return;
-      }
-      pinnedSpeechKey = key;
-      pinnedSpeech.clear();
-      pinnedSpeech.set(speaker, {
-        line: clean,
-        mood: mood || "neutral",
-        color: opts.color || AGENT_COLORS[opts.agentId] || "#67e8f9",
-        agentId: opts.agentId || "",
-      });
       speechHold.set(speaker, { line: clean, until: Date.now() + 86400000 });
-      showCampSpeechPin(speaker, clean, mood);
-      document.querySelectorAll("#convo-lines .line.pinned-line").forEach((el) => {
-        el.classList.remove("pinned-line");
-      });
-      renderConvoLog();
+      hideCampSpeechPin();
     }
 
     function unpinCampSpeech() {

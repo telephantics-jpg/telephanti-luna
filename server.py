@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "267-IDLE-50"
+LUNA_BUILD = "268-DYNAMIC-BANTER"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2676,6 +2676,20 @@ class FirmamentAgentTweetBody(BaseModel):
     headline: str = ""
 
 
+class FirmamentBanterBody(BaseModel):
+    """Dynamic camp openers / ambient banter (live free minds)."""
+    agent_id: str = "luna"
+    kind: str = "opener"  # opener | ambient | arrive
+    visitor_id: str = ""
+    visitor_name: str = ""
+    returning: bool = False
+    context: str = ""
+    near: str = ""
+    wave_index: int = 0
+    reply_to_name: str = ""
+    reply_to_idea: str = ""
+
+
 class FirmamentCampMemoryBody(BaseModel):
     visitor_id: str
     visitor_name: str = ""
@@ -2691,6 +2705,37 @@ async def firmament_agents_api():
 
     hub = get_hub()
     return {"agents": hub.agents, "pack_id": hub.pack_id}
+
+
+@app.post("/api/firmament/banter")
+async def firmament_banter_api(request: Request):
+    """Live dynamic openers / idle banter — preferred over static HTML line banks."""
+    from firmament.banter import speak_banter
+    from firmament.core import get_hub
+
+    raw, sealed = await _firmament_parse_body(request)
+    try:
+        body = FirmamentBanterBody(**raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    hub = get_hub()
+    try:
+        result = await speak_banter(
+            body.agent_id,
+            kind=body.kind,
+            visitor_name=body.visitor_name,
+            visitor_id=body.visitor_id,
+            returning=body.returning,
+            context=body.context,
+            near=body.near,
+            wave_index=body.wave_index,
+            reply_to_name=body.reply_to_name,
+            reply_to_idea=body.reply_to_idea,
+            pack_name=str(hub.pack.get("name") or hub.pack_id),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return _firmament_maybe_seal({"ok": True, **result}, sealed_req=sealed, request=request)
 
 
 @app.get("/api/firmament/game/state")

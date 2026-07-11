@@ -1,0 +1,55 @@
+CAMP BANTER — how openers & idle talk work
+==========================================
+
+PRIMARY (live free minds)
+-------------------------
+  Client:  speakDynamicBanter(agentId, kind)
+  API:     POST /api/firmament/banter
+  Server:  firmament/banter.py → firmament/brain.py (Ollama/Grok chain)
+  Prompts: static/camp/banter.mjs  +  firmament/banter.py
+
+  kind:
+    opener  — arrival / greet (DYNAMIC every time)
+    ambient — idle campside banter
+    arrive  — alias of opener (welcome wave)
+
+FALLBACK (server offline)
+-------------------------
+  static/camp/banter.mjs  FALLBACK_OPENERS / FALLBACK_IDLE
+  firmament-play.html     CAMP_IDLE_CHATTER / AGENT_OPENERS
+  (only used if mind call fails)
+
+
+WHERE TO EDIT
+-------------
+  Dynamic behavior / tone:   firmament/banter.py + firmament/brain.py
+  Client prompt helpers:     static/camp/banter.mjs
+  Trigger timing (when):     firmament-play.html
+    - scheduleCampArrivalGreetings()  → welcome wave
+    - emitNpcIdleChatter()           → sit / idle
+    - tryCampIdleChatter()            → ambient AI pair/solo
+    - emitNpcAiChatter()             → live ambient via callAgentMind
+
+  DO NOT only paste lines into CAMP_IDLE_CHATTER and expect
+  "opening lines" to feel dynamic — openers use /api/firmament/banter.
+
+
+FOLDER MAP
+----------
+  firmament/
+    banter.py          # server prompts + speak_banter()
+    brain.py           # free mind chain + character system prompt
+    agents/*.json      # persona / roots per agent
+  static/camp/
+    banter.mjs         # client prompt builders + thin fallbacks
+    music/ portraits/  # assets
+  static/
+    firmament-play.html  # camp UI + triggers (not the primary line bank)
+
+
+VERIFY
+------
+  Local:  curl -X POST http://127.0.0.1:8767/api/firmament/banter
+          -H "Content-Type: application/json"
+          -d "{\"agent_id\":\"thor\",\"kind\":\"opener\",\"visitor_name\":\"Stood\"}"
+  Should return backend ollama|grok (not aether) when minds are up.

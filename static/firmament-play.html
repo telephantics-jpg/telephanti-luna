@@ -3890,7 +3890,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-267-IDLE-50";
+    const CAMP_BUILD = "2026-07-11-268-DYNAMIC-BANTER";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10743,6 +10743,8 @@
       return bits.length ? ` (${bits.join(" · ")})` : "";
     }
 
+    // ── FALLBACK idle bank only (live path = speakDynamicBanter → /api/firmament/banter) ──
+    // Prefer editing static/camp/banter.mjs + firmament/banter.py for dynamic openers.
     const CAMP_IDLE_CHATTER = {
       luna: [
         { text: "The corona's doing that thing again — like it knows we ordered takeout.", mood: "happy" },
@@ -11065,15 +11067,17 @@
     }
 
     function emitNpcIdleChatter(npc) {
+      // Prefer live dynamic banter; static pickCampIdleLine is last resort inside speakDynamicBanter
       if (!npc || chatterPaused || converseBusy) return;
-      if (speechFloorHasFocus() || !canAgentTakeFloor(npc.id, { max: 2, ambientOk: true })) return;
-      const { text, mood } = pickCampIdleLine(npc.id);
-      claimSpeechFloor(npc.id);
-      pushCampLine(npc.name, text, campReadHoldSec(text, 14), mood || npc.mood, { fromLocal: true });
-      releaseSpeechFloor(npc.id, { extendHoldMs: 10000 });
+      void speakDynamicBanter(npc.id, "ambient", {
+        quiet: true,
+        mood: npc.mood || "happy",
+        holdBase: 14,
+      });
     }
 
     function campAmbientPrompt(npc, replyTo) {
+      // Used by emitNpcAiChatter / callAgentMind — keep in sync with static/camp/banter.mjs
       const v = myVisitorName || player.name || "a visitor";
       const ctx = campContextSuffix().replace(/^\s*\(|\)\s*$/g, "") || "camp is humming";
       const whoNear = allRoamers()
@@ -11091,9 +11095,9 @@
         );
       }
       return (
-        `You're at camp. Notice one real thing (fire, music, pond, ${v}, props) and riff — ` +
-        `1–3 short paragraphs, funny and specific, YOUR voice only. ` +
-        `Camp: ${ctx}.` +
+        `(DYNAMIC ambient) You're ${npc.id || "agent"} at camp. Notice one real thing ` +
+        `(fire, music, pond, ${v}, props) and riff 1–3 short paragraphs — funny, specific, YOUR voice. ` +
+        `Never stock greetings. Camp: ${ctx}.` +
         (whoNear ? ` Nearby: ${whoNear}.` : "")
       );
     }
@@ -11479,15 +11483,138 @@
     let campArrivalScheduled = false;
     let campServerWelcomeShown = false;
 
-    function pickAgentOpener(agentId) {
+    /** Static opener — FALLBACK only when free minds offline */
+    function pickAgentOpenerStatic(agentId) {
       const v = myVisitorName || player.name || "traveler";
       const pool = AGENT_OPENERS[agentId] || AGENT_OPENERS.luna;
       let line = pool[Math.floor(Math.random() * pool.length)]
         .replace(/\{v\}/g, v)
         .replace(/\{bond\}/g, bondClauseForAgent(agentId));
       const ctx = campContextSuffix();
-      if (ctx && Math.random() < 0.4) line += ctx;
+      if (ctx && Math.random() < 0.35) line += ctx;
       return line;
+    }
+    // Back-compat name (sync) — prefer speakDynamicBanter()
+    function pickAgentOpener(agentId) {
+      return pickAgentOpenerStatic(agentId);
+    }
+
+    let campBanterMod = null;
+    async function ensureCampBanterMod() {
+      if (campBanterMod) return campBanterMod;
+      try {
+        campBanterMod = await import(`/static/camp/banter.mjs?v=${CAMP_BUILD}`);
+      } catch (err) {
+        console.warn("banter.mjs load failed", err);
+        campBanterMod = null;
+      }
+      return campBanterMod;
+    }
+
+    function campBanterContext() {
+      return (typeof campContextSuffix === "function"
+        ? campContextSuffix().replace(/^\s*\(|\)\s*$/g, "")
+        : "") || "aurora meadow camp";
+    }
+
+    function campBanterNear(agentId) {
+      try {
+        return allRoamers()
+          .filter((n) => n.id !== agentId && !n.leaving)
+          .slice(0, 3)
+          .map((n) => n.name)
+          .join(", ");
+      } catch (_) {
+        return "";
+      }
+    }
+
+    /**
+     * PRIMARY banter path: live free mind via /api/firmament/banter
+     * kind: opener | ambient | arrive
+     */
+    async function speakDynamicBanter(agentId, kind = "opener", opts = {}) {
+      const id = String(agentId || "luna").toLowerCase();
+      const v = myVisitorName || player.name || "traveler";
+      const quiet = !!opts.quiet;
+      const push = opts.push !== false;
+      const moodHint = opts.mood || "happy";
+
+      if (!opts.skipFloor) {
+        if (speechFloorHasFocus() && campSpeechFloor.focusId !== id && !opts.priority) {
+          return null;
+        }
+        if (!canAgentTakeFloor(id, { max: opts.maxFloor || 2, ambientOk: true, priority: !!opts.priority })) {
+          return null;
+        }
+        claimSpeechFloor(id);
+      }
+
+      let line = "";
+      let mood = moodHint;
+      let backend = "fallback";
+      let model = "";
+
+      try {
+        if (!campServerOnline) throw new Error("offline");
+        const body = {
+          agent_id: id,
+          kind: kind === "arrive" ? "opener" : kind,
+          returning: !!(opts.returning || isReturningVisitor?.()),
+          context: campBanterContext(),
+          near: campBanterNear(id),
+          wave_index: opts.waveIndex || 0,
+          reply_to_name: opts.replyTo?.name || "",
+          reply_to_idea: opts.replyTo?.line ? String(opts.replyTo.line).slice(0, 120) : "",
+          ...visitorPayload(),
+        };
+        const { res, data } = await firmamentSecurePost("/api/firmament/banter", body);
+        if (!res.ok || !data.reply) throw new Error(data.detail || "banter failed");
+        line = String(data.reply || "").trim();
+        mood = data.mood || moodHint;
+        backend = data.backend || "live";
+        model = data.model || "";
+      } catch (err) {
+        // Offline / mind fail → static bank only
+        const mod = await ensureCampBanterMod();
+        if (kind === "ambient" || kind === "idle") {
+          const fb = mod?.pickFallbackIdle?.(id, v) || pickCampIdleLine(id);
+          line = fb.text;
+          mood = fb.mood || moodHint;
+        } else {
+          line = mod?.pickFallbackOpener?.(id, v) || pickAgentOpenerStatic(id);
+        }
+        backend = "fallback";
+      }
+
+      if (!line) {
+        if (!opts.skipFloor) releaseSpeechFloor(id);
+        return null;
+      }
+
+      if (push) {
+        pushCampLine(
+          agentNames[id] || id,
+          line,
+          campReadHoldSec(line, opts.holdBase || 18),
+          mood,
+          { fromLocal: true, quiet, ambient: kind === "ambient" || kind === "idle" },
+        );
+        setAgentMood?.(id, mood);
+        const npc = findRoamAgent(id);
+        if (npc) {
+          npc.fullLine = line;
+          npc.line = line;
+          if (mood) npc.mood = mood;
+        }
+      }
+      if (!opts.skipFloor) {
+        releaseSpeechFloor(id, { extendHoldMs: campReadHoldSec(line, 12) * 1000 });
+      }
+      if (backend !== "fallback" && !quiet) {
+        setCampLifeStatus?.(`${agentNames[id] || id} · live ${backend}${model ? " · " + model : ""}`);
+      }
+      return { agent_id: id, line, mood, backend, model };
     }
 
     function houseInteriorTheme(ownerId) {
@@ -11675,13 +11802,29 @@
       document.getElementById("camp-house-host-vibe").textContent = dionAway
         ? "Casks breathe, lights hum — the party waits even when Dionysus is out at camp."
         : theme.vibe;
-      document.getElementById("camp-house-host-bubble").textContent = dionAway
-        ? "The vineyard keeps the toast warm. Dionysus is wandering — leave a line and he'll answer. 🍷"
-        : isChurch
-          ? (Math.random() < 0.5
-            ? `Peace — you found my house. It's a church. Yes, really. Sit anywhere, ${myVisitorName || player.name || "friend"}. The stained glass is just mood lighting for truth.`
-            : `Welcome home to the church that is also my living room. No tickets, no perfect faith required — just you, me, and whatever mind-bending question you brought.`)
-          : pickAgentOpener(ownerId);
+      const hostBubble = document.getElementById("camp-house-host-bubble");
+      if (hostBubble) {
+        if (dionAway) {
+          hostBubble.textContent = "The vineyard keeps the toast warm. Dionysus is wandering — leave a line and he'll answer. 🍷";
+        } else if (isChurch) {
+          hostBubble.textContent = `Peace — you found my house. Sit anywhere, ${myVisitorName || player.name || "friend"}. Truth first, tickets never.`;
+        } else {
+          hostBubble.textContent = "…";
+          // Dynamic house greeting (live mind) — not a stock opener bank
+          void speakDynamicBanter(ownerId, "opener", {
+            push: false,
+            quiet: true,
+            priority: true,
+            skipFloor: true,
+          }).then((r) => {
+            if (r?.line && hostBubble && activeHouseVisit?.id === house.id) {
+              hostBubble.textContent = r.line;
+            } else if (hostBubble && activeHouseVisit?.id === house.id) {
+              hostBubble.textContent = pickAgentOpenerStatic(ownerId);
+            }
+          });
+        }
+      }
       document.getElementById("camp-house-input").value = "";
       document.getElementById("camp-house-status").textContent = "Enter = send · Esc = leave";
       const fullBtn = document.getElementById("camp-house-full-avatar");
@@ -11807,6 +11950,19 @@
       if (campArrivalScheduled) return;
       campArrivalScheduled = true;
       const returning = isReturningVisitor();
+      // Welcome wave: LIVE dynamic openers (1–3 agents, staggered) — not static banks
+      const wave = returning
+        ? [
+            { id: "luna", delay: 4500, mood: "happy" },
+            { id: "hermes", delay: 12000, mood: "think" },
+            { id: "oracle", delay: 19000, mood: "neutral" },
+          ]
+        : [
+            { id: "luna", delay: 16000, mood: "happy" },
+            { id: "hermes", delay: 23000, mood: "think" },
+            { id: "oracle", delay: 30000, mood: "neutral" },
+          ];
+
       if (returning) {
         const welcome = localWelcomeLine();
         if (welcome && !campServerWelcomeShown) {
@@ -11814,26 +11970,6 @@
             pushCampLine("Camp", welcome, 13, "happy", { fromLocal: true, quiet: true });
           }, 1200);
         }
-        setTimeout(() => {
-          const line = pickAgentOpener("luna");
-          pushCampLine("Luna", line, 14, "happy", { fromLocal: true, quiet: true });
-          setAgentMood("luna", "happy");
-        }, welcome && !campServerWelcomeShown ? 15000 : 4500);
-        setTimeout(() => {
-          arrivalGreetingPhase = false;
-          const line = pickAgentOpener("hermes");
-          pushCampLine("Hermes", line, campReadHoldSec(line, 22), "think", { fromLocal: true, quiet: true });
-          setAgentMood("hermes", "think");
-        }, welcome && !campServerWelcomeShown ? 22000 : 12000);
-        setTimeout(() => {
-          const line = pickAgentOpener("oracle");
-          pushCampLine("Oracle", line, campReadHoldSec(line, 20), "neutral", { fromLocal: true, quiet: true });
-          setAgentMood("oracle", "neutral");
-        }, welcome && !campServerWelcomeShown ? 28000 : 17500);
-        setTimeout(() => {
-          const line = pickAgentOpener("caduceus");
-          pushCampLine("Caduceus", line, campReadHoldSec(line, 18), "happy", { fromLocal: true, quiet: true });
-        }, welcome && !campServerWelcomeShown ? 34000 : 24000);
       } else {
         const v = myVisitorName || player.name || "traveler";
         setTimeout(() => {
@@ -11842,50 +11978,40 @@
             : `${v}, welcome — tap 🌙 Luna to type or talk. Agents: tap chat on phone, click sit on PC. Pond left.`;
           pushCampLine("Camp", intro, 15, "happy", { fromLocal: true, quiet: isCampMobile() });
         }, 2800);
-        const stagger = [
-          { id: "luna", delay: 18000, mood: "happy" },
-          { id: "hermes", delay: 24000, mood: "think" },
-          { id: "oracle", delay: 30000, mood: "neutral" },
-          { id: "caduceus", delay: 36000, mood: "happy" },
-          { id: "sentinel", delay: 42000, mood: "alert" },
-        ];
-        for (const a of stagger) {
-          setTimeout(() => {
-            arrivalGreetingPhase = false;
-            const line = pickAgentOpener(a.id);
-            pushCampLine(agentNames[a.id] || a.id, line, campReadHoldSec(line, 20), a.mood, { fromLocal: true, quiet: true });
-            setAgentMood(a.id, a.mood);
-          }, a.delay);
-        }
         setTimeout(() => {
           pushCampLine("Camp", "Tap meadow to walk · tap agents & objects to interact.", 16, "happy", { fromLocal: true, quiet: true });
-        }, 48000);
-        setTimeout(() => {
-          const ambient = CAMP_AMBIENT_LINES[Math.floor(Math.random() * CAMP_AMBIENT_LINES.length)];
-          pushCampLine("Camp", ambient, campReadHoldSec(ambient, 16), "happy", { fromLocal: true });
-        }, 32000);
-        setTimeout(() => {
-          const sitter = npcs[Math.floor(Math.random() * npcs.length)];
-          if (sitter) {
-            sitter.behavior = "sit";
-            sitter.tx = sitter.x;
-            sitter.ty = sitter.y;
-            sitter.behaviorTimer = 260 + Math.floor(Math.random() * 200);
-            sitter.idle = 30;
-            emitNpcIdleChatter(sitter);
-          }
-        }, 40000);
+        }, 42000);
       }
+
+      wave.forEach((a, i) => {
+        setTimeout(() => {
+          arrivalGreetingPhase = false;
+          void speakDynamicBanter(a.id, "opener", {
+            returning,
+            waveIndex: i,
+            mood: a.mood,
+            quiet: true,
+            priority: true,
+            holdBase: 18,
+          });
+        }, a.delay);
+      });
+
+      // One optional ambient after welcome settles
+      setTimeout(() => {
+        const pick = allRoamers().filter((n) => !n.leaving);
+        if (!pick.length || speechFloorHasFocus()) return;
+        const npc = pick[Math.floor(Math.random() * pick.length)];
+        void speakDynamicBanter(npc.id, "ambient", { quiet: true, mood: npc.mood || "happy" });
+      }, returning ? 28000 : 48000);
     }
 
     function bondHintForAgent(agentId) {
+      // Soft only — no awkward quote dumps in UI
       const b = campBonds[agentId];
-      if (!b) return "";
-      const words = (b.recent_words || [])[0];
-      if (words) return ` · said "${words.slice(0, 48)}${words.length > 48 ? "…" : ""}"`;
-      if (!b.chats) return "";
-      const hi = (b.highlights || [])[0];
-      return hi ? ` · remembers ${hi}` : ` · ${b.chats} chats`;
+      if (!b || !b.chats) return "";
+      if (b.chats >= 2) return " · familiar";
+      return "";
     }
 
     function lunaEmbedUrl() {

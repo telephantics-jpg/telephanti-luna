@@ -928,22 +928,21 @@
       box-shadow: 0 0 14px rgba(103, 232, 249, 0.2);
     }
     #now-speaking:not(.idle) { cursor: pointer; }
-    #camp-speech-pin {
-      position: fixed; z-index: 26;
-      left: max(var(--gap), env(safe-area-inset-left, 0px));
-      right: max(var(--gap), env(safe-area-inset-right, 0px));
-      top: calc(var(--header-h) + var(--gap) + 4px);
-      max-width: min(440px, 94vw);
-      margin: 0 auto;
-      display: none; flex-direction: column;
-      background: rgba(4, 10, 18, 0.98);
-      border: 2px solid rgba(103, 232, 249, 0.5);
-      border-radius: 14px;
-      box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
-      pointer-events: auto;
-      touch-action: manipulation;
+    /* Full monologue pin panel OFF — long text goes to 💬 Chat only */
+    #camp-speech-pin,
+    #camp-speech-pin.show {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      position: fixed;
+      z-index: -1;
+      left: 0; right: 0; top: 0;
+      max-width: 0;
+      margin: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
     }
-    #camp-speech-pin.show { display: none !important; }
     #camp-speech-pin .csp-head {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
       padding: 8px 10px 6px;
@@ -1498,18 +1497,11 @@
         max-height: min(46vh, 420px) !important;
         font-size: 0.95rem !important;
       }
-      #camp-speech-pin {
-        left: auto !important;
-        right: calc(var(--sidebar-w) + var(--gap) * 2) !important;
-        width: min(420px, 34vw) !important;
-        max-width: 460px !important;
-        top: calc(var(--header-h) + var(--gap) + 8px) !important;
-        z-index: 40 !important;
-      }
-      #camp-speech-pin .csp-body {
-        max-height: min(62vh, 560px) !important;
-        font-size: 1rem !important;
-        line-height: 1.55 !important;
+      #camp-speech-pin,
+      #camp-speech-pin.show {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
       }
       #camp-live-stamp {
         left: auto !important;

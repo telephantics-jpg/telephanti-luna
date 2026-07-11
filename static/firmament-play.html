@@ -1723,59 +1723,22 @@
       box-shadow: 0 0 14px rgba(167, 139, 250, 0.45);
     }
     #camp-talk-bar.busy { border-color: rgba(251, 191, 36, 0.45); }
-    #camp-layer-bar {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      width: 100%;
-      max-width: min(680px, 96vw);
-      padding: 4px 6px;
-      border-radius: 12px;
-      background: rgba(8, 14, 28, 0.94);
-      border: 1px solid rgba(251, 191, 36, 0.35);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-      pointer-events: auto;
-      touch-action: manipulation;
-    }
+    /* 🎯 "Select anyone or anything" layer picker removed — use talk bar + meadow taps */
+    #camp-layer-bar,
+    #camp-layer-bar.show,
+    #camp-layer-select,
+    #camp-layer-go,
     .camp-layer-label {
-      flex: 0 0 auto;
-      font-size: 1rem;
-      line-height: 1;
-      padding: 0 2px;
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
     }
-    #camp-layer-select {
-      flex: 1;
-      min-width: 0;
-      background: #0f172a;
-      color: #f8fafc;
-      border: 1px solid rgba(251, 191, 36, 0.35);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      appearance: auto;
-      touch-action: manipulation;
-    }
-    #camp-layer-select:focus {
-      outline: none;
-      border-color: rgba(251, 191, 36, 0.65);
-      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.12);
-    }
-    #camp-layer-go {
-      flex: 0 0 auto;
-      border: none;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #b45309, #f59e0b);
-      color: #fffbeb;
-      font-size: 1rem;
-      font-weight: 800;
-      width: 40px;
-      height: 36px;
-      cursor: pointer;
-      box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
-    }
-    #camp-layer-go:active { transform: scale(0.94); }
     /* Text expand strip OFF — was awkward "Full statement" box over play/dock */
     #camp-text-expand,
     #camp-text-expand.show {
@@ -2812,7 +2775,7 @@
       .agent-chip .amood,
       .agent-chip .arole { display: none; }
       .agent-chip .dot { width: 8px; height: 8px; }
-      :root { --layer-bar-h: 48px; --talk-bar-h: 40px; }
+      :root { --layer-bar-h: 0px; --talk-bar-h: 40px; }
       #camp-text-expand,
       #camp-text-expand.show {
         display: none !important;
@@ -2820,25 +2783,16 @@
         max-height: 0 !important;
         padding: 0 !important;
       }
-      #camp-layer-bar {
-        display: flex !important;
-        order: -2;
-        flex: 1 1 100%;
-        max-width: 100%;
-        padding: 6px 8px;
-        gap: 8px;
+      #camp-layer-bar,
+      #camp-layer-select,
+      #camp-layer-go,
+      .camp-layer-label {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        height: 0 !important;
+        max-height: 0 !important;
       }
-      #camp-layer-select {
-        font-size: 16px;
-        padding: 9px 10px;
-        min-height: 40px;
-      }
-      #camp-layer-go {
-        width: 44px;
-        height: 40px;
-        font-size: 1.1rem;
-      }
-      .camp-layer-label { font-size: 1.15rem; }
       #action-bar {
         gap: 4px;
         padding: 4px 8px max(4px, env(safe-area-inset-bottom));
@@ -3612,13 +3566,7 @@
       <div class="cte-body"></div>
       <div class="cte-hint">Full statement — tap ✕ to collapse</div>
     </div>
-    <div id="camp-layer-bar" aria-label="Select anything at camp">
-      <span class="camp-layer-label" title="Pick any agent or object">🎯</span>
-      <select id="camp-layer-select" title="Select agent, prop, house, or place at camp">
-        <option value="">Select at camp…</option>
-      </select>
-      <button type="button" id="camp-layer-go" title="Go — walk and interact">→</button>
-    </div>
+    <!-- 🎯 Select anyone/anything layer bar removed -->
     <div id="camp-reply-rail" class="idle" aria-live="polite">
       <div class="crr-head">
         <span class="crr-who" id="camp-reply-who">Talk</span>
@@ -3914,7 +3862,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-279-CLEAN-TALK";
+    const CAMP_BUILD = "2026-07-11-280-NO-LAYER";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -13143,6 +13091,8 @@
     }
 
     function refreshCampLayerPicker() {
+      // Layer picker UI removed — no-op
+      return;
       const sel = document.getElementById("camp-layer-select");
       if (!sel) return;
       const prev = sel.value;
@@ -13289,26 +13239,8 @@
     }
 
     function initCampLayerPicker() {
-      refreshCampLayerPicker();
-      const sel = document.getElementById("camp-layer-select");
-      const go = document.getElementById("camp-layer-go");
-      const runPick = () => {
-        const val = sel?.value;
-        if (!val) {
-          showToast("Pick someone or something from the list");
-          return;
-        }
-        syncSelectTextExpand(sel, "🎯", "Walking to selection…");
-        void applyCampLayerPick(val);
-      };
-      go?.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        runPick();
-      });
-      sel?.addEventListener("change", () => {
-        if (!sel.value) hideCampTextExpand();
-      });
+      // 🎯 bullseye "Select anyone or anything" bar retired — talk bar only
+      return;
     }
 
     function processPendingCampAction() {
@@ -15124,7 +15056,7 @@
 
     function bootCampWorld() {
       setCampLifeStatus(isCampMobile()
-        ? "Tap meadow to walk · stand at agent · double-tap to chat · 🎯 + → to go"
+        ? "Tap meadow to walk · tap agent to lock · type below to talk"
         : "Camp fills your screen · double-tap agent at their spot to chat");
       showToast(isSlowDevice() ? "Camp loading — meadow first, extras shortly" : "Camp world live — agents tweet today's pulse");
       applyGlobalNpcMode("free");

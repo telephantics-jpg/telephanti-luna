@@ -199,54 +199,77 @@ def converse_thread_prompt(
     thread: list[dict[str, Any]],
     speaker_id: str,
 ) -> str:
-    """Build user message for LLM group converse."""
+    """Build user message for logical multi-agent dialogue (not parallel monologues)."""
     names = _names(agent_ids)
     others = [n for i, n in zip(agent_ids, names) if i != speaker_id]
+    me = load_agent_profile(speaker_id).get("name") or speaker_id
+    role = role_for_agent(speaker_id)
+
     if not thread:
         return (
-            f"Start a LIVE campside chat with {', '.join(others)} about: {topic}. "
-            f"Write a full monologue of about 400 words (350–450). Multi-paragraph. "
-            f"Spontaneous, theatrical, ironic — YOUR unique voice only. "
-            f"Divine mystery voice; hide 1–2 easter-egg codes; logic + ethics + wonder. "
-            f"Do not use other agents' catchphrases. Hook them hard. "
-            f"Your role: {role_for_agent(speaker_id)}. No stock slogans."
+            f"LOGICAL CAMP DIALOGUE — OPENING TURN\n"
+            f"You are {me} ({role}). Start a real conversation with {', '.join(others)}.\n"
+            f"Topic: {topic}\n\n"
+            f"Rules for this turn:\n"
+            f"1) State ONE clear claim or question about the topic (your angle only).\n"
+            f"2) Give a short reason (cause → effect) — make it make sense.\n"
+            f"3) Address {others[0] if others else 'them'} by name and invite a response.\n"
+            f"4) Length: about one full paragraph (~70–110 words). Funny, original, in character.\n"
+            f"5) Do NOT monologue past them. Do NOT use other agents' catchphrases.\n"
+            f"6) No *stage directions*, no AI talk, no 'last time you said'.\n"
+            f"Write only {me}'s spoken words."
         )
+
     prev = thread[-1]
-    # Short idea-only transcript so models don't parrot long prior monologues
+    prev_name = prev.get("name") or "?"
+    prev_line = re.sub(r"\s+", " ", str(prev.get("line") or "")).strip()
+    prev_idea = prev_line[:160] + ("…" if len(prev_line) > 160 else "")
+
+    # Compact transcript — claims in order so the model can stay logical
     transcript_bits = []
-    for t in thread[-4:]:
+    for t in thread[-6:]:
         who = t.get("name", "?")
         line = re.sub(r"\s+", " ", str(t.get("line") or "")).strip()
-        idea = line[:120] + ("…" if len(line) > 120 else "")
-        transcript_bits.append(f"{who} (idea only): {idea}")
+        idea = line[:140] + ("…" if len(line) > 140 else "")
+        transcript_bits.append(f"{who}: {idea}")
     transcript = "\n".join(transcript_bits)
-    used = " | ".join(
-        (t.get("line") or "")[:50] for t in thread[-4:] if t.get("agent_id") == speaker_id
-    )
-    avoid = f" Do NOT reuse your earlier beats: {used}." if used else ""
-    others_words = " | ".join(
-        (t.get("line") or "")[:60] for t in thread[-4:] if t.get("agent_id") != speaker_id
-    )
-    no_copy = (
-        f" NEVER copy or closely paraphrase these other-agent lines: {others_words}."
-        if others_words
-        else ""
-    )
+
+    turn_n = len(thread) + 1
+    is_closing = turn_n >= 5 and len(thread) >= 4
+
+    close_bit = ""
+    if is_closing:
+        close_bit = (
+            " This is a late turn — you may land a punchline or soft wrap-up, "
+            "but still answer the last claim first."
+        )
+
     return (
-        f"Group chat ({', '.join(names)}) — topic: {topic}\n"
-        f"Thread so far (ideas only — invent new wording):\n{transcript}\n\n"
-        f"Reply DIRECTLY to {prev.get('name', '?')} about their idea — do NOT reuse their phrasing. "
-        f"About 400 words (350–450), multi-paragraph: "
-        f"fix their logic if needed, name the ethical stake, open a divine-mystery angle, "
-        f"drop one fresh easter-egg code, then bait a question. "
-        f"Sound alive in YOUR voice. Your role: {role_for_agent(speaker_id)}. "
-        f"No lectures. No hashtags. Be funny, not cruel. Sacred graffiti welcome.{avoid}{no_copy}"
+        f"LOGICAL CAMP DIALOGUE — TURN {turn_n}\n"
+        f"You are {me} ({role}). Speakers: {', '.join(names)}.\n"
+        f"Topic: {topic}\n\n"
+        f"Conversation so far (stay on THIS thread):\n{transcript}\n\n"
+        f"Last speaker: {prev_name}\n"
+        f"Their last point (respond to the IDEA, invent new wording):\n\"{prev_idea}\"\n\n"
+        f"Your reply MUST do this structure (in natural speech, not numbered):\n"
+        f"1) Address {prev_name} by name.\n"
+        f"2) Show you heard them — restate their core claim in NEW words (one short clause).\n"
+        f"3) Agree, disagree, or refine with a clear reason (logic / cause→effect).\n"
+        f"4) Add YOUR unique angle (funny, in character) that still fits the same topic.\n"
+        f"5) End with a question or challenge so they can answer next.\n\n"
+        f"Length: about one full paragraph (~70–120 words). "
+        f"This is dialogue, not a solo monologue — stay connected to what they said."
+        f"{close_bit}\n"
+        f"Never copy their phrases. No *stage directions*. No AI talk. Write only {me}'s words."
     )
 
 
 def total_converse_lines(agent_count: int, rounds: int) -> int:
+    """Enough turns for a real back-and-forth without endless essays."""
     if agent_count < 2:
         return 2
     if agent_count == 2:
-        return max(4, min(12, rounds * 2 + 1))
-    return max(5, min(14, rounds * agent_count))
+        # e.g. rounds=2 → 5 turns (A B A B A), rounds=3 → 7
+        return max(5, min(8, rounds * 2 + 1))
+    # trio: keep it tight
+    return max(6, min(9, rounds * agent_count))

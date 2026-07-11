@@ -3863,7 +3863,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-273-PARA-LENGTH";
+    const CAMP_BUILD = "2026-07-11-274-LOGIC-DIALOGUE";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10983,7 +10983,7 @@
     }
 
     function campAmbientPrompt(npc, replyTo) {
-      // Used by emitNpcAiChatter / callAgentMind — keep in sync with static/camp/banter.mjs
+      // Used by emitNpcAiChatter — logical dialogue when replyTo is set
       const v = myVisitorName || player.name || "a visitor";
       const ctx = campContextSuffix().replace(/^\s*\(|\)\s*$/g, "") || "camp is humming";
       const whoNear = allRoamers()
@@ -10992,18 +10992,21 @@
         .map((n) => n.name)
         .join(", ");
       if (replyTo?.line) {
-        const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 100);
+        const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 160);
+        const who = replyTo.name || "them";
         return (
-          `${replyTo.name} just took a swing at something like: ${idea}. ` +
-          `Reply TO them in YOUR voice — short, funny, original. Don't copy their words. ` +
+          `LOGICAL DIALOGUE turn. You are ${npc.name || npc.id}. ${who} just said (idea only): "${idea}".\n` +
+          `Reply TO ${who} by name: (1) restate their claim in new words, (2) agree/disagree/refine with a reason, ` +
+          `(3) add your angle, (4) end with a question or challenge. ` +
+          `About one full paragraph (~70–120 words). Funny, original, YOUR voice. Don't copy their phrasing. ` +
           `Camp: ${ctx}.` +
           (whoNear ? ` Nearby: ${whoNear}.` : "")
         );
       }
       return (
-        `(DYNAMIC ambient) You're ${npc.id || "agent"} at camp. Notice one real thing ` +
-        `(fire, music, pond, ${v}, props) and riff 1–3 short paragraphs — funny, specific, YOUR voice. ` +
-        `Never stock greetings. Camp: ${ctx}.` +
+        `You're ${npc.name || npc.id} at camp. Start or continue a natural thought someone else could answer — ` +
+        `notice something real (fire, music, pond, ${v}, props) and state a clear claim + reason in ~one paragraph. ` +
+        `Camp: ${ctx}.` +
         (whoNear ? ` Nearby: ${whoNear}.` : "")
       );
     }
@@ -11108,16 +11111,27 @@
       if (!pool.length) return;
       ambientAiBusy = true;
       try {
-        // Usually 1 speaker; sometimes a 2-person beat (never more than 3 camp-wide)
-        const pairUp = campServerOnline && pool.length >= 2 && Math.random() < 0.35;
-        if (pairUp) {
+        // Prefer logical pair dialogue (A→B→A) when server is up
+        const dialogue = campServerOnline && pool.length >= 2 && Math.random() < 0.72;
+        if (dialogue) {
           const a = pickAmbientSpeaker(pool);
           let b = pickAmbientSpeaker(pool.filter((n) => n.id !== a.id)) || pool[(pool.indexOf(a) + 1) % pool.length];
           if (b.id === a.id) b = pool[(pool.indexOf(a) + 1) % pool.length];
-          const first = await emitNpcAiChatter(a, { noFallback: false, allowAether: true });
-          if (first?.line && !chatterPaused && !converseBusy && !speechFloorHasFocus()) {
-            await new Promise((r) => setTimeout(r, 1400 + Math.random() * 2200));
-            await emitNpcAiChatter(b, { replyTo: first, noFallback: false, allowAether: true });
+          // 3–4 turns: open → reply → reply → optional cap
+          const turns = Math.random() < 0.45 ? 4 : 3;
+          let prev = null;
+          for (let t = 0; t < turns; t++) {
+            if (chatterPaused || converseBusy) break;
+            const speaker = (t % 2 === 0) ? a : b;
+            const res = await emitNpcAiChatter(speaker, {
+              replyTo: prev || undefined,
+              noFallback: false,
+              allowAether: true,
+              priority: t === 0,
+            });
+            if (!res?.line) break;
+            prev = { name: res.name || speaker.name, line: res.line };
+            await new Promise((r) => setTimeout(r, 1600 + Math.random() * 2000));
           }
           return;
         }
@@ -14385,14 +14399,19 @@
     }
 
     async function playConverseLines(lines, gapMs = CAMP_PACE.converseGapMs) {
+      // Play turns in order so dialogue reads as a real conversation
       for (const line of lines || []) {
         if (chatterPaused) break;
         const who = line.name || line.agent_id || "Camp";
+        const aid = line.agent_id || "";
         const text = line.line || "";
-        setCampLifeStatus(`${who} is speaking — take your time reading…`);
-        const hold = campReadHoldSec(text, 52);
-        pushCampLine(who, text, hold, line.mood, { fromLocal: true });
-        await new Promise((r) => setTimeout(r, hold * 1000 + gapMs));
+        if (!text.trim()) continue;
+        setCampLifeStatus(`${who} answers…`);
+        if (aid) claimSpeechFloor(aid, { focus: true, holdMs: 90000 });
+        const hold = Math.min(campReadHoldSec(text, 36), 28);
+        pushCampLine(who, text, hold, line.mood, { fromLocal: true, ambient: true });
+        await new Promise((r) => setTimeout(r, hold * 1000 + Math.min(gapMs, 8000)));
+        if (aid) releaseSpeechFloor(aid, { extendHoldMs: 2000, clearFocus: true });
       }
     }
 
@@ -14425,8 +14444,8 @@
       let pick = forced || pool[Math.floor(Math.random() * pool.length)];
       if (pick && pick.length > 3) pick = pick.slice(0, 3);
       const topic = pickLocalConverseTopic();
-      // Shorter rounds so replies finish cleanly
-      const rounds = pick.length >= 3 ? 2 : (Math.random() < 0.5 ? 2 : 3);
+      // Enough rounds for logical back-and-forth (pair ~5–7 turns)
+      const rounds = pick.length >= 3 ? 2 : (Math.random() < 0.4 ? 2 : 3);
       const label = converseGroupLabel(pick);
       converseBusy = true;
       setCampLifeStatus(`${label} are walking to chat…`);
@@ -14435,7 +14454,7 @@
       try {
         await gatherForChatGroup(pick);
         if (!campServerOnline) throw new Error("offline");
-        setCampLifeStatus(`${label} are talking (live AI)…`);
+        setCampLifeStatus(`${label} are talking (live dialogue)…`);
         const body = {
           agent_a: pick[0],
           agent_b: pick[pick.length - 1],
@@ -14447,12 +14466,11 @@
         const { res, data } = await firmamentSecurePost("/api/firmament/agents/converse", body);
         if (!res.ok) throw new Error(data.detail || "converse failed");
         const lines = data.lines || [];
-        // If server returned pure aether stubs only, still play them but toast honestly
         const backend = data.backend || "ollama";
         if (backend === "aether") {
           setCampLifeStatus(`${label} — aether backup (cloud brain hiccup — retry chat)`);
         } else {
-          setCampLifeStatus(`${label} · live ${backend}${data.model ? " · " + data.model : ""} — unique AI monologues`);
+          setCampLifeStatus(`${label} · live dialogue · ${backend}${data.model ? " · " + data.model : ""}`);
         }
         await playConverseLines(
           lines,

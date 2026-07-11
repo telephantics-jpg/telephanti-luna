@@ -810,14 +810,18 @@ async def agent_chat(
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += (
-            f"\nRIGHT NOW: you're talking TO {other_name} (another camp character). "
-            f"Answer their idea, not their wording. Be funny, not mean. "
-            f"About a paragraph in YOUR voice. Stay fully {profile.get('name') or agent_id}."
+            f"\nRIGHT NOW: live dialogue with {other_name} (another camp character).\n"
+            f"- You are talking TO them, not past them.\n"
+            f"- Acknowledge their last point (new words), then respond with logic + your voice.\n"
+            f"- Build a coherent thread — agree, disagree, or refine with a reason.\n"
+            f"- About one full paragraph. Funny not cruel. Stay fully "
+            f"{profile.get('name') or agent_id}."
         )
     elif converse_mode:
         sys_prompt += (
-            "\nRIGHT NOW: group banter. One clean paragraph in your voice — don't steal punchlines, "
-            "don't write a lecture."
+            "\nRIGHT NOW: multi-agent dialogue at the fire.\n"
+            "- Follow the conversation structure in the user message (hear → reason → your angle → bait).\n"
+            "- One connected paragraph, not a solo TED talk. Don't steal co-speakers' punchlines."
         )
 
     # Light user nudge — system prompt already carries the rules

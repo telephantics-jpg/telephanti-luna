@@ -40,8 +40,8 @@ def opener_prompt(
         f"(DYNAMIC OPENING — invent fresh, never stock.)\n"
         f"You are {who} at Luna Camp. {ret}\n"
         f"Welcome wave role: {beat}.\n"
-        f"Greet in YOUR voice in about one full paragraph (~50–90 words): a real hello, "
-        f"a little character color, and a natural invite to talk. "
+        f"Greet in YOUR voice in one to two full paragraphs (~90–140 words): a real hello, "
+        f"character color, and a natural invite to talk. "
         f"Funny, original, specific. Context: {ctx}.{near_bit}\n"
         f"Never say last-time-you-said / I-remember-when. No *stage directions*. No AI talk."
     )
@@ -64,12 +64,12 @@ def ambient_prompt(
         idea = " ".join(reply_to_idea.split())[:100]
         return (
             f"{reply_to_name} just riffed (idea only): {idea}. "
-            f"Reply TO them as {who} in about one full paragraph (~60–100 words) — "
-            f"funny, original. Don't copy wording. Camp: {ctx}.{near_bit}"
+            f"Reply TO them as {who} in one to two full paragraphs (~100–150 words) — "
+            f"funny, original, logical. Don't copy wording. Camp: {ctx}.{near_bit}"
         )
     return (
         f"You are {who} at camp. Notice one real thing (fire, music, pond, {visitor}, props) "
-        f"and riff in about one full paragraph (~60–110 words) — funny, specific, YOUR voice. "
+        f"and riff in one to two full paragraphs (~100–160 words) — funny, specific, YOUR voice. "
         f"Camp: {ctx}.{near_bit}"
     )
 

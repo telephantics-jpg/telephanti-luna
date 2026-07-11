@@ -3863,7 +3863,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-274-LOGIC-DIALOGUE";
+    const CAMP_BUILD = "2026-07-11-275-ZOOM-LONG";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4736,11 +4736,12 @@
     let playWs = null;
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
-    const WORLD_ZOOM_DESKTOP = 0.36;
-    const WORLD_ZOOM_MOBILE = 0.58;
-    const WORLD_ZOOM_IOS_PORTRAIT = 0.56;
-    const WORLD_ZOOM_IOS_LANDSCAPE = 0.58;
-    const CAMP_ZOOM_MIN = 0.22;
+    // Slightly zoomed out so more meadow fits (previous roomier framing)
+    const WORLD_ZOOM_DESKTOP = 0.30;
+    const WORLD_ZOOM_MOBILE = 0.52;
+    const WORLD_ZOOM_IOS_PORTRAIT = 0.50;
+    const WORLD_ZOOM_IOS_LANDSCAPE = 0.52;
+    const CAMP_ZOOM_MIN = 0.20;
     const CAMP_ZOOM_MAX = 0.95;
     let campViewZoom = null;
     let campViewCamX = null;
@@ -4766,6 +4767,10 @@
       return getDesktopFitZoom();
     }
     function getWorldZoom() {
+      // Honor slider / pinch zoom when set; otherwise fit-to-frame base
+      if (campViewZoom != null && Number.isFinite(campViewZoom)) {
+        return Math.max(CAMP_ZOOM_MIN, Math.min(CAMP_ZOOM_MAX, campViewZoom));
+      }
       return getBaseWorldZoom();
     }
     function ensureViewCamera() {
@@ -10998,14 +11003,14 @@
           `LOGICAL DIALOGUE turn. You are ${npc.name || npc.id}. ${who} just said (idea only): "${idea}".\n` +
           `Reply TO ${who} by name: (1) restate their claim in new words, (2) agree/disagree/refine with a reason, ` +
           `(3) add your angle, (4) end with a question or challenge. ` +
-          `About one full paragraph (~70–120 words). Funny, original, YOUR voice. Don't copy their phrasing. ` +
+          `About one to two full paragraphs (~100–150 words). Funny, original, YOUR voice. Don't copy their phrasing. ` +
           `Camp: ${ctx}.` +
           (whoNear ? ` Nearby: ${whoNear}.` : "")
         );
       }
       return (
         `You're ${npc.name || npc.id} at camp. Start or continue a natural thought someone else could answer — ` +
-        `notice something real (fire, music, pond, ${v}, props) and state a clear claim + reason in ~one paragraph. ` +
+        `notice something real (fire, music, pond, ${v}, props) and state a clear claim + reason in one to two full paragraphs (~100–150 words). ` +
         `Camp: ${ctx}.` +
         (whoNear ? ` Nearby: ${whoNear}.` : "")
       );

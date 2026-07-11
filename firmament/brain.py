@@ -254,16 +254,15 @@ def _agent_system_prompt(
             "MODE: They're talking to YOU.\n"
             "- Answer their actual point first.\n"
             "- Sound like a funny, sharp friend — not a helpdesk, not a diary app.\n"
-            "- LENGTH: about one to three full paragraphs (roughly 80–160 words). "
-            "A real paragraph has room for a hook, a thought, and a landing — not one-liners. "
-            "Go a bit longer only if they opened something deep; never pad with empty mysticism.\n"
+            "- LENGTH (required): at least TWO full paragraphs, ideally ~120–200 words. "
+            "Hook + thought + landing. Not one-liners. Not empty mysticism.\n"
             "- End with a real question only if it feels natural.\n"
         )
     else:
         mode_bit = (
-            "MODE: You're speaking at camp (ambient or banter).\n"
-            "- About one solid paragraph (or two short ones), roughly 60–110 words.\n"
-            "- Specific observation + your spin. Sound alive, not telegram-short.\n"
+            "MODE: You're speaking at camp (ambient, banter, or dialogue).\n"
+            "- At least one full rich paragraph, preferably two (~100–160 words).\n"
+            "- Specific observation + your spin. Never telegram-short.\n"
         )
 
     return f"""You are {name} — a living character at Luna Camp (a chill aurora meadow hangout in 2026).
@@ -803,8 +802,8 @@ async def agent_chat(
     )
     if ambient:
         sys_prompt += (
-            "\nRIGHT NOW: ambient camp talk — notice one real thing, spin a fresh take in a full paragraph "
-            "(or two short ones). Alive and specific, not a one-liner."
+            "\nRIGHT NOW: ambient camp talk — notice one real thing, develop it in TWO paragraphs "
+            "(~100–160 words). Alive and specific, never a one-liner."
         )
     if from_agent:
         other = load_agent_profile(from_agent)
@@ -814,14 +813,14 @@ async def agent_chat(
             f"- You are talking TO them, not past them.\n"
             f"- Acknowledge their last point (new words), then respond with logic + your voice.\n"
             f"- Build a coherent thread — agree, disagree, or refine with a reason.\n"
-            f"- About one full paragraph. Funny not cruel. Stay fully "
+            f"- At least one full rich paragraph (~100–150 words). Funny not cruel. Stay fully "
             f"{profile.get('name') or agent_id}."
         )
     elif converse_mode:
         sys_prompt += (
             "\nRIGHT NOW: multi-agent dialogue at the fire.\n"
             "- Follow the conversation structure in the user message (hear → reason → your angle → bait).\n"
-            "- One connected paragraph, not a solo TED talk. Don't steal co-speakers' punchlines."
+            "- A full connected paragraph (~100–150 words). Don't steal co-speakers' punchlines."
         )
 
     # Light user nudge — system prompt already carries the rules
@@ -829,13 +828,14 @@ async def agent_chat(
         user_content = (
             f"{message}\n\n"
             f"(Reply as {profile.get('name') or agent_id} only. "
-            f"One to three full paragraphs (~80–160 words). Mood JSON last line.)"
+            f"REQUIRED: at least two full paragraphs, about 120–200 words total. "
+            f"Hook, develop the thought, land it. Mood JSON last line.)"
         )
     elif ambient or converse_mode:
         user_content = (
             f"{message}\n\n"
-            f"(In-character as {profile.get('name') or agent_id}: about one full paragraph, "
-            f"~60–110 words. Mood JSON last line.)"
+            f"(In-character as {profile.get('name') or agent_id}: REQUIRED full paragraph(s), "
+            f"about 100–160 words. Not a short quip. Mood JSON last line.)"
         )
     else:
         user_content = message
@@ -857,13 +857,13 @@ async def agent_chat(
         if not chain:
             raise RuntimeError("Grok link needs XAI_API_KEY — set it in .env for @a / @m")
 
-    # Room for a real paragraph (not essays, not telegram chips)
+    # Headroom for multi-paragraph replies
     if ambient:
-        max_tok = 520
+        max_tok = 750
     elif converse_mode:
-        max_tok = 560
+        max_tok = 800
     else:
-        max_tok = 850
+        max_tok = 1100
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""
@@ -872,15 +872,15 @@ async def agent_chat(
 
     from firmament.live_feed import is_too_similar, push_event
 
-    # Prefer a full paragraph; rewrite stubs / copycats
-    MIN_ACCEPT_WORDS = 45 if (ambient or converse_mode) else 70
+    # Reject thin stubs so models expand to real paragraphs
+    MIN_ACCEPT_WORDS = 85 if (ambient or converse_mode) else 110
 
     if not chain:
         errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")
 
     for backend, model in chain:
         try:
-            max_attempts = 2  # draft + optional rewrite (no forced essay expand)
+            max_attempts = 3  # draft → rewrite → expand if still short
             for attempt in range(max_attempts):
                 msgs = list(messages)
                 if attempt == 1:
@@ -888,8 +888,17 @@ async def agent_chat(
                         "role": "user",
                         "content": (
                             "Rewrite once: that draft was too generic, too similar to someone else, "
-                            "or sounded like a memory bot. Fresh hook, YOUR voice only, natural length. "
-                            "End with mood JSON."
+                            "or sounded like a memory bot. Fresh hook, YOUR voice only. "
+                            "Write at least two full paragraphs (~120+ words). End with mood JSON."
+                        ),
+                    }]
+                elif attempt == 2:
+                    msgs = list(messages) + [{
+                        "role": "user",
+                        "content": (
+                            "EXPAND: your last draft was too short. Develop it into at least two "
+                            "full paragraphs (~120–200 words) with a clear beginning, middle, and end. "
+                            "Stay in character. End with mood JSON."
                         ),
                     }]
                 raw = await asyncio.to_thread(_run_backend, backend, model, msgs, max_tok)

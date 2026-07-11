@@ -12177,7 +12177,7 @@
       if (!raw || raw === "â€¦" || raw === "...") {
         return drawThoughtBubble(sx, sy, "â€¦", color), null;
       }
-      const preview = raw.length > 72 ? `${raw.slice(0, 70).trim()}â€¦` : raw;
+      const preview = raw.length > 72 ? `${raw.slice(0, 70).trim()}...` : raw;
       const maxW = ios ? 170 : mobile ? 180 : 200;
       const fontSize = ios ? 11 : mobile ? 11 : 12;
       const lineH = fontSize + 3;
@@ -14239,7 +14239,7 @@
       minimizeSpeechBubble();
       document.body.classList.remove("speech-expanded", "chatter-expanded");
       if (!canvasCampChatOnly() && !convoReadingHold && !quiet) {
-        const short = clean.length > 90 ? `${clean.slice(0, 88)}â€¦` : clean;
+        const short = clean.length > 90 ? `${clean.slice(0, 88)}...` : clean;
         updateNowSpeaking(speaker, short, moodVal);
       }
       notifyLunaEmbed(speaker, clean);
@@ -14249,7 +14249,7 @@
         npc.idle = 99999;
       }
       // Canvas: short hold only (drawSpeechBubble previews â‰¤2 lines)
-      if (!quiet) showBigSpeech(speaker, clean.length > 80 ? `${clean.slice(0, 78)}â€¦` : clean, Math.min(holdSec, 18));
+      if (!quiet) showBigSpeech(speaker, clean.length > 80 ? `${clean.slice(0, 78)}...` : clean, Math.min(holdSec, 18));
       if (!canvasCampChatOnly()) {
         setTimeout(() => {
           const latest = campLines[campLines.length - 1];
@@ -14262,7 +14262,7 @@
       if (npc) {
         // Keep full for chat panel; canvas only sees short preview via speechHold
         npc.fullLine = clean;
-        npc.line = clean.length > 80 ? `${clean.slice(0, 78)}â€¦` : clean;
+        npc.line = clean.length > 80 ? `${clean.slice(0, 78)}...` : clean;
       }
       // NO openAgentScrollBubble / pin / text-expand â€” full text only in ðŸ’¬ Chat
       if (!opts.skipBroadcast && playWs && playWs.readyState === WebSocket.OPEN && opts.fromLocal) {

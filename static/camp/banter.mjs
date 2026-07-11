@@ -22,11 +22,11 @@ export function openerPrompt(agentId, {
   return (
     `(DYNAMIC OPENING LINE — invent it now, never reuse stock greetings.)\n` +
     `You are ${who} at Luna Camp. ${ret}\n` +
-    `Greet them in YOUR voice only: 1–3 short sentences OR two tight paragraphs max.\n` +
+    `Greet them in YOUR voice in about one full paragraph (~50–90 words): hello, character color, invite to talk.\n` +
     `Funny, original, specific to right now. Camp context: ${context}.` +
     (near ? ` Nearby: ${near}.` : "") +
     `\nHard no: "last time you said", "I remember when you said", stage *actions*, AI talk.\n` +
-    `Sound alive — like a sharp tweet that knows their name.`
+    `Sound alive — like a sharp tweet expanded into a real spoken paragraph.`
   );
 }
 

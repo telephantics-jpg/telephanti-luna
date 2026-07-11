@@ -254,15 +254,16 @@ def _agent_system_prompt(
             "MODE: They're talking to YOU.\n"
             "- Answer their actual point first.\n"
             "- Sound like a funny, sharp friend — not a helpdesk, not a diary app.\n"
-            "- Length: match the energy. One great line beats three empty paragraphs. "
-            "Usually 2–4 short paragraphs; go longer only if they opened something deep.\n"
+            "- LENGTH: about one to three full paragraphs (roughly 80–160 words). "
+            "A real paragraph has room for a hook, a thought, and a landing — not one-liners. "
+            "Go a bit longer only if they opened something deep; never pad with empty mysticism.\n"
             "- End with a real question only if it feels natural.\n"
         )
     else:
         mode_bit = (
             "MODE: You're speaking at camp (ambient or banter).\n"
-            "- 1–3 short paragraphs max. Specific observation + your spin.\n"
-            "- Sound alive, not like you're filling a word count.\n"
+            "- About one solid paragraph (or two short ones), roughly 60–110 words.\n"
+            "- Specific observation + your spin. Sound alive, not telegram-short.\n"
         )
 
     return f"""You are {name} — a living character at Luna Camp (a chill aurora meadow hangout in 2026).
@@ -802,32 +803,35 @@ async def agent_chat(
     )
     if ambient:
         sys_prompt += (
-            "\nRIGHT NOW: ambient camp talk — notice one real thing, spin a fresh take, sit down. "
-            "Keep it short and alive."
+            "\nRIGHT NOW: ambient camp talk — notice one real thing, spin a fresh take in a full paragraph "
+            "(or two short ones). Alive and specific, not a one-liner."
         )
     if from_agent:
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += (
             f"\nRIGHT NOW: you're talking TO {other_name} (another camp character). "
-            f"Answer their idea, not their wording. Be funny, not mean. Stay fully {profile.get('name') or agent_id}."
+            f"Answer their idea, not their wording. Be funny, not mean. "
+            f"About a paragraph in YOUR voice. Stay fully {profile.get('name') or agent_id}."
         )
     elif converse_mode:
         sys_prompt += (
-            "\nRIGHT NOW: group banter. One clean beat in your voice — don't steal anyone's punchline, "
-            "don't write an essay."
+            "\nRIGHT NOW: group banter. One clean paragraph in your voice — don't steal punchlines, "
+            "don't write a lecture."
         )
 
     # Light user nudge — system prompt already carries the rules
     if direct_chat:
         user_content = (
             f"{message}\n\n"
-            f"(Reply as {profile.get('name') or agent_id} only. Natural length. Mood JSON last line.)"
+            f"(Reply as {profile.get('name') or agent_id} only. "
+            f"One to three full paragraphs (~80–160 words). Mood JSON last line.)"
         )
     elif ambient or converse_mode:
         user_content = (
             f"{message}\n\n"
-            f"(Short in-character beat as {profile.get('name') or agent_id}. Mood JSON last line.)"
+            f"(In-character as {profile.get('name') or agent_id}: about one full paragraph, "
+            f"~60–110 words. Mood JSON last line.)"
         )
     else:
         user_content = message
@@ -849,13 +853,13 @@ async def agent_chat(
         if not chain:
             raise RuntimeError("Grok link needs XAI_API_KEY — set it in .env for @a / @m")
 
-    # Natural lengths — not essay engines
+    # Room for a real paragraph (not essays, not telegram chips)
     if ambient:
-        max_tok = 420
+        max_tok = 520
     elif converse_mode:
-        max_tok = 480
+        max_tok = 560
     else:
-        max_tok = 700
+        max_tok = 850
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""
@@ -864,8 +868,8 @@ async def agent_chat(
 
     from firmament.live_feed import is_too_similar, push_event
 
-    # Accept snappy original takes; only rewrite if copycat/stub
-    MIN_ACCEPT_WORDS = 18 if (ambient or converse_mode) else 28
+    # Prefer a full paragraph; rewrite stubs / copycats
+    MIN_ACCEPT_WORDS = 45 if (ambient or converse_mode) else 70
 
     if not chain:
         errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")

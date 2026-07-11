@@ -829,9 +829,9 @@ async def agent_chat(
 
     from firmament.live_feed import is_too_similar, push_event
 
-    TARGET_WORDS = 400
-    # Expand when short, but accept solid live AI sooner so camp never stalls into templates
-    MIN_ACCEPT_WORDS = 90 if (ambient or converse_mode) else 140
+    TARGET_WORDS = 180  # witty natural length — not forced 400-word essays
+    # Accept snappy original takes; expand only if stubby
+    MIN_ACCEPT_WORDS = 40 if (ambient or converse_mode) else 55
 
     if not chain:
         errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")

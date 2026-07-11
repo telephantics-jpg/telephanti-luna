@@ -2474,8 +2474,9 @@
     }
     body.camp-focus #convo-log.collapsed #now-speaking .ns-text {
       display: block;
-      max-height: 2.6em; overflow-y: auto;
+      max-height: min(28vh, 220px); overflow-y: auto;
       white-space: pre-wrap; word-break: break-word;
+      font-size: 0.8rem; line-height: 1.45;
     }
     body.camp-focus #convo-log:not(.collapsed) #convo-log-title-short { display: none; }
     body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
@@ -2507,12 +2508,12 @@
         right: var(--gap);
         top: calc(var(--header-h) + var(--gap));
         bottom: auto;
-        width: min(260px, 36vw);
+        width: min(380px, 42vw);
         height: auto;
-        max-height: 68px;
+        max-height: min(42vh, 360px);
       }
       body.camp-focus #convo-log.collapsed #now-speaking .ns-text {
-        max-height: 2.4em;
+        max-height: min(32vh, 280px);
       }
     }
     @media (max-width: 899px) {
@@ -3866,7 +3867,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-277-PLAY-FIELD";
+    const CAMP_BUILD = "2026-07-11-278-FULL-SPEECH";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -12132,31 +12133,41 @@
       const lines = [];
       let line = "";
       const fs = fontSize || (isMobileView() ? 14 : 16);
+      const limit = Math.max(1, maxLines || 8);
       ctx.font = `600 ${fs}px Segoe UI`;
-      let consumed = 0;
       for (const word of words) {
         const test = line ? `${line} ${word}` : word;
         if (ctx.measureText(test).width > maxWidth && line) {
           lines.push(line);
           line = word;
-          consumed += 1;
-          if (lines.length >= maxLines - 1) break;
+          if (lines.length >= limit) {
+            line = "";
+            break;
+          }
         } else {
           line = test;
-          consumed += 1;
         }
       }
-      if (line && lines.length < maxLines - 1) {
-        lines.push(line);
+      if (line && lines.length < limit) lines.push(line);
+      // Ellipsis on last line when more words remain
+      if (lines.length >= limit) {
+        const used = lines.join(" ").split(/\s+/).filter(Boolean).length;
+        if (used < words.length) {
+          let last = lines[lines.length - 1];
+          while (last.length > 3 && ctx.measureText(`${last}…`).width > maxWidth) {
+            last = last.replace(/\s+\S+$/, "").replace(/[.,;:!?…]+$/, "");
+            if (!last) break;
+          }
+          lines[lines.length - 1] = last ? `${last}…` : "…";
+        }
       }
-      // No "tap scroll monologue" bait lines on canvas
-      return lines.slice(0, maxLines);
+      return lines.slice(0, limit);
     }
 
     function maxCanvasSpeechBubbles() {
-      // Tiny previews only — full text in 💬 Chat, not covering the meadow
+      // A few readable speech bubbles — full monologue also in 💬 Chat / sidebar
       if (isIOS() && isCampMobile()) return 2;
-      return isCampMobile() ? 2 : 2;
+      return isCampMobile() ? 2 : 3;
     }
 
     function drawThoughtBubble(sx, sy, text, color) {
@@ -12194,33 +12205,31 @@
       if (!text) return null;
       const mobile = isCampMobile();
       const ios = isIOS() && mobile;
-      // Short preview only — never dump full monologue over the play field
+      // Readable multi-line reply — full text held; wrap as many lines as fit
       const raw = String(text || "").trim();
       if (!raw || raw === "…" || raw === "...") {
         return drawThoughtBubble(sx, sy, "…", color), null;
       }
-      const preview = raw.length > 72 ? `${raw.slice(0, 70).trim()}…` : raw;
-      const maxW = ios ? 170 : mobile ? 180 : 200;
-      const fontSize = ios ? 11 : mobile ? 11 : 12;
-      const lineH = fontSize + 3;
-      const maxLines = 2;
+      const maxW = ios ? 240 : mobile ? 280 : Math.min(420, Math.floor(viewW * 0.42));
+      const fontSize = ios ? 12 : mobile ? 13 : 14;
+      const lineH = fontSize + 5;
+      const maxLines = ios ? 8 : mobile ? 10 : 14;
       const pinned = false;
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
-      const lines = wrapCanvasLines(preview, maxW - 20, maxLines, fontSize);
-      const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 56);
-      const boxW = Math.min(maxW, textW + 28);
-      const boxH = lines.length * lineH + 14;
+      const lines = wrapCanvasLines(raw, maxW - 24, maxLines, fontSize);
+      if (!lines.length) return null;
+      const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 72);
+      const boxW = Math.min(maxW, textW + 32);
+      const boxH = lines.length * lineH + 18;
       let bx = sx - boxW / 2;
       let by = above ? sy - boxH - 22 : sy + 16;
-      if (mobile) {
-        const pad = 8;
-        bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
-        by = Math.max(pad, Math.min(viewH - boxH - pad, by));
-      }
-      ctx.fillStyle = pinned ? "rgba(8, 18, 32, 0.98)" : "rgba(4, 10, 18, 0.94)";
+      const pad = mobile ? 8 : 12;
+      bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
+      by = Math.max(pad, Math.min(viewH - boxH - pad, by));
+      ctx.fillStyle = pinned ? "rgba(8, 18, 32, 0.98)" : "rgba(4, 10, 18, 0.96)";
       ctx.beginPath();
-      ctx.roundRect(bx, by, boxW, boxH, 10);
+      ctx.roundRect(bx, by, boxW, boxH, 12);
       ctx.fill();
       ctx.strokeStyle = pinned ? "#fde68a" : color;
       ctx.lineWidth = pinned ? 3 : 2.5;
@@ -12242,15 +12251,15 @@
       lines.forEach((ln, i) => {
         const isHint = ln.startsWith("↕");
         ctx.fillStyle = isHint ? "#67e8f9" : "#f8fafc";
-        ctx.fillText(ln, bx + 9, by + 12 + i * lineH);
+        ctx.fillText(ln, bx + 12, by + 14 + i * lineH);
       });
       ctx.textAlign = "center";
-      // Hit target — open 💬 chat, don't spawn overlay boxes
+      // Hit target — open 💬 chat for full scrollable thread
       const rect = {
         bx, by, boxW, boxH,
         speaker: meta?.speaker || "",
         agentId: meta?.agentId || "",
-        line: preview,
+        line: raw,
         color,
         mood: meta?.mood || "neutral",
       };
@@ -12293,7 +12302,7 @@
         const held = speechHold.get(n.name);
         const active = held && held.until > now ? held : null;
         if (!active?.line) continue;
-        // Preview only — never full monologue on canvas
+        // Full reply wrapped on canvas (14 lines desktop / 10 mobile)
         drawSpeechBubble(s.x, s.y - 8, active.line, color, true, {
           speaker: n.name,
           agentId: n.id,
@@ -14254,15 +14263,15 @@
         renderConvoLog();
         appendGrokTerminalLine(speaker, clean, moodVal);
       }
-      // Never spawn floating / expanding text boxes over the meadow
+      // No separate monologue pin / expand overlays — full reply on canvas + sidebar
       hideCampTextExpand();
       hideMobileReplyBubble();
       hideCampSpeechPin();
       minimizeSpeechBubble();
       document.body.classList.remove("speech-expanded", "chatter-expanded");
       if (!canvasCampChatOnly() && !convoReadingHold && !quiet) {
-        const short = clean.length > 90 ? `${clean.slice(0, 88)}…` : clean;
-        updateNowSpeaking(speaker, short, moodVal);
+        // Full reply in sidebar "now speaking" (scrollable)
+        updateNowSpeaking(speaker, clean, moodVal);
       }
       notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);
@@ -14270,8 +14279,9 @@
       if (npc && npcMode === "stand") {
         npc.idle = 99999;
       }
-      // Canvas: short hold only (drawSpeechBubble previews ≤2 lines)
-      if (!quiet) showBigSpeech(speaker, clean.length > 80 ? `${clean.slice(0, 78)}…` : clean, Math.min(holdSec, 18));
+      // Canvas bubble holds the FULL reply long enough to read paragraphs
+      const readHold = Math.max(holdSec, campReadHoldSec(clean, 48));
+      if (!quiet) showBigSpeech(speaker, clean, Math.min(readHold, 90));
       if (!canvasCampChatOnly()) {
         setTimeout(() => {
           const latest = campLines[campLines.length - 1];
@@ -14279,14 +14289,13 @@
               && !chatterPaused && !converseBusy && !convoReadingHold) {
             showNowSpeakingIdle();
           }
-        }, Math.min(holdSec, 18) * 1000 + 400);
+        }, Math.min(readHold, 90) * 1000 + 400);
       }
       if (npc) {
-        // Keep full for chat panel; canvas only sees short preview via speechHold
         npc.fullLine = clean;
-        npc.line = clean.length > 80 ? `${clean.slice(0, 78)}…` : clean;
+        npc.line = clean;
       }
-      // NO openAgentScrollBubble / pin / text-expand — full text only in 💬 Chat
+      // Full text on canvas + 💬 Chat + convo log — no float pin panel
       if (!opts.skipBroadcast && playWs && playWs.readyState === WebSocket.OPEN && opts.fromLocal) {
         playWs.send(JSON.stringify({
           type: "play.chatter", speaker, text: clean, mood: moodVal,
@@ -14416,9 +14425,10 @@
         if (!text.trim()) continue;
         setCampLifeStatus(`${who} answers…`);
         if (aid) claimSpeechFloor(aid, { focus: true, holdMs: 90000 });
-        const hold = Math.min(campReadHoldSec(text, 36), 28);
+        // Hold long enough for multi-paragraph lines to stay readable on canvas
+        const hold = Math.min(campReadHoldSec(text, 48), 75);
         pushCampLine(who, text, hold, line.mood, { fromLocal: true, ambient: true });
-        await new Promise((r) => setTimeout(r, hold * 1000 + Math.min(gapMs, 8000)));
+        await new Promise((r) => setTimeout(r, hold * 1000 + Math.min(gapMs, 6000)));
         if (aid) releaseSpeechFloor(aid, { extendHoldMs: 2000, clearFocus: true });
       }
     }

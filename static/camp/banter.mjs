@@ -40,14 +40,14 @@ export function ambientPrompt(agentId, {
     const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 100);
     return (
       `${replyTo.name || "Someone"} just riffed (idea only): ${idea}. ` +
-      `Reply TO them as ${(agentId || "agent").toLowerCase()} — short, funny, original. ` +
+      `Reply TO them as ${(agentId || "agent").toLowerCase()} in about one full paragraph (~60–100 words) — funny, original. ` +
       `Don't copy their words. Camp: ${context}.` +
       (near ? ` Nearby: ${near}.` : "")
     );
   }
   return (
     `You're ${(agentId || "agent").toLowerCase()} at camp. Notice one real thing ` +
-    `(fire, music, pond, ${visitor}, props) and riff 1–3 short paragraphs — funny, specific, YOUR voice. ` +
+    `(fire, music, pond, ${visitor}, props) and riff in about one full paragraph (~60–110 words) — funny, specific, YOUR voice. ` +
     `Camp: ${context}.` +
     (near ? ` Nearby: ${near}.` : "")
   );

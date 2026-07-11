@@ -40,7 +40,8 @@
   <link rel="preload" as="image" href="/static/camp/aurora-corona-sky.jpg" media="(min-width: 900px)" />
   <style>
     :root {
-      --header-h: 118px;
+      /* Slimmer header — weather chips + PC/phone share-hint gone so play field is taller */
+      --header-h: 72px;
       --layer-bar-h: 0px;
       --text-expand-h: 0px;
       --talk-bar-h: 44px;
@@ -475,9 +476,9 @@
     #camp-header {
       position: fixed; left: 0; right: 0; top: 0; z-index: 25;
       min-height: var(--header-h);
-      max-height: min(42vh, 220px);
-      display: flex; flex-direction: column; gap: 6px;
-      padding: max(6px, env(safe-area-inset-top)) var(--gap) 6px;
+      max-height: min(36vh, 160px);
+      display: flex; flex-direction: column; gap: 4px;
+      padding: max(4px, env(safe-area-inset-top)) var(--gap) 4px;
       background: linear-gradient(180deg, rgba(6, 10, 20, 0.97) 0%, rgba(6, 10, 20, 0.88) 80%, transparent 100%);
       border-bottom: 1px solid rgba(103, 232, 249, 0.2);
       pointer-events: auto;
@@ -532,11 +533,23 @@
       background: rgba(15, 24, 40, 0.9); border: 1px solid rgba(255,255,255,0.08);
     }
     #server-status { color: #6ee7b7; font-weight: 600; }
-    #free-tools-row, #weather-row {
+    #free-tools-row {
       display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
       pointer-events: auto;
     }
-    .free-tool-chip, .weather-chip {
+    /* Sky weather chips + share-hint removed — more room for the play field */
+    #weather-row,
+    #unreal-hint {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      pointer-events: none !important;
+    }
+    .free-tool-chip {
       border: 1px solid rgba(103, 232, 249, 0.28);
       background: rgba(12, 20, 36, 0.88);
       color: #cbd5e1;
@@ -546,10 +559,8 @@
       cursor: pointer;
       text-decoration: none;
     }
-    .free-tool-chip:hover, .weather-chip:hover { border-color: #67e8f9; color: #ecfeff; }
+    .free-tool-chip:hover { border-color: #67e8f9; color: #ecfeff; }
     .free-tool-chip.native { border-color: rgba(52, 211, 153, 0.45); color: #a7f3d0; }
-    .weather-chip.active { background: rgba(14, 116, 144, 0.55); border-color: #67e8f9; color: #ecfeff; }
-    #unreal-hint { font-size: 0.66rem; color: #94a3b8; max-width: 520px; line-height: 1.35; }
     #status-toast {
       flex: 1; min-width: 140px; max-width: 420px;
       padding: 6px 12px; border-radius: 999px; text-align: center;
@@ -1902,7 +1913,7 @@
     }
     @media (min-width: 900px) {
       :root {
-        --header-h: 80px;
+        --header-h: 68px;
         --talk-bar-h: 34px;
         --dock-icons-h: 32px;
         --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--talk-bar-h) + var(--dock-icons-h) + 8px);
@@ -3469,15 +3480,7 @@
       <span class="free-tool-chip" id="chip-tts" title="Edge TTS — free">🔊 TTS free</span>
       <a class="free-tool-chip" id="chip-unreal-stream" href="/firmament/stream" style="display:none">🎮 Unreal stream</a>
     </div>
-    <div class="header-row" id="weather-row">
-      <span style="font-size:0.68rem;color:#94a3b8;margin-right:4px;">Sky</span>
-      <button type="button" class="weather-chip active" data-weather="aurora">Aurora</button>
-      <button type="button" class="weather-chip" data-weather="corona">Sun corona</button>
-      <button type="button" class="weather-chip" data-weather="rain">Rain</button>
-      <button type="button" class="weather-chip" data-weather="night">Night</button>
-    </div>
-    <div id="unreal-hint">PC &amp; phone share this camp — live multi-AI brains (Grok chain + free Ollama when local), memory, and chatter.</div>
-    <div id="camp-life-status" class="live">Waking Luna, Hermes, Oracle &amp; Caduceus…</div>
+    <div id="camp-life-status" class="live">Camp is live…</div>
     <div id="camp-music-now" aria-live="polite" hidden>
       <div class="camp-music-now-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
       <div class="camp-music-now-meta">
@@ -3863,7 +3866,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-275-ZOOM-LONG";
+    const CAMP_BUILD = "2026-07-11-277-PLAY-FIELD";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;

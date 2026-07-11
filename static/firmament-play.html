@@ -3863,7 +3863,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-270-NO-TEXT-BOX";
+    const CAMP_BUILD = "2026-07-11-271-NO-FLOAT-BOX";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -8315,32 +8315,38 @@
     }
 
     function setSpeechBubbleDock(collapsed) {
+      // Always stay collapsed — no floating chatter box over the meadow
       const el = document.getElementById("convo-log");
       const btn = document.getElementById("convo-dock-toggle");
       if (!el) return;
       const mobile = isCampMobile();
       if (mobile) {
         if (canvasCampChatOnly()) return;
-        applyMobileChatterMode(collapsed ? "mini" : "expanded", { quiet: true });
+        applyMobileChatterMode("mini", { quiet: true });
         if (btn) {
-          btn.textContent = collapsed ? "▲" : "▼";
-          btn.title = collapsed ? "Expand chatter log" : "Minimize to mini bar";
+          btn.textContent = "▲";
+          btn.title = "Chatter stays mini — open 💬 Chat for full lines";
         }
+        document.body.classList.remove("speech-expanded", "chatter-expanded");
         return;
       }
-      el.classList.toggle("collapsed", collapsed);
-      document.body.classList.toggle("speech-expanded", !collapsed);
+      el.classList.add("collapsed");
+      document.body.classList.remove("speech-expanded");
+      document.body.classList.remove("chatter-expanded");
       if (btn) {
-        btn.textContent = collapsed ? "▲" : "▼";
-        btn.title = collapsed ? "Expand speech bubble" : "Minimize to dock";
+        btn.textContent = "▲";
+        btn.title = "Full lines in 💬 Chat panel";
       }
       try {
-        localStorage.setItem("luna-camp-speech-dock", collapsed ? "min" : "max");
+        localStorage.setItem("luna-camp-speech-dock", "min");
       } catch (_) {}
       setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
     }
 
-    function expandSpeechBubble() { setSpeechBubbleDock(false); }
+    function expandSpeechBubble() {
+      // Never expand the side box over play field
+      minimizeSpeechBubble();
+    }
     function minimizeSpeechBubble() { setSpeechBubbleDock(true); }
 
     function restoreMobileChatter() {
@@ -12121,18 +12127,14 @@
       if (line && lines.length < maxLines - 1) {
         lines.push(line);
       }
-      const truncated = consumed < words.length || words.length > 48;
-      if (truncated) {
-        const hint = "↕ tap · scroll full monologue";
-        if (lines.length >= maxLines) lines[maxLines - 1] = hint;
-        else lines.push(hint);
-      }
+      // No "tap scroll monologue" bait lines on canvas
       return lines.slice(0, maxLines);
     }
 
     function maxCanvasSpeechBubbles() {
-      if (isIOS() && isCampMobile()) return 4;
-      return isCampMobile() ? 3 : MAX_CANVAS_SPEECH_BUBBLES;
+      // Tiny previews only — full text in 💬 Chat, not covering the meadow
+      if (isIOS() && isCampMobile()) return 2;
+      return isCampMobile() ? 2 : 2;
     }
 
     function drawThoughtBubble(sx, sy, text, color) {
@@ -12170,20 +12172,20 @@
       if (!text) return null;
       const mobile = isCampMobile();
       const ios = isIOS() && mobile;
-      const fullText = String(meta?.fullLine || text || "").trim() || String(text || "");
-      const expanded = !!(meta?.speaker && (
-        expandedCampText.who === meta.speaker
-        || pinnedSpeech.has(meta.speaker)
-      ));
-      const maxW = expanded ? (ios ? 300 : mobile ? 280 : 340) : (ios ? 240 : mobile ? 230 : 280);
-      const fontSize = expanded ? (ios ? 13 : mobile ? 12 : 13) : (ios ? 12 : mobile ? 11 : 12);
-      const lineH = fontSize + 4;
-      // Canvas preview only — full monologue scrolls in pin / chatter bubbles
-      const maxLines = expanded ? (mobile ? 16 : 20) : (mobile ? 10 : 12);
-      const pinned = !!(meta && pinnedSpeech.has(meta.speaker));
+      // Short preview only — never dump full monologue over the play field
+      const raw = String(text || "").trim();
+      if (!raw || raw === "…" || raw === "...") {
+        return drawThoughtBubble(sx, sy, "…", color), null;
+      }
+      const preview = raw.length > 72 ? `${raw.slice(0, 70).trim()}…` : raw;
+      const maxW = ios ? 170 : mobile ? 180 : 200;
+      const fontSize = ios ? 11 : mobile ? 11 : 12;
+      const lineH = fontSize + 3;
+      const maxLines = 2;
+      const pinned = false;
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
-      const lines = wrapCanvasLines(fullText, maxW - 24, maxLines, fontSize);
+      const lines = wrapCanvasLines(preview, maxW - 20, maxLines, fontSize);
       const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 56);
       const boxW = Math.min(maxW, textW + 28);
       const boxH = lines.length * lineH + 14;
@@ -12221,12 +12223,12 @@
         ctx.fillText(ln, bx + 9, by + 12 + i * lineH);
       });
       ctx.textAlign = "center";
-      // Hit target carries FULL monologue for scroll reader
+      // Hit target — open 💬 chat, don't spawn overlay boxes
       const rect = {
         bx, by, boxW, boxH,
         speaker: meta?.speaker || "",
         agentId: meta?.agentId || "",
-        line: fullText,
+        line: preview,
         color,
         mood: meta?.mood || "neutral",
       };
@@ -12266,16 +12268,14 @@
           drawn += 1;
           continue;
         }
-        const pinned = pinnedSpeech.get(n.name);
         const held = speechHold.get(n.name);
-        const active = pinned || (held && held.until > now ? held : null);
+        const active = held && held.until > now ? held : null;
         if (!active?.line) continue;
-        const full = (n.fullLine || active.line || "").trim() || active.line;
+        // Preview only — never full monologue on canvas
         drawSpeechBubble(s.x, s.y - 8, active.line, color, true, {
           speaker: n.name,
           agentId: n.id,
-          mood: pinned?.mood || n.mood || "neutral",
-          fullLine: full,
+          mood: n.mood || "neutral",
         });
         drawn += 1;
       }
@@ -14103,35 +14103,17 @@
       if (!line) return;
       const entry = campLines[Number(line.dataset.idx)];
       if (!entry?.text) return;
-      if (isCampMobile()) {
-        showCampTextExpand(entry.speaker, entry.text, {
-          mood: entry.mood,
-          hint: "Full line — tap ✕ to collapse",
-        });
-      }
+      // Open real chat — no floating monologue box
       const agent = allRoamers().find((n) => n.name === entry.speaker || n.id === entry.speaker.toLowerCase());
-      pinCampSpeech(entry.speaker, entry.text, entry.mood, {
-        color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
-        agentId: agent?.id || "",
-      });
-      if (agent) showToast(isCampMobile() ? `Full line — pinned ${entry.speaker}` : `Pinned ${entry.speaker} — tap them to chat`);
+      const id = agent?.id || entry.speaker.toLowerCase();
+      if (typeof openCampChatPanel === "function") openCampChatPanel(id);
     });
     document.getElementById("now-speaking")?.addEventListener("click", () => {
-      const el = document.getElementById("now-speaking");
-      if (!el || el.classList.contains("idle")) return;
       const last = campLines[campLines.length - 1];
       if (!last?.text) return;
-      if (isCampMobile()) {
-        showCampTextExpand(last.speaker, last.text, {
-          mood: last.mood,
-          hint: "Full line — tap ✕ to collapse",
-        });
-      }
       const agent = allRoamers().find((n) => n.name === last.speaker || n.id === last.speaker.toLowerCase());
-      pinCampSpeech(last.speaker, last.text, last.mood, {
-        color: agent?.color || AGENT_COLORS[agent?.id] || "#67e8f9",
-        agentId: agent?.id || "",
-      });
+      const id = agent?.id || last.speaker.toLowerCase();
+      if (typeof openCampChatPanel === "function") openCampChatPanel(id);
     });
 
     let chatterPaused = false;
@@ -14253,13 +14235,15 @@
         renderConvoLog();
         appendGrokTerminalLine(speaker, clean, moodVal);
       }
-      // No floating text-expand / keyboard-reply boxes over the meadow
+      // Never spawn floating / expanding text boxes over the meadow
       hideCampTextExpand();
       hideMobileReplyBubble();
-      if (!canvasCampChatOnly() && !convoReadingHold && !quiet) updateNowSpeaking(speaker, clean, moodVal);
-      // Keep dock compact — full text in 💬 Chat / chatter log only
-      if (!opts.keepDock && !canvasCampChatOnly() && !quiet) {
-        /* no expandSpeechBubble() — that puffed awkward UI over the field */
+      hideCampSpeechPin();
+      minimizeSpeechBubble();
+      document.body.classList.remove("speech-expanded", "chatter-expanded");
+      if (!canvasCampChatOnly() && !convoReadingHold && !quiet) {
+        const short = clean.length > 90 ? `${clean.slice(0, 88)}…` : clean;
+        updateNowSpeaking(speaker, short, moodVal);
       }
       notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);
@@ -14267,7 +14251,8 @@
       if (npc && npcMode === "stand") {
         npc.idle = 99999;
       }
-      if (!quiet) showBigSpeech(speaker, clean, holdSec);
+      // Canvas: short hold only (drawSpeechBubble previews ≤2 lines)
+      if (!quiet) showBigSpeech(speaker, clean.length > 80 ? `${clean.slice(0, 78)}…` : clean, Math.min(holdSec, 18));
       if (!canvasCampChatOnly()) {
         setTimeout(() => {
           const latest = campLines[campLines.length - 1];
@@ -14275,23 +14260,14 @@
               && !chatterPaused && !converseBusy && !convoReadingHold) {
             showNowSpeakingIdle();
           }
-        }, holdSec * 1000 + 400);
+        }, Math.min(holdSec, 18) * 1000 + 400);
       }
       if (npc) {
-        npc.line = clean;
+        // Keep full for chat panel; canvas only sees short preview via speechHold
         npc.fullLine = clean;
+        npc.line = clean.length > 80 ? `${clean.slice(0, 78)}…` : clean;
       }
-      // Long monologues → scrollable reader (reopens for new chats; short lines skip)
-      const wordCount = clean.split(/\s+/).filter(Boolean).length;
-      if (
-        !quiet
-        && speaker !== "Camp"
-        && !isVisitorSpeaker(speaker)
-        && wordCount >= 28
-        && !opts.noScrollBubble
-      ) {
-        openAgentScrollBubble(speaker, clean, moodVal, { agentId, force: true });
-      }
+      // NO openAgentScrollBubble / pin / text-expand — full text only in 💬 Chat
       if (!opts.skipBroadcast && playWs && playWs.readyState === WebSocket.OPEN && opts.fromLocal) {
         playWs.send(JSON.stringify({
           type: "play.chatter", speaker, text: clean, mood: moodVal,
@@ -15027,8 +15003,9 @@
         if (isCampMobile()) {
           applyMobileChatterMode("hidden", { quiet: true });
         } else {
-          const savedDock = localStorage.getItem("luna-camp-speech-dock");
-          setSpeechBubbleDock(savedDock === "min");
+          // Always mini dock — never restore expanded speech box over field
+          try { localStorage.setItem("luna-camp-speech-dock", "min"); } catch (_) {}
+          setSpeechBubbleDock(true);
         }
       } catch (_) {
         if (isCampMobile()) applyMobileChatterMode("hidden", { quiet: true });

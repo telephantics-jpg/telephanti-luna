@@ -3890,7 +3890,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-10-265-NATURAL-VOICE";
+    const CAMP_BUILD = "2026-07-11-266-PROMPT-V2";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -11027,21 +11027,18 @@
         .map((n) => n.name)
         .join(", ");
       if (replyTo?.line) {
-        const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 140);
+        const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 100);
         return (
-          `(Live AI campside banter) ${replyTo.name} just spoke about (idea only, DO NOT copy their wording): "${idea}". ` +
-          `Reply TO ${replyTo.name} as yourself at camp in ~400 words (350–450). Multi-paragraph monologue. ` +
-          `Invent completely new phrases — never reuse their metaphors or punchlines. ` +
-          `Weave: clean logic, ethical stake, esoteric truth, your character wit. ` +
-          `Camp vibe: ${ctx}. Visitor nearby: ${v}.` +
-          (whoNear ? ` Also nearby: ${whoNear}.` : "")
+          `${replyTo.name} just took a swing at something like: ${idea}. ` +
+          `Reply TO them in YOUR voice — short, funny, original. Don't copy their words. ` +
+          `Camp: ${ctx}.` +
+          (whoNear ? ` Nearby: ${whoNear}.` : "")
         );
       }
       return (
-        `(Live AI ambient) You are at Luna Camp. Speak 2–4 short paragraphs in YOUR unique voice only. ` +
-        `Not a canned idle quote. Never copy other agents' recent phrases. ` +
-        `Notice something real (fire, music, pond, church, ${v}, props) and react freshly. ` +
-        `Camp vibe: ${ctx}.` +
+        `You're at camp. Notice one real thing (fire, music, pond, ${v}, props) and riff — ` +
+        `1–3 short paragraphs, funny and specific, YOUR voice only. ` +
+        `Camp: ${ctx}.` +
         (whoNear ? ` Nearby: ${whoNear}.` : "")
       );
     }

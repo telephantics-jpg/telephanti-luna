@@ -254,36 +254,28 @@ def feed_blurb_for_agent(agent_id: str, *, limit: int = 10) -> str:
     aid = (agent_id or "").strip().lower()
     parts: list[str] = []
 
-    others = recent_events(limit=limit, exclude_agent=aid)
+    others = recent_events(limit=min(limit, 5), exclude_agent=aid)
     if others:
         lines = []
-        for e in others[-8:]:
+        for e in others[-4:]:
             who = e.get("speaker") or e.get("agent_id") or "Camp"
-            txt = str(e.get("text") or "")[:140]
+            txt = str(e.get("text") or "")[:90]
             if txt:
-                lines.append(f"{who}: {txt}")
+                lines.append(f"{who} riffed on: {txt}")
         if lines:
             parts.append(
-                "LIVE CAMP FEED (context only — react to the IDEA, never copy their wording):\n- "
-                + "\n- ".join(lines)
+                "Recent camp air (ideas only, invent new words):\n- " + "\n- ".join(lines)
             )
 
     banned = recent_phrases_for_agent(aid, MAX_BAN)
     if banned:
-        # Short guidance only — full quote dumps made models sound robotic
-        parts.append(
-            "ANTI-REPEAT: invent a brand-new hook; do not recycle your last openings. "
-            "Never say 'last time you said' or paste old quotes."
-        )
+        parts.append("Don't recycle your last opening. Fresh hook.")
 
-    other_bans = other_agents_banned_phrases(aid, limit=6)
+    other_bans = other_agents_banned_phrases(aid, limit=4)
     if other_bans:
-        parts.append(
-            "ANTI-COPY: other agents already spoke — react to their ideas in YOUR voice, "
-            "never steal their wording or catchphrases. Be funnier and more original."
-        )
+        parts.append("Don't steal other agents' punchlines. Be funnier.")
 
-    pulse = free_world_pulse(4)
+    pulse = free_world_pulse(3)
     if pulse:
         parts.append("FREE WORLD PULSE (riff if relevant): " + " · ".join(f'"{p}"' for p in pulse[:4]))
 

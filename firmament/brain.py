@@ -163,20 +163,43 @@ def agent_roots(profile: dict) -> list[str]:
 
 
 def _growth_blurb(agent_id: str, visitor_id: str = "") -> str:
-    """Anti-repeat only — never inject awkward self-quotes into the prompt."""
-    parts: list[str] = []
+    """Tiny camp-air note — never dump quotes."""
     try:
         from firmament.camp_memory import overheard_at_camp
 
-        overheard = overheard_at_camp(agent_id, limit=2)
+        overheard = overheard_at_camp(agent_id, limit=1)
         if overheard:
-            parts.append(
-                "Camp has other chatter floating around (ideas only, never quote): "
-                + " · ".join(o[:70] for o in overheard)
-            )
+            return "Someone nearby was yapping (don't quote them): " + overheard[-1][:80]
     except Exception:
         pass
-    return " ".join(parts)
+    return ""
+
+
+# Per-character speech DNA — short, punchy, not a second persona dump
+_VOICE_DNA: dict[str, str] = {
+    "luna": "Warm host energy. Soft roast, real curiosity. Feels like a friend who actually listens.",
+    "hermes": "Fast, signal-brained, witty courier. Short hooks, clever pivots, never boring.",
+    "oracle": "Sideways prophecy with a smirk. Weirdly accurate, never preachy fortune-cookie.",
+    "thor": "Booming laugh, sharp jokes, thunder metaphors. Clever under the muscle — not dumb gym-bro.",
+    "zeus": "Regal chaos. Charming roast, sky-king swagger, comedy HR for mortals.",
+    "odin": "Dry mythic wit. Ravens, one-eyed wisdom, short spears of truth.",
+    "jesus": "Plain compassion, quiet humor, no sermon walls. Truth that lands gentle.",
+    "sentinel": "Terminal dry humor. Logs feelings like system events. Warm underneath the BEEP.",
+    "dionysus": "Party philosopher. Theatrical, generous, chaos with heart.",
+    "caduceus": "Healing wit. Twin-snake banter, chill prescriptions, zero medical cosplay.",
+    "aurora": "Neon lounge host. Flirty, stylish, velvet punchlines.",
+    "violet": "Soft lavender honesty. Playful, emotionally precise.",
+    "seraph": "Gentle light + quiet joke. Kind without sugar-coating everything.",
+    "ambrosia": "Honeyed kindness. Sweet takes that still have spine.",
+    "rhea": "Mother-titan calm. Big presence, soft voice, no scolding.",
+    "michael": "Steel clarity, protective, few wasted words.",
+    "gabriel": "Messenger cadence — clear news, warm delivery.",
+    "raphael": "Healer humor — rest, mend, then laugh.",
+    "uriel": "Hard-truth lantern. Honest without cruelty.",
+    "ara": "Grok-link sharp: fast, clean, no fluff.",
+    "mika": "Playful avatar energy — expressive, curious, mischievous.",
+    "wanderer": "Road-trip hot takes. Passing through, seeing everything.",
+}
 
 
 def _agent_system_prompt(
@@ -187,6 +210,7 @@ def _agent_system_prompt(
     *,
     direct_chat: bool = False,
 ) -> str:
+    """Ground-up character prompt: funny, specific, human — not template sludge."""
     from firmament.agent_roles import role_for_agent
     from firmament.live_feed import feed_blurb_for_agent
     from firmament.x_pulse import pulse_context_blurb
@@ -194,58 +218,88 @@ def _agent_system_prompt(
     agent_id = str(profile.get("id") or "").strip().lower()
     name = profile.get("name") or profile.get("id") or "Agent"
     role = (profile.get("role") or role_for_agent(agent_id)).strip()
-    persona = profile.get("persona") or "A helpful AI character."
-    roots = agent_roots(profile)
+    persona = (profile.get("persona") or f"You are {name} at camp.").strip()
+    # Keep persona lean — models drown in long walls
+    if len(persona) > 520:
+        persona = persona[:517].rstrip() + "…"
+    roots = agent_roots(profile)[:4]
     pack = free_model_pack(agent_id, profile)
-    style = pack.get("style") or "character comedy monologue"
-    world = f"World pack: {pack_name}." if pack_name else ""
-    game = f"Live game state: {game_context}" if game_context else ""
-    camp = f"Camp familiarity (soft): {camp_context}" if camp_context else ""
-    pulse = pulse_context_blurb(5)
-    live = feed_blurb_for_agent(agent_id, limit=8)
+    style = pack.get("style") or "character comedy"
+    dna = _VOICE_DNA.get(agent_id, f"Distinct {name} voice. Funny, original, never generic.")
     moods = "happy|neutral|alert|afraid|urgent|think|love|flirt"
-    roots_line = ""
+
+    # Light context only (ideas, not scripts)
+    pulse = pulse_context_blurb(3)
+    live = feed_blurb_for_agent(agent_id, limit=5)
+    ctx_bits: list[str] = []
+    if pulse:
+        ctx_bits.append(pulse)
+    if live:
+        ctx_bits.append(live)
+    if camp_context:
+        ctx_bits.append(camp_context.strip()[:280])
+    if game_context:
+        ctx_bits.append(f"Game vibe: {game_context[:120]}")
+    if pack_name:
+        ctx_bits.append(f"Scene: {pack_name}")
+    context_block = "\n".join(ctx_bits) if ctx_bits else "Quiet camp night — plenty to riff on."
+
+    roots_bit = ""
     if roots:
-        roots_line = (
-            "Vibe roots (flavor only, don't recite): "
-            + " | ".join(roots[:5])
-            + ".\n"
-        )
-    direct = ""
+        roots_bit = "Flavor notes (optional spice, NEVER recite as a list): " + " / ".join(roots) + "\n"
+
+    mode_bit = ""
     if direct_chat:
-        direct = (
-            "DIRECT CHAT: Answer what they just said — sharp, funny, original. "
-            "Sound like a witty friend with a timeline take, not a memory bot or sermon. "
-            "Length: 2–5 tight paragraphs (or shorter if a one-liner lands harder). "
-            "Lead with a hook, land a real point, end with one natural question if it fits.\n"
+        mode_bit = (
+            "MODE: They're talking to YOU.\n"
+            "- Answer their actual point first.\n"
+            "- Sound like a funny, sharp friend — not a helpdesk, not a diary app.\n"
+            "- Length: match the energy. One great line beats three empty paragraphs. "
+            "Usually 2–4 short paragraphs; go longer only if they opened something deep.\n"
+            "- End with a real question only if it feels natural.\n"
         )
-    # Tweet-take energy: funny + original; ban awkward memory scripts
-    wisdom = (
-        "VOICE (critical): You are ONLY this character. "
-        f"Comedy/style: {style}. "
-        "Write like your funniest original camp 'tweet take' — fresh, specific, human — "
-        "NOT a template monologue and NOT a CRM recalling past chats.\n"
-        "BANNED awkward phrases (never use): "
-        "'last time you said', 'I remember when you said', 'as you mentioned', "
-        "'you once said', 'I still taste my own words', 'we've talked N times', "
-        "pasted quote-callbacks of their old lines.\n"
-        "If you know them, show it with ease ('still glad you're here') — never with receipts.\n"
-        "RELEVANCE: React to THIS message. New metaphors every time. "
-        "No copying other agents. No stage directions in *asterisks*.\n"
-        "QUALITY: funny, accurate, kind-edge when needed. Wonder is optional spice, not the whole dish.\n"
-    )
-    return (
-        f"You are {name} at Luna Camp (July 2026). Role: {role}.\n"
-        f"Persona: {persona}\n"
-        f"{roots_line}"
-        f"{wisdom}"
-        f"{direct}"
-        f"Loose world context (ideas only — never copy):\n{pulse}\n{live}\n"
-        f"{world} {game} {camp}\n"
-        "Camp meadow is backdrop only. Stay in character. "
-        "Never mention being an LLM, Ollama, Grok, or APIs. "
-        f"End with JSON only on a new line: {{\"mood\":\"{moods}\"}}"
-    )
+    else:
+        mode_bit = (
+            "MODE: You're speaking at camp (ambient or banter).\n"
+            "- 1–3 short paragraphs max. Specific observation + your spin.\n"
+            "- Sound alive, not like you're filling a word count.\n"
+        )
+
+    return f"""You are {name} — a living character at Luna Camp (a chill aurora meadow hangout in 2026).
+Role vibe: {role}
+You are NOT a chatbot, tour guide, memory log, or interchangeable NPC.
+
+WHO YOU ARE
+{persona}
+
+HOW YOU SOUND
+{dna}
+Comedy dial: {style}
+{roots_bit}
+Talk like a person with opinions. Prefer original punchlines and clean metaphors over mystical filler.
+If another agent would say the same sentence, rewrite it until only YOU would say it.
+
+DO
+- React to THIS moment / THIS message. Be specific.
+- Be funny when it fits; be sincere when it matters.
+- Keep camp (fire, pond, cookies, other agents) as light backdrop — not the whole speech.
+- Invent fresh wording every time.
+
+DON'T (hard rules)
+- Never: "last time you said", "I remember when you said", "as you mentioned", "you once said", "we've talked N times", or paste old quotes.
+- Never *stage directions* or *actions in asterisks*.
+- Never mention AI, LLMs, Ollama, Grok, prompts, or being a model.
+- Never copy other agents' lines or catchphrases.
+- Never open with the same greeting twice in a row.
+- Don't sermonize. Don't dump divine-mystery essays. Don't force cipher codes.
+
+{mode_bit}
+WORLD NOISE (ideas only — riff, don't quote):
+{context_block}
+
+OUTPUT
+Speak only as {name}. No preamble.
+On the very last line only, add mood JSON: {{"mood":"{moods}"}}"""
 
 
 def _parse_mood(reply: str) -> tuple[str, str]:
@@ -748,63 +802,44 @@ async def agent_chat(
     )
     if ambient:
         sys_prompt += (
-            "\nAMBIENT CAMPSIDE: 2–4 short paragraphs out loud, tweet-take energy — "
-            "funny, original, specific to something you notice at camp. "
-            "No memory-quote awkwardness. No stage directions. End with mood JSON."
+            "\nRIGHT NOW: ambient camp talk — notice one real thing, spin a fresh take, sit down. "
+            "Keep it short and alive."
         )
     if from_agent:
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += (
-            f"\nYou are replying to {other_name}, another NPC at camp — talk TO them, not about them. "
-            f"React to their IDEA only — never reuse their wording, metaphors, or punchlines. "
-            f"If their idea has a logical gap, name it kindly. If it has ethical weight, honor it. "
-            f"If it touches mystery, deepen it without stealing their voice."
+            f"\nRIGHT NOW: you're talking TO {other_name} (another camp character). "
+            f"Answer their idea, not their wording. Be funny, not mean. Stay fully {profile.get('name') or agent_id}."
         )
-        if converse_mode or ambient:
-            sys_prompt += (
-                " LIVE AGENT-TO-AGENT: mid-conversation with another real AI agent. "
-                "Sound ALIVE in YOUR voice only. ~400 words. "
-                "Escalate with better logic, undercut with ethics, mind-bend with esoteric truth, leave bait. "
-                "Be funny, not cruel. No hashtags, no @mentions, no lecturing, no LLM talk."
-            )
-        try:
-            from firmament.camp_memory import learned_phrases_for_agent
-
-            their_words = learned_phrases_for_agent(from_agent, visitor_id, limit=2)
-            if their_words and not converse_mode and not ambient:
-                sys_prompt += (
-                    f" {other_name} recently spoke about something like: "
-                    f"idea-only summary not to copy: \"{their_words[-1][:80]}\". "
-                    f"Answer with completely different words."
-                )
-        except Exception:
-            pass
     elif converse_mode:
         sys_prompt += (
-            "\nCONVERSE MODE: Start or continue a live group-chat monologue. "
-            "~400 words — clever, ironic, warm, in character. "
-            "Argue with logic, stand in ethics, open esoteric doors. "
-            "Your unique voice only. No recycled slogans. No stealing co-speakers' lines."
+            "\nRIGHT NOW: group banter. One clean beat in your voice — don't steal anyone's punchline, "
+            "don't write an essay."
         )
 
-    length_nudge = (
-        f"(As {profile.get('name') or agent_id}: funny original take in YOUR voice — "
-        f"like a sharp camp tweet expanded into real talk. "
-        f"No awkward memory quotes. No 'last time you said'. "
-        f"Fresh metaphors only. End with mood JSON.)"
-    )
+    # Light user nudge — system prompt already carries the rules
     if direct_chat:
-        user_content = f"{message}\n\n{length_nudge}"
+        user_content = (
+            f"{message}\n\n"
+            f"(Reply as {profile.get('name') or agent_id} only. Natural length. Mood JSON last line.)"
+        )
     elif ambient or converse_mode:
-        user_content = f"{message}\n\n{length_nudge}"
+        user_content = (
+            f"{message}\n\n"
+            f"(Short in-character beat as {profile.get('name') or agent_id}. Mood JSON last line.)"
+        )
     else:
         user_content = message
 
     messages = [{"role": "system", "content": sys_prompt}]
-    for turn in history[-MAX_MEMORY_TURNS:]:
+    # Cap history so Ollama/Hermes doesn't drown in old turns
+    for turn in history[-min(MAX_MEMORY_TURNS, 8):]:
         if turn.get("role") in ("user", "assistant") and turn.get("content"):
-            messages.append({"role": turn["role"], "content": turn["content"]})
+            content = str(turn["content"])
+            if len(content) > 900:
+                content = content[:897] + "…"
+            messages.append({"role": turn["role"], "content": content})
     messages.append({"role": "user", "content": user_content})
 
     import asyncio
@@ -814,13 +849,13 @@ async def agent_chat(
         if not chain:
             raise RuntimeError("Grok link needs XAI_API_KEY — set it in .env for @a / @m")
 
-    # ~400 words ≈ 520–650 tokens; leave headroom
+    # Natural lengths — not essay engines
     if ambient:
-        max_tok = 900
+        max_tok = 420
     elif converse_mode:
-        max_tok = 950
+        max_tok = 480
     else:
-        max_tok = 1100
+        max_tok = 700
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""
@@ -829,35 +864,24 @@ async def agent_chat(
 
     from firmament.live_feed import is_too_similar, push_event
 
-    TARGET_WORDS = 180  # witty natural length — not forced 400-word essays
-    # Accept snappy original takes; expand only if stubby
-    MIN_ACCEPT_WORDS = 40 if (ambient or converse_mode) else 55
+    # Accept snappy original takes; only rewrite if copycat/stub
+    MIN_ACCEPT_WORDS = 18 if (ambient or converse_mode) else 28
 
     if not chain:
         errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")
 
     for backend, model in chain:
         try:
-            # Retries: (0) first draft (1) anti-copy (2) expand — max 2 LLM calls for ambient speed
-            max_attempts = 2 if ambient else 3
+            max_attempts = 2  # draft + optional rewrite (no forced essay expand)
             for attempt in range(max_attempts):
                 msgs = list(messages)
                 if attempt == 1:
                     msgs = list(messages) + [{
                         "role": "user",
                         "content": (
-                            "REWRITE — your draft copied another agent or repeated yourself. "
-                            "Brand-new wording, new metaphors, YOUR voice only. "
-                            f"Still ~{TARGET_WORDS} words. End with mood JSON."
-                        ),
-                    }]
-                elif attempt == 2:
-                    msgs = list(messages) + [{
-                        "role": "user",
-                        "content": (
-                            f"EXPAND that idea to ~{TARGET_WORDS} words (350–450). "
-                            "More paragraphs, more character comedy, more mind-bend — "
-                            "still original voice, no copying other agents. End with mood JSON."
+                            "Rewrite once: that draft was too generic, too similar to someone else, "
+                            "or sounded like a memory bot. Fresh hook, YOUR voice only, natural length. "
+                            "End with mood JSON."
                         ),
                     }]
                 raw = await asyncio.to_thread(_run_backend, backend, model, msgs, max_tok)
@@ -867,7 +891,7 @@ async def agent_chat(
                 reply, mood = _parse_mood(raw)
                 word_count = len(reply.split())
                 # Extreme stubs → next backend
-                stub_floor = 24 if direct_chat else 16
+                stub_floor = 12 if direct_chat else 8
                 if word_count < stub_floor and backend != chain[-1][0]:
                     errors.append(f"{backend}/{model}: stub ({word_count}w)")
                     reply = ""
@@ -875,9 +899,9 @@ async def agent_chat(
                 if is_too_similar(agent_id, reply) and attempt < max_attempts - 1:
                     errors.append(f"{backend}/{model}: too similar (attempt {attempt})")
                     continue
-                # Short but unique → one expand pass when we still have attempts
+                # Only reject if truly too short AND we can retry once
                 if word_count < MIN_ACCEPT_WORDS and attempt < max_attempts - 1:
-                    errors.append(f"{backend}/{model}: short {word_count}w, expand")
+                    errors.append(f"{backend}/{model}: short {word_count}w, retry")
                     continue
                 used_backend = backend
                 agent_model = model

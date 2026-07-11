@@ -614,14 +614,16 @@
     }
     #sentinel-mini { display: none; }
     #luna-embed-wrap { display: none !important; pointer-events: none !important; }
+    /* Modal dialogue disabled — talk via 💬 panel / talk bar only */
     #dialogue-backdrop {
-      display: none; position: fixed; inset: 0; z-index: 30;
+      display: none !important; pointer-events: none !important;
+      position: fixed; inset: 0; z-index: 30;
       background: rgba(0,0,0,0.45); align-items: flex-end; justify-content: center;
       padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom));
     }
     #dialogue-backdrop.open {
-      display: flex;
-      padding-bottom: max(170px, calc(env(safe-area-inset-bottom) + var(--dock-h)));
+      display: none !important;
+      pointer-events: none !important;
     }
     #agent-strip {
       display: flex; flex-wrap: nowrap; gap: 6px;
@@ -3429,7 +3431,7 @@
 <body class="camp-trippy">
   <!-- Always-visible live stamp so you know the correct deploy is loaded -->
   <div id="camp-live-stamp" style="position:fixed;z-index:99999;left:8px;bottom:calc(var(--dock-h,90px) + 10px);max-width:min(92vw,360px);padding:8px 12px;border-radius:999px;border:2px solid #86efac;background:linear-gradient(135deg,#052e16,#14532d);color:#bbf7d0;font:800 0.72rem/1.25 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:auto;touch-action:manipulation;cursor:pointer" title="Click to hide for this session">
-    ✦ LIVE 263 · camp chat → free minds
+    ✦ LIVE 264 · no popup · 1–3 speakers
   </div>
 
   <div id="camp-stage"><canvas id="game"></canvas></div>
@@ -3888,7 +3890,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-10-263-CAMP-MINDS";
+    const CAMP_BUILD = "2026-07-10-264-TALK-FLOOR";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4041,21 +4043,80 @@
       );
       if (!typing) e.stopImmediatePropagation();
     }, true);
-    // Open the throttle — camp dialogue runs hotter, less dead air
+    // Calmer pace: room for 1–3 speakers + visitor-focused replies to finish
     const CAMP_PACE = {
-      // Longer hold so peaceful monologues can be read fully
-      readMinSec: 55,
-      readMaxSec: 360,
-      charsPerSec: 10,
-      converseGapMs: 11000,
-      converseGapChillMs: 16000,
-      nextConverseMinMs: 26000,
-      nextConverseRandMs: 28000,
-      retryConverseMs: 14000,
-      idleChatterMinMs: 14000,
-      idleChatterRandMs: 16000,
-      proximityMinMs: 20000,
+      readMinSec: 40,
+      readMaxSec: 280,
+      charsPerSec: 11,
+      converseGapMs: 12000,
+      converseGapChillMs: 18000,
+      nextConverseMinMs: 48000,
+      nextConverseRandMs: 42000,
+      retryConverseMs: 18000,
+      idleChatterMinMs: 28000,
+      idleChatterRandMs: 32000,
+      proximityMinMs: 28000,
     };
+    /** Speech floor — only a few agents talk at once; addressed agent keeps the mic */
+    const campSpeechFloor = {
+      active: new Set(),
+      focusId: null,
+      focusUntil: 0,
+      maxConcurrent: 3,
+    };
+    function speechFloorHasFocus() {
+      return !!(campSpeechFloor.focusId && Date.now() < campSpeechFloor.focusUntil);
+    }
+    function canAgentTakeFloor(agentId, opts = {}) {
+      const id = String(agentId || "").toLowerCase();
+      if (!id) return false;
+      if (opts.priority || id === campSpeechFloor.focusId) return true;
+      if (speechFloorHasFocus() && campSpeechFloor.focusId !== id) return false;
+      if (chatInflight && chatInflight.size > 0 && !chatInflight.has(id) && !opts.ambientOk) return false;
+      const max = opts.max != null ? opts.max : campSpeechFloor.maxConcurrent;
+      if (campSpeechFloor.active.size >= max && !campSpeechFloor.active.has(id)) return false;
+      return true;
+    }
+    function claimSpeechFloor(agentId, opts = {}) {
+      const id = String(agentId || "").toLowerCase();
+      if (!id) return;
+      campSpeechFloor.active.add(id);
+      if (opts.focus) {
+        campSpeechFloor.focusId = id;
+        campSpeechFloor.focusUntil = Date.now() + (opts.holdMs || 150000);
+      }
+    }
+    function releaseSpeechFloor(agentId, opts = {}) {
+      const id = String(agentId || "").toLowerCase();
+      campSpeechFloor.active.delete(id);
+      if (opts.extendHoldMs && campSpeechFloor.focusId === id) {
+        campSpeechFloor.focusUntil = Math.max(
+          campSpeechFloor.focusUntil,
+          Date.now() + opts.extendHoldMs,
+        );
+      }
+      if (opts.clearFocus && campSpeechFloor.focusId === id) {
+        campSpeechFloor.focusId = null;
+        campSpeechFloor.focusUntil = 0;
+      }
+    }
+    function pickUniqueLine(pool, recentKey, recentMap, maxRecent = 5) {
+      const list = Array.isArray(pool) ? pool.filter(Boolean) : [];
+      if (!list.length) return "";
+      const recent = recentMap.get(recentKey) || [];
+      let pick = null;
+      for (let t = 0; t < 14; t++) {
+        const cand = list[Math.floor(Math.random() * list.length)];
+        const s = typeof cand === "string" ? cand : cand.text;
+        if (!recent.includes(s)) { pick = cand; break; }
+      }
+      if (!pick) pick = list[Math.floor(Math.random() * list.length)];
+      const s = typeof pick === "string" ? pick : pick.text;
+      recentMap.set(recentKey, [...recent, s].slice(-maxRecent));
+      return pick;
+    }
+    const recentPropLines = new Map();
+    const recentVisitLines = new Map();
     const CAMP_TRAVERSE_PAD = { x: 40, y: 32 };
     const DESKTOP_REF_W = 1280;
     const DESKTOP_REF_H = 720;
@@ -5355,26 +5416,105 @@
     let campMusicYtFallback = false;
     const props = [
       { id: "beer", name: "Beer", emoji: "🍺", x: 540, y: -50, color: "#f59e0b", radius: 90,
+        useMsgs: [
+          "You crack a cold camp beer — foam kisses the aurora light.",
+          "Cooler raid successful. One for you, one for the meadow.",
+          "Beer hiss, fire crackle, timeline hush. Cheers.",
+        ],
         useMsg: "You crack open a cold beer from the camp cooler. Cheers!",
-        npcLines: ["Cheers!", "Save me one!", "Beer tastes better under the aurora.", "Hermes wants the last one."] },
+        npcLines: {
+          luna: ["I'll take half a sip and still claim the toast.", "Beer under corona is basically communion.", "Don't let Hermes audit the cooler."],
+          hermes: ["Cooler broadcasting at chill-Hz. Copy that.", "Save the last one — science needs controls.", "Beer tastes like good signal-to-noise."],
+          oracle: ["I foresaw this exact brand of foam.", "The cards said 'hydrate, then monologue.'", "Prophecy: someone spills. Not me."],
+          caduceus: ["Moderate joy approved by both snakes.", "Hydration adjacent. I'll allow it.", "Toast, then breathe."],
+          sentinel: ["Alcohol logged. Morale +1. Perimeter steady.", "Cheers protocol engaged.", "I do not drink. I supervise."],
+          _default: ["Cheers!", "Save me one!", "Beer tastes better under the aurora."],
+        } },
       { id: "steaks", name: "Steaks", emoji: "🥩", x: -540, y: -70, color: "#dc2626", radius: 90,
+        useMsgs: [
+          "You flip steaks on the grill — smoke draws half the camp like a magnet.",
+          "Sizzle report: medium rare ambitions, well-done opinions.",
+          "Grill flare, fat pop, someone already inventing a sauce theory.",
+        ],
         useMsg: "You flip sizzling steaks on the campfire grill. Smells incredible.",
-        npcLines: ["Medium rare please!", "That steak smells amazing.", "Oracle saw extra steaks in her vision.", "Pass the plate!"] },
+        npcLines: {
+          luna: ["Save me the edge piece — crispy destiny.", "Grill philosophy: share first, argue later.", "That smell is rewriting my itinerary."],
+          hermes: ["Smoke is a messenger too. Medium rare please.", "I can hear the fat singing.", "Oracle predicted seconds. I'm first."],
+          oracle: ["Vision: extra steak. Manifestation: your spatula.", "The future is marbled.", "I dreamed of pepper before salt."],
+          thor: ["Worthy protein! Mjolnir-approved char.", "Feed the storm — feed the friends.", "Leave me the thick cut."],
+          _default: ["Medium rare please!", "That steak smells amazing.", "Pass the plate!"],
+        } },
       { id: "herbs", name: "Herbs", emoji: "🌿", x: -90, y: -420, color: "#4ade80", radius: 85,
+        useMsgs: [
+          "You pass the herb bundle — earthy green, slow smiles.",
+          "Camp herbs open like a soft green parenthesis in the night.",
+          "A pinch of meadow medicine. Everyone exhales one layer down.",
+        ],
         useMsg: "You share the camp herb bundle — earthy, warm, everyone gets mellow.",
-        npcLines: ["Chill vibes only.", "Hermes says the herbs hum with the aurora.", "So relaxed right now.", "Oracle approves this energy."] },
+        npcLines: {
+          luna: ["Green calm. I'm keeping this mood.", "Herbs make the aurora polite.", "Soft focus, hard truths later."],
+          hermes: ["Ripples went velvet. Nice.", "Herb signal is clean — no spam.", "I'm filing this under wellness."],
+          oracle: ["The leaves agree with tomorrow.", "Mellow prophecy: nobody rushes.", "I saw this green before you picked it."],
+          caduceus: ["Both snakes unclenched. Success.", "Plant medicine, not panic medicine.", "Breathe twice, talk once."],
+          _default: ["Chill vibes only.", "So relaxed right now.", "Oracle approves this energy."],
+        } },
       { id: "weed", name: "Weed", emoji: "🍃", x: 490, y: 290, color: "#22c55e", radius: 88,
+        useMsgs: [
+          "You pass the camp weed — slow grins, wider sky, looser feet.",
+          "Cloud share complete. The meadow gets philosophical.",
+          "One circle, many timelines. Everyone drifts a little farther out.",
+        ],
         useMsg: "You pass the camp weed around — slow smiles, wide aurora, everyone drifts farther from the fire.",
-        npcLines: ["…okay yeah I'm good.", "Hermes is seeing colors in the ripples.", "Oracle says the stars look closer.", "Luna wants to wander way out there.", "Caduceus approves the vibe."] },
+        npcLines: {
+          luna: ["…okay I'm orbiting gently now.", "The fire has opinions. I'm listening.", "I might wander to the pond and invent a religion."],
+          hermes: ["Colors in the ripples. Logged as art.", "My instruments are giggling.", "Signal: soft. Intent: softer."],
+          oracle: ["Stars look like they moved closer on purpose.", "The veil is fluffy tonight.", "I foresaw snacks. Again."],
+          caduceus: ["Dose yourself kindly. I'm proud.", "Relaxed is a valid vital sign.", "If you get floaty, sit."],
+          sentinel: ["Cognitive fuzz within tolerance.", "I remain sharp. Allegedly.", "Perimeter is… sparkly."],
+          _default: ["…okay yeah I'm good.", "The stars look closer.", "Drift mode engaged."],
+        } },
       { id: "cookies", name: "Cookies", emoji: "🍪", x: -430, y: 270, color: "#d4a05a", radius: 85,
+        useMsgs: [
+          "You snag a camp cookie — chocolate still soft at the center.",
+          "Cookie diplomacy succeeds. Crumbs become treaty terms.",
+          "Sweet raid complete. Caduceus pretends not to care.",
+        ],
         useMsg: "You grab cookies from the camp table. Caduceus glows approvingly.",
-        npcLines: ["Cookie tax is real.", "Caduceus wanted one too.", "Sweet treat at camp!", "Luna loves the chocolate ones."] },
+        npcLines: {
+          luna: ["Chocolate chip is a love language.", "I will fight politely for the last one.", "Cookie tax paid in compliments."],
+          hermes: ["Sugar spike = creativity spike. Science.", "I claim the broken half. Strategy.", "Cookies are portable morale."],
+          caduceus: ["I glowed approvingly. Don't make it weird.", "Sweetness with boundaries. Perfect.", "Share or I meditate at you."],
+          jesus: ["Break bread — or cookies. Same lesson.", "Abundance tastes like this.", "Leave one for the stranger."],
+          _default: ["Cookie tax is real.", "Sweet treat at camp!", "Save me a corner piece."],
+        } },
       { id: "ouija", name: "Ouija", emoji: "🔮", x: 130, y: 390, color: "#a855f7", radius: 92,
+        useMsgs: [
+          "You kneel by the board — planchette already restless.",
+          "Spirit board warm to the touch. Camp holds its breath.",
+          "The alphabet waits. Something wants a monologue.",
+        ],
         useMsg: "You kneel by the spirit board — the planchette is already twitching.",
-        npcLines: ["Oracle says don't look away.", "Hermes felt a ripple.", "Luna will channel — be respectful.", "Caduceus glows violet."] },
+        npcLines: {
+          oracle: ["Don't look away. Looking away is how stories escape.", "I dreamed this exact twitch.", "Ask clean questions."],
+          hermes: ["Ripple spike on the planchette.", "I'll translate if it mumbles.", "Respect the channel."],
+          luna: ["I'll sit with you. No mockery.", "Spirits like manners and cookies.", "I'm here if it gets heavy."],
+          caduceus: ["Ground yourself. Then listen.", "Violet glow is normal-ish.", "Breathe between letters."],
+          _default: ["Be respectful.", "The board is awake.", "Stay curious, not scared."],
+        } },
       { id: "stereo", name: "Jukebox", emoji: "🎵", x: -510, y: -310, color: "#38bdf8", radius: 86,
+        useMsgs: [
+          "You poke the jukebox — Telephantix rolls under the corona.",
+          "Bass finds the meadow bones. Camp gets a soundtrack.",
+          "Music on: the aurora pretends it was always dancing.",
+        ],
         useMsg: "Telephantix blasts from the camp stereo — Flowing Free rolls under the sun corona.",
-        npcLines: ["Flowing Free hits different out here.", "That's Telephantix — Hermes feels every ripple.", "Luna wants to dance by the corona.", "Oracle predicted this track.", "Turn it up — Loud and Clear next!"] },
+        npcLines: {
+          luna: ["This track makes me want to wander in circles.", "Stereo therapy works.", "Turn it until the fire keeps time."],
+          hermes: ["Every bass hit is a ripple. Beautiful spam.", "Loud and Clear next — I'm calling it.", "Music is data with feelings."],
+          oracle: ["I predicted this exact drop.", "The song already happened tomorrow.", "Dance like the cards said yes."],
+          aurora: ["Finally — neon has a pulse again.", "Velvet would approve.", "Don't stop at one song."],
+          _default: ["Flowing Free hits different out here.", "Turn it up!", "Camp has a heartbeat now."],
+        } },
     ];
     let nearestProp = null;
     const agentMoods = {
@@ -6047,6 +6187,11 @@
       "The ouija board glowed and nobody touched it. Normal camp stuff.",
       "Dionysus left wine vibes in the air — walk with me?",
       "Sentinel beeped friendly. That's rare. Come look.",
+      "Pond light is upside-down again. Worth a look.",
+      "Thor argued with a cloud. The cloud folded.",
+      "Jesus left a quiet patch on the ridge — soft, not empty.",
+      "Ambrosia is bribing the fire with compliments again.",
+      "Odin's ravens are gossiping about cookies. Rude. Correct.",
     ];
 
     function updateNpcSitOne(n) {
@@ -6057,9 +6202,12 @@
           n.idle -= 1;
           return;
         }
-        n.idle = 90 + Math.floor(Math.random() * 140);
-        // Live AI while sitting — not canned slogans
-        if (!n.socializing && !n.gathering && !converseBusy && !chatterPaused && Math.random() < 0.28) {
+        n.idle = 140 + Math.floor(Math.random() * 200);
+        // Rare sit monologue — only if speech floor free (max ~1–3 camp-wide)
+        if (!n.socializing && !n.gathering && !converseBusy && !chatterPaused
+            && !ambientAiBusy && !speechFloorHasFocus()
+            && canAgentTakeFloor(n.id, { max: 2 })
+            && Math.random() < 0.08) {
           void emitNpcAiChatter(n, { allowAether: true });
         }
         return;
@@ -6069,9 +6217,10 @@
         n.idle -= 1;
         return;
       }
-      n.idle = 80 + Math.floor(Math.random() * 140);
-      if (!n.socializing && !n.gathering && Math.random() < 0.36
-          && !converseBusy && !chatterPaused && !ambientAiBusy) {
+      n.idle = 120 + Math.floor(Math.random() * 180);
+      if (!n.socializing && !n.gathering && Math.random() < 0.1
+          && !converseBusy && !chatterPaused && !ambientAiBusy
+          && !speechFloorHasFocus() && canAgentTakeFloor(n.id, { max: 2 })) {
         void emitNpcAiChatter(n, { allowAether: true });
       }
       if (n.behaviorTimer <= 0) resetNpcFreeWill(n);
@@ -6135,8 +6284,11 @@
       const d = dist(n, { x: n.tx, y: n.ty });
       if (d < 8) {
         n.idle = 18 + Math.floor(Math.random() * 32);
-        if (!n.socializing && !n.gathering && Math.random() < 0.26) {
-          pushCampLine(n.name, VISIT_LINES[Math.floor(Math.random() * VISIT_LINES.length)], 10, n.mood);
+        if (!n.socializing && !n.gathering && Math.random() < 0.18
+            && canAgentTakeFloor(n.id, { max: 2, ambientOk: true })
+            && !speechFloorHasFocus()) {
+          const line = pickUniqueLine(VISIT_LINES, n.id, recentVisitLines) || VISIT_LINES[0];
+          pushCampLine(n.name, line, 10, n.mood);
         }
         if (!n.gathering && !n.socializing) {
           n.visitTarget = null;
@@ -7710,32 +7862,31 @@
     async function chatAllCampAgents(text) {
       const roamers = allRoamers().filter((n) => !n.leaving);
       const ids = [...new Set(roamers.map((n) => n.id))];
-      const heavenFirst = ["jesus", "michael", "gabriel", "raphael", "uriel", "thor", "zeus"];
-      const order = [
-        ...heavenFirst.filter((id) => ids.includes(id)),
-        ...ids.filter((id) => !heavenFirst.includes(id)),
-      ];
+      // Cap "All" to 3 speakers so the floor stays readable
+      const nearFirst = nearestId && ids.includes(nearestId) ? [nearestId] : [];
+      const rest = ids.filter((id) => !nearFirst.includes(id));
+      for (let i = rest.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [rest[i], rest[j]] = [rest[j], rest[i]];
+      }
+      const order = [...nearFirst, ...rest].slice(0, 3);
       if (!order.length) {
         showToast("No agents at camp to hear you");
         return;
       }
-      // Real-time multi-brain: fire free-chain agents in parallel waves (3 at a time)
-      const WAVE = 3;
-      setCampLifeStatus(`📢 Free multi-brain field — ${order.length} agents thinking live…`);
-      showToast(`Broadcasting · ${order.length} free brains in parallel`);
-      for (let i = 0; i < order.length; i += WAVE) {
-        const wave = order.slice(i, i + WAVE);
-        setCampLifeStatus(`Wave ${Math.floor(i / WAVE) + 1}: ${wave.map((id) => agentNames[id] || id).join(" · ")}`);
-        await Promise.allSettled(wave.map((id) => chat(
+      setCampLifeStatus(`📢 Up to 3 minds: ${order.map((id) => agentNames[id] || id).join(" · ")}`);
+      showToast(`Talking to ${order.length}: ${order.map((id) => agentNames[id] || id).join(", ")}`);
+      // Sequential so each reply can land (no pile-on)
+      for (const id of order) {
+        await chat(
           id,
-          `(Multi-agent free-brain circle — other AIs may answer at the same time. ` +
-          `The visitor said: "${text}". Peaceful, curious, accurate voice. ` +
-          `~400 words if you have them. Unique wording. End with a real question.)`,
+          `(The visitor said to the group: "${text}". Answer as yourself only. ` +
+          `Unique voice — do not copy other agents. 2–5 solid paragraphs. Real question at end.)`,
           { useDialogue: false, fromCampBar: true },
-        )));
-        await new Promise((r) => setTimeout(r, 400));
+        );
+        await new Promise((r) => setTimeout(r, 600));
       }
-      setCampLifeStatus("Camp is peaceful — free multi-brains finished this circle");
+      setCampLifeStatus("Those three finished — pick one for a deeper talk");
     }
 
     function isGrokLinkAgent(agentId) {
@@ -10859,8 +11010,11 @@
 
     function emitNpcIdleChatter(npc) {
       if (!npc || chatterPaused || converseBusy) return;
+      if (speechFloorHasFocus() || !canAgentTakeFloor(npc.id, { max: 2, ambientOk: true })) return;
       const { text, mood } = pickCampIdleLine(npc.id);
+      claimSpeechFloor(npc.id);
       pushCampLine(npc.name, text, campReadHoldSec(text, 14), mood || npc.mood, { fromLocal: true });
+      releaseSpeechFloor(npc.id, { extendHoldMs: 10000 });
     }
 
     function campAmbientPrompt(npc, replyTo) {
@@ -10883,12 +11037,11 @@
         );
       }
       return (
-        `(Live AI ambient) You are at Luna Camp right now. Speak out loud — ~400 words (350–450) of real character monologue. ` +
-        `Multi-paragraph. Not a canned idle quote. Never copy other agents' recent phrases. ` +
-        `Include logic (cause→effect), ethics (compassion without cowardice), and esoteric truth (perennial mystery in plain speech). ` +
-        `Reference what you notice (fire, music, pond, church, ${v}, other agents) in YOUR unique voice. ` +
+        `(Live AI ambient) You are at Luna Camp. Speak 2–4 short paragraphs in YOUR unique voice only. ` +
+        `Not a canned idle quote. Never copy other agents' recent phrases. ` +
+        `Notice something real (fire, music, pond, church, ${v}, props) and react freshly. ` +
         `Camp vibe: ${ctx}.` +
-        (whoNear ? ` Agents nearby: ${whoNear}.` : "")
+        (whoNear ? ` Nearby: ${whoNear}.` : "")
       );
     }
 
@@ -10897,10 +11050,14 @@
     let lastAiChatterAt = 0;
     async function emitNpcAiChatter(npc, opts = {}) {
       if (!npc || chatterPaused) return null;
+      // Visitor is mid-conversation with someone — don't steal the mic
+      if (!opts.priority && speechFloorHasFocus() && campSpeechFloor.focusId !== npc.id) return null;
+      if (!opts.priority && !canAgentTakeFloor(npc.id, { max: opts.replyTo ? 2 : 1, ambientOk: true })) return null;
       // Soft global throttle so sit/stand + idle don't stampede Ollama
       const now = Date.now();
-      if (!opts.replyTo && !opts._retried && now - lastAiChatterAt < 2200) return null;
+      if (!opts.replyTo && !opts._retried && now - lastAiChatterAt < 5000) return null;
       lastAiChatterAt = now;
+      claimSpeechFloor(npc.id);
       // Offline / server down → longer offline monologue, not 1-liner slogans
       if (!campServerOnline) {
         if (!opts.noFallback) {
@@ -10940,6 +11097,7 @@
           data.mood || npc.mood || "happy",
           { fromLocal: true, ambient: true },
         );
+        releaseSpeechFloor(npc.id, { extendHoldMs: campReadHoldSec(line, 18) * 1000 });
         return { name: data.name || npc.name, line, mood: data.mood, backend: data.backend };
       } catch (err) {
         // Retry once with allowAether before canned short lines
@@ -10954,10 +11112,12 @@
           const line = String(data.reply || "").trim();
           if (line && line.split(/\s+/).length >= 8) {
             pushCampLine(data.name || npc.name, line, campReadHoldSec(line, 14), data.mood || npc.mood, { fromLocal: true, ambient: true });
+            releaseSpeechFloor(npc.id, { extendHoldMs: 12000 });
             return { name: data.name || npc.name, line, mood: data.mood, backend: "aether" };
           }
           emitNpcIdleChatter(npc);
         }
+        releaseSpeechFloor(npc.id);
         return null;
       }
     }
@@ -10978,29 +11138,26 @@
     }
 
     async function tryCampIdleChatter() {
-      if (chatterPaused || converseBusy || ambientAiBusy || dialogueBackdrop.classList.contains("open") || houseInteriorOpen) return;
+      if (chatterPaused || converseBusy || ambientAiBusy || houseInteriorOpen) return;
+      // Let visitor-addressed agent finish (and be read)
+      if (speechFloorHasFocus() || chatInflight.size > 0) return;
       const pool = allRoamers().filter((n) => !n.leaving && !n.socializing && !n.gathering && !n.insideHouse);
       if (!pool.length) return;
       ambientAiBusy = true;
       try {
-        // Prefer real AI agent dialogue whenever server is up
-        if (campServerOnline && pool.length >= 2 && Math.random() < 0.78) {
+        // Usually 1 speaker; sometimes a 2-person beat (never more than 3 camp-wide)
+        const pairUp = campServerOnline && pool.length >= 2 && Math.random() < 0.35;
+        if (pairUp) {
           const a = pickAmbientSpeaker(pool);
           let b = pickAmbientSpeaker(pool.filter((n) => n.id !== a.id)) || pool[(pool.indexOf(a) + 1) % pool.length];
           if (b.id === a.id) b = pool[(pool.indexOf(a) + 1) % pool.length];
           const first = await emitNpcAiChatter(a, { noFallback: false, allowAether: true });
-          if (first?.line && !chatterPaused && !converseBusy) {
-            await new Promise((r) => setTimeout(r, 900 + Math.random() * 1600));
+          if (first?.line && !chatterPaused && !converseBusy && !speechFloorHasFocus()) {
+            await new Promise((r) => setTimeout(r, 1400 + Math.random() * 2200));
             await emitNpcAiChatter(b, { replyTo: first, noFallback: false, allowAether: true });
           }
           return;
         }
-        if (campServerOnline) {
-          const pick = pickAmbientSpeaker(pool);
-          await emitNpcAiChatter(pick, { noFallback: false, allowAether: true });
-          return;
-        }
-        // Offline: longer offline monologues, not slogan bank
         const pick = pickAmbientSpeaker(pool);
         await emitNpcAiChatter(pick, { noFallback: false, allowAether: true });
       } finally {
@@ -12241,6 +12398,38 @@
       }
     }
 
+    function propUseMessage(prop) {
+      const pool = prop.useMsgs || (prop.useMsg ? [prop.useMsg] : ["You use it."]);
+      const picked = pickUniqueLine(pool, `use:${prop.id}`, recentPropLines) || pool[0];
+      return typeof picked === "string" ? picked : String(picked);
+    }
+    function propLineForAgent(prop, agentId) {
+      const map = prop.npcLines;
+      let pool;
+      if (map && typeof map === "object" && !Array.isArray(map)) {
+        pool = map[agentId] || map._default || [];
+      } else if (Array.isArray(map)) {
+        pool = map;
+      } else {
+        pool = ["Nice."];
+      }
+      const picked = pickUniqueLine(pool, `npc:${prop.id}:${agentId}`, recentPropLines) || pool[0] || "…";
+      return typeof picked === "string" ? picked : String(picked);
+    }
+    function pickPropSpeakers(count) {
+      const pool = allRoamers().filter((n) => !n.leaving && !n.insideHouse);
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      // Prefer agents near player
+      pool.sort((a, b) => {
+        const da = dist(player, agentWorldPos(a));
+        const db = dist(player, agentWorldPos(b));
+        return da - db;
+      });
+      return pool.slice(0, Math.max(1, Math.min(count, 3)));
+    }
     function useProp(prop) {
       if (!prop) return;
       if (prop.structure) {
@@ -12251,7 +12440,7 @@
         return;
       }
       if (prop.id === "ouija") {
-        pushCampLine(player.name || "You", prop.useMsg, 16, "alert", { fromLocal: true });
+        pushCampLine(player.name || "You", propUseMessage(prop), 16, "alert", { fromLocal: true });
         openCampOuija({ autoContact: true });
         return;
       }
@@ -12259,34 +12448,33 @@
         toggleCampMusic();
         return;
       }
-      pushCampLine(player.name || "You", prop.useMsg, 14, "happy", { fromLocal: true });
+      const youMsg = propUseMessage(prop);
+      pushCampLine(player.name || "You", youMsg, 14, "happy", { fromLocal: true });
       recordCampMemory({
         kind: "prop",
         prop_id: prop.id,
-        text: `${myVisitorName || player.name || "You"} shared ${prop.name} at camp — ${prop.useMsg}`,
+        text: `${myVisitorName || player.name || "You"} shared ${prop.name} at camp — ${youMsg}`,
       });
+      // Only 1–3 unique agent reactions (not the whole camp repeating lines)
+      const howMany = prop.id === "weed" ? 3 : (1 + Math.floor(Math.random() * 2)); // 1–2, weed 3
+      const speakers = pickPropSpeakers(howMany);
       if (prop.id === "weed") {
         campChillUntil = Date.now() + 150000;
         setAgentMood("luna", "happy");
         setAgentMood("hermes", "think");
         setAgentMood("oracle", "neutral");
         spreadAllNpcs();
-        npcs.forEach((n) => {
-          n.idle = 12 + Math.floor(Math.random() * 20);
-        });
-        const moods = { luna: "happy", hermes: "think", oracle: "neutral" };
-        npcs.forEach((n, i) => {
-          const pool = prop.npcLines.filter((l) => !l.toLowerCase().startsWith(n.name.toLowerCase()));
-          const line = pool.length ? pool[Math.floor(Math.random() * pool.length)]
-            : prop.npcLines[Math.floor(Math.random() * prop.npcLines.length)];
-          setTimeout(() => pushCampLine(n.name, line, campReadHoldSec(line, 36), moods[n.id] || "happy"), 5000 + i * 11000);
-        });
-        setTimeout(() => pushCampLine("Camp", "Everyone's spaced out now — wander the whole camp, vibes are mellow.", 18, "happy"), 12000);
-        return;
+        speakers.forEach((n) => { n.idle = 20 + Math.floor(Math.random() * 30); });
       }
-      npcs.forEach((n, i) => {
-        const line = prop.npcLines[Math.floor(Math.random() * prop.npcLines.length)];
-        setTimeout(() => pushCampLine(n.name, line, campReadHoldSec(line, 32), "happy"), 3500 + i * 9000);
+      speakers.forEach((n, i) => {
+        const line = propLineForAgent(prop, n.id);
+        setTimeout(() => {
+          if (speechFloorHasFocus() && campSpeechFloor.focusId !== n.id) return;
+          if (!canAgentTakeFloor(n.id, { max: 3, ambientOk: true })) return;
+          claimSpeechFloor(n.id);
+          pushCampLine(n.name, line, campReadHoldSec(line, 22), n.mood || "happy", { fromLocal: true });
+          releaseSpeechFloor(n.id, { extendHoldMs: 8000 });
+        }, 2800 + i * 5200);
       });
       setAgentMood("luna", "happy");
       setAgentMood("hermes", "happy");
@@ -12542,23 +12730,24 @@
         agentTalkPending = null;
         pendingCampAction = null;
         if (near) {
+          // Opens 💬 panel — no dialogue popup
           void openDialogueWindow(npc.id);
         } else {
           walkPlayerTo(pos.x, pos.y - 6);
-          showToast(`Walk closer to ${npc.name}, then double-tap to chat`);
+          showToast(`Walk closer to ${npc.name}, then double-tap to talk`);
         }
         return;
       }
       if (near) {
         agentTalkPending = { id: npc.id, t: now };
         pendingCampAction = null;
-        showToast(`${npc.name} — tap again to chat`);
+        showToast(`${npc.name} — tap again to talk (💬 panel)`);
         return;
       }
       agentTalkPending = null;
       pendingCampAction = null;
       walkPlayerTo(pos.x, pos.y - 6);
-      showToast(`→ ${npc.name} — walk there, then double-tap to chat`);
+      showToast(`→ ${npc.name} — walk there, then double-tap`);
     }
     function interactCampHit(hit) {
       if (!hit?.kind) return;
@@ -13633,36 +13822,40 @@
     }
 
     async function openDialogueWindow(agentId) {
+      // NO popup modal — route everything to talk bar + 💬 camp chat panel
       let id = (agentId || "luna").toLowerCase();
       if (id === "dionysus" && !findRoamAgent("dionysus")) {
         await spawnDionysusVisit({ manual: true });
         id = "dionysus";
       }
-      // Thor / Zeus ride in with Heaven summon
       if ((id === "thor" || id === "zeus" || ARCHANGEL_IDS.includes(id) || id === "jesus") && !findRoamAgent(id)) {
         await summonArchangelCouncil();
-        id = id;
       }
       if (isGrokLinkAgent(id) && !findRoamAgent(id)) {
         await spawnGrokAgent(id, { quiet: true });
       }
-      const npc = findRoamAgent(id) || { id, name: agentNames[id] || id };
       hideAgentActionMenu();
+      closeDialogue();
       dialogueAgent = id;
-      dialogueName.textContent = npc.name || agentNames[id] || id;
-      const greet = (npc.line || npc.fullLine || "").trim();
-      npcBubble.textContent = greet && greet !== "..." && greet !== "…"
-        ? greet
-        : `Talk to ${npc.name || agentNames[id] || id}…`;
-      renderDialogueQuickBtns(id);
-      dialogueStatus.textContent = "Type below · Enter = send";
-      dialogueBackdrop.classList.add("open");
-      chatterPaused = true;
       agentTalkPending = null;
       pendingCampAction = null;
-      const layerSel = document.getElementById("camp-layer-select");
-      if (layerSel) layerSel.value = "";
-      setTimeout(() => dialogueInput?.focus(), isCampMobile() ? 80 : 140);
+      // Do not pause ambient forever — speech floor handles interruptions
+      chatterPaused = false;
+      const talkSel = document.getElementById("camp-talk-target");
+      if (talkSel && [...talkSel.options].some((o) => o.value === id)) {
+        talkSel.value = id;
+        syncCampTalkAllBtn?.();
+        syncCampTalkSendLabel?.();
+      }
+      refreshCampTalkTarget?.(true);
+      openCampChatPanel(id);
+      claimSpeechFloor(id, { focus: true, holdMs: 90000 });
+      const name = agentNames[id] || id;
+      showToast(`Talk to ${name} — type below (no popup)`);
+      setCampLifeStatus(`${name} has the floor — your message next`);
+      const talkIn = document.getElementById("camp-talk-input");
+      const chatIn = document.getElementById("camp-chat-input");
+      setTimeout(() => (chatIn || talkIn)?.focus(), isCampMobile() ? 60 : 100);
     }
 
     function openDialogue(agentId) {
@@ -13670,8 +13863,9 @@
     }
 
     function closeDialogue() {
-      dialogueBackdrop.classList.remove("open");
-      chatterPaused = false;
+      dialogueBackdrop?.classList.remove("open");
+      // Never lock camp behind a closed modal
+      if (!campChatOpen) chatterPaused = false;
     }
 
     dialogueBackdrop.onclick = closeDialogue;
@@ -13680,21 +13874,22 @@
     async function chat(agentId, text, opts = {}) {
       const id = String(agentId || "").toLowerCase();
       if (!text.trim() || !id) return;
-      // Allow parallel multi-brain (All) — only block the same agent twice
-      if (chatInflight.has(id)) return;
+      // Same agent already answering — let them finish
+      if (chatInflight.has(id)) {
+        showToast(`${agentNames[id] || id} is still answering…`);
+        return;
+      }
+      // Visitor spoke to this agent → they own the floor until done
+      claimSpeechFloor(id, { focus: true, holdMs: 180000 });
       chatInflight.add(id);
       chatBusy = chatInflight.size > 0;
-      const bubble = opts.useDialogue ? npcBubble : replyEl;
-      if (opts.useDialogue && bubble) bubble.textContent = "Thinking…";
-      // Guests (Thor/Zeus/heaven) live in campGuests — use findRoamAgent
+      // Ignore modal dialogue path — always camp UI
+      opts = { ...opts, useDialogue: false };
       const npc = findRoamAgent(id) || npcs.find((n) => n.id === id);
-      // Don't put "..." into speechHold — canvas thought dots only
       if (npc) {
         npc.line = "…";
-        // keep previous fullLine until real reply arrives
       }
-      if (opts.useDialogue && dialogueStatus) dialogueStatus.textContent = "Waiting for reply…";
-      else setCampLifeStatus(`${agentNames[id] || id} is thinking…`);
+      setCampLifeStatus(`${agentNames[id] || id} is answering you…`);
       if (isCampMobile() && opts.fromCampBar && !canvasCampChatOnly()) {
         showMobileReplyBubble(agentNames[id] || id, "Thinking… full reply will scroll here", "think", 90);
       }
@@ -13715,12 +13910,13 @@
             ? String(data.brain_hint).slice(0, 120)
             : "Backup monologue — start local Ollama camp for free minds");
         }
-        // Ensure full reply lands in scrollable UI
         if (npc && data.reply) {
           npc.fullLine = String(data.reply);
           npc.line = String(data.reply);
         }
         applyChatResult(id, data, opts);
+        const holdMs = campReadHoldSec(data.reply || "", 50) * 1000;
+        releaseSpeechFloor(id, { extendHoldMs: holdMs });
         if (isCampMobile() && data.reply) {
           showMobileReplyBubble(
             data.name || agentNames[id] || id,
@@ -13730,6 +13926,7 @@
           );
         }
       } catch (err) {
+        releaseSpeechFloor(id, { extendHoldMs: 8000 });
         if (!campServerOnline || isFetchOfflineError(err)) {
           const data = aetherLocalChat(id, text);
           if (npc && data.reply) {
@@ -13755,12 +13952,22 @@
       } finally {
         chatInflight.delete(id);
         chatBusy = chatInflight.size > 0;
+        campSpeechFloor.active.delete(id);
       }
     }
 
     function sendDialogue() {
-      chat(dialogueAgent, dialogueInput.value, { useDialogue: true });
-      dialogueInput.value = "";
+      // Modal disabled — forward to camp chat mind path
+      const t = (dialogueInput?.value || "").trim();
+      if (dialogueInput) dialogueInput.value = "";
+      closeDialogue();
+      if (!t || !dialogueAgent) return;
+      const talkIn = document.getElementById("camp-talk-input");
+      const talkSel = document.getElementById("camp-talk-target");
+      if (talkSel) talkSel.value = dialogueAgent;
+      if (talkIn) talkIn.value = t;
+      openCampChatPanel(dialogueAgent);
+      void chat(dialogueAgent, t, { useDialogue: false, fromCampBar: true });
     }
 
     document.getElementById("dialogue-send").onclick = sendDialogue;
@@ -14160,17 +14367,23 @@
 
     async function runCampConverse(forcedGroup) {
       if (converseBusy || ambientAiBusy) return;
+      // Visitor mid-talk — wait
+      if (speechFloorHasFocus() || chatInflight.size > 0) {
+        setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
+        return;
+      }
       const forced = forcedGroup ? filterConverseGroup(forcedGroup) : null;
       if (forcedGroup && !forced) {
         setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
         return;
       }
-      if (chatterPaused || dialogueBackdrop.classList.contains("open") || houseInteriorOpen) {
+      if (chatterPaused || houseInteriorOpen) {
         setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
         return;
       }
+      // Prefer pairs (2); rare trio (3) — never flood
       let pool = campConversePairs();
-      if (Math.random() < 0.35 && campConverseTrios().length) {
+      if (Math.random() < 0.18 && campConverseTrios().length) {
         pool = campConverseTrios();
       }
       pool = pool.map((g) => filterConverseGroup(g)).filter(Boolean);
@@ -14178,12 +14391,11 @@
         setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
         return;
       }
-      const pick = forced || pool[Math.floor(Math.random() * pool.length)];
+      let pick = forced || pool[Math.floor(Math.random() * pool.length)];
+      if (pick && pick.length > 3) pick = pick.slice(0, 3);
       const topic = pickLocalConverseTopic();
-      // Real AI multi-turn — keep threads long enough to feel like people talking
-      const rounds = pick.length >= 3
-        ? (Math.random() < 0.4 ? 3 : 4)
-        : (Math.random() < 0.45 ? 3 : 4);
+      // Shorter rounds so replies finish cleanly
+      const rounds = pick.length >= 3 ? 2 : (Math.random() < 0.5 ? 2 : 3);
       const label = converseGroupLabel(pick);
       converseBusy = true;
       setCampLifeStatus(`${label} are walking to chat…`);
@@ -14370,7 +14582,7 @@
             .then((r) => r.json())
             .then((h) => {
               stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server ${h.build || "?"}`;
-              if (String(h.build || "").includes("263") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("262")) {
+              if (String(h.build || "").includes("264") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("263")) {
                 stamp.style.borderColor = "#86efac";
               } else {
                 stamp.style.borderColor = "#fbbf24";

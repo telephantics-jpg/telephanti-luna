@@ -45,8 +45,9 @@
       --layer-bar-h: 0px;
       --text-expand-h: 0px;
       --talk-bar-h: 44px;
+      --reply-rail-h: 72px;
       --dock-icons-h: 58px;
-      --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--talk-bar-h) + var(--dock-icons-h) + 10px);
+      --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--reply-rail-h) + var(--talk-bar-h) + var(--dock-icons-h) + 12px);
       --speech-panel-h: 0px;
       --sidebar-w: min(400px, 38vw);
       --gap: 10px;
@@ -1471,27 +1472,65 @@
       flex: 1 1 42%;
       min-width: 140px;
     }
-    /* Dedicated chat panel — select anyone, type, scroll long LLM monologues */
-    #camp-chat-panel {
-      position: fixed;
-      z-index: 48;
-      display: none;
+    /* Inline reply rail — no popup chat box over the meadow */
+    #camp-reply-rail {
+      display: flex;
       flex-direction: column;
-      left: max(8px, env(safe-area-inset-left, 0px));
-      right: max(8px, env(safe-area-inset-right, 0px));
-      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 6px);
-      top: auto;
-      max-height: min(72vh, 640px);
-      height: min(68vh, 600px);
-      background: rgba(4, 10, 18, 0.98);
-      border: 2px solid rgba(103, 232, 249, 0.45);
-      border-radius: 16px;
-      box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0,0,0,0.35);
+      gap: 4px;
+      width: 100%;
+      max-width: min(680px, 96vw);
+      min-height: 56px;
+      max-height: min(22vh, 150px);
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(6, 14, 28, 0.96);
+      border: 1px solid rgba(103, 232, 249, 0.32);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
       pointer-events: auto;
       touch-action: manipulation;
-      overflow: hidden;
     }
-    #camp-chat-panel.open { display: flex !important; }
+    #camp-reply-rail .crr-head {
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    #camp-reply-rail .crr-who {
+      font-size: 0.72rem; font-weight: 800; color: #67e8f9;
+      letter-spacing: 0.02em;
+    }
+    #camp-reply-rail .crr-lock {
+      font-size: 0.62rem; font-weight: 700; color: #c4b5fd;
+      padding: 2px 8px; border-radius: 999px;
+      background: rgba(91, 33, 182, 0.35);
+      border: 1px solid rgba(167, 139, 250, 0.4);
+      white-space: nowrap;
+    }
+    #camp-reply-rail .crr-lock.broadcast {
+      color: #fde68a;
+      background: rgba(120, 53, 15, 0.45);
+      border-color: rgba(251, 191, 36, 0.45);
+    }
+    #camp-reply-rail .crr-text {
+      flex: 1; min-height: 0;
+      max-height: min(16vh, 110px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      font-size: 0.84rem; line-height: 1.45;
+      color: #f1f5f9;
+      white-space: pre-wrap; word-break: break-word;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(103, 232, 249, 0.55) transparent;
+    }
+    #camp-reply-rail .crr-text::-webkit-scrollbar { width: 6px; }
+    #camp-reply-rail .crr-text::-webkit-scrollbar-thumb {
+      background: rgba(103, 232, 249, 0.5); border-radius: 99px;
+    }
+    #camp-reply-rail.idle .crr-text { color: #94a3b8; font-style: italic; }
+    /* Legacy popup chat panel — fully retired (talk bar + reply rail only) */
+    #camp-chat-panel,
+    #camp-chat-panel.open {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     @media (min-width: 900px) {
       /* PC: big readable chat on the left of the sidebar chatter */
       #camp-chat-panel {
@@ -1915,8 +1954,9 @@
       :root {
         --header-h: 68px;
         --talk-bar-h: 34px;
+        --reply-rail-h: 78px;
         --dock-icons-h: 32px;
-        --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--talk-bar-h) + var(--dock-icons-h) + 8px);
+        --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--reply-rail-h) + var(--talk-bar-h) + var(--dock-icons-h) + 10px);
       }
       #camp-text-expand,
       #camp-layer-bar {
@@ -3506,9 +3546,10 @@
     </div>
     <div class="csp-body"></div>
   </div>
-  <button type="button" id="camp-pick-agent-fab" title="Pick an agent to chat" aria-label="Pick agent to chat">💬</button>
+  <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
+  <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
   <button type="button" id="camp-tpx-fab" title="Telephantix — play album at camp" aria-label="Play Telephantix music">TX</button>
-  <div id="camp-pick-agent-sheet" hidden aria-hidden="true" role="dialog" aria-label="Pick agent">
+  <div id="camp-pick-agent-sheet" hidden aria-hidden="true" style="display:none !important">
     <div class="cpas-backdrop" id="camp-pick-agent-backdrop"></div>
     <div class="cpas-panel">
       <div class="cpas-head">
@@ -3578,9 +3619,16 @@
       </select>
       <button type="button" id="camp-layer-go" title="Go — walk and interact">→</button>
     </div>
+    <div id="camp-reply-rail" class="idle" aria-live="polite">
+      <div class="crr-head">
+        <span class="crr-who" id="camp-reply-who">Talk</span>
+        <span class="crr-lock" id="camp-reply-lock">📍 Nearest</span>
+      </div>
+      <div class="crr-text" id="camp-reply-text">Pick who in the menu · type below · replies stay here (no popup)</div>
+    </div>
     <div id="camp-talk-bar">
       <div id="camp-talk-target-wrap">
-        <select id="camp-talk-target" title="Who to talk to">
+        <select id="camp-talk-target" title="Who to talk to — stays locked until you change it">
           <optgroup label="Route">
             <option value="nearest">📍 Nearest</option>
             <option value="all">📢 All agents</option>
@@ -3622,10 +3670,9 @@
           </optgroup>
         </select>
       </div>
-      <button type="button" id="camp-talk-all" title="Broadcast to all agents">📢</button>
-      <textarea id="camp-talk-input" rows="2" maxlength="1200" placeholder="Say something…" autocomplete="off" data-placeholder-mobile="Say something to them…" data-placeholder-desktop="Say something — pick who (or All) in the menu…" style="resize:vertical;max-height:120px;font-family:inherit"></textarea>
-      <button type="button" id="camp-talk-open-panel" title="Open full chat — pick anyone, scroll monologues" aria-label="Open chat panel" style="flex:0 0 auto;border:1px solid rgba(103,232,249,0.45);border-radius:8px;background:linear-gradient(135deg,#0c4a6e,#0369a1);color:#e0f2fe;font-size:0.78rem;font-weight:800;padding:0 10px;height:36px;cursor:pointer">💬</button>
-      <button type="button" id="camp-talk-send" title="Send to selected">Talk to…</button>
+      <button type="button" id="camp-talk-all" title="Lock target to all agents (stays on All until you change it)">📢</button>
+      <textarea id="camp-talk-input" rows="2" maxlength="1200" placeholder="Say something…" autocomplete="off" data-placeholder-mobile="Say something to them…" data-placeholder-desktop="Say something — who stays locked until you change it…" style="resize:vertical;max-height:120px;font-family:inherit"></textarea>
+      <button type="button" id="camp-talk-send" title="Send to locked target">Talk to…</button>
     </div>
     <div id="camp-zoom-bar" aria-label="Map zoom">
       <span class="czc-label">Zoom</span>
@@ -3649,9 +3696,9 @@
       <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-mika" title="Summon Mika — Grok link (@m)" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
-      <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Hide/show camp chatter">💬</button>
-      <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Chat panel — pick anyone, type, scroll long replies" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">💬</button>
-      <button type="button" class="dock-icon talk" id="btn-talk-near" title="Talk to nearest">🗣️</button>
+      <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Show meadow chatter log">💬</button>
+      <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Focus talk bar — type to locked agent" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️</button>
+      <button type="button" class="dock-icon talk" id="btn-talk-near" title="Lock to nearest agent">📍</button>
       <button type="button" class="dock-icon" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
 
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
@@ -3867,7 +3914,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-278-FULL-SPEECH";
+    const CAMP_BUILD = "2026-07-11-279-CLEAN-TALK";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4315,19 +4362,22 @@
       const header = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       const talkBar = document.getElementById("camp-talk-bar");
+      const replyRail = document.getElementById("camp-reply-rail");
       const icons = document.querySelector(".dock-compact");
       let headerH = header ? Math.max(header.offsetHeight, header.scrollHeight) : 80;
-      let dockH = dock ? Math.max(dock.offsetHeight, dock.scrollHeight) : 88;
+      let dockH = dock ? Math.max(dock.offsetHeight, dock.scrollHeight) : 120;
       if (isCampMobile()) {
         headerH = Math.min(Math.max(Math.ceil(headerH), 44), 72);
       } else {
         headerH = Math.min(Math.max(Math.ceil(headerH), 56), 80);
-        dockH = Math.max(Math.ceil(dockH), 72);
+        dockH = Math.max(Math.ceil(dockH), 110);
       }
       const talkH = talkBar ? Math.ceil(talkBar.offsetHeight) : 40;
+      const railH = replyRail ? Math.ceil(replyRail.offsetHeight) : 72;
       const iconH = icons ? Math.ceil(icons.offsetHeight) : 32;
       document.documentElement.style.setProperty("--header-h", `${headerH}px`);
       document.documentElement.style.setProperty("--talk-bar-h", `${talkH}px`);
+      document.documentElement.style.setProperty("--reply-rail-h", `${railH}px`);
       document.documentElement.style.setProperty("--dock-icons-h", `${iconH}px`);
       document.documentElement.style.setProperty("--dock-h", `${dockH}px`);
       return { headerH, dockH };
@@ -4708,11 +4758,10 @@
         keepDock: isCampMobile() && opts.fromCampBar,
         noScrollBubble: !!opts.fromChatPanel, // panel already shows full scroll
       });
-      // Feed dedicated chat panel (scrollable open-ended monologue + brain tag)
+      // Thread memory for evolving prompts (no popup UI)
       if (typeof appendCampChatMessage === "function" && !opts.fromChatPanel) {
         const thr = getCampChatThread(agentId);
         if (thr.length && thr[thr.length - 1].thinking) thr.pop();
-        // Avoid exact dup of last agent line
         const last = thr[thr.length - 1];
         if (!(last && last.role === "agent" && last.text === data.reply)) {
           appendCampChatMessage(agentId, {
@@ -4724,14 +4773,19 @@
             model: data.model || "",
           });
         }
-        if (opts.fromCampBar && !campChatOpen) openCampChatPanel(agentId);
-        else if (campChatOpen) renderCampChatThread(campChatActiveId || agentId);
+      }
+      // Inline reply rail — full text, no modal
+      if (data.reply) {
+        setCampReplyRail(
+          data.name || agentNames[agentId] || agentId,
+          data.reply,
+        );
       }
       if (opts.fromCampBar) {
         const brain = data.backend
           ? `${data.backend}${data.model ? " · " + data.model : ""}`
           : "camp";
-        setCampLifeStatus(`${agentNames[agentId] || agentId} · ${brain} — scroll 💬 Chat`);
+        setCampLifeStatus(`${agentNames[agentId] || agentId} · ${brain}`);
       }
       pushLocalCampMemory({ kind: "agent_said", agent_id: agentId, text: data.reply });
       applyWalletFromResponse(data);
@@ -4872,8 +4926,8 @@
       if (!isCampMobile()) return;
       document.documentElement.classList.add("camp-mobile-touch");
       syncMobileTalkPlaceholder();
-      const talkSel = document.getElementById("camp-talk-target");
-      if (talkSel) talkSel.value = "nearest";
+      // Default nearest only if user hasn't locked someone yet
+      if (!pinnedTalkTarget) setTalkTarget?.("nearest", { sticky: true });
       if (isIOS()) syncViewportOffset();
       ensureViewCamera();
       if (isIOS()) {
@@ -7163,30 +7217,85 @@
       );
     }
 
-    function openCampChatPanel(agentId) {
-      syncCampChatWhoOptions();
-      const panel = document.getElementById("camp-chat-panel");
-      const whoSel = document.getElementById("camp-chat-who");
-      if (!panel) return;
-      if (agentId && whoSel) {
-        const id = String(agentId).toLowerCase();
-        if ([...whoSel.options].some((o) => o.value === id)) whoSel.value = id;
-      }
-      campChatActiveId = whoSel?.value || agentId || "luna";
-      // Mirror talk-bar target
+    // Sticky who-you-are-talking-to — never auto-flip to nearest
+    let pinnedTalkTarget = null; // null = follow select; string locks until user changes
+
+    function setTalkTarget(val, opts = {}) {
       const talkSel = document.getElementById("camp-talk-target");
-      if (talkSel && campChatActiveId && [...talkSel.options].some((o) => o.value === campChatActiveId)) {
-        talkSel.value = campChatActiveId;
-        syncCampTalkAllBtn?.();
+      let id = String(val || "nearest").toLowerCase();
+      if (id === "nearest" && opts.resolveNearest) id = "nearest";
+      if (talkSel && [...talkSel.options].some((o) => o.value === id)) {
+        talkSel.value = id;
       }
-      panel.classList.add("open");
-      panel.setAttribute("aria-hidden", "false");
-      campChatOpen = true;
-      document.body.classList.add("camp-chat-open");
-      renderCampChatThread(campChatActiveId);
-      // Keep 💬 panel wired to free minds (Ollama etc.)
-      void refreshCampMindStatus();
-      setTimeout(() => document.getElementById("camp-chat-input")?.focus(), 80);
+      if (opts.sticky !== false) pinnedTalkTarget = id;
+      campChatActiveId = (id === "nearest" || id === "all" || id === "all-near" || id === "spirit")
+        ? (nearestId || "luna")
+        : id;
+      syncCampTalkAllBtn?.();
+      syncCampTalkSendLabel?.();
+      updateCampReplyRailTarget?.();
+      if (opts.focus) {
+        setTimeout(() => document.getElementById("camp-talk-input")?.focus(), opts.focusDelay ?? 80);
+      }
+      return id;
+    }
+
+    function getTalkTarget() {
+      const talkSel = document.getElementById("camp-talk-target");
+      if (pinnedTalkTarget && talkSel && [...talkSel.options].some((o) => o.value === pinnedTalkTarget)) {
+        if (talkSel.value !== pinnedTalkTarget) talkSel.value = pinnedTalkTarget;
+        return pinnedTalkTarget;
+      }
+      return talkSel?.value || pinnedTalkTarget || "nearest";
+    }
+
+    function updateCampReplyRailTarget() {
+      const rail = document.getElementById("camp-reply-rail");
+      const whoEl = document.getElementById("camp-reply-who");
+      const lockEl = document.getElementById("camp-reply-lock");
+      if (!rail || !lockEl) return;
+      const val = getTalkTarget();
+      const name = talkTargetDisplayName(val);
+      const broadcast = val === "all" || val === "all-near";
+      if (whoEl) whoEl.textContent = broadcast ? "Broadcast" : "Talking to";
+      lockEl.textContent = broadcast
+        ? (val === "all" ? "📢 All agents (locked)" : "📍📢 Near+all (locked)")
+        : (val === "nearest" ? `📍 ${name}` : `🔒 ${name}`);
+      lockEl.classList.toggle("broadcast", broadcast);
+    }
+
+    function setCampReplyRail(speaker, text, opts = {}) {
+      const rail = document.getElementById("camp-reply-rail");
+      const whoEl = document.getElementById("camp-reply-who");
+      const textEl = document.getElementById("camp-reply-text");
+      if (!rail || !textEl) return;
+      const clean = String(text || "").trim();
+      if (!clean) return;
+      rail.classList.toggle("idle", !!opts.idle);
+      if (whoEl && speaker) whoEl.textContent = speaker;
+      textEl.textContent = clean;
+      textEl.scrollTop = 0;
+      updateCampReplyRailTarget();
+    }
+
+    /** Popup chat retired — lock target + focus bottom talk bar + reply rail */
+    function openCampChatPanel(agentId) {
+      const raw = String(agentId || getTalkTarget() || "luna").toLowerCase();
+      // Never rewrite All / routes into nearest
+      if (raw === "all" || raw === "all-near" || raw === "nearest" || raw === "spirit") {
+        setTalkTarget(raw, { sticky: true, focus: true });
+      } else {
+        setTalkTarget(raw, { sticky: true, focus: true });
+      }
+      campChatOpen = false;
+      document.body.classList.remove("camp-chat-open");
+      document.getElementById("camp-chat-panel")?.classList.remove("open");
+      setCampReplyRail(
+        talkTargetDisplayName(getTalkTarget()),
+        "Type below — full replies land here and on the meadow. No popup.",
+        { idle: true },
+      );
+      void refreshCampMindStatus?.();
     }
 
     function closeCampChatPanel() {
@@ -7200,8 +7309,8 @@
     }
 
     function toggleCampChatPanel() {
-      if (campChatOpen) closeCampChatPanel();
-      else openCampChatPanel(document.getElementById("camp-talk-target")?.value || "luna");
+      // Focus talk bar instead of opening a panel
+      openCampChatPanel(getTalkTarget());
     }
 
     async function sendCampChatPanel() {
@@ -7316,25 +7425,26 @@
     }
 
     function wireCampChatPanel() {
-      document.getElementById("btn-camp-chat")?.addEventListener("click", () => toggleCampChatPanel());
+      // Popup chat retired — buttons only focus the sticky talk bar
+      document.getElementById("btn-camp-chat")?.addEventListener("click", () => {
+        openCampChatPanel(getTalkTarget());
+      });
       document.getElementById("camp-talk-open-panel")?.addEventListener("click", () => {
-        openCampChatPanel(document.getElementById("camp-talk-target")?.value || "luna");
+        openCampChatPanel(getTalkTarget());
       });
       document.getElementById("camp-chat-close")?.addEventListener("click", () => closeCampChatPanel());
-      document.getElementById("camp-chat-send")?.addEventListener("click", () => { void sendCampChatPanel(); });
+      // Legacy panel inputs (hidden) still work if somehow focused
+      document.getElementById("camp-chat-send")?.addEventListener("click", () => { void sendCampTalk(); });
       document.getElementById("camp-chat-who")?.addEventListener("change", (ev) => {
-        campChatActiveId = ev.target.value || "luna";
-        const talkSel = document.getElementById("camp-talk-target");
-        if (talkSel && [...talkSel.options].some((o) => o.value === campChatActiveId)) {
-          talkSel.value = campChatActiveId;
-        }
-        syncCampTalkSendLabel();
-        renderCampChatThread(campChatActiveId);
+        setTalkTarget(ev.target.value || "luna", { sticky: true });
       });
       document.getElementById("camp-chat-input")?.addEventListener("keydown", (ev) => {
         if (ev.key === "Enter" && !ev.shiftKey) {
           ev.preventDefault();
-          void sendCampChatPanel();
+          const t = document.getElementById("camp-chat-input")?.value || "";
+          const main = document.getElementById("camp-talk-input");
+          if (main && t) main.value = t;
+          void sendCampTalk();
         }
         if (ev.key === "Escape") closeCampChatPanel();
       });
@@ -7742,6 +7852,8 @@
       const sel = document.getElementById("camp-talk-target");
       if (!sel) return;
       if (!force && (campTalkPickerOpen || document.activeElement === sel)) return;
+      // Remember user lock so option rebuild never flips All → Nearest
+      const keepTarget = pinnedTalkTarget || sel.value || "nearest";
       const heavenHere = heavenSummoned
         || campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving)
         || !!findRoamAgent("thor")
@@ -7750,7 +7862,17 @@
       const thorHere = !!findRoamAgent("thor");
       const zeusHere = !!findRoamAgent("zeus");
       const sig = `${heavenHere ? 1 : 0}|${dionHere ? 1 : 0}|${thorHere ? 1 : 0}|${zeusHere ? 1 : 0}|${ouijaSpiritName || ""}`;
-      if (!force && sig === campTalkTargetSig) return;
+      if (!force && sig === campTalkTargetSig) {
+        // Still re-apply sticky lock if something else moved the select
+        if (pinnedTalkTarget && sel.value !== pinnedTalkTarget
+            && [...sel.options].some((o) => o.value === pinnedTalkTarget)) {
+          sel.value = pinnedTalkTarget;
+          syncCampTalkAllBtn();
+          syncCampTalkSendLabel();
+          updateCampReplyRailTarget?.();
+        }
+        return;
+      }
       campTalkTargetSig = sig;
       const nearOpt = sel.querySelector('option[value="nearest"]');
       if (nearOpt) nearOpt.textContent = "📍 Nearest";
@@ -7814,38 +7936,49 @@
       }
       const guestsGroup = document.getElementById("talk-opt-guests");
       if (guestsGroup) guestsGroup.label = dionHere ? "Guests" : "Guests (🍷 = invite)";
+      // Restore sticky target after any option show/hide
+      if (keepTarget && [...sel.options].some((o) => o.value === keepTarget && !o.disabled && !o.hidden)) {
+        sel.value = keepTarget;
+      } else if (pinnedTalkTarget && [...sel.options].some((o) => o.value === pinnedTalkTarget)) {
+        sel.value = pinnedTalkTarget;
+      }
       if (typeof syncCampChatWhoOptions === "function" && campChatOpen) syncCampChatWhoOptions();
       syncCampTalkSendLabel();
+      updateCampReplyRailTarget?.();
     }
 
     async function chatAllCampAgents(text) {
       const roamers = allRoamers().filter((n) => !n.leaving);
       const ids = [...new Set(roamers.map((n) => n.id))];
-      // Cap "All" to 3 speakers so the floor stays readable
+      // Prefer a wider circle for "All" while keeping sequential readable turns
       const nearFirst = nearestId && ids.includes(nearestId) ? [nearestId] : [];
       const rest = ids.filter((id) => !nearFirst.includes(id));
       for (let i = rest.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [rest[i], rest[j]] = [rest[j], rest[i]];
       }
-      const order = [...nearFirst, ...rest].slice(0, 3);
+      const order = [...nearFirst, ...rest].slice(0, Math.min(6, ids.length || 1));
       if (!order.length) {
         showToast("No agents at camp to hear you");
         return;
       }
-      setCampLifeStatus(`📢 Up to 3 minds: ${order.map((id) => agentNames[id] || id).join(" · ")}`);
-      showToast(`Talking to ${order.length}: ${order.map((id) => agentNames[id] || id).join(", ")}`);
+      setCampLifeStatus(`📢 All mode · ${order.length} minds: ${order.map((id) => agentNames[id] || id).join(" · ")}`);
+      showToast(`📢 All (locked) · ${order.length} answering in turn`);
+      setTalkTarget("all", { sticky: true });
       // Sequential so each reply can land (no pile-on)
       for (const id of order) {
         await chat(
           id,
-          `(The visitor said to the group: "${text}". Answer as yourself only. ` +
-          `Unique voice — do not copy other agents. 2–5 solid paragraphs. Real question at end.)`,
+          `(The visitor said to the whole camp: "${text}". Answer as yourself only. ` +
+          `Unique voice — do not copy other agents. 1–2 solid paragraphs. Real question at end.)`,
           { useDialogue: false, fromCampBar: true },
         );
-        await new Promise((r) => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 500));
+        // Keep All locked between speakers
+        setTalkTarget("all", { sticky: true });
       }
-      setCampLifeStatus("Those three finished — pick one for a deeper talk");
+      setTalkTarget("all", { sticky: true });
+      setCampLifeStatus("📢 All finished — still locked on All (change menu to talk one-on-one)");
     }
 
     function isGrokLinkAgent(agentId) {
@@ -8168,31 +8301,24 @@
       pushCampLine(you, text, 12, "happy", { fromLocal: true, keepDock: isCampMobile() });
       pushLiveBrainFeed({ kind: "visitor", text, speaker: you });
       input.value = "";
-      let target = targetSel?.value || "nearest";
+      // Sticky who — never auto-flip All/agent to nearest
+      let target = getTalkTarget();
       if (mention.agentId) {
-        target = mention.agentId;
-        if (targetSel) {
-          targetSel.value = target;
-          syncCampTalkAllBtn();
-        }
+        target = setTalkTarget(mention.agentId, { sticky: true });
+      } else if (targetSel && pinnedTalkTarget) {
+        targetSel.value = pinnedTalkTarget;
+        target = pinnedTalkTarget;
       }
       const talkText = mention.agentId ? mention.message : text;
-      // PC + mobile: always open full chat panel so long monologues have a scroll home
-      let panelAgent = target === "nearest" ? (nearestId || "luna") : target;
-      if (panelAgent === "all" || panelAgent === "all-near") panelAgent = nearestId || "luna";
-      if (panelAgent !== "spirit") {
-        appendCampChatMessage(panelAgent, { role: "you", text: talkText });
-        openCampChatPanel(panelAgent);
-        appendCampChatMessage(panelAgent, {
-          role: "agent",
-          who: agentNames[panelAgent] || panelAgent,
-          text: "…thinking (live multi-brain)… full reply will scroll in this bubble",
-          thinking: true,
-        });
-        // PC: also force monologue reader for long replies after they land (applyChatResult)
-        if (!isCampMobile()) {
-          showToast(`Chat open → ${agentNames[panelAgent] || panelAgent} · scroll their bubble`);
-        }
+      let threadKey = target === "nearest" ? (nearestId || "luna") : target;
+      if (threadKey === "all" || threadKey === "all-near") threadKey = nearestId || "luna";
+      if (threadKey !== "spirit") {
+        appendCampChatMessage(threadKey, { role: "you", text: talkText });
+        setCampReplyRail(
+          talkTargetDisplayName(target),
+          "…thinking — reply stays in this strip (and on the meadow)…",
+          { idle: true },
+        );
       }
       try {
         if (target === "spirit") {
@@ -8200,12 +8326,15 @@
             ouijaSpiritName = CAMP_SPIRIT_NAMES[Math.floor(Math.random() * CAMP_SPIRIT_NAMES.length)];
           }
           refreshCampTalkTarget();
+          if (targetSel && pinnedTalkTarget) targetSel.value = pinnedTalkTarget;
           if (!ouijaOpen) openCampOuija({ autoContact: false });
           const qInput = document.getElementById("camp-ouija-question");
           if (qInput) qInput.value = text;
           await startCampOuijaContact();
         } else if (target === "all") {
           await chatAllCampAgents(talkText);
+          // Stay locked on All after broadcast
+          setTalkTarget("all", { sticky: true });
         } else if (target === "all-near") {
           const primary = nearestId || "luna";
           const label = agentNames[primary] || primary;
@@ -8231,11 +8360,13 @@
             );
             await new Promise((r) => setTimeout(r, 550));
           }
+          setTalkTarget("all-near", { sticky: true });
         } else {
           let agentId = target === "nearest" ? (nearestId || "luna") : target;
           if (agentId === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
             await spawnDionysusVisit({ manual: true });
             refreshCampTalkTarget(true);
+            setTalkTarget(agentId, { sticky: true });
           }
           // Thor / Zeus / archangels: auto-summon Heaven so talk bar always works
           if (
@@ -8245,27 +8376,26 @@
             showToast(`✦ Bringing ${agentNames[agentId] || agentId} in with Heaven…`);
             await summonArchangelCouncil();
             refreshCampTalkTarget(true);
-            if (targetSel) targetSel.value = agentId;
+            setTalkTarget(agentId, { sticky: true });
           }
           if (isGrokLinkAgent(agentId) && !findRoamAgent(agentId)) {
             await spawnGrokAgent(agentId, { quiet: true });
-          }
-          if (agentId === "luna" && !canvasCampChatOnly()) {
-            showToast("Luna hears you — scroll 💬 Chat for the full monologue");
           }
           // Evolving thread context for live Ollama/Hermes/Grok chain
           const evolved = typeof buildEvolvingPrompt === "function"
             ? buildEvolvingPrompt(agentId, talkText)
             : talkText;
           await chat(agentId, evolved, { useDialogue: false, fromCampBar: true });
+          // Keep locked agent after reply (not nearest)
+          if (target !== "nearest") setTalkTarget(target, { sticky: true });
         }
       } catch (err) {
         const hint = isFetchOfflineError(err) ? "Server offline" : (err.message || "send failed");
         showToast("Talk: " + hint);
-        if (panelAgent && panelAgent !== "spirit") {
-          const thr = getCampChatThread(panelAgent);
+        if (threadKey && threadKey !== "spirit") {
+          const thr = getCampChatThread(threadKey);
           if (thr.length && thr[thr.length - 1].thinking) thr.pop();
-          appendCampChatMessage(panelAgent, {
+          appendCampChatMessage(threadKey, {
             role: "agent",
             who: "Camp",
             text: `Brain hiccup — ${hint}. Try again; Ollama/Hermes free chain evolves when online.`,
@@ -12839,31 +12969,18 @@
     let agentTalkPending = null;
     function onAgentTap(npc) {
       if (!npc || npc.leaving) return;
-      const now = Date.now();
       const pos = agentWorldPos(npc);
-      const near = playerNearAgent(npc);
-      if (agentTalkPending?.id === npc.id && now - agentTalkPending.t < AGENT_DOUBLE_TAP_MS) {
-        agentTalkPending = null;
-        pendingCampAction = null;
-        if (near) {
-          // Opens 💬 panel — no dialogue popup
-          void openDialogueWindow(npc.id);
-        } else {
-          walkPlayerTo(pos.x, pos.y - 6);
-          showToast(`Walk closer to ${npc.name}, then double-tap to talk`);
-        }
-        return;
-      }
-      if (near) {
-        agentTalkPending = { id: npc.id, t: now };
-        pendingCampAction = null;
-        showToast(`${npc.name} — tap again to talk (💬 panel)`);
-        return;
-      }
       agentTalkPending = null;
       pendingCampAction = null;
-      walkPlayerTo(pos.x, pos.y - 6);
-      showToast(`→ ${npc.name} — walk there, then double-tap`);
+      // One tap: lock this agent in the talk bar (stays locked) — no popup sheet/chat
+      setTalkTarget(npc.id, { sticky: true, focus: true });
+      setCampReplyRail(npc.name, `Locked on ${npc.name}. Type below — they answer here & on the meadow.`, { idle: true });
+      if (!playerNearAgent(npc)) {
+        walkPlayerTo(pos.x, pos.y - 6);
+        showToast(`→ ${npc.name} locked · type below`);
+      } else {
+        showToast(`🔒 ${npc.name} · type below`);
+      }
     }
     function interactCampHit(hit) {
       if (!hit?.kind) return;
@@ -13235,15 +13352,9 @@
     function focusAgentTalk(npc) {
       if (!npc || npc.leaving) return;
       hideAgentActionMenu();
-      const sel = document.getElementById("camp-talk-target");
-      const input = document.getElementById("camp-talk-input");
-      if (sel) {
-        sel.value = npc.id;
-        syncCampTalkAllBtn();
-        refreshCampTalkTarget();
-      }
-      showToast(`💬 ${npc.name} — type below`);
-      setTimeout(() => input?.focus(), 120);
+      setTalkTarget(npc.id, { sticky: true, focus: true, focusDelay: 120 });
+      setCampReplyRail(npc.name, `Locked on ${npc.name}. Type below.`, { idle: true });
+      showToast(`🔒 ${npc.name} — type below`);
     }
     function hideAgentActionMenu() {
       const menu = document.getElementById("camp-agent-menu");
@@ -13390,11 +13501,8 @@
     function openAgentChat(npc) {
       if (!npc || npc.leaving) return;
       hideAgentActionMenu();
-      if (!playerNearAgent(npc)) {
-        onAgentTap(npc);
-        return;
-      }
-      void openDialogueWindow(npc.id || npc);
+      // Always lock + focus talk bar — never open popup chat
+      onAgentTap(typeof npc === "string" ? findRoamAgent(npc) || { id: npc, name: agentNames[npc] || npc } : npc);
     }
 
     function placeDragAt(sx, sy, target) {
@@ -13598,29 +13706,26 @@
     document.getElementById("btn-find-friends").onclick = () => gatherNpcsAtCamp(false);
     document.getElementById("btn-find-bar").onclick = () => gatherNpcsAtCamp(false);
     document.getElementById("btn-talk-near").onclick = () => {
-      const sel = document.getElementById("camp-talk-target");
-      const input = document.getElementById("camp-talk-input");
-      if (sel) sel.value = "nearest";
-      syncCampTalkAllBtn();
-      refreshCampTalkTarget();
-      input?.focus();
-      showToast(nearestId ? `Talking to ${agentNames[nearestId] || nearestId} — tap 📢 for all` : "Talking to Luna — tap 📢 for all");
+      setTalkTarget("nearest", { sticky: true, focus: true });
+      showToast(nearestId
+        ? `📍 Nearest: ${agentNames[nearestId] || nearestId} (tracks closest)`
+        : "📍 Nearest mode");
     };
     document.getElementById("camp-talk-all").onclick = () => {
-      const sel = document.getElementById("camp-talk-target");
-      if (!sel) return;
-      sel.value = sel.value === "all" ? "nearest" : "all";
-      syncCampTalkAllBtn();
-      refreshCampTalkTarget();
-      document.getElementById("camp-talk-input")?.focus();
-      showToast(sel.value === "all" ? "📢 All agents will answer" : `📍 Nearest: ${agentNames[nearestId] || "Luna"}`);
+      const cur = getTalkTarget();
+      // Toggle All on/off, but lock the choice so it won't auto-flip
+      const next = cur === "all" ? "nearest" : "all";
+      setTalkTarget(next, { sticky: true, focus: true });
+      showToast(next === "all"
+        ? "📢 All agents locked — stays on All until you change it"
+        : `📍 Nearest: ${agentNames[nearestId] || "Luna"}`);
     };
     const campTalkTargetSel = document.getElementById("camp-talk-target");
     campTalkTargetSel?.addEventListener("mousedown", () => { campTalkPickerOpen = true; });
     campTalkTargetSel?.addEventListener("touchstart", () => { campTalkPickerOpen = true; }, { passive: true });
     campTalkTargetSel?.addEventListener("focus", () => {
       if (campTalkTargetSel.value) {
-        syncSelectTextExpand(campTalkTargetSel, "💬 Talk to", "Full talk target — type below to send");
+        syncSelectTextExpand(campTalkTargetSel, "Talk to", "Who stays locked until you change it");
       }
     });
     let talkTargetPickTs = 0;
@@ -13629,15 +13734,15 @@
       if (now - talkTargetPickTs < 420) return;
       talkTargetPickTs = now;
       campTalkPickerOpen = false;
-      syncCampTalkSendLabel();
-      syncCampTalkAllBtn();
       const val = campTalkTargetSel.value;
-      syncSelectTextExpand(campTalkTargetSel, "💬 Talk to", "Full talk target — type below to send");
+      setTalkTarget(val, { sticky: true });
+      syncSelectTextExpand(campTalkTargetSel, "Talk to", "Who stays locked until you change it");
       if (val === "dionysus" && !campGuests.some((g) => g.id === "dionysus" && !g.leaving)) {
         spawnDionysusVisit({ manual: true });
         refreshCampTalkTarget(true);
+        setTalkTarget("dionysus", { sticky: true });
       }
-      showToast(`Talking to: ${campTalkTargetSel.selectedOptions[0]?.textContent || val}`);
+      showToast(`🔒 Locked: ${campTalkTargetSel.selectedOptions[0]?.textContent || val}`);
     };
     campTalkTargetSel?.addEventListener("change", onTalkTargetPick);
     if (isAndroid()) campTalkTargetSel?.addEventListener("input", onTalkTargetPick);
@@ -13791,9 +13896,8 @@
     document.getElementById("camp-speech-pin-close")?.addEventListener("click", () => unpinCampSpeech());
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();
-      // Stay mini — full text in 💬 Chat only
       minimizeSpeechBubble();
-      openCampChatPanel?.(campChatActiveId || "luna");
+      document.getElementById("camp-talk-input")?.focus();
     };
     document.getElementById("convo-mobile-hide").onclick = (ev) => {
       ev.stopPropagation();
@@ -13802,16 +13906,16 @@
     };
     document.getElementById("camp-chatter-fab").onclick = () => {
       if (isCampMobile()) applyMobileChatterMode("mini");
-      openCampChatPanel?.(campChatActiveId || "luna");
+      document.getElementById("camp-talk-input")?.focus();
     };
     document.getElementById("btn-chatter-toggle").onclick = () => {
       minimizeSpeechBubble();
-      openCampChatPanel?.(campChatActiveId || "luna");
+      document.getElementById("camp-talk-input")?.focus();
     };
     document.querySelector("#convo-log header").onclick = (ev) => {
       if (ev.target.closest("#convo-dock-toggle, #convo-mobile-hide")) return;
       minimizeSpeechBubble();
-      openCampChatPanel?.(campChatActiveId || "luna");
+      document.getElementById("camp-talk-input")?.focus();
     };
 
     const dialogueName = document.getElementById("dialogue-name");
@@ -13911,7 +14015,7 @@
     }
 
     async function openDialogueWindow(agentId) {
-      // NO popup modal — route everything to talk bar + 💬 camp chat panel
+      // NO popup — lock agent on talk bar + reply rail only
       let id = (agentId || "luna").toLowerCase();
       if (id === "dionysus" && !findRoamAgent("dionysus")) {
         await spawnDionysusVisit({ manual: true });
@@ -13925,26 +14029,17 @@
       }
       hideAgentActionMenu();
       closeDialogue();
+      closeCampChatPanel();
       dialogueAgent = id;
       agentTalkPending = null;
       pendingCampAction = null;
-      // Do not pause ambient forever — speech floor handles interruptions
       chatterPaused = false;
-      const talkSel = document.getElementById("camp-talk-target");
-      if (talkSel && [...talkSel.options].some((o) => o.value === id)) {
-        talkSel.value = id;
-        syncCampTalkAllBtn?.();
-        syncCampTalkSendLabel?.();
-      }
-      refreshCampTalkTarget?.(true);
-      openCampChatPanel(id);
+      setTalkTarget(id, { sticky: true, focus: true, focusDelay: isCampMobile() ? 60 : 100 });
       claimSpeechFloor(id, { focus: true, holdMs: 90000 });
       const name = agentNames[id] || id;
-      showToast(`Talk to ${name} — type below (no popup)`);
-      setCampLifeStatus(`${name} has the floor — your message next`);
-      const talkIn = document.getElementById("camp-talk-input");
-      const chatIn = document.getElementById("camp-chat-input");
-      setTimeout(() => (chatIn || talkIn)?.focus(), isCampMobile() ? 60 : 100);
+      setCampReplyRail(name, `Locked on ${name}. Type in the bar below — replies stay here.`, { idle: true });
+      showToast(`🔒 ${name} · type below`);
+      setCampLifeStatus(`${name} has the floor`);
     }
 
     function openDialogue(agentId) {
@@ -14131,17 +14226,19 @@
       if (!line) return;
       const entry = campLines[Number(line.dataset.idx)];
       if (!entry?.text) return;
-      // Open real chat — no floating monologue box
+      // Lock that speaker + show full text in reply rail (no popup)
       const agent = allRoamers().find((n) => n.name === entry.speaker || n.id === entry.speaker.toLowerCase());
       const id = agent?.id || entry.speaker.toLowerCase();
-      if (typeof openCampChatPanel === "function") openCampChatPanel(id);
+      if (agent || agentNames[id]) setTalkTarget(id, { sticky: true, focus: true });
+      setCampReplyRail(entry.speaker, entry.text);
     });
     document.getElementById("now-speaking")?.addEventListener("click", () => {
       const last = campLines[campLines.length - 1];
       if (!last?.text) return;
       const agent = allRoamers().find((n) => n.name === last.speaker || n.id === last.speaker.toLowerCase());
       const id = agent?.id || last.speaker.toLowerCase();
-      if (typeof openCampChatPanel === "function") openCampChatPanel(id);
+      if (agent || agentNames[id]) setTalkTarget(id, { sticky: true, focus: true });
+      setCampReplyRail(last.speaker, last.text);
     });
 
     let chatterPaused = false;
@@ -14272,6 +14369,10 @@
       if (!canvasCampChatOnly() && !convoReadingHold && !quiet) {
         // Full reply in sidebar "now speaking" (scrollable)
         updateNowSpeaking(speaker, clean, moodVal);
+      }
+      // Keep bottom reply rail in sync (no popup needed)
+      if (!quiet && speaker && speaker !== "Camp" && !isVisitorSpeaker?.(speaker)) {
+        setCampReplyRail?.(speaker, clean);
       }
       notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);

@@ -13760,30 +13760,27 @@
     document.getElementById("camp-speech-pin-close")?.addEventListener("click", () => unpinCampSpeech());
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();
-      const el = document.getElementById("convo-log");
-      setSpeechBubbleDock(!el?.classList.contains("collapsed"));
+      // Stay mini — full text in 💬 Chat only
+      minimizeSpeechBubble();
+      openCampChatPanel?.(campChatActiveId || "luna");
     };
     document.getElementById("convo-mobile-hide").onclick = (ev) => {
       ev.stopPropagation();
       if (isCampMobile()) applyMobileChatterMode("hidden");
       else minimizeSpeechBubble();
     };
-    document.getElementById("camp-chatter-fab").onclick = () => restoreMobileChatter();
+    document.getElementById("camp-chatter-fab").onclick = () => {
+      if (isCampMobile()) applyMobileChatterMode("mini");
+      openCampChatPanel?.(campChatActiveId || "luna");
+    };
     document.getElementById("btn-chatter-toggle").onclick = () => {
-      if (isCampMobile()) cycleMobileChatter();
-      else {
-        const el = document.getElementById("convo-log");
-        setSpeechBubbleDock(!el?.classList.contains("collapsed"));
-      }
+      minimizeSpeechBubble();
+      openCampChatPanel?.(campChatActiveId || "luna");
     };
     document.querySelector("#convo-log header").onclick = (ev) => {
       if (ev.target.closest("#convo-dock-toggle, #convo-mobile-hide")) return;
-      if (isCampMobile() && mobileChatterMode === "mini") {
-        applyMobileChatterMode("expanded");
-        return;
-      }
-      const el = document.getElementById("convo-log");
-      setSpeechBubbleDock(!el?.classList.contains("collapsed"));
+      minimizeSpeechBubble();
+      openCampChatPanel?.(campChatActiveId || "luna");
     };
 
     const dialogueName = document.getElementById("dialogue-name");

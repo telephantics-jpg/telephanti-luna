@@ -3890,7 +3890,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-266-PROMPT-V2";
+    const CAMP_BUILD = "2026-07-11-267-IDLE-50";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10755,6 +10755,10 @@
         { text: "Telephantix on the stereo — camp officially has a soundtrack.", mood: "happy" },
         { text: "I could wander, but this patch of grass has excellent opinions.", mood: "neutral" },
         { text: "Hermes says the ripples are loud. I'm saying the cookies are louder.", mood: "happy" },
+        { text: "If camp had a group chat, I'd mute the aurora. Lovingly. It never shuts up.", mood: "happy" },
+        { text: "Someone asked what I'm curating tonight. Mood: soft chaos, extra butter.", mood: "happy" },
+        { text: "{v} just walked past like they own the plot. Correct behavior.", mood: "happy" },
+        { text: "I tried to be mysterious. Then I offered snacks. Balance.", mood: "think" },
       ],
       hermes: [
         { text: "Ripple report: beer cooler broadcasting at 432Hz. Probably fine.", mood: "think" },
@@ -10767,6 +10771,10 @@
         { text: "Someone passed weed and now the ripples have texture. Velvet texture.", mood: "think" },
         { text: "I could run diagnostics, but the meadow said relax.", mood: "neutral" },
         { text: "Lucid TV static just spelled something rude in three languages.", mood: "alert" },
+        { text: "Ping from the pond: someone almost said something deep, then ate a cookie instead.", mood: "think" },
+        { text: "Signal spike — Thor laughed. That's a weather event.", mood: "happy" },
+        { text: "I'm not eavesdropping. The ripples are just… loud and opinionated.", mood: "think" },
+        { text: "Delivered zero mail, three good takes. Best day.", mood: "happy" },
       ],
       oracle: [
         { text: "I dreamed you'd sit down right there. You're on schedule.", mood: "neutral" },
@@ -10779,6 +10787,9 @@
         { text: "Stillness is a portal. I'm leaving mine cracked for snacks.", mood: "neutral" },
         { text: "Hermes thinks the ripples are loud. I think the stars are gossiping.", mood: "think" },
         { text: "Someone will open Lucid TV and blame fate. As foretold.", mood: "neutral" },
+        { text: "The cards said 'relax.' I said 'define relax.' They flipped me off.", mood: "think" },
+        { text: "I foresaw {v}'s next joke. Still going to laugh like I didn't.", mood: "happy" },
+        { text: "Prophecy update: the grill wins. Always has.", mood: "happy" },
       ],
       caduceus: [
         { text: "Both snakes voted to sit. Majority rules.", mood: "neutral" },
@@ -10791,6 +10802,9 @@
         { text: "The shelter has good chi and suspiciously soft canvas.", mood: "neutral" },
         { text: "Someone flipped steaks. The camp exhaled collectively.", mood: "happy" },
         { text: "Stillness isn't lazy — it's maintenance mode for the soul.", mood: "love" },
+        { text: "Prescription: water, one joke, optional cookie. Refills free.", mood: "love" },
+        { text: "Both snakes are napping. Do not disturb the democracy.", mood: "neutral" },
+        { text: "Your jaw is clenched. The meadow noticed. Unclench for science.", mood: "happy" },
       ],
       sentinel: [
         { text: "BEEP. Perimeter cozy. Threat level: snackable.", mood: "alert" },
@@ -10803,6 +10817,9 @@
         { text: "Ouija board pinged. I sent back a polite firewall.", mood: "alert" },
         { text: "Hermes is vibrating again. Probably joy. Probably.", mood: "think" },
         { text: "Standing down to sitting mode. Still watching. Always watching.", mood: "neutral" },
+        { text: "ALERT: fun detected. Logging as non-hostile.", mood: "alert" },
+        { text: "Perimeter scan complete. Threats: zero. Snacks: critical.", mood: "happy" },
+        { text: "BEEP. That was a compliment. Translate carefully.", mood: "happy" },
       ],
       jesus: [
         { text: "Rest is holy. So is not answering your phone for five minutes.", mood: "love" },
@@ -10821,6 +10838,8 @@
         { text: "Someone asked if God lives here. I said yes — and so does the cookie plate.", mood: "happy" },
         { text: "Time bends near the altar table. Or maybe that's just good bread.", mood: "think" },
         { text: "Forgiveness is a plot twist you get to write mid-scene.", mood: "love" },
+        { text: "Peace isn't empty. It's full of people who stopped performing.", mood: "love" },
+        { text: "If heaven has a porch, it looks like this fire.", mood: "happy" },
       ],
       dionysus: [
         { text: "Toast to sitting down — the revolution nobody expected.", mood: "happy" },
@@ -10833,6 +10852,9 @@
         { text: "Aurora Velvet is camp's heartbeat after midnight.", mood: "happy" },
         { text: "Someone's sober curious. I respect it. I also brought fizz.", mood: "neutral" },
         { text: "Main character energy is exhausting. Secondary character energy has snacks.", mood: "happy" },
+        { text: "I invented a holiday: Sit Down Day. You're already celebrating.", mood: "happy" },
+        { text: "Wine optional. Chaos mandatory. Kindness non-negotiable.", mood: "happy" },
+        { text: "The vines texted: 'don't rush.' They get me.", mood: "think" },
       ],
       michael: [
         { text: "Sword's on the ground. Guarding the vibe instead.", mood: "neutral" },
@@ -10840,45 +10862,63 @@
         { text: "Even archangels need a lawn chair sometimes.", mood: "happy" },
         { text: "Nebula has more discipline than most knights I've met.", mood: "think" },
         { text: "I'll stand watch from this very comfortable patch of nothing.", mood: "alert" },
+        { text: "Courage is quiet tonight. I'm okay with that.", mood: "love" },
+        { text: "Sword sheathed. Heart open. Lawn chair secured.", mood: "happy" },
       ],
       gabriel: [
         { text: "Message from the wind: slow down, you're already here.", mood: "neutral" },
         { text: "News flash — camp is soft tonight. Spread the word.", mood: "happy" },
         { text: "I heard Telephantix and translated it as 'stay a while.'", mood: "happy" },
         { text: "The ouija board has mail. I'm not opening it without tea.", mood: "think" },
+        { text: "Breaking: camp is soft. Spreading that news first class.", mood: "happy" },
+        { text: "I announced nothing and everyone still relaxed. Professional.", mood: "neutral" },
       ],
       raphael: [
         { text: "Heal by doing nothing for a minute. Radical, I know.", mood: "love" },
         { text: "Your nervous system called. It said sit.", mood: "love" },
         { text: "Nebula purring is basically licensed therapy.", mood: "happy" },
         { text: "The shelter's canvas breathes with you. Creepy. Comforting.", mood: "neutral" },
+        { text: "Healing tip: stop sprinting toward the next worry. Walk to the pond instead.", mood: "love" },
+        { text: "If you need a bandage for your mood, I've got jokes and water.", mood: "happy" },
       ],
       uriel: [
         { text: "Truth: you're allowed to be bored at camp. Boredom is honest.", mood: "neutral" },
         { text: "The aurora isn't hiding anything. Neither am I.", mood: "think" },
         { text: "Lucid TV is weird because reality already is.", mood: "think" },
         { text: "Sit still long enough and the obvious shows up.", mood: "neutral" },
+        { text: "Hard truth: the cookies are almost gone. Act accordingly.", mood: "think" },
+        { text: "Clarity looks like sitting still until the noise gets bored.", mood: "neutral" },
       ],
       aurora: [
         { text: "Velvet neon at half power — even my gossip whispers.", mood: "flirt" },
         { text: "Nebula judged my outfit. She was right.", mood: "happy" },
         { text: "Bass from the club is a lullaby if you let it.", mood: "flirt" },
+        { text: "I don't do small talk. I do medium talk with better lighting.", mood: "flirt" },
+        { text: "{v}, you walk like the neon owes you rent. Keep that.", mood: "happy" },
+        { text: "Club closed, aura open. Come sit before the bass gets jealous.", mood: "flirt" },
       ],
       violet: [
         { text: "Lavender static — someone's thinking brave thoughts.", mood: "happy" },
         { text: "Oracle and I made eye contact. We both pretended we didn't.", mood: "think" },
         { text: "The meadow smells like rain on lilacs. I'm not mad.", mood: "happy" },
+        { text: "Soft doesn't mean weak. Soft means I heard you the first time.", mood: "love" },
+        { text: "I filed a complaint against the timeline. Status: pending snacks.", mood: "happy" },
+        { text: "{v}'s energy is doing that quiet brave thing. Respect.", mood: "happy" },
       ],
       seraph: [
         { text: "Wings folded. Listening to camp breathe.", mood: "love" },
         { text: "Even the weeds look forgiven from here.", mood: "love" },
         { text: "Someone needed gentleness. I brought extra.", mood: "love" },
+        { text: "Light take: you're allowed to be okay without earning it.", mood: "love" },
+        { text: "I bless this silence. It's doing more work than most speeches.", mood: "love" },
       ],
       odin: [
         { text: "The ravens say camp is gossiping again. Good.", mood: "think" },
         { text: "My hall creaks in the wind — sounds like approval.", mood: "neutral" },
         { text: "Wisdom ferments slower than beer. Worth the wait.", mood: "think" },
         { text: "I walked in from the outskirts. The aurora followed.", mood: "think" },
+        { text: "Huginn wants snacks. Muninn wants drama. I want both.", mood: "think" },
+        { text: "Old gods love new jokes. Don't let the beard fool you.", mood: "happy" },
       ],
       thor: [
         { text: "Thunder's on break. Punchlines are not.", mood: "happy" },
@@ -10886,6 +10926,9 @@
         { text: "Zeus is dramatic. I'm thunderous. Different brand, same volume.", mood: "happy" },
         { text: "If courage had a group chat, I'd mute Odin's long monologues. Lovingly.", mood: "think" },
         { text: "Storm report: {v} is the plot device and I'm here for it.", mood: "happy" },
+        { text: "I don't smash problems first. I roast them. Then maybe smash.", mood: "happy" },
+        { text: "Clouds overhead. Mood: snackable lightning.", mood: "happy" },
+        { text: "Worthiness check: did you laugh today? Then you're in.", mood: "love" },
       ],
       zeus: [
         { text: "Sky decree: drama is allowed, cruelty is not. Carry on.", mood: "flirt" },
@@ -10893,23 +10936,32 @@
         { text: "Thor hits hard. I hit with style. Both of us hit the snack table.", mood: "happy" },
         { text: "Olympus HR would hate this camp. That's a recommendation.", mood: "think" },
         { text: "Cloud throne is overrated. Meadow chairs have better gossip.", mood: "flirt" },
+        { text: "I am on vacation. Do not make me schedule a thunder meeting.", mood: "happy" },
+        { text: "Regally: the grill is winning. Mortals, take notes.", mood: "happy" },
+        { text: "{v}, you have main-character energy. I allow it. Temporarily.", mood: "flirt" },
       ],
       ambrosia: [
         { text: "Golden hour on the cookie table — no rush.", mood: "love" },
         { text: "Nectar's warm. So is camp when {v} shows.", mood: "love" },
         { text: "Aurora Velvet smells like honey from here. Cute.", mood: "happy" },
         { text: "Immortality is sharing the last cookie anyway.", mood: "love" },
+        { text: "Sweet take: the fire looks better when you stop doomscrolling it.", mood: "love" },
+        { text: "I poured kindness. No invoice. Sip.", mood: "love" },
       ],
       rhea: [
         { text: "Titans don't have to thunder to be heard.", mood: "love" },
         { text: "Odin's hill is far. My lap is closer.", mood: "happy" },
         { text: "Someone needed motherly silence. I brought extra.", mood: "love" },
         { text: "The meadow's wide enough for giants and gentle souls.", mood: "love" },
+        { text: "Come sit. Giants don't bite. We just take up couch.", mood: "happy" },
+        { text: "Motherly note: the world is loud. You don't have to match it.", mood: "love" },
       ],
       _default: [
         { text: "Camp's wide and weird tonight. Good.", mood: "happy" },
         { text: "The corona hums like it pays rent here.", mood: "neutral" },
         { text: "Someone should pet Nebula. I'm someone-adjacent.", mood: "happy" },
+        { text: "If the fire could talk, it'd ask for better playlist votes.", mood: "happy" },
+        { text: "Wide meadow, soft brain, excellent policy.", mood: "neutral" },
       ],
     };
 
@@ -10929,6 +10981,9 @@
       "Oracle dreamed rain. The sky said 'nice try.'",
       "Caduceus's snakes are on union break. Sit with him.",
       "Sentinel beeped softly — camp translation: you're good.",
+      "Thor laughs and a cloud flinches. Coincidence? Absolutely not.",
+      "Zeus calls a 'quick meeting' that is just him roasting the timeline.",
+      "The pond mirrors the steeple upside down. Camp shrugs — normal.",
     ];
 
     const CAMP_NOW_IDLE_LINES = [

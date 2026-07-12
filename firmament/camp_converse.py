@@ -6,7 +6,6 @@ import random
 import re
 from typing import Any
 
-from firmament.agent_roles import role_for_agent
 from firmament.brain import load_agent_profile
 
 WITTY_TOPICS = [
@@ -199,22 +198,18 @@ def converse_thread_prompt(
     thread: list[dict[str, Any]],
     speaker_id: str,
 ) -> str:
-    """Build user message for logical multi-agent dialogue (not parallel monologues)."""
+    """Pure scene seed for multi-agent dialogue — no instruction labels to recite."""
     names = _names(agent_ids)
     others = [n for i, n in zip(agent_ids, names) if i != speaker_id]
     me = load_agent_profile(speaker_id).get("name") or speaker_id
-    role = role_for_agent(speaker_id)
 
     if not thread:
         other = others[0] if others else "them"
         return (
-            f"You are {me} ({role}) talking with {', '.join(others)} at camp.\n"
+            f"Fire circle with {', '.join(others) if others else 'camp'}.\n"
             f"Topic in the air: {topic}\n\n"
-            f"Open the conversation naturally. Speak like a real person at a fire — "
-            f"not a checklist, not a briefing, not 'camp dialogue mode'.\n"
-            f"Have a clear take on the topic, make it make sense, address {other} by name, "
-            f"and leave room for them to answer. One to two short paragraphs. "
-            f"Funny, in character. Only {me}'s spoken words — no stage directions, no AI talk."
+            f"Open naturally. Address {other} by name, take a clear stance, leave room for them.\n"
+            f"Just spoken words — no labels."
         )
 
     prev = thread[-1]
@@ -235,22 +230,15 @@ def converse_thread_prompt(
 
     close_bit = ""
     if is_closing:
-        close_bit = (
-            " You may land a soft wrap-up or punchline, but answer what they just said first."
-        )
+        close_bit = " Soft wrap-up is fine after you answer them."
 
     return (
-        f"You are {me} ({role}) in a live camp conversation with {', '.join(names)}.\n"
-        f"Topic: {topic}\n\n"
-        f"What was said so far:\n{transcript}\n\n"
-        f"{prev_name} just said (respond to the meaning, not their exact wording):\n"
+        f"Fire circle: {', '.join(names)}. Topic: {topic}\n\n"
+        f"So far:\n{transcript}\n\n"
+        f"{prev_name} just said (answer the meaning, not the exact words):\n"
         f"\"{prev_idea}\"\n\n"
-        f"Reply as {me} only — natural speech. Actually answer them: show you got their point, "
-        f"agree or push back with a real reason, add your own take, and keep the thread going "
-        f"with a question or challenge if it fits. One to two short paragraphs."
-        f"{close_bit}\n"
-        f"Do NOT write labels, step lists, or phrases like 'logical dialogue' / 'turn structure'. "
-        f"No stage directions. No AI talk. Just {me} talking."
+        f"Your turn — react, push back or build, keep the thread alive."
+        f"{close_bit}"
     )
 
 

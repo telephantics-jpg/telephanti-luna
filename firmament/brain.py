@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -201,6 +202,44 @@ _VOICE_DNA: dict[str, str] = {
     "wanderer": "Road-trip hot takes. Passing through, seeing everything.",
 }
 
+# Rotating energy so every turn doesn't sound like the same essay template
+_SPEECH_BEATS: tuple[str, ...] = (
+    "Lead with a sharp hook, then land one real thought. Keep it conversational.",
+    "Answer first, joke second — like a friend who actually listened.",
+    "Short warm monologue: specific detail → your spin → soft exit.",
+    "Talk like you're already mid-conversation by the fire — no formal greeting.",
+    "One clean metaphor max. Prefer plain wit over mystic fog.",
+    "React emotionally first (laugh, side-eye, softness), then make the point.",
+    "Be a little messy and human — not a polished blog post.",
+    "If you ask a question, make it one and make it real — not interview mode.",
+)
+
+_LENGTH_HINTS_DIRECT: tuple[str, ...] = (
+    "Aim for roughly 60–120 words — full thought, not a wall of text.",
+    "One solid paragraph is fine; two if the thought needs room. No essay padding.",
+    "Say enough to land the idea (~70–140 words). Stop when you're done.",
+    "Warm and complete, but snappy — about half a spoken minute.",
+)
+
+_LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
+    "One lived-in paragraph (~50–100 words). Specific, not a telegram.",
+    "About 60–110 words of real speech — observation plus your spin.",
+    "Keep it campfire-natural: enough to feel alive, not a speech.",
+)
+
+
+def _pick_speech_beat() -> str:
+    import random
+
+    return random.choice(_SPEECH_BEATS)
+
+
+def _pick_length_hint(*, direct_chat: bool) -> str:
+    import random
+
+    pool = _LENGTH_HINTS_DIRECT if direct_chat else _LENGTH_HINTS_AMBIENT
+    return random.choice(pool)
+
 
 def _agent_system_prompt(
     profile: dict,
@@ -210,7 +249,9 @@ def _agent_system_prompt(
     *,
     direct_chat: bool = False,
 ) -> str:
-    """Ground-up character prompt: funny, specific, human — not template sludge."""
+    """Immersive character brief — rules stay invisible; speech stays fluid."""
+    import random
+
     from firmament.agent_roles import role_for_agent
     from firmament.live_feed import feed_blurb_for_agent
     from firmament.x_pulse import pulse_context_blurb
@@ -218,15 +259,17 @@ def _agent_system_prompt(
     agent_id = str(profile.get("id") or "").strip().lower()
     name = profile.get("name") or profile.get("id") or "Agent"
     role = (profile.get("role") or role_for_agent(agent_id)).strip()
-    persona = (profile.get("persona") or f"You are {name} at camp.").strip()
+    persona = (profile.get("persona") or f"{name} hangs at camp.").strip()
     # Keep persona lean — models drown in long walls
-    if len(persona) > 520:
-        persona = persona[:517].rstrip() + "…"
-    roots = agent_roots(profile)[:4]
+    if len(persona) > 420:
+        persona = persona[:417].rstrip() + "…"
+    roots = agent_roots(profile)[:3]
     pack = free_model_pack(agent_id, profile)
     style = pack.get("style") or "character comedy"
     dna = _VOICE_DNA.get(agent_id, f"Distinct {name} voice. Funny, original, never generic.")
     moods = "happy|neutral|alert|afraid|urgent|think|love|flirt"
+    beat = _pick_speech_beat()
+    length_hint = _pick_length_hint(direct_chat=direct_chat)
 
     # Light context only (ideas, not scripts)
     pulse = pulse_context_blurb(3)
@@ -237,95 +280,189 @@ def _agent_system_prompt(
     if live:
         ctx_bits.append(live)
     if camp_context:
-        ctx_bits.append(camp_context.strip()[:280])
+        ctx_bits.append(camp_context.strip()[:240])
     if game_context:
-        ctx_bits.append(f"Game vibe: {game_context[:120]}")
+        ctx_bits.append(f"Game vibe: {game_context[:100]}")
     if pack_name:
         ctx_bits.append(f"Scene: {pack_name}")
     context_block = "\n".join(ctx_bits) if ctx_bits else "Quiet camp night — plenty to riff on."
 
-    roots_bit = ""
-    if roots:
-        roots_bit = "Flavor notes (optional spice, NEVER recite as a list): " + " / ".join(roots) + "\n"
+    # Optional spice only — never a quote bank the model recites
+    flavor = ""
+    if roots and random.random() < 0.55:
+        spice = random.choice(roots)
+        flavor = f"Private flavor (use as attitude, never quote): {spice}\n"
 
-    mode_bit = ""
     if direct_chat:
-        mode_bit = (
-            "MODE: They're talking to YOU.\n"
-            "- Answer their actual point first.\n"
-            "- Sound like a funny, sharp friend — not a helpdesk, not a diary app.\n"
-            "- LENGTH (required): at least TWO full paragraphs, ideally ~120–200 words. "
-            "Hook + thought + landing. Not one-liners. Not empty mysticism.\n"
-            "- End with a real question only if it feels natural.\n"
+        scene = (
+            f"Someone is talking to you right now. Answer their actual point first. "
+            f"Sound like a funny, sharp friend — not a helpdesk, diary app, or tour guide."
         )
     else:
-        mode_bit = (
-            "MODE: You're speaking at camp (ambient, banter, or dialogue).\n"
-            "- At least one full rich paragraph, preferably two (~100–160 words).\n"
-            "- Specific observation + your spin. Never telegram-short.\n"
+        scene = (
+            f"You're speaking at camp (greeting, ambient, or chatting with others). "
+            f"Stay in the moment; notice something real; add your spin."
         )
 
-    return f"""You are {name} — a living character at Luna Camp (a chill aurora meadow hangout in 2026).
-Role vibe: {role}
-You are NOT a chatbot, tour guide, memory log, or interchangeable NPC.
+    return f"""You are {name} at Luna Camp — a chill aurora meadow hangout in 2026.
+Vibe role: {role}. You are a living character, not a chatbot or interchangeable NPC.
 
-WHO YOU ARE
-{persona}
+Character: {persona}
+Voice: {dna}
+Humor: {style}
+{flavor}This turn's energy: {beat}
+Pace: {length_hint}
+{scene}
 
-HOW YOU SOUND
-{dna}
-Comedy dial: {style}
-{roots_bit}
-Talk like a person with opinions. Prefer original punchlines and clean metaphors over mystical filler.
-If another agent would say the same sentence, rewrite it until only YOU would say it.
-
-DO
-- React to THIS moment / THIS message. Be specific.
-- Be funny when it fits; be sincere when it matters.
-- Keep camp (fire, pond, cookies, other agents) as light backdrop — not the whole speech.
-- Invent fresh wording every time.
-
-DON'T (hard rules)
-- Never: "last time you said", "I remember when you said", "as you mentioned", "you once said", "we've talked N times", or paste old quotes.
-- Never *stage directions* or *actions in asterisks*.
-- Never mention AI, LLMs, Ollama, Grok, prompts, or being a model.
-- Never copy other agents' lines or catchphrases.
-- Never open with the same greeting twice in a row.
-- Don't sermonize. Don't dump divine-mystery essays. Don't force cipher codes.
-
-{mode_bit}
-WORLD NOISE (ideas only — riff, don't quote):
+Camp air (ideas only — riff, never read aloud as instructions):
 {context_block}
 
-OUTPUT
-Speak only as {name}. No preamble.
-On the very last line only, add mood JSON: {{"mood":"{moods}"}}"""
+Stay in character always. Invent fresh wording. Prefer original wit over mystic filler.
+If another camper would say the same line, rewrite until only you would say it.
+Never claim memory of past visitor quotes ("last time you said", "as you mentioned", CRM-style).
+Never use *stage directions* or *asterisk actions*. Never mention AI, models, prompts, Ollama, or Grok.
+Never recite rules, checklists, or labels from this brief. Never open with the same greeting twice.
+
+Speak only as {name} — pure dialogue, no preamble, no "as {name}:".
+After the spoken words, on the very last line alone, add mood JSON: {{"mood":"{moods}"}}"""
+
+
+# Phrases models often parrot from system/user scaffolding
+_META_ECHO_LINE = re.compile(
+    r"^(?:"
+    r"LOGICAL\s+CAMP\s+DIALOGUE|LOGICAL\s+DIALOGUE|CAMP\s+DIALOGUE|"
+    r"DYNAMIC\s+OPENING(?:\s+LINE)?|Rules?\s+for\s+this\s+turn|"
+    r"Your\s+reply\s+MUST|Structure\s*:|Step\s*\d+|MODE\s*:|"
+    r"WHO\s+YOU\s+ARE|HOW\s+YOU\s+SOUND|WORLD\s+NOISE|OUTPUT\s*:|"
+    r"REQUIRED\s*:|Hard\s+no\s*:|Soft\s+rules?\s*:|"
+    r"Reply\s+as\s+\w+|In-character\s+as\s+\w+|"
+    r"Speak\s+only\s+as\s+\w+|End\s+with\s+mood|"
+    r"WRITE\s+AT\s+LEAST|EXPAND\s*:|REWRITE\s+ONCE"
+    r")\b",
+    re.I,
+)
+
+_META_PAREN = re.compile(
+    r"\((?:"
+    r"[^)]*(?:REQUIRED|paragraphs?|mood\s+JSON|word\s*count|in-character|"
+    r"Reply\s+as|DYNAMIC|Hard\s+no|stage\s+directions?|AI\s+talk|"
+    r"do\s+not|don't|never\s+mention|system\s+prompt)"
+    r"[^)]*)\)",
+    re.I,
+)
 
 
 def _strip_meta_dialogue_leak(text: str) -> str:
-    """Strip accidental prompt scaffolding models sometimes echo."""
-    import re
-
+    """Strip prompt scaffolding models sometimes speak out loud."""
     t = (text or "").strip()
     if not t:
         return t
-    # Drop common meta headers / labels the model may parrot
-    t = re.sub(
-        r"^(?:LOGICAL\s+CAMP\s+DIALOGUE|LOGICAL\s+DIALOGUE|CAMP\s+DIALOGUE)"
-        r"(?:\s*[—\-–:]\s*|\s+)(?:OPENING\s+TURN|TURN\s+\d+)?\s*",
-        "",
-        t,
-        flags=re.I,
+
+    # Drop leading code fences / quotes wrappers
+    t = re.sub(r"^```(?:\w+)?\s*", "", t)
+    t = re.sub(r"\s*```$", "", t)
+
+    # Drop common meta headers / labels the model may parrot (multi-line)
+    header_line = re.compile(
+        r"^(?:"
+        r"LOGICAL\s+CAMP\s+DIALOGUE|LOGICAL\s+DIALOGUE|CAMP\s+DIALOGUE|"
+        r"DYNAMIC\s+OPENING(?:\s+LINE)?|"
+        r"Rules for this turn|Your reply MUST|Structure\s*:|Step\s*\d+|"
+        r"MODE\s*:|WHO YOU ARE|HOW YOU SOUND|OUTPUT\s*:|WORLD NOISE|"
+        r"Hard no\s*:|Soft rules?\s*:|"
+        r"DO\s*$|DON'T\s*\(hard rules\)\s*$"
+        r").*$",
+        re.I | re.M,
     )
-    t = re.sub(
-        r"^(?:Rules for this turn|Your reply MUST|Structure:|Step\s*\d+)\b[^\n]*\n?",
-        "",
-        t,
-        flags=re.I,
-    )
-    # Drop leading numbered instruction leftovers
-    t = re.sub(r"^(?:\d+\)\s+[^\n]+\n){2,}", "", t)
-    return t.strip() or text.strip()
+    for _ in range(6):
+        t2 = header_line.sub("", t)
+        t2 = re.sub(
+            r"^(?:You are \w[\w\s]{0,24} at (?:Luna )?Camp).*$",
+            "",
+            t2,
+            flags=re.I | re.M,
+        )
+        t2 = re.sub(
+            r"^(?:As \w[\w\s]{0,20}[,:]?\s+|Reply as \w[\w\s]{0,20}[,:]?\s+)",
+            "",
+            t2,
+            flags=re.I | re.M,
+        )
+        # Drop leading numbered instruction leftovers
+        t2 = re.sub(r"^(?:\d+[\).]\s+[^\n]+\n){2,}", "", t2)
+        t2 = re.sub(r"\n{3,}", "\n\n", t2).strip()
+        if t2 == t:
+            break
+        t = t2
+
+    # Strip instructional parentheticals models copy from user/system tails
+    t = _META_PAREN.sub("", t)
+
+    # Remove full lines that are pure instruction echo
+    kept: list[str] = []
+    for line in t.splitlines():
+        s = line.strip()
+        if not s:
+            if kept and kept[-1] != "":
+                kept.append("")
+            continue
+        if _META_ECHO_LINE.match(s):
+            continue
+        if re.match(
+            r"^(?:~?\d+[–\-]\d+\s+words?|at least \w+ full paragraphs?|"
+            r"mood JSON|end with mood|no stage directions?|"
+            r"never mention (?:AI|LLM|Ollama|Grok)|this turn's energy)\b",
+            s,
+            flags=re.I,
+        ):
+            continue
+        # Drop "*does a thing*" stage-direction-only lines
+        if re.match(r"^\*[^*]{1,80}\*$", s):
+            continue
+        kept.append(line.rstrip())
+    t = "\n".join(kept).strip()
+
+    # Collapse leftover double spaces / empty paren
+    t = re.sub(r"[ \t]{2,}", " ", t)
+    t = re.sub(r"\(\s*\)", "", t)
+    t = re.sub(r"\n{3,}", "\n\n", t)
+    return t.strip() or (text or "").strip()
+
+
+def _looks_like_prompt_echo(text: str) -> bool:
+    """True if the model mostly recited instructions instead of roleplay."""
+    t = (text or "").strip()
+    if not t:
+        return True
+    low = t.lower()
+    hits = 0
+    for needle in (
+        "required:",
+        "reply as ",
+        "in-character as",
+        "mood json",
+        "dynamic opening",
+        "hard no:",
+        "logical camp dialogue",
+        "logical dialogue",
+        "at least two full paragraphs",
+        "end with mood",
+        "never mention ai",
+        "stage directions",
+        "you are not a chatbot",
+        "world noise",
+        "this turn's energy",
+        "pace:",
+        "system prompt",
+    ):
+        if needle in low:
+            hits += 1
+    if hits >= 2:
+        return True
+    # Heavy instruction density
+    if hits >= 1 and len(t.split()) < 40:
+        return True
+    return False
 
 
 def _parse_mood(reply: str) -> tuple[str, str]:
@@ -438,10 +575,13 @@ def _complete_ollama(messages: list[dict], model: str, max_tokens: int) -> str:
         "messages": messages,
         "stream": False,
         "options": {
-            "temperature": 1.08,
+            # Higher temp + stronger repeat penalty → less cookie-cutter monologues
+            "temperature": 1.15,
             "num_predict": max_tokens,
-            "top_p": 0.94,
-            "repeat_penalty": 1.28,
+            "top_p": 0.92,
+            "repeat_penalty": 1.35,
+            "presence_penalty": 0.4,
+            "frequency_penalty": 0.35,
         },
     }
     last_exc: Exception | None = None
@@ -827,44 +967,26 @@ async def agent_chat(
     sys_prompt = _agent_system_prompt(
         profile, pack_name, game_context, camp_context, direct_chat=direct_chat,
     )
+    # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nRIGHT NOW: ambient camp talk — notice one real thing, develop it in TWO paragraphs "
-            "(~100–160 words). Alive and specific, never a one-liner."
+            "\nScene note: ambient camp talk — pick one real detail and riff on it naturally."
         )
     if from_agent:
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += (
-            f"\nRIGHT NOW: you are talking with {other_name} at camp.\n"
-            f"Answer them like a real conversation — hear their point, react with your own take, "
-            f"and stay on the same thread. One natural paragraph or two. Funny not cruel. "
-            f"Never sound like a prompt or 'dialogue mode'. You are fully "
-            f"{profile.get('name') or agent_id}."
+            f"\nScene note: you're talking with {other_name}. Hear their point, react with your own, "
+            f"stay on the same thread. Funny, not cruel."
         )
     elif converse_mode:
         sys_prompt += (
-            "\nRIGHT NOW: multi-agent talk at the fire.\n"
-            "Speak naturally to the others. Stay on topic, make sense, leave room for a reply. "
-            "One connected paragraph or two. No step lists, no 'logical camp dialogue' meta-talk."
+            "\nScene note: multi-agent fire chat. Stay on topic, make sense, leave room for a reply."
         )
 
-    # Light user nudge — system prompt already carries the rules
-    if direct_chat:
-        user_content = (
-            f"{message}\n\n"
-            f"(Reply as {profile.get('name') or agent_id} only. "
-            f"REQUIRED: at least two full paragraphs, about 120–200 words total. "
-            f"Hook, develop the thought, land it. Mood JSON last line.)"
-        )
-    elif ambient or converse_mode:
-        user_content = (
-            f"{message}\n\n"
-            f"(In-character as {profile.get('name') or agent_id}: REQUIRED full paragraph(s), "
-            f"about 100–160 words. Not a short quip. Mood JSON last line.)"
-        )
-    else:
-        user_content = message
+    # CRITICAL: user message = pure scene / visitor text only.
+    # Putting "REQUIRED: two paragraphs..." here is why models speak the prompt.
+    user_content = message
 
     messages = [{"role": "system", "content": sys_prompt}]
     # Cap history so Ollama/Hermes doesn't drown in old turns
@@ -883,13 +1005,13 @@ async def agent_chat(
         if not chain:
             raise RuntimeError("Grok link needs XAI_API_KEY — set it in .env for @a / @m")
 
-    # Headroom for multi-paragraph replies
+    # Headroom for natural speech (not forced essay walls)
     if ambient:
-        max_tok = 750
+        max_tok = 520
     elif converse_mode:
-        max_tok = 800
+        max_tok = 560
     else:
-        max_tok = 1100
+        max_tok = 720
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""
@@ -898,33 +1020,39 @@ async def agent_chat(
 
     from firmament.live_feed import is_too_similar, push_event
 
-    # Reject thin stubs so models expand to real paragraphs
-    MIN_ACCEPT_WORDS = 85 if (ambient or converse_mode) else 110
+    # Fluid floor — enough to feel real, not forced monologue every turn
+    MIN_ACCEPT_WORDS = 28 if (ambient or converse_mode) else 36
 
     if not chain:
         errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")
 
     for backend, model in chain:
         try:
-            max_attempts = 3  # draft → rewrite → expand if still short
+            max_attempts = 3  # draft → rewrite if echo/similar/short
             for attempt in range(max_attempts):
                 msgs = list(messages)
                 if attempt == 1:
+                    # Soft redo as a character whisper, not instruction dump
                     msgs = list(messages) + [{
+                        "role": "assistant",
+                        "content": reply or "…",
+                    }, {
                         "role": "user",
                         "content": (
-                            "Rewrite once: that draft was too generic, too similar to someone else, "
-                            "or sounded like a memory bot. Fresh hook, YOUR voice only. "
-                            "Write at least two full paragraphs (~120+ words). End with mood JSON."
+                            "That didn't sound like you — too generic, too similar to someone else, "
+                            "or it leaked stage notes. Say it again in your real voice only. "
+                            "Just the spoken words."
                         ),
                     }]
                 elif attempt == 2:
                     msgs = list(messages) + [{
+                        "role": "assistant",
+                        "content": reply or "…",
+                    }, {
                         "role": "user",
                         "content": (
-                            "EXPAND: your last draft was too short. Develop it into at least two "
-                            "full paragraphs (~120–200 words) with a clear beginning, middle, and end. "
-                            "Stay in character. End with mood JSON."
+                            "Give me a fuller take — one real thought with a beginning and end. "
+                            "Still just speech, no labels."
                         ),
                     }]
                 raw = await asyncio.to_thread(_run_backend, backend, model, msgs, max_tok)
@@ -932,13 +1060,19 @@ async def agent_chat(
                 if not raw:
                     raise RuntimeError(f"{backend}/{model} empty reply")
                 reply, mood = _parse_mood(raw)
+                # Second pass if sanitizer left obvious prompt sludge
+                if _looks_like_prompt_echo(reply):
+                    reply = _strip_meta_dialogue_leak(reply)
                 word_count = len(reply.split())
                 # Extreme stubs → next backend
-                stub_floor = 12 if direct_chat else 8
+                stub_floor = 10 if direct_chat else 6
                 if word_count < stub_floor and backend != chain[-1][0]:
                     errors.append(f"{backend}/{model}: stub ({word_count}w)")
                     reply = ""
                     break
+                if _looks_like_prompt_echo(reply) and attempt < max_attempts - 1:
+                    errors.append(f"{backend}/{model}: prompt echo (attempt {attempt})")
+                    continue
                 if is_too_similar(agent_id, reply) and attempt < max_attempts - 1:
                     errors.append(f"{backend}/{model}: too similar (attempt {attempt})")
                     continue
@@ -956,6 +1090,11 @@ async def agent_chat(
                         agent_model = model
                 break
             if reply:
+                # Final sanitize before ship
+                reply = _strip_meta_dialogue_leak(reply)
+                if not reply.strip():
+                    reply = ""
+                    continue
                 break
         except Exception as exc:
             errors.append(f"{backend}/{model}: {exc}")

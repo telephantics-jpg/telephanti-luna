@@ -2,11 +2,36 @@
  * Camp banter — single place for HOW agents open / idle / reply.
  *
  * Primary path (client): callAgentMind /api/firmament/agent/chat with these prompts.
+ * Preferred server path: POST /api/firmament/banter (uses firmament/banter.py).
  * Fallback: thin static lines below (only if server/mind offline).
  *
- * DO NOT scatter opening lines only in firmament-play.html anymore —
- * change prompts here so banter stays dynamic.
+ * Scene seeds only — no ALL-CAPS instruction dumps models recite out loud.
  */
+
+const OPEN_SEEDS = [
+  "{visitor} just walked into the meadow. Notice them and say hi in your own voice.",
+  "{visitor} is here — give a real hello, not a stock greeter line.",
+  "New footsteps by the fire: {visitor}. Welcome them like only you would.",
+  "{visitor} showed up under the corona. Greet them; leave an easy door to talk.",
+  "Camp gained a body: {visitor}. Open with something specific and warm.",
+];
+
+const RETURN_SEEDS = [
+  "{visitor} is back. Treat them like a familiar friend — no memory receipts.",
+  "Hey — {visitor} returned. Easy familiarity, zero CRM vibes.",
+  "{visitor} circled back to camp. Warm nod energy; invent a fresh hello.",
+];
+
+const AMBIENT_SEEDS = [
+  "Something small just caught your eye at camp (fire, pond, cookies, sky, music, props).",
+  "Idle moment by the meadow — notice one real detail and talk about it.",
+  "Camp is humming. Share one observation in your voice.",
+  "A quiet beat between conversations. What are you actually noticing?",
+];
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)] || arr[0];
+}
 
 /** @param {string} agentId */
 export function openerPrompt(agentId, {
@@ -15,18 +40,12 @@ export function openerPrompt(agentId, {
   context = "aurora meadow camp",
   near = "",
 } = {}) {
-  const who = (agentId || "luna").toLowerCase();
-  const ret = returning
-    ? `${visitor} is back at camp (treat them like a familiar friend — no CRM quotes).`
-    : `${visitor} just arrived for the first time (or first this session).`;
+  const seed = pick(returning ? RETURN_SEEDS : OPEN_SEEDS).replace(/\{visitor\}/g, visitor);
   return (
-    `(DYNAMIC OPENING LINE — invent it now, never reuse stock greetings.)\n` +
-    `You are ${who} at Luna Camp. ${ret}\n` +
-    `Greet them in YOUR voice in about one full paragraph (~50–90 words): hello, character color, invite to talk.\n` +
-    `Funny, original, specific to right now. Camp context: ${context}.` +
+    `${seed}\n` +
+    `Place: ${context}.` +
     (near ? ` Nearby: ${near}.` : "") +
-    `\nHard no: "last time you said", "I remember when you said", stage *actions*, AI talk.\n` +
-    `Sound alive — like a sharp tweet expanded into a real spoken paragraph.`
+    `\nSpeak as yourself only — natural hello, a little character color, invite to talk.`
   );
 }
 
@@ -39,16 +58,17 @@ export function ambientPrompt(agentId, {
   if (replyTo?.line) {
     const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 100);
     return (
-      `${replyTo.name || "Someone"} just said (meaning only): ${idea}. ` +
-      `Answer them as ${(agentId || "agent").toLowerCase()} in natural speech (~60–100 words) — funny, original. ` +
-      `No step lists, no 'logical dialogue' meta-talk. Don't copy their words. Camp: ${context}.` +
+      `${replyTo.name || "Someone"} just riffed (meaning only): ${idea}\n` +
+      `Answer them naturally — funny, specific, your spin. Don't copy their wording.\n` +
+      `Place: ${context}.` +
       (near ? ` Nearby: ${near}.` : "")
     );
   }
+  const seed = pick(AMBIENT_SEEDS);
   return (
-    `You're ${(agentId || "agent").toLowerCase()} at camp. Notice one real thing ` +
-    `(fire, music, pond, ${visitor}, props) and riff in about one full paragraph (~60–110 words) — funny, specific, YOUR voice. ` +
-    `Camp: ${context}.` +
+    `${seed}\n` +
+    `${visitor} is around if that matters.\n` +
+    `Place: ${context}.` +
     (near ? ` Nearby: ${near}.` : "")
   );
 }
@@ -60,16 +80,16 @@ export function arrivalWavePrompt(agentId, {
   context = "camp",
 } = {}) {
   const beats = [
-    "first to notice them",
-    "second voice chiming in",
-    "third take — don't repeat the others",
-    "quiet follow-up beat",
-    "last soft note in the welcome wave",
+    "You're first to notice them.",
+    "You're the second voice in the welcome — don't copy the first.",
+    "Third take — be distinct from whoever already spoke.",
+    "Soft follow-up energy.",
+    "Closing note in the welcome wave.",
   ];
   const beat = beats[Math.min(waveIndex, beats.length - 1)];
   return (
     openerPrompt(agentId, { visitor, returning, context }) +
-    `\nThis is the ${beat} in a welcome wave. Be distinct from other agents.`
+    `\n${beat}`
   );
 }
 

@@ -3,11 +3,44 @@
 This is the server-side mechanism for greets & idle banter.
 Client should call POST /api/firmament/banter (or agent/chat with these prompts).
 Static HTML line pools are FALLBACK only.
+
+Prompts are pure scene seeds — never instruction dumps the model can recite.
 """
 
 from __future__ import annotations
 
+import random
 from typing import Any
+
+
+_OPEN_SEEDS = (
+    "{visitor} just walked into the meadow. Notice them and say hi in your own voice.",
+    "{visitor} is here — give a real hello, not a stock greeter line.",
+    "New footsteps by the fire: {visitor}. Welcome them like only you would.",
+    "{visitor} showed up under the corona. Greet them; leave an easy door to talk.",
+    "Camp gained a body: {visitor}. Open with something specific and warm.",
+)
+
+_RETURN_SEEDS = (
+    "{visitor} is back. Treat them like a familiar friend — no memory receipts.",
+    "Hey — {visitor} returned. Easy familiarity, zero CRM vibes.",
+    "{visitor} circled back to camp. Warm nod energy; invent a fresh hello.",
+)
+
+_AMBIENT_SEEDS = (
+    "Something small just caught your eye at camp (fire, pond, cookies, sky, music, props).",
+    "Idle moment by the meadow — notice one real detail and talk about it.",
+    "Camp is humming. Share one observation in your voice.",
+    "A quiet beat between conversations. What are you actually noticing?",
+)
+
+_WAVE_BEATS = (
+    "You're first to notice them.",
+    "You're the second voice in the welcome — don't copy the first.",
+    "Third take — be distinct from whoever already spoke.",
+    "Soft follow-up energy.",
+    "Closing note in the welcome wave.",
+)
 
 
 def opener_prompt(
@@ -19,31 +52,18 @@ def opener_prompt(
     near: str = "",
     wave_index: int = 0,
 ) -> str:
-    who = (agent_id or "luna").strip().lower()
+    """Scene seed for greets — no ALL-CAPS instruction labels."""
     visitor = (visitor_name or "traveler").strip() or "traveler"
     ctx = (context or "aurora meadow camp").strip()
-    ret = (
-        f"{visitor} is back (familiar friend energy — no memory receipts)."
-        if returning
-        else f"{visitor} just showed up. First impression counts."
-    )
-    beats = [
-        "first to notice them",
-        "second voice in the welcome",
-        "third take — don't echo the others",
-        "soft follow-up",
-        "closing note in the wave",
-    ]
-    beat = beats[min(max(0, wave_index), len(beats) - 1)]
+    pool = _RETURN_SEEDS if returning else _OPEN_SEEDS
+    seed = random.choice(pool).format(visitor=visitor)
+    beat = _WAVE_BEATS[min(max(0, wave_index), len(_WAVE_BEATS) - 1)]
     near_bit = f" Nearby: {near}." if near else ""
+    # Pure scene text — identity lives in system prompt
     return (
-        f"(DYNAMIC OPENING — invent fresh, never stock.)\n"
-        f"You are {who} at Luna Camp. {ret}\n"
-        f"Welcome wave role: {beat}.\n"
-        f"Greet in YOUR voice in one to two full paragraphs (~90–140 words): a real hello, "
-        f"character color, and a natural invite to talk. "
-        f"Funny, original, specific. Context: {ctx}.{near_bit}\n"
-        f"Never say last-time-you-said / I-remember-when. No *stage directions*. No AI talk."
+        f"{seed} ({beat})\n"
+        f"Place: {ctx}.{near_bit}\n"
+        f"Speak as yourself only — natural hello, a little character color, invite to talk."
     )
 
 
@@ -56,22 +76,22 @@ def ambient_prompt(
     reply_to_name: str = "",
     reply_to_idea: str = "",
 ) -> str:
-    who = (agent_id or "luna").strip().lower()
+    """Scene seed for idle / reply banter — no meta scaffolding."""
     visitor = (visitor_name or "a visitor").strip() or "a visitor"
     ctx = (context or "camp is humming").strip()
     near_bit = f" Nearby: {near}." if near else ""
     if reply_to_name and reply_to_idea:
         idea = " ".join(reply_to_idea.split())[:100]
         return (
-            f"{reply_to_name} just riffed (idea only): {idea}. "
-            f"Reply TO them as {who} in one to two short paragraphs (~80–140 words) — "
-            f"natural, funny, specific. Make sense of what they meant; don't copy wording. "
-            f"Camp: {ctx}.{near_bit}"
+            f"{reply_to_name} just riffed (meaning only): {idea}\n"
+            f"Answer them naturally — funny, specific, your spin. Don't copy their wording.\n"
+            f"Place: {ctx}.{near_bit}"
         )
+    seed = random.choice(_AMBIENT_SEEDS)
     return (
-        f"You are {who} at camp. Notice one real thing (fire, music, pond, {visitor}, props) "
-        f"and talk about it in one to two short paragraphs (~80–140 words) — funny, specific, "
-        f"YOUR voice. Sound like speech, not a workshop prompt. Camp: {ctx}.{near_bit}"
+        f"{seed}\n"
+        f"{visitor} is around if that matters.\n"
+        f"Place: {ctx}.{near_bit}"
     )
 
 

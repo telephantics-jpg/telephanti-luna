@@ -1282,9 +1282,32 @@
       transition: transform 0.15s ease; flex-shrink: 0;
     }
     .dock-compact .dock-icon.conjure-btn {
-      background: linear-gradient(135deg, #4c1d95, #7c3aed 45%, #a78bfa);
-      border-color: #c4b5fd;
-      box-shadow: 0 0 14px rgba(167, 139, 250, 0.35);
+      background: linear-gradient(135deg, #2e1065, #6d28d9 40%, #a78bfa 85%);
+      border-color: #e9d5ff;
+      box-shadow: 0 0 16px rgba(167, 139, 250, 0.5);
+      color: #f5f3ff;
+      min-width: auto !important;
+      width: auto !important;
+      padding: 0 10px !important;
+      font-size: 0.72rem !important;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      animation: unknown-pulse 2.4s ease-in-out infinite alternate;
+    }
+    @keyframes unknown-pulse {
+      from { box-shadow: 0 0 10px rgba(167, 139, 250, 0.35); }
+      to { box-shadow: 0 0 22px rgba(192, 132, 252, 0.7); }
+    }
+    .dock-compact .dock-icon.conjure-btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+      animation: none;
+    }
+    #chip-conjure-unknown {
+      border-color: rgba(192, 132, 252, 0.55) !important;
+      background: linear-gradient(135deg, rgba(46, 16, 101, 0.9), rgba(167, 139, 250, 0.28)) !important;
+      color: #f5f3ff !important;
+      font-weight: 800;
     }
     .dock-compact .dock-icon.ouija-btn {
       background: linear-gradient(135deg, #3b0764, #581c87 50%, #7e22ce);
@@ -3559,6 +3582,7 @@
       <a class="free-tool-chip native" href="/firmament/play">🔥 Aurora camp</a>
       <a class="free-tool-chip" href="/firmament" target="_blank" rel="noopener">🔭 Observer</a>
       <button type="button" class="free-tool-chip native" id="chip-summon-heaven-tools" title="Summon Jesus &amp; archangels to camp" style="border-color:rgba(253,230,138,0.65);background:linear-gradient(135deg,rgba(66,32,6,0.9),rgba(253,230,138,0.22));color:#fef3c7;font-weight:700">✦ Summon Heaven</button>
+      <button type="button" class="free-tool-chip native" id="chip-conjure-unknown" title="Mysterious Unknown — summon a stranger · agents react">❓ Mysterious Unknown</button>
       <button type="button" class="free-tool-chip native" id="chip-x-pulse" title="Today's headlines — agents tweet takes">𝕏 Pulse</button>
       <span class="free-tool-chip native" id="chip-ollama" title="Local Ollama/Llama — no API tokens">🦙 Ollama…</span>
       <span class="free-tool-chip" id="chip-tts" title="Edge TTS — free">🔊 TTS free</span>
@@ -3729,7 +3753,7 @@
       <button type="button" class="dock-icon" id="btn-camp-shop" title="Aurora shop — spend tokens" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" aria-label="Summon Jesus and archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem;font-weight:900">✦ Heaven</button>
       <button type="button" class="dock-icon" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
-      <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Conjure from the aether">✨</button>
+      <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Mysterious Unknown — summon a stranger from the aether · agents react">❓ Unknown</button>
       <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-ara" title="Summon Ara — Grok link (@a)" style="background:linear-gradient(135deg,#064e3b,#16a34a);border-color:#86efac;color:#ecfdf5;font-family:monospace;font-size:0.78rem;font-weight:800">@A</button>
       <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-mika" title="Summon Mika — Grok link (@m)" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
@@ -3952,7 +3976,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-282-CHAT-CACHE";
+    const CAMP_BUILD = "2026-07-11-283-UNKNOWN";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -9013,41 +9037,97 @@
       ].filter(Boolean).join(" ");
     }
 
-    async function spiritAgentReaction(spiritName, spiritLine, delayMs = 22000) {
-      const pool = npcs.filter((n) => !n.leaving);
+    function pullAgentsToUnknown(wx, wy, count = 3) {
+      const roster = allRoamers().filter((n) => !n.leaving && !n.insideHouse);
+      if (!roster.length) return [];
+      // Closest agents first — they walk over and look
+      const sorted = [...roster].sort((a, b) => {
+        const da = (a.x - wx) ** 2 + (a.y - wy) ** 2;
+        const db = (b.x - wx) ** 2 + (b.y - wy) ** 2;
+        return da - db;
+      });
+      const pick = sorted.slice(0, Math.min(count, sorted.length));
+      pick.forEach((n, i) => {
+        const angle = (i / Math.max(1, pick.length)) * Math.PI * 2 + Math.random() * 0.4;
+        const distAway = 48 + Math.random() * 28;
+        n.behavior = "visit";
+        n.socializing = true;
+        n.gathering = true;
+        n.visitTarget = null;
+        n.tx = wx + Math.cos(angle) * distAway;
+        n.ty = wy + Math.sin(angle) * distAway;
+        n.behaviorTimer = 180 + Math.floor(Math.random() * 60);
+        n.idle = 0;
+      });
+      return pick;
+    }
+
+    async function spiritAgentReaction(spiritName, spiritLine, reactors, startDelayMs = 4000) {
+      const pool = (reactors && reactors.length)
+        ? reactors
+        : allRoamers().filter((n) => !n.leaving).slice(0, 3);
       if (!pool.length) return;
-      const reactor = pool[Math.floor(Math.random() * pool.length)];
       const local = [
         `${spiritName}? That's not on my roster — and I felt the ripples.`,
         `Okay… ${spiritName} just crashed the vibe. I'm not mad, I'm intrigued.`,
         `Did anyone else hear that? ${spiritName} sounded like it knew about the campfire.`,
-        `${spiritName} — marking that in the psychic log. Hermes, back me up.`,
+        `${spiritName} — marking that in the psychic log. Who else felt that?`,
+        `Hold up — ${spiritName} is still here. Stay curious, stay sharp.`,
+        `That's either a miracle or a bug. ${spiritName}, you're making the meadow weird. I like it.`,
       ];
-      setTimeout(async () => {
-        try {
-          const { res, data } = await firmamentSecurePost("/api/firmament/agent/chat", {
-            agent_id: reactor.id,
-            message: `(${spiritName} manifested from the aether and said: "${spiritLine.slice(0, 160)}". React in 2 sentences as ${reactor.name} — surprised, witty, in-character.)`,
-            ...visitorPayload(),
-          });
-          if (res.ok && data.reply) {
-            pushCampLine(reactor.name, data.reply, campReadHoldSec(data.reply, 36), data.mood || "think", { fromLocal: true });
-          } else {
+      // Stagger 2–3 agent reactions so the camp answers the unknown
+      pool.slice(0, 3).forEach((reactor, idx) => {
+        const delayMs = startDelayMs + idx * 5500 + Math.floor(Math.random() * 1200);
+        setTimeout(async () => {
+          if (!reactor || reactor.leaving) return;
+          try {
+            const { res, data } = await firmamentSecurePost("/api/firmament/agent/chat", {
+              agent_id: reactor.id,
+              message: (
+                `(A Mysterious Unknown named "${spiritName}" just manifested at camp and said: ` +
+                `"${String(spiritLine).slice(0, 220)}". ` +
+                `React as ${reactor.name} only — surprised, witty, in-character. ` +
+                `1 short paragraph. Notice the stranger. End with a question or a dare.)`
+              ),
+              ...visitorPayload(),
+            });
+            if (res.ok && data.reply) {
+              const full = String(data.reply);
+              reactor.fullLine = full;
+              reactor.line = full;
+              if (data.mood) reactor.mood = data.mood;
+              pushCampLine(reactor.name, full, campReadHoldSec(full, 40), data.mood || "think", { fromLocal: true });
+            } else {
+              const fb = local[Math.floor(Math.random() * local.length)];
+              reactor.line = fb;
+              reactor.fullLine = fb;
+              pushCampLine(reactor.name, fb, campReadHoldSec(fb, 32), "think", { fromLocal: true });
+            }
+          } catch (_) {
             const fb = local[Math.floor(Math.random() * local.length)];
+            reactor.line = fb;
+            reactor.fullLine = fb;
             pushCampLine(reactor.name, fb, campReadHoldSec(fb, 32), "think", { fromLocal: true });
           }
-        } catch (_) {
-          const fb = local[Math.floor(Math.random() * local.length)];
-          pushCampLine(reactor.name, fb, campReadHoldSec(fb, 32), "think", { fromLocal: true });
-        }
-      }, delayMs);
+        }, delayMs);
+      });
     }
 
     async function conjureFromAether() {
       if (conjureBusy) return;
       conjureBusy = true;
+      const btn = document.getElementById("btn-conjure-aether");
+      const chip = document.getElementById("chip-conjure-unknown");
+      if (btn) btn.disabled = true;
+      if (chip) chip.disabled = true;
       expandSpeechBubble();
-      const type = AETHER_TYPES[Math.floor(Math.random() * AETHER_TYPES.length)];
+      // Bias toward "Unknown Source" / unnamed vibes so it feels mysterious
+      const mysteryFirst = AETHER_TYPES.filter((t) =>
+        /unknown|unnamed|void|lost|ripple/i.test(t.name));
+      const pool = mysteryFirst.length ? mysteryFirst : AETHER_TYPES;
+      const type = Math.random() < 0.55
+        ? pool[Math.floor(Math.random() * pool.length)]
+        : AETHER_TYPES[Math.floor(Math.random() * AETHER_TYPES.length)];
       const pt = randomPointInBounds(20);
       const entity = {
         id: "aether-" + Date.now(),
@@ -9059,14 +9139,22 @@
         vx: (Math.random() - 0.5) * 0.35,
         vy: (Math.random() - 0.5) * 0.35,
         phase: Math.random() * Math.PI * 2,
-        until: Date.now() + 72000,
+        until: Date.now() + 90000,
         line: "",
       };
       aetherEntities.push(entity);
       psychicRipples.push({ x: camp.x + pt.x, y: camp.y + pt.y, t: Date.now(), color: type.color });
-      setCampLifeStatus(`✨ ${type.name} tearing through the aether…`);
-      showToast(`${type.glyph} Summoning ${type.name}…`);
-      pushCampLine("Camp", `The air tears open — ${type.glyph} ${type.name} coalesces over camp`, 18, "alert", { fromLocal: true, keepDock: false });
+      panCampCameraTo?.(camp.x + pt.x, camp.y + pt.y);
+      const reactors = pullAgentsToUnknown(pt.x, pt.y, 3);
+      setCampLifeStatus(`❓ Mysterious Unknown — ${type.name} tearing through…`);
+      showToast(`❓ ${type.glyph} ${type.name} manifests — agents turning to look`);
+      pushCampLine(
+        "Camp",
+        `The air tears open — ${type.glyph} ${type.name} coalesces. Nearby minds turn to react…`,
+        18,
+        "alert",
+        { fromLocal: true, keepDock: false },
+      );
       let spiritLine = "";
       try {
         const { res, data } = await firmamentSecurePost("/api/firmament/agent/chat", {
@@ -9084,11 +9172,28 @@
           || "I arrived uninvited — which is the only way anything interesting ever does.";
       }
       entity.line = spiritLine;
-      entity.until = Date.now() + 75000;
-      pushCampLine(type.name, spiritLine, campReadHoldSec(spiritLine, 44), "alert", { fromLocal: true });
-      setCampLifeStatus(`${type.name} spoke — take your time reading`);
-      spiritAgentReaction(type.name, spiritLine, 28000);
+      entity.until = Date.now() + 90000;
+      pushCampLine(type.name, spiritLine, campReadHoldSec(spiritLine, 48), "alert", { fromLocal: true });
+      setCampLifeStatus(`❓ ${type.name} spoke — agents reacting…`);
+      // Immediate soft reactions + deeper AI reactions
+      reactors.slice(0, 2).forEach((n, i) => {
+        setTimeout(() => {
+          if (!n || n.leaving) return;
+          const gasp = [
+            `…what is that?`,
+            `${type.name}?!`,
+            `Hold on — do you feel that?`,
+            `Okay. That's new.`,
+          ][Math.floor(Math.random() * 4)];
+          n.line = gasp;
+          n.fullLine = gasp;
+          pushCampLine(n.name, gasp, 10, "alert", { fromLocal: true, quiet: true });
+        }, 900 + i * 700);
+      });
+      spiritAgentReaction(type.name, spiritLine, reactors, 5000);
       conjureBusy = false;
+      if (btn) btn.disabled = false;
+      if (chip) chip.disabled = false;
     }
 
     async function psychicPulse() {
@@ -13778,7 +13883,7 @@
       const tip = document.getElementById("dock-tip");
       if (tip) {
         tip.classList.add("flash");
-        tip.textContent = "Talk · 🏪 shop · ⛺ shelter · 🔮 Ouija · ✨ conjure";
+        tip.textContent = "Talk · 🏪 shop · ❓ Unknown · 🔮 Ouija · ✦ Heaven";
         setTimeout(() => tip.classList.remove("flash"), 2400);
       }
       showToast(isCampMobile()
@@ -13860,7 +13965,8 @@
     });
     document.getElementById("btn-summon-dionysus").onclick = () => toggleDionysusVisit();
     document.getElementById("chip-dionysus-invite")?.addEventListener("click", () => toggleDionysusVisit());
-    document.getElementById("btn-conjure-aether").onclick = () => conjureFromAether();
+    document.getElementById("btn-conjure-aether").onclick = () => { void conjureFromAether(); };
+    document.getElementById("chip-conjure-unknown")?.addEventListener("click", () => { void conjureFromAether(); });
     document.getElementById("btn-camp-ouija").onclick = () => {
       if (ouijaOpen) closeCampOuija();
       else openCampOuija({ autoContact: false });

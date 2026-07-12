@@ -49,7 +49,7 @@
       --dock-icons-h: 58px;
       --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--reply-rail-h) + var(--talk-bar-h) + var(--dock-icons-h) + 12px);
       --speech-panel-h: 0px;
-      --sidebar-w: min(400px, 38vw);
+      --sidebar-w: min(420px, 36vw);
       --gap: 10px;
       --radius: 14px;
       --cyan: #67e8f9;
@@ -756,21 +756,13 @@
       top: calc(var(--header-h) + var(--gap));
       bottom: calc(var(--dock-h) + var(--gap) + env(safe-area-inset-bottom, 0px));
       display: flex; flex-direction: column;
-      background: rgba(4, 10, 18, 0.96);
-      border: 2px solid transparent;
-      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(6, 12, 24, 0.98) 0%, rgba(4, 10, 18, 0.97) 100%);
+      border: 1px solid rgba(103, 232, 249, 0.28);
+      border-radius: 16px;
       overflow: hidden;
-      background-clip: padding-box;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
     }
-    #convo-log::before {
-      content: ""; position: absolute; inset: 0; border-radius: var(--radius); padding: 2px;
-      background: linear-gradient(135deg, rgba(103,232,249,0.5), rgba(167,139,250,0.35), rgba(251,191,36,0.3));
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      pointer-events: none;
-    }
+    #convo-log::before { display: none; }
     @media (min-width: 900px) {
       #convo-log {
         left: auto;
@@ -779,15 +771,46 @@
         top: calc(var(--header-h) + var(--gap));
         bottom: calc(var(--dock-h) + var(--gap));
       }
+      /* PC: always full history panel — never mini "latest only" */
+      body.camp-focus #convo-log,
+      body.camp-focus #convo-log.collapsed {
+        height: auto !important;
+        max-height: none !important;
+        bottom: calc(var(--dock-h) + var(--gap)) !important;
+        top: calc(var(--header-h) + var(--gap)) !important;
+        width: var(--sidebar-w) !important;
+      }
+      body.camp-focus #convo-log.collapsed #convo-lines,
+      body.camp-focus #convo-log.collapsed .sub {
+        display: block !important;
+      }
+      body.camp-focus #convo-log.collapsed #convo-lines {
+        display: flex !important;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+      }
+      body.camp-focus #convo-log.collapsed #now-speaking {
+        display: none !important;
+      }
+      body.camp-focus #convo-log.collapsed header {
+        padding: 12px 14px 10px !important;
+        border-bottom: 1px solid rgba(34, 211, 238, 0.18) !important;
+      }
+      #convo-dock-toggle,
+      #convo-mobile-hide,
+      #convo-log-title-short {
+        display: none !important;
+      }
     }
     #convo-log header {
-      padding: 10px 12px 8px; border-bottom: 1px solid rgba(34, 211, 238, 0.2);
-      flex-shrink: 0; background: rgba(8, 16, 28, 0.6);
+      padding: 12px 14px 10px; border-bottom: 1px solid rgba(34, 211, 238, 0.18);
+      flex-shrink: 0; background: rgba(8, 18, 36, 0.85);
     }
     .convo-head-row {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
-    #convo-log h3 { font-size: 0.88rem; color: var(--cyan); margin-bottom: 2px; flex: 1; }
+    #convo-log h3 { font-size: 0.92rem; color: var(--cyan); margin-bottom: 2px; flex: 1; font-weight: 800; letter-spacing: 0.02em; }
     #convo-log .convo-read-hint {
       font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em;
       text-transform: uppercase; color: #fde68a; opacity: 0;
@@ -795,7 +818,13 @@
     }
     #convo-log.reading-paused .convo-read-hint { opacity: 1; }
     #convo-log.reading-paused { border-color: rgba(251, 191, 36, 0.45); }
-    #convo-log .sub { font-size: 0.72rem; color: #94a3b8; }
+    #convo-log .sub { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+    #convo-count {
+      font-size: 0.62rem; font-weight: 700; color: #67e8f9;
+      background: rgba(103, 232, 249, 0.12);
+      border: 1px solid rgba(103, 232, 249, 0.28);
+      border-radius: 999px; padding: 2px 8px; flex-shrink: 0;
+    }
     #convo-dock-toggle {
       pointer-events: auto; border: 1px solid rgba(103, 232, 249, 0.45);
       background: rgba(15, 40, 71, 0.95); color: #a5f3fc;
@@ -832,13 +861,18 @@
       border-color: #67e8f9;
       box-shadow: 0 0 12px rgba(103, 232, 249, 0.35);
     }
+    /* Compact "live" strip — full history lives in #convo-lines */
     #now-speaking {
-      flex-shrink: 0; padding: 6px 8px;
-      background: rgba(103, 232, 249, 0.08);
-      border-bottom: 1px solid rgba(103, 232, 249, 0.2);
+      display: none;
+      flex-shrink: 0; padding: 8px 12px;
+      background: rgba(103, 232, 249, 0.07);
+      border-bottom: 1px solid rgba(103, 232, 249, 0.15);
       font-size: 0.72rem; line-height: 1.32; min-height: 0;
-      max-height: min(42vh, 320px); overflow: hidden;
-      display: flex; flex-direction: column; gap: 2px;
+      max-height: 72px; overflow: hidden;
+      flex-direction: column; gap: 2px;
+    }
+    @media (min-width: 900px) {
+      #now-speaking { display: none !important; }
     }
     #now-speaking .ns-who {
       color: #67e8f9; font-weight: 700; display: block;
@@ -846,23 +880,19 @@
     }
     #now-speaking .ns-text {
       color: #f1f5f9; display: block;
-      max-height: min(36vh, 280px); overflow-y: auto; -webkit-overflow-scrolling: touch;
-      font-size: 0.78rem; line-height: 1.45;
-      white-space: pre-wrap; word-break: break-word;
-      padding-right: 6px;
-      overscroll-behavior: contain;
+      max-height: 2.6em; overflow: hidden; text-overflow: ellipsis;
+      font-size: 0.74rem; line-height: 1.35;
+      white-space: nowrap;
     }
-    #convo-lines, #now-speaking .ns-text, #camp-speech-pin .csp-body {
+    #convo-lines, #camp-speech-pin .csp-body {
       scrollbar-width: thin;
-      scrollbar-color: rgba(103, 232, 249, 0.5) rgba(15, 23, 42, 0.4);
+      scrollbar-color: rgba(103, 232, 249, 0.55) rgba(15, 23, 42, 0.35);
     }
     #convo-lines::-webkit-scrollbar,
-    #now-speaking .ns-text::-webkit-scrollbar,
-    #camp-speech-pin .csp-body::-webkit-scrollbar { width: 5px; }
+    #camp-speech-pin .csp-body::-webkit-scrollbar { width: 7px; }
     #convo-lines::-webkit-scrollbar-thumb,
-    #now-speaking .ns-text::-webkit-scrollbar-thumb,
     #camp-speech-pin .csp-body::-webkit-scrollbar-thumb {
-      background: rgba(103, 232, 249, 0.45); border-radius: 99px;
+      background: rgba(103, 232, 249, 0.5); border-radius: 99px;
     }
     #now-speaking:not(.idle) { cursor: pointer; }
     #now-speaking.idle .ns-who { color: #64748b; font-weight: 500; }
@@ -870,76 +900,113 @@
     #now-speaking.reading-held {
       border-bottom-color: rgba(251, 191, 36, 0.55);
       background: rgba(251, 191, 36, 0.1);
-      box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.3);
     }
     #now-speaking .ns-hold-hint { display: none !important; }
+    /* Full chat history — every line, scrollable, readable */
     #convo-lines {
-      flex: 1; overflow-y: auto; padding: 6px 8px 8px;
-      font-size: 0.74rem; line-height: 1.38; color: #f8fafc;
-      background: rgba(2, 6, 14, 0.88);
+      flex: 1; min-height: 0;
+      overflow-y: auto; overflow-x: hidden;
+      padding: 10px 10px 14px;
+      display: flex; flex-direction: column; gap: 10px;
+      font-size: 0.82rem; line-height: 1.45; color: #f8fafc;
+      background: rgba(2, 6, 14, 0.55);
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scroll-behavior: smooth;
     }
     #convo-lines .line {
-      margin-bottom: 6px; padding: 5px 7px 6px;
-      border-radius: 8px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(103, 232, 249, 0.22);
-      border-left: 3px solid rgba(103, 232, 249, 0.65);
-      box-shadow: 0 1px 6px rgba(0,0,0,0.22);
+      margin: 0; padding: 0;
+      border: none; background: transparent;
+      box-shadow: none; transform: none !important;
+      display: flex; flex-direction: column; gap: 4px;
+      max-width: 100%;
+      cursor: pointer;
+      animation: convo-in 0.22s ease;
     }
-    #convo-lines .line:nth-child(3n+1) { border-left-color: #d946ef; transform: rotate(-0.15deg); }
-    #convo-lines .line:nth-child(3n+2) { border-left-color: #fbbf24; transform: rotate(0.12deg); }
-    #convo-lines .line:nth-child(3n) { border-left-color: #8b5cf6; transform: rotate(-0.08deg); }
-    #convo-lines .speaker { color: #ecfeff; font-weight: 800; font-size: 0.68rem; }
+    @keyframes convo-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+    #convo-lines .line.you {
+      align-items: flex-end;
+    }
+    #convo-lines .line.agent,
+    #convo-lines .line.camp {
+      align-items: flex-start;
+    }
+    #convo-lines .line-meta {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap; padding: 0 2px;
+    }
+    #convo-lines .line.you .line-meta { flex-direction: row-reverse; }
+    #convo-lines .speaker {
+      color: #ecfeff; font-weight: 800; font-size: 0.72rem;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    #convo-lines .speaker-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0; box-shadow: 0 0 8px currentColor;
+    }
     #convo-lines .speaker-role,
     #now-speaking .ns-role {
       display: inline-block;
-      margin-left: 5px;
+      margin-left: 0;
       font-size: 0.58rem;
       font-weight: 600;
       color: #67e8f9;
-      opacity: 0.95;
+      opacity: 0.9;
     }
-    #now-speaking .ns-role { margin-left: 0; margin-right: 5px; }
+    #now-speaking .ns-role { margin-right: 5px; }
     #convo-lines .mood-tag {
-      display: inline-block; margin-left: 4px; font-size: 0.62rem;
-      padding: 1px 5px; border-radius: 999px; vertical-align: middle;
-      text-transform: capitalize; opacity: 0.9;
+      display: inline-block; font-size: 0.58rem;
+      padding: 1px 6px; border-radius: 999px; vertical-align: middle;
+      text-transform: capitalize; opacity: 0.85;
+    }
+    #convo-lines .line-time {
+      font-size: 0.58rem; color: #64748b; font-weight: 600;
+      font-variant-numeric: tabular-nums;
     }
     #convo-lines .text {
-      display: block; margin-top: 3px; color: #ffffff;
+      display: block; margin: 0; color: #f8fafc;
       white-space: pre-wrap; word-break: break-word;
-      font-size: 0.82rem; line-height: 1.5;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-      padding: 10px 12px; border-radius: 8px;
-      background: rgba(15, 23, 42, 0.65);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      /* Full monologue inside bubble + mini scrollbar */
-      max-height: min(48vh, 420px);
-      overflow-y: auto !important;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(103, 232, 249, 0.75) rgba(15, 23, 42, 0.55);
-      touch-action: pan-y;
+      font-size: 0.86rem; line-height: 1.52;
+      padding: 10px 12px; border-radius: 12px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(103, 232, 249, 0.22);
+      border-left: 3px solid var(--line-color, #67e8f9);
+      max-height: none;
+      overflow: visible;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
     }
-    #convo-lines .text::-webkit-scrollbar { width: 8px; }
-    #convo-lines .text::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6); border-radius: 99px;
+    #convo-lines .line.you .text {
+      background: linear-gradient(135deg, rgba(76, 29, 149, 0.55), rgba(30, 27, 75, 0.92));
+      border-color: rgba(167, 139, 250, 0.4);
+      border-left-width: 1px;
+      border-right: 3px solid #a78bfa;
+      color: #f5f3ff;
+      border-radius: 12px 12px 4px 12px;
     }
-    #convo-lines .text::-webkit-scrollbar-thumb {
-      background: rgba(103, 232, 249, 0.65); border-radius: 99px;
+    #convo-lines .line.agent .text {
+      border-radius: 12px 12px 12px 4px;
     }
-    #convo-lines .line {
-      cursor: pointer;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    #convo-lines .line.camp .text {
+      border-left-color: #94a3b8;
+      background: rgba(15, 23, 42, 0.7);
+      color: #cbd5e1;
+      font-size: 0.8rem;
     }
-    #convo-lines .line:active,
-    #convo-lines .line.pinned-line {
-      border-color: rgba(103, 232, 249, 0.55);
-      box-shadow: 0 0 14px rgba(103, 232, 249, 0.2);
+    #convo-lines .line:hover .text {
+      border-color: rgba(103, 232, 249, 0.45);
+      box-shadow: 0 0 14px rgba(103, 232, 249, 0.12);
     }
-    #now-speaking:not(.idle) { cursor: pointer; }
+    #convo-lines .line.pinned-line .text {
+      border-color: rgba(251, 191, 36, 0.55);
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.15);
+    }
+    #convo-lines .convo-empty {
+      text-align: center; color: #64748b; font-size: 0.8rem;
+      padding: 28px 16px; line-height: 1.5; font-style: italic;
+    }
     /* Full monologue pin panel OFF — long text goes to 💬 Chat only */
     #camp-speech-pin,
     #camp-speech-pin.show {
@@ -2458,31 +2525,34 @@
       transition: height 0.25s ease, max-height 0.25s ease, width 0.25s ease;
       z-index: 14;
     }
-    body.camp-focus #convo-log.collapsed #convo-lines { display: none; }
-    body.camp-focus #convo-log.collapsed .sub { display: none; }
-    body.camp-focus #convo-log.collapsed header {
-      padding: 6px 8px;
-      border-bottom: none;
-    }
-    body.camp-focus #convo-log.collapsed #now-speaking {
-      display: block !important;
-      padding: 0 8px 6px;
-      border: none;
-      min-height: 0;
-      font-size: 0.76rem;
-      line-height: 1.3;
-    }
-    body.camp-focus #convo-log.collapsed #now-speaking .ns-who {
-      display: inline; margin-bottom: 0; margin-right: 4px;
-    }
-    body.camp-focus #convo-log.collapsed #now-speaking .ns-text {
-      display: block;
-      max-height: min(28vh, 220px); overflow-y: auto;
-      white-space: pre-wrap; word-break: break-word;
-      font-size: 0.8rem; line-height: 1.45;
+    /* Mobile-only collapse behavior (PC always full history — see min-width rules) */
+    @media (max-width: 899px) {
+      body.camp-focus #convo-log.collapsed #convo-lines { display: none; }
+      body.camp-focus #convo-log.collapsed .sub { display: none; }
+      body.camp-focus #convo-log.collapsed header {
+        padding: 6px 8px;
+        border-bottom: none;
+      }
+      body.camp-focus #convo-log.collapsed #now-speaking {
+        display: block !important;
+        padding: 0 8px 6px;
+        border: none;
+        min-height: 0;
+        font-size: 0.76rem;
+        line-height: 1.3;
+      }
+      body.camp-focus #convo-log.collapsed #now-speaking .ns-who {
+        display: inline; margin-bottom: 0; margin-right: 4px;
+      }
+      body.camp-focus #convo-log.collapsed #now-speaking .ns-text {
+        display: block;
+        max-height: min(28vh, 220px); overflow-y: auto;
+        white-space: pre-wrap; word-break: break-word;
+        font-size: 0.8rem; line-height: 1.45;
+      }
+      body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     }
     body.camp-focus #convo-log:not(.collapsed) #convo-log-title-short { display: none; }
-    body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     @media (min-width: 900px) {
       body.camp-focus #camp-stage,
       body.camp-focus.speech-expanded #camp-stage,
@@ -2494,29 +2564,45 @@
         right: calc(var(--sidebar-w) + var(--gap) * 2 + 8px);
       }
       body.camp-music-on.camp-focus #convo-log,
-      body.camp-music-on.camp-focus.speech-expanded #convo-log:not(.collapsed) {
+      body.camp-music-on.camp-focus.speech-expanded #convo-log {
         bottom: calc(var(--dock-h) + var(--gap) + 54px);
       }
-      body.camp-focus.speech-expanded #convo-log {
-        left: auto;
-        width: var(--sidebar-w);
-        right: var(--gap);
-        top: calc(var(--header-h) + var(--gap));
-        bottom: calc(var(--dock-h) + var(--gap));
-        height: auto;
-        max-height: none;
-      }
+      /* PC: full-height chat history sidebar always */
+      body.camp-focus #convo-log,
+      body.camp-focus.speech-expanded #convo-log,
       body.camp-focus #convo-log.collapsed {
-        left: auto;
-        right: var(--gap);
-        top: calc(var(--header-h) + var(--gap));
-        bottom: auto;
-        width: min(380px, 42vw);
-        height: auto;
-        max-height: min(42vh, 360px);
+        left: auto !important;
+        width: var(--sidebar-w) !important;
+        right: var(--gap) !important;
+        top: calc(var(--header-h) + var(--gap)) !important;
+        bottom: calc(var(--dock-h) + var(--gap)) !important;
+        height: auto !important;
+        max-height: none !important;
+        display: flex !important;
+        flex-direction: column;
       }
-      body.camp-focus #convo-log.collapsed #now-speaking .ns-text {
-        max-height: min(32vh, 280px);
+      body.camp-focus #convo-log #convo-lines,
+      body.camp-focus #convo-log.collapsed #convo-lines {
+        display: flex !important;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+      }
+      body.camp-focus #convo-log .sub,
+      body.camp-focus #convo-log.collapsed .sub {
+        display: block !important;
+      }
+      body.camp-focus #convo-log #now-speaking,
+      body.camp-focus #convo-log.collapsed #now-speaking {
+        display: none !important;
+      }
+      body.camp-focus #convo-log-title-full,
+      body.camp-focus #convo-log.collapsed #convo-log-title-full {
+        display: block !important;
+      }
+      body.camp-focus #convo-log-title-short {
+        display: none !important;
       }
     }
     @media (max-width: 899px) {
@@ -2671,6 +2757,9 @@
       #weather-row,
       .brand-block .tagline,
       #convo-log,
+      #convo-log.collapsed,
+      #convo-lines,
+      #now-speaking,
       #camp-chatter-fab,
       #camp-keyboard-reply,
       #camp-speech-pin,
@@ -3517,16 +3606,17 @@
   <div id="convo-log">
     <header>
       <div class="convo-head-row">
-        <h3 id="convo-log-title-full">💬 Camp chatter</h3>
+        <h3 id="convo-log-title-full">💬 Camp chat</h3>
         <h3 id="convo-log-title-short">💬</h3>
+        <span id="convo-count" title="Messages in this session">0</span>
         <span class="convo-read-hint" title="Scroll frozen">paused</span>
         <button type="button" id="convo-mobile-hide" title="Hide chatter bar">✕</button>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
-      <div class="sub">Tap any line for full text · long-press log to freeze scroll · ▼/▲</div>
+      <div class="sub">Full session history · tap a line to lock that agent · scroll for older</div>
     </header>
     <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents around the meadow — names &amp; roles show here when they speak.</span></div>
-    <div id="convo-lines">Recent lines appear below, newest at bottom.</div>
+    <div id="convo-lines"><div class="convo-empty">Chats appear here as everyone speaks — full history, newest at the bottom.</div></div>
   </div>
   <div id="reply"></div>
   <div id="speech-now"><span class="who">Camp</span><span id="speech-text"></span></div>
@@ -3862,7 +3952,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-280-NO-LAYER";
+    const CAMP_BUILD = "2026-07-11-281-FULL-LOG";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -8402,39 +8492,39 @@
     }
 
     function setSpeechBubbleDock(collapsed) {
-      // Always stay collapsed — no floating chatter box over the meadow
       const el = document.getElementById("convo-log");
       const btn = document.getElementById("convo-dock-toggle");
       if (!el) return;
       const mobile = isCampMobile();
       if (mobile) {
+        // Mobile: no sidebar chat panel
         if (canvasCampChatOnly()) return;
-        applyMobileChatterMode("mini", { quiet: true });
-        if (btn) {
-          btn.textContent = "▲";
-          btn.title = "Chatter stays mini — open 💬 Chat for full lines";
-        }
+        applyMobileChatterMode("hidden", { quiet: true });
         document.body.classList.remove("speech-expanded", "chatter-expanded");
         return;
       }
-      el.classList.add("collapsed");
-      document.body.classList.remove("speech-expanded");
-      document.body.classList.remove("chatter-expanded");
+      // PC: keep full history panel open (never collapse to "latest only")
+      el.classList.remove("collapsed");
+      document.body.classList.add("speech-expanded");
+      document.body.classList.add("chatter-expanded");
       if (btn) {
-        btn.textContent = "▲";
-        btn.title = "Full lines in 💬 Chat panel";
+        btn.textContent = "▼";
+        btn.title = "Full camp chat history";
       }
       try {
-        localStorage.setItem("luna-camp-speech-dock", "min");
+        localStorage.setItem("luna-camp-speech-dock", "full");
       } catch (_) {}
       setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
     }
 
     function expandSpeechBubble() {
-      // Never expand the side box over play field
-      minimizeSpeechBubble();
+      // PC sidebar stays full-height history
+      setSpeechBubbleDock(false);
     }
-    function minimizeSpeechBubble() { setSpeechBubbleDock(true); }
+    function minimizeSpeechBubble() {
+      // On PC, minimize does NOT collapse history — keep full chat
+      setSpeechBubbleDock(false);
+    }
 
     function restoreMobileChatter() {
       if (!isCampMobile() || canvasCampChatOnly()) return;
@@ -14192,19 +14282,61 @@
       el.innerHTML = nowSpeakingHtml(speaker, text, mood);
     }
 
+    function formatConvoTime(ts) {
+      try {
+        const d = new Date(ts || Date.now());
+        return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      } catch (_) {
+        return "";
+      }
+    }
+
+    function speakerColorFor(speaker) {
+      const s = String(speaker || "").toLowerCase();
+      if (isVisitorSpeaker(speaker) || s === "you") return "#a78bfa";
+      if (s === "camp") return "#94a3b8";
+      const byName = Object.entries(agentNames || {}).find(([, n]) => String(n).toLowerCase() === s);
+      const id = byName?.[0] || s;
+      return (typeof AGENT_COLORS !== "undefined" && AGENT_COLORS[id]) || "#67e8f9";
+    }
+
     function renderConvoLog() {
       if (!convoLinesEl) return;
+      // Mobile never shows this panel
+      if (isCampMobile()) return;
       const prevScroll = convoLinesEl.scrollTop;
-      const visible = campLines.slice(-28);
-      const startIdx = Math.max(0, campLines.length - visible.length);
-      convoLinesEl.innerHTML = visible.map((entry, i) => {
+      const wasNearBottom = convoNearBottom();
+      const countEl = document.getElementById("convo-count");
+      if (countEl) countEl.textContent = String(campLines.length);
+      if (!campLines.length) {
+        convoLinesEl.innerHTML = `<div class="convo-empty">Chats appear here as everyone speaks — full history, newest at the bottom.</div>`;
+        updateConvoScrollLockUi();
+        return;
+      }
+      // Full session history (all lines)
+      convoLinesEl.innerHTML = campLines.map((entry, i) => {
         const mc = moodClass(entry.mood);
         const pinCls = pinnedSpeechKey === `${entry.speaker}::${entry.text}` ? " pinned-line" : "";
-        const role = speakerRole(entry.speaker);
+        const you = isVisitorSpeaker(entry.speaker) || String(entry.speaker).toLowerCase() === "you";
+        const camp = String(entry.speaker).toLowerCase() === "camp";
+        const kind = you ? "you" : (camp ? "camp" : "agent");
+        const color = speakerColorFor(entry.speaker);
+        const role = you || camp ? "" : speakerRole(entry.speaker);
         const roleHtml = role ? `<span class="speaker-role">${escapeHtml(role)}</span>` : "";
-        return `<div class="line${pinCls}" data-idx="${startIdx + i}"><span class="speaker">${escapeHtml(entry.speaker)}${roleHtml}<span class="mood-tag ${mc}">${escapeHtml(entry.mood)}</span></span><span class="text">${escapeHtml(entry.text)}</span></div>`;
+        const moodHtml = camp ? "" : `<span class="mood-tag ${mc}">${escapeHtml(entry.mood || "")}</span>`;
+        const whoLabel = you ? (myVisitorName || player.name || "You") : entry.speaker;
+        const time = formatConvoTime(entry.t);
+        return (
+          `<div class="line ${kind}${pinCls}" data-idx="${i}" style="--line-color:${color}">` +
+          `<div class="line-meta">` +
+          `<span class="speaker"><span class="speaker-dot" style="background:${color};color:${color}"></span>${escapeHtml(whoLabel)}${roleHtml}${moodHtml}</span>` +
+          (time ? `<span class="line-time">${escapeHtml(time)}</span>` : "") +
+          `</div>` +
+          `<span class="text">${escapeHtml(entry.text)}</span>` +
+          `</div>`
+        );
       }).join("");
-      if (convoShouldAutoScroll()) {
+      if (convoShouldAutoScroll() || wasNearBottom) {
         convoLinesEl.scrollTop = convoLinesEl.scrollHeight;
       } else {
         convoLinesEl.scrollTop = prevScroll;
@@ -14288,7 +14420,8 @@
         && campLines[campLines.length - 1].speaker === speaker;
       if (!dup) {
         campLines.push(entry);
-        while (campLines.length > 100) campLines.shift();
+        // Keep a long session history for the PC sidebar chat
+        while (campLines.length > 600) campLines.shift();
         renderConvoLog();
         appendGrokTerminalLine(speaker, clean, moodVal);
       }
@@ -15057,10 +15190,19 @@
     function bootCampWorld() {
       setCampLifeStatus(isCampMobile()
         ? "Tap meadow to walk · tap agent to lock · type below to talk"
-        : "Camp fills your screen · double-tap agent at their spot to chat");
+        : "Camp fills your screen · right panel keeps full chat history");
       showToast(isSlowDevice() ? "Camp loading — meadow first, extras shortly" : "Camp world live — agents tweet today's pulse");
       applyGlobalNpcMode("free");
       document.body.classList.add("camp-focus");
+      // PC: open full chat history sidebar; mobile: keep it off
+      if (!isCampMobile()) {
+        document.body.classList.add("speech-expanded", "chatter-expanded");
+        document.getElementById("convo-log")?.classList.remove("collapsed");
+        setSpeechBubbleDock?.(false);
+        renderConvoLog?.();
+      } else {
+        document.getElementById("convo-log")?.classList.add("collapsed");
+      }
       initAgentChipRoles();
       renderAgentStrip();
       loadCampPulse();

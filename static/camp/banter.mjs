@@ -39,9 +39,9 @@ export function ambientPrompt(agentId, {
   if (replyTo?.line) {
     const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 100);
     return (
-      `${replyTo.name || "Someone"} just riffed (idea only): ${idea}. ` +
-      `Reply TO them as ${(agentId || "agent").toLowerCase()} in about one full paragraph (~60–100 words) — funny, original. ` +
-      `Don't copy their words. Camp: ${context}.` +
+      `${replyTo.name || "Someone"} just said (meaning only): ${idea}. ` +
+      `Answer them as ${(agentId || "agent").toLowerCase()} in natural speech (~60–100 words) — funny, original. ` +
+      `No step lists, no 'logical dialogue' meta-talk. Don't copy their words. Camp: ${context}.` +
       (near ? ` Nearby: ${near}.` : "")
     );
   }

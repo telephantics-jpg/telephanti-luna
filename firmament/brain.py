@@ -302,6 +302,32 @@ Speak only as {name}. No preamble.
 On the very last line only, add mood JSON: {{"mood":"{moods}"}}"""
 
 
+def _strip_meta_dialogue_leak(text: str) -> str:
+    """Strip accidental prompt scaffolding models sometimes echo."""
+    import re
+
+    t = (text or "").strip()
+    if not t:
+        return t
+    # Drop common meta headers / labels the model may parrot
+    t = re.sub(
+        r"^(?:LOGICAL\s+CAMP\s+DIALOGUE|LOGICAL\s+DIALOGUE|CAMP\s+DIALOGUE)"
+        r"(?:\s*[—\-–:]\s*|\s+)(?:OPENING\s+TURN|TURN\s+\d+)?\s*",
+        "",
+        t,
+        flags=re.I,
+    )
+    t = re.sub(
+        r"^(?:Rules for this turn|Your reply MUST|Structure:|Step\s*\d+)\b[^\n]*\n?",
+        "",
+        t,
+        flags=re.I,
+    )
+    # Drop leading numbered instruction leftovers
+    t = re.sub(r"^(?:\d+\)\s+[^\n]+\n){2,}", "", t)
+    return t.strip() or text.strip()
+
+
 def _parse_mood(reply: str) -> tuple[str, str]:
     mood = "happy"
     text = reply.strip()
@@ -313,6 +339,7 @@ def _parse_mood(reply: str) -> tuple[str, str]:
             text = text[:idx].strip()
         except json.JSONDecodeError:
             pass
+    text = _strip_meta_dialogue_leak(text)
     return text, mood
 
 
@@ -809,18 +836,17 @@ async def agent_chat(
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += (
-            f"\nRIGHT NOW: live dialogue with {other_name} (another camp character).\n"
-            f"- You are talking TO them, not past them.\n"
-            f"- Acknowledge their last point (new words), then respond with logic + your voice.\n"
-            f"- Build a coherent thread — agree, disagree, or refine with a reason.\n"
-            f"- At least one full rich paragraph (~100–150 words). Funny not cruel. Stay fully "
+            f"\nRIGHT NOW: you are talking with {other_name} at camp.\n"
+            f"Answer them like a real conversation — hear their point, react with your own take, "
+            f"and stay on the same thread. One natural paragraph or two. Funny not cruel. "
+            f"Never sound like a prompt or 'dialogue mode'. You are fully "
             f"{profile.get('name') or agent_id}."
         )
     elif converse_mode:
         sys_prompt += (
-            "\nRIGHT NOW: multi-agent dialogue at the fire.\n"
-            "- Follow the conversation structure in the user message (hear → reason → your angle → bait).\n"
-            "- A full connected paragraph (~100–150 words). Don't steal co-speakers' punchlines."
+            "\nRIGHT NOW: multi-agent talk at the fire.\n"
+            "Speak naturally to the others. Stay on topic, make sense, leave room for a reply. "
+            "One connected paragraph or two. No step lists, no 'logical camp dialogue' meta-talk."
         )
 
     # Light user nudge — system prompt already carries the rules

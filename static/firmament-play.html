@@ -825,6 +825,43 @@
       border: 1px solid rgba(103, 232, 249, 0.28);
       border-radius: 999px; padding: 2px 8px; flex-shrink: 0;
     }
+    #convo-focus-chip {
+      display: none;
+      align-items: center; gap: 5px;
+      font-size: 0.62rem; font-weight: 800; color: #fde68a;
+      background: rgba(120, 53, 15, 0.45);
+      border: 1px solid rgba(251, 191, 36, 0.5);
+      border-radius: 999px; padding: 3px 8px; flex-shrink: 0;
+      cursor: pointer; touch-action: manipulation;
+      max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #convo-focus-chip.show { display: inline-flex; }
+    #convo-focus-chip:hover { border-color: #fde68a; }
+    #convo-focus-only {
+      display: none;
+      font-size: 0.58rem; font-weight: 800; color: #a5f3fc;
+      background: rgba(8, 47, 73, 0.85);
+      border: 1px solid rgba(103, 232, 249, 0.4);
+      border-radius: 999px; padding: 3px 8px; cursor: pointer;
+      touch-action: manipulation; flex-shrink: 0;
+    }
+    #convo-focus-only.show { display: inline-flex; }
+    #convo-focus-only.active {
+      background: linear-gradient(135deg, #0e7490, #0369a1);
+      border-color: #67e8f9; color: #ecfeff;
+    }
+    #convo-lines .line.focus-on .text {
+      border-color: rgba(251, 191, 36, 0.65) !important;
+      box-shadow: 0 0 16px rgba(251, 191, 36, 0.18);
+    }
+    #convo-lines .line.focus-dim {
+      opacity: 0.28;
+      filter: grayscale(0.35);
+    }
+    #convo-lines .line.focus-dim:hover { opacity: 0.7; filter: none; }
+    #convo-lines.convo-filter-focus .line:not(.focus-on) {
+      display: none;
+    }
     #convo-dock-toggle {
       pointer-events: auto; border: 1px solid rgba(103, 232, 249, 0.45);
       background: rgba(15, 40, 71, 0.95); color: #a5f3fc;
@@ -3633,11 +3670,13 @@
         <h3 id="convo-log-title-full">💬 Camp chat</h3>
         <h3 id="convo-log-title-short">💬</h3>
         <span id="convo-count" title="Messages in this session">0</span>
+        <button type="button" id="convo-focus-chip" title="Clear chat focus">Focus…</button>
+        <button type="button" id="convo-focus-only" title="Show only focused chat">Only</button>
         <span class="convo-read-hint" title="Scroll frozen">paused</span>
         <button type="button" id="convo-mobile-hide" title="Hide chatter bar">✕</button>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
-      <div class="sub">Session cache — every line they say stays here · scroll for older · tap to lock agent</div>
+      <div class="sub">Tap agent / bubble / line to focus that chat · Only = their lines · type below to talk</div>
     </header>
     <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents around the meadow — names &amp; roles show here when they speak.</span></div>
     <div id="convo-lines"><div class="convo-empty">Chats appear here as everyone speaks — full history, newest at the bottom.</div></div>
@@ -3976,7 +4015,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-283-UNKNOWN";
+    const CAMP_BUILD = "2026-07-11-284-FOCUS-TALK";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10744,14 +10783,21 @@
       }
       const dragging = dragTarget?.kind === "agent" && dragTarget.ref === n;
       const pendingAgent = pendingCampAction?.type === "agent" && pendingCampAction.id === n.id;
-      if (dragging || pendingAgent || speakingAgentId === n.id) {
-        ctx.strokeStyle = dragging || pendingAgent ? "#fde68a" : n.color;
-        ctx.lineWidth = dragging ? 3 : pendingAgent ? 2.5 : 2;
-        ctx.setLineDash(dragging || pendingAgent ? [5, 5] : []);
+      const chatFocused = typeof focusedChatId !== "undefined" && focusedChatId === n.id;
+      if (dragging || pendingAgent || speakingAgentId === n.id || chatFocused) {
+        ctx.strokeStyle = dragging || pendingAgent ? "#fde68a" : (chatFocused ? "#fde68a" : n.color);
+        ctx.lineWidth = dragging ? 3 : chatFocused ? 3.5 : pendingAgent ? 2.5 : 2;
+        ctx.setLineDash(dragging || pendingAgent ? [5, 5] : (chatFocused ? [6, 4] : []));
         ctx.beginPath();
-        ctx.arc(s.x, cy, (dragging ? 44 : pendingAgent ? 42 : 38) * u, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, (dragging ? 44 : chatFocused ? 46 : pendingAgent ? 42 : 38) * u, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
+        if (chatFocused) {
+          ctx.font = `bold ${Math.round(10 * u)}px Segoe UI`;
+          ctx.fillStyle = "#fde68a";
+          ctx.textAlign = "center";
+          ctx.fillText("◎ focus", s.x, cy - 48 * u);
+        }
       } else if (!n.insideHouse && !med) {
         ctx.strokeStyle = `${n.color}55`;
         ctx.lineWidth = 1.5;
@@ -11265,7 +11311,7 @@
     }
 
     function campAmbientPrompt(npc, replyTo) {
-      // Used by emitNpcAiChatter — logical dialogue when replyTo is set
+      // Used by emitNpcAiChatter — real talk when replyTo is set (no meta "logical dialogue")
       const v = myVisitorName || player.name || "a visitor";
       const ctx = campContextSuffix().replace(/^\s*\(|\)\s*$/g, "") || "camp is humming";
       const whoNear = allRoamers()
@@ -11277,17 +11323,16 @@
         const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 160);
         const who = replyTo.name || "them";
         return (
-          `LOGICAL DIALOGUE turn. You are ${npc.name || npc.id}. ${who} just said (idea only): "${idea}".\n` +
-          `Reply TO ${who} by name: (1) restate their claim in new words, (2) agree/disagree/refine with a reason, ` +
-          `(3) add your angle, (4) end with a question or challenge. ` +
-          `About one to two full paragraphs (~100–150 words). Funny, original, YOUR voice. Don't copy their phrasing. ` +
+          `You are ${npc.name || npc.id} at camp. ${who} just said (meaning only): "${idea}".\n` +
+          `Talk back to ${who} naturally — answer what they meant, add your take, keep it conversational. ` +
+          `One to two short paragraphs. Funny, original, YOUR voice. No step lists, no 'dialogue mode' talk. ` +
           `Camp: ${ctx}.` +
           (whoNear ? ` Nearby: ${whoNear}.` : "")
         );
       }
       return (
-        `You're ${npc.name || npc.id} at camp. Start or continue a natural thought someone else could answer — ` +
-        `notice something real (fire, music, pond, ${v}, props) and state a clear claim + reason in one to two full paragraphs (~100–150 words). ` +
+        `You're ${npc.name || npc.id} at camp. Notice something real (fire, music, pond, ${v}, props) ` +
+        `and talk about it in one to two short paragraphs — natural speech someone could answer. ` +
         `Camp: ${ctx}.` +
         (whoNear ? ` Nearby: ${whoNear}.` : "")
       );
@@ -13110,19 +13155,97 @@
     }
     const AGENT_DOUBLE_TAP_MS = 680;
     let agentTalkPending = null;
+    // Focused chat — click/tap agent, speech bubble, or sidebar line
+    let focusedChatId = null;
+    let focusChatOnly = false;
+
+    function focusChatAgent(agentId, opts = {}) {
+      const id = String(agentId || "").toLowerCase();
+      if (!id || id === "nearest" || id === "all" || id === "all-near" || id === "spirit") {
+        if (opts.clear) clearChatFocus();
+        return null;
+      }
+      focusedChatId = id;
+      setTalkTarget(id, { sticky: true, focus: opts.focusInput !== false, focusDelay: opts.focusDelay ?? 60 });
+      claimSpeechFloor?.(id, { focus: true, holdMs: opts.holdMs || 120000 });
+      const name = agentNames[id] || id;
+      const chip = document.getElementById("convo-focus-chip");
+      const only = document.getElementById("convo-focus-only");
+      if (chip) {
+        chip.textContent = `◎ ${name}`;
+        chip.classList.add("show");
+        chip.title = `Focused on ${name} — click to clear`;
+      }
+      if (only) {
+        only.classList.add("show");
+        only.classList.toggle("active", focusChatOnly);
+        only.title = focusChatOnly
+          ? `Showing only ${name}'s lines — click for all`
+          : `Show only ${name}'s lines`;
+      }
+      if (opts.syncLog !== false) renderConvoLog?.();
+      if (opts.rail !== false) {
+        const npc = findRoamAgent(id);
+        const last = [...campLines].reverse().find((l) =>
+          String(l.speaker).toLowerCase() === name.toLowerCase()
+          || String(l.speaker).toLowerCase() === id
+        );
+        setCampReplyRail?.(
+          name,
+          last?.text || `Focused on ${name}. Their talk stays highlighted — type below to answer.`,
+          { idle: !last?.text },
+        );
+      }
+      if (!opts.quiet) showToast(`◎ Focus: ${name} — tap Only for their lines`);
+      setCampLifeStatus?.(`◎ Focused chat: ${name}`);
+      return id;
+    }
+
+    function clearChatFocus(opts = {}) {
+      focusedChatId = null;
+      focusChatOnly = false;
+      document.getElementById("convo-focus-chip")?.classList.remove("show");
+      const only = document.getElementById("convo-focus-only");
+      if (only) {
+        only.classList.remove("show", "active");
+      }
+      convoLinesEl?.classList.remove("convo-filter-focus");
+      if (opts.syncLog !== false) renderConvoLog?.();
+      if (!opts.quiet) showToast("Focus cleared — showing all chats");
+    }
+
+    function toggleFocusChatOnly() {
+      if (!focusedChatId) return;
+      focusChatOnly = !focusChatOnly;
+      const only = document.getElementById("convo-focus-only");
+      if (only) only.classList.toggle("active", focusChatOnly);
+      renderConvoLog?.();
+      const name = agentNames[focusedChatId] || focusedChatId;
+      showToast(focusChatOnly ? `Only ${name}'s lines` : "All session lines");
+    }
+
+    function initChatFocusUi() {
+      document.getElementById("convo-focus-chip")?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        clearChatFocus();
+      });
+      document.getElementById("convo-focus-only")?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        toggleFocusChatOnly();
+      });
+    }
+
     function onAgentTap(npc) {
       if (!npc || npc.leaving) return;
       const pos = agentWorldPos(npc);
       agentTalkPending = null;
       pendingCampAction = null;
-      // One tap: lock this agent in the talk bar (stays locked) — no popup sheet/chat
-      setTalkTarget(npc.id, { sticky: true, focus: true });
-      setCampReplyRail(npc.name, `Locked on ${npc.name}. Type below — they answer here & on the meadow.`, { idle: true });
+      // Press/tap/click focuses this chat + locks talk target
+      focusChatAgent(npc.id, { focusInput: true, rail: true });
       if (!playerNearAgent(npc)) {
         walkPlayerTo(pos.x, pos.y - 6);
-        showToast(`→ ${npc.name} locked · type below`);
-      } else {
-        showToast(`🔒 ${npc.name} · type below`);
       }
     }
     function interactCampHit(hit) {
@@ -13701,12 +13824,14 @@
       if (bubbleHit?.speaker) {
         const npc = roamersBySpeaker(bubbleHit.speaker);
         const full = (npc?.fullLine || bubbleHit.line || "").trim();
-        // Open scrollable full monologue reader
+        const aid = bubbleHit.agentId || npc?.id;
+        // Click/tap bubble → focus that chat (lock talk + highlight history)
+        if (aid) focusChatAgent(aid, { focusInput: true, rail: false, quiet: false });
+        if (full) setCampReplyRail?.(bubbleHit.speaker, full);
         openAgentScrollBubble(bubbleHit.speaker, full, bubbleHit.mood, {
           color: bubbleHit.color,
-          agentId: bubbleHit.agentId || npc?.id,
+          agentId: aid,
         });
-        if (npc && playerNearAgent(npc)) onAgentTap(npc);
         return;
       }
       const hit = hitTestCamp(sx, sy);
@@ -13812,6 +13937,7 @@
     initCampTextExpand();
     initCampLayerPicker();
     initCampAgentMenu();
+    initChatFocusUi();
     ["gesturestart", "gesturechange", "gestureend"].forEach((evt) => {
       canvas.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
     });
@@ -14392,10 +14518,13 @@
       if (!line) return;
       const entry = campLines[Number(line.dataset.idx)];
       if (!entry?.text) return;
-      // Lock that speaker + show full text in reply rail (no popup)
-      const agent = allRoamers().find((n) => n.name === entry.speaker || n.id === entry.speaker.toLowerCase());
-      const id = agent?.id || entry.speaker.toLowerCase();
-      if (agent || agentNames[id]) setTalkTarget(id, { sticky: true, focus: true });
+      // Click/press line → focus that chat
+      const dataAgent = line.dataset.agent || "";
+      const agent = allRoamers().find((n) => n.name === entry.speaker || n.id === entry.speaker.toLowerCase() || n.id === dataAgent);
+      const id = agent?.id || dataAgent || entry.speaker.toLowerCase();
+      if (agent || agentNames[id] || dataAgent) {
+        focusChatAgent(id, { focusInput: true, rail: false, quiet: false });
+      }
       setCampReplyRail(entry.speaker, entry.text);
     });
     document.getElementById("now-speaking")?.addEventListener("click", () => {
@@ -14403,7 +14532,7 @@
       if (!last?.text) return;
       const agent = allRoamers().find((n) => n.name === last.speaker || n.id === last.speaker.toLowerCase());
       const id = agent?.id || last.speaker.toLowerCase();
-      if (agent || agentNames[id]) setTalkTarget(id, { sticky: true, focus: true });
+      if (agent || agentNames[id]) focusChatAgent(id, { focusInput: true, rail: false });
       setCampReplyRail(last.speaker, last.text);
     });
 
@@ -14457,7 +14586,11 @@
         updateConvoScrollLockUi();
         return;
       }
-      // Full session history (all lines)
+      // Full session history — highlight / filter focused chat
+      const focusId = (typeof focusedChatId === "string" && focusedChatId) ? focusedChatId : "";
+      const focusName = focusId ? String(agentNames[focusId] || focusId).toLowerCase() : "";
+      const filterOn = !!(focusId && typeof focusChatOnly !== "undefined" && focusChatOnly);
+      convoLinesEl.classList.toggle("convo-filter-focus", filterOn);
       convoLinesEl.innerHTML = campLines.map((entry, i) => {
         const mc = moodClass(entry.mood);
         const pinCls = pinnedSpeechKey === `${entry.speaker}::${entry.text}` ? " pinned-line" : "";
@@ -14470,8 +14603,23 @@
         const moodHtml = camp ? "" : `<span class="mood-tag ${mc}">${escapeHtml(entry.mood || "")}</span>`;
         const whoLabel = you ? (myVisitorName || player.name || "You") : entry.speaker;
         const time = formatConvoTime(entry.t);
+        const sp = String(entry.speaker || "").toLowerCase();
+        const isFocus = !!(focusId && (
+          sp === focusId
+          || (focusName && sp === focusName)
+          || (you && false)
+        ));
+        const focusCls = focusId
+          ? (isFocus ? " focus-on" : (filterOn ? "" : " focus-dim"))
+          : "";
+        // Resolve agent id for click-to-focus
+        let dataAgent = "";
+        if (!you && !camp) {
+          const hit = allRoamers().find((n) => n.name === entry.speaker || n.id === sp);
+          dataAgent = hit?.id || Object.entries(agentNames || {}).find(([, n]) => String(n).toLowerCase() === sp)?.[0] || sp;
+        }
         return (
-          `<div class="line ${kind}${pinCls}" data-idx="${i}" style="--line-color:${color}">` +
+          `<div class="line ${kind}${pinCls}${focusCls}" data-idx="${i}" data-agent="${escapeHtml(dataAgent)}" style="--line-color:${color}">` +
           `<div class="line-meta">` +
           `<span class="speaker"><span class="speaker-dot" style="background:${color};color:${color}"></span>${escapeHtml(whoLabel)}${roleHtml}${moodHtml}</span>` +
           (time ? `<span class="line-time">${escapeHtml(time)}</span>` : "") +

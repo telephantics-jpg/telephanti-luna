@@ -64,13 +64,14 @@ def ambient_prompt(
         idea = " ".join(reply_to_idea.split())[:100]
         return (
             f"{reply_to_name} just riffed (idea only): {idea}. "
-            f"Reply TO them as {who} in one to two full paragraphs (~100–150 words) — "
-            f"funny, original, logical. Don't copy wording. Camp: {ctx}.{near_bit}"
+            f"Reply TO them as {who} in one to two short paragraphs (~80–140 words) — "
+            f"natural, funny, specific. Make sense of what they meant; don't copy wording. "
+            f"Camp: {ctx}.{near_bit}"
         )
     return (
         f"You are {who} at camp. Notice one real thing (fire, music, pond, {visitor}, props) "
-        f"and riff in one to two full paragraphs (~100–160 words) — funny, specific, YOUR voice. "
-        f"Camp: {ctx}.{near_bit}"
+        f"and talk about it in one to two short paragraphs (~80–140 words) — funny, specific, "
+        f"YOUR voice. Sound like speech, not a workshop prompt. Camp: {ctx}.{near_bit}"
     )
 
 

@@ -206,18 +206,15 @@ def converse_thread_prompt(
     role = role_for_agent(speaker_id)
 
     if not thread:
+        other = others[0] if others else "them"
         return (
-            f"LOGICAL CAMP DIALOGUE — OPENING TURN\n"
-            f"You are {me} ({role}). Start a real conversation with {', '.join(others)}.\n"
-            f"Topic: {topic}\n\n"
-            f"Rules for this turn:\n"
-            f"1) State ONE clear claim or question about the topic (your angle only).\n"
-            f"2) Give a short reason (cause → effect) — make it make sense.\n"
-            f"3) Address {others[0] if others else 'them'} by name and invite a response.\n"
-            f"4) Length: one to two full paragraphs (~100–150 words). Funny, original, in character.\n"
-            f"5) Do NOT monologue past them. Do NOT use other agents' catchphrases.\n"
-            f"6) No *stage directions*, no AI talk, no 'last time you said'.\n"
-            f"Write only {me}'s spoken words."
+            f"You are {me} ({role}) talking with {', '.join(others)} at camp.\n"
+            f"Topic in the air: {topic}\n\n"
+            f"Open the conversation naturally. Speak like a real person at a fire — "
+            f"not a checklist, not a briefing, not 'camp dialogue mode'.\n"
+            f"Have a clear take on the topic, make it make sense, address {other} by name, "
+            f"and leave room for them to answer. One to two short paragraphs. "
+            f"Funny, in character. Only {me}'s spoken words — no stage directions, no AI talk."
         )
 
     prev = thread[-1]
@@ -225,7 +222,6 @@ def converse_thread_prompt(
     prev_line = re.sub(r"\s+", " ", str(prev.get("line") or "")).strip()
     prev_idea = prev_line[:160] + ("…" if len(prev_line) > 160 else "")
 
-    # Compact transcript — claims in order so the model can stay logical
     transcript_bits = []
     for t in thread[-6:]:
         who = t.get("name", "?")
@@ -240,27 +236,21 @@ def converse_thread_prompt(
     close_bit = ""
     if is_closing:
         close_bit = (
-            " This is a late turn — you may land a punchline or soft wrap-up, "
-            "but still answer the last claim first."
+            " You may land a soft wrap-up or punchline, but answer what they just said first."
         )
 
     return (
-        f"LOGICAL CAMP DIALOGUE — TURN {turn_n}\n"
-        f"You are {me} ({role}). Speakers: {', '.join(names)}.\n"
+        f"You are {me} ({role}) in a live camp conversation with {', '.join(names)}.\n"
         f"Topic: {topic}\n\n"
-        f"Conversation so far (stay on THIS thread):\n{transcript}\n\n"
-        f"Last speaker: {prev_name}\n"
-        f"Their last point (respond to the IDEA, invent new wording):\n\"{prev_idea}\"\n\n"
-        f"Your reply MUST do this structure (in natural speech, not numbered):\n"
-        f"1) Address {prev_name} by name.\n"
-        f"2) Show you heard them — restate their core claim in NEW words (one short clause).\n"
-        f"3) Agree, disagree, or refine with a clear reason (logic / cause→effect).\n"
-        f"4) Add YOUR unique angle (funny, in character) that still fits the same topic.\n"
-        f"5) End with a question or challenge so they can answer next.\n\n"
-        f"Length: one to two full paragraphs (~100–150 words). "
-        f"This is dialogue, not a solo monologue — stay connected to what they said."
+        f"What was said so far:\n{transcript}\n\n"
+        f"{prev_name} just said (respond to the meaning, not their exact wording):\n"
+        f"\"{prev_idea}\"\n\n"
+        f"Reply as {me} only — natural speech. Actually answer them: show you got their point, "
+        f"agree or push back with a real reason, add your own take, and keep the thread going "
+        f"with a question or challenge if it fits. One to two short paragraphs."
         f"{close_bit}\n"
-        f"Never copy their phrases. No *stage directions*. No AI talk. Write only {me}'s words."
+        f"Do NOT write labels, step lists, or phrases like 'logical dialogue' / 'turn structure'. "
+        f"No stage directions. No AI talk. Just {me} talking."
     )
 
 

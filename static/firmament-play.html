@@ -3613,7 +3613,7 @@
         <button type="button" id="convo-mobile-hide" title="Hide chatter bar">✕</button>
         <button type="button" id="convo-dock-toggle" title="Minimize panel">▼</button>
       </div>
-      <div class="sub">Full session history · tap a line to lock that agent · scroll for older</div>
+      <div class="sub">Session cache — every line they say stays here · scroll for older · tap to lock agent</div>
     </header>
     <div id="now-speaking" class="idle"><span class="ns-who">Camp</span><span class="ns-text">Agents around the meadow — names &amp; roles show here when they speak.</span></div>
     <div id="convo-lines"><div class="convo-empty">Chats appear here as everyone speaks — full history, newest at the bottom.</div></div>
@@ -3952,7 +3952,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-281-FULL-LOG";
+    const CAMP_BUILD = "2026-07-11-282-CHAT-CACHE";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -14194,7 +14194,45 @@
 
     const convoLinesEl = document.getElementById("convo-lines");
     const convoLogEl = document.getElementById("convo-log");
+    const CAMP_CHAT_CACHE_KEY = "luna-camp-session-chat-v1";
+    const CAMP_CHAT_CACHE_MAX = 600;
     const campLines = [];
+
+    function loadCampChatCache() {
+      if (isCampMobile()) return;
+      try {
+        const raw = sessionStorage.getItem(CAMP_CHAT_CACHE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return;
+        for (const row of parsed) {
+          if (!row || !row.text || !row.speaker) continue;
+          campLines.push({
+            speaker: String(row.speaker),
+            text: String(row.text),
+            mood: row.mood || "neutral",
+            t: Number(row.t) || Date.now(),
+          });
+        }
+        while (campLines.length > CAMP_CHAT_CACHE_MAX) campLines.shift();
+      } catch (_) {}
+    }
+
+    function saveCampChatCache() {
+      if (isCampMobile()) return;
+      try {
+        const slim = campLines.slice(-CAMP_CHAT_CACHE_MAX).map((e) => ({
+          speaker: e.speaker,
+          text: e.text,
+          mood: e.mood || "neutral",
+          t: e.t || Date.now(),
+        }));
+        sessionStorage.setItem(CAMP_CHAT_CACHE_KEY, JSON.stringify(slim));
+      } catch (_) {}
+    }
+
+    // Restore session chat cache ASAP (PC only) so the right panel fills with prior lines
+    if (!isCampMobile()) loadCampChatCache();
 
     function convoNearBottom() {
       if (!convoLinesEl) return true;
@@ -14420,19 +14458,25 @@
         && campLines[campLines.length - 1].speaker === speaker;
       if (!dup) {
         campLines.push(entry);
-        // Keep a long session history for the PC sidebar chat
-        while (campLines.length > 600) campLines.shift();
+        // Cache full session history in the PC right panel
+        while (campLines.length > CAMP_CHAT_CACHE_MAX) campLines.shift();
+        saveCampChatCache();
         renderConvoLog();
         appendGrokTerminalLine(speaker, clean, moodVal);
       }
-      // No separate monologue pin / expand overlays — full reply on canvas + sidebar
+      // No separate monologue pin overlays — full history lives in right panel
       hideCampTextExpand();
       hideMobileReplyBubble();
       hideCampSpeechPin();
-      minimizeSpeechBubble();
-      document.body.classList.remove("speech-expanded", "chatter-expanded");
+      // PC: keep right chat panel expanded so history stays visible as lines cache
+      if (!isCampMobile()) {
+        document.body.classList.add("camp-focus", "speech-expanded", "chatter-expanded");
+        document.getElementById("convo-log")?.classList.remove("collapsed");
+      } else {
+        minimizeSpeechBubble();
+        document.body.classList.remove("speech-expanded", "chatter-expanded");
+      }
       if (!canvasCampChatOnly() && !convoReadingHold && !quiet) {
-        // Full reply in sidebar "now speaking" (scrollable)
         updateNowSpeaking(speaker, clean, moodVal);
       }
       // Keep bottom reply rail in sync (no popup needed)
@@ -15194,11 +15238,12 @@
       showToast(isSlowDevice() ? "Camp loading — meadow first, extras shortly" : "Camp world live — agents tweet today's pulse");
       applyGlobalNpcMode("free");
       document.body.classList.add("camp-focus");
-      // PC: open full chat history sidebar; mobile: keep it off
+      // PC: open full chat history sidebar (session-cached lines); mobile: off
       if (!isCampMobile()) {
         document.body.classList.add("speech-expanded", "chatter-expanded");
         document.getElementById("convo-log")?.classList.remove("collapsed");
         setSpeechBubbleDock?.(false);
+        if (!campLines.length) loadCampChatCache();
         renderConvoLog?.();
       } else {
         document.getElementById("convo-log")?.classList.add("collapsed");

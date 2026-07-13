@@ -1599,22 +1599,25 @@
       flex: 1 1 42%;
       min-width: 140px;
     }
-    /* Inline reply rail — no popup chat box over the meadow */
+    /* Inline reply rail — fixed height so long monologues never grow the dock
+       (dock grow → canvas realloc → NPC re-spread looked like a full page refresh). */
     #camp-reply-rail {
       display: flex;
       flex-direction: column;
       gap: 4px;
       width: 100%;
       max-width: min(680px, 96vw);
-      min-height: 56px;
-      max-height: min(22vh, 150px);
-      padding: 8px 12px;
+      height: 72px;
+      min-height: 72px;
+      max-height: 72px;
+      padding: 6px 12px;
       border-radius: 12px;
       background: rgba(6, 14, 28, 0.96);
       border: 1px solid rgba(103, 232, 249, 0.32);
       box-shadow: 0 4px 18px rgba(0,0,0,0.35);
       pointer-events: auto;
       touch-action: manipulation;
+      overflow: hidden;
     }
     #camp-reply-rail .crr-head {
       display: flex; align-items: center; gap: 8px; flex-shrink: 0;
@@ -1637,10 +1640,10 @@
     }
     #camp-reply-rail .crr-text {
       flex: 1; min-height: 0;
-      max-height: min(16vh, 110px);
+      max-height: none;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      font-size: 0.84rem; line-height: 1.45;
+      font-size: 0.8rem; line-height: 1.4;
       color: #f1f5f9;
       white-space: pre-wrap; word-break: break-word;
       scrollbar-width: thin;
@@ -4015,7 +4018,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-12-285-NO-RANDOM-REFRESH";
+    const CAMP_BUILD = "2026-07-12-286-SPEECH-NO-REFRESH";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4459,7 +4462,12 @@
         veil.style.bottom = "";
       }
     }
-    function measureChromeHeights() {
+    // Sticky chrome metrics — speech/monologues must not rewrite --dock-h every line
+    let chromeMetricsLocked = false;
+    let chromeHeaderH = 0;
+    let chromeDockH = 0;
+    function measureChromeHeights(opts = {}) {
+      const force = !!opts.force;
       const header = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       const talkBar = document.getElementById("camp-talk-bar");
@@ -4473,9 +4481,29 @@
         headerH = Math.min(Math.max(Math.ceil(headerH), 56), 80);
         dockH = Math.max(Math.ceil(dockH), 110);
       }
+      // Prefer fixed CSS rail height — ignore content growth inside the rail
       const talkH = talkBar ? Math.ceil(talkBar.offsetHeight) : 40;
-      const railH = replyRail ? Math.ceil(replyRail.offsetHeight) : 72;
+      const railH = 72;
       const iconH = icons ? Math.ceil(icons.offsetHeight) : 32;
+      // Once we have a stable dock, only accept large intentional chrome changes
+      // (keyboard / orientation), never monologue-driven growth.
+      if (chromeMetricsLocked && !force) {
+        if (Math.abs(dockH - chromeDockH) < 28 && Math.abs(headerH - chromeHeaderH) < 12) {
+          headerH = chromeHeaderH;
+          dockH = chromeDockH;
+        } else if (dockH > chromeDockH + 8 && !opts.allowGrow) {
+          // Content made dock taller (speech rail, strip, etc.) — keep stage size stable
+          headerH = chromeHeaderH || headerH;
+          dockH = chromeDockH || dockH;
+        } else {
+          chromeHeaderH = headerH;
+          chromeDockH = dockH;
+        }
+      } else {
+        chromeHeaderH = headerH;
+        chromeDockH = dockH;
+        if (headerH > 40 && dockH > 80) chromeMetricsLocked = true;
+      }
       document.documentElement.style.setProperty("--header-h", `${headerH}px`);
       document.documentElement.style.setProperty("--talk-bar-h", `${talkH}px`);
       document.documentElement.style.setProperty("--reply-rail-h", `${railH}px`);
@@ -6802,12 +6830,17 @@
       const zoom = getWorldZoom();
       const layoutKey = getCampLayoutKey();
       const zoomChanged = Math.abs(zoom - lastSpreadZoom) > 0.04;
-      if (!campSpreadInit || zoomChanged || layoutKey !== lastLayoutKey) {
+      // CRITICAL: never re-spread agents when speech expands chrome / canvas size.
+      // World coords stay put; only first boot + real zoom/orientation flips re-layout.
+      const needSpread = !campSpreadInit || zoomChanged;
+      if (needSpread) {
         campSpreadInit = true;
         lastSpreadZoom = zoom;
         lastLayoutKey = layoutKey;
         spreadAllNpcs();
         if (isCampMobile()) initMobileAgentView();
+      } else {
+        lastLayoutKey = layoutKey;
       }
     }
 
@@ -6817,8 +6850,10 @@
       orientTimer = setTimeout(() => {
         stableViewW = 0;
         stableViewH = 0;
+        chromeMetricsLocked = false;
         resetCampLayoutState();
         window.scrollTo(0, 0);
+        measureChromeHeights({ force: true, allowGrow: true });
         recenterCampViewNow({ blurInput: true });
         if (isIOS()) {
           [120, 320, 620, 920].forEach((ms) => setTimeout(scheduleResize, ms));
@@ -6879,10 +6914,9 @@
     if (document.fonts?.ready) {
       document.fonts.ready.then(() => scheduleResize({ debounceMs: 80 })).catch(() => {});
     }
-    if (typeof MutationObserver !== "undefined") {
-      const bodyClassObs = new MutationObserver(() => scheduleResize({ debounceMs: 120 }));
-      bodyClassObs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
-    }
+    // Intentionally NO body-class MutationObserver → scheduleResize.
+    // Speech adds camp-focus/speech-expanded; that used to resize the canvas
+    // every time an agent started talking (felt like a page refresh).
     scheduleResize();
 
     function setCampTilt(_sx, _sy) {
@@ -14771,18 +14805,25 @@
       hideCampTextExpand();
       hideMobileReplyBubble();
       hideCampSpeechPin();
-      // PC: keep right chat panel expanded so history stays visible as lines cache
+      // PC: open focus classes once — never thrash layout on every spoken line
       if (!isCampMobile()) {
-        document.body.classList.add("camp-focus", "speech-expanded", "chatter-expanded");
+        const body = document.body;
+        if (!body.classList.contains("camp-focus")) {
+          body.classList.add("camp-focus", "speech-expanded", "chatter-expanded");
+        } else {
+          // Ensure flags stay on without forcing attribute churn
+          if (!body.classList.contains("speech-expanded")) body.classList.add("speech-expanded");
+          if (!body.classList.contains("chatter-expanded")) body.classList.add("chatter-expanded");
+        }
         document.getElementById("convo-log")?.classList.remove("collapsed");
       } else {
+        // Mobile: do NOT toggle speech-expanded off every line (that resized the stage)
         minimizeSpeechBubble();
-        document.body.classList.remove("speech-expanded", "chatter-expanded");
       }
       if (!canvasCampChatOnly() && !convoReadingHold && !quiet) {
         updateNowSpeaking(speaker, clean, moodVal);
       }
-      // Keep bottom reply rail in sync (no popup needed)
+      // Keep bottom reply rail in sync (fixed height — text scrolls inside)
       if (!quiet && speaker && speaker !== "Camp" && !isVisitorSpeaker?.(speaker)) {
         setCampReplyRail?.(speaker, clean);
       }

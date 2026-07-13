@@ -3031,7 +3031,7 @@
       :root { --talk-bar-h: 38px; --dock-icons-h: 48px; }
       #camp-talk-target-wrap { max-width: 40%; }
       #camp-talk-target { font-size: 0.68rem; padding: 6px 5px; }
-      #camp-speech-pin .csp-body { max-height: min(58vh, 480px); font-size: 0.88rem; }
+
       #camp-talk-input { font-size: 0.76rem; padding: 7px 8px; }
       #camp-talk-send { min-width: 92px; max-width: 140px; width: auto; height: 34px; font-size: 0.7rem; padding: 0 8px; }
       #camp-token-badge { font-size: 0.66rem; padding: 4px 9px; }
@@ -3982,7 +3982,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-13-294-BUBBLE-DRAG-FIX";
+    const CAMP_BUILD = "2026-07-13-295-NO-TEXTBOX";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10298,32 +10298,34 @@
     }
 
     function showCampSpeechPin() {
-      // Permanently disabled — never open the HTML paragraph panel
-      hideCampSpeechPin();
+      /* intentionally empty — no popup text box, ever */
     }
 
-    /** Select bubble: canvas front only — no popup / no size explosion */
+    /**
+     * Select a meadow chat bubble (canvas only).
+     * - Gold border, can drag
+     * - NEVER opens the old HTML text box / pin panel
+     */
     function selectSpeechBubble(speaker, text, mood, opts = {}) {
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase());
-      // Prefer short display line already on the bubble; store full separately
-      const display = opts.displayLine || clean;
-      if (npc) {
-        if (!npc.fullLine || clean.length >= String(npc.fullLine).length) npc.fullLine = clean;
-        npc.line = display;
-      }
+      // Short chat-bubble text only (same as normal meadow bubbles)
+      let display = opts.displayLine || clean;
+      // Strip emoji prefixes we add for drawing if re-selected
+      display = display.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\s]+/u, "").trim() || display;
+      const words = display.split(/\s+/).filter(Boolean);
+      if (words.length > 36) display = words.slice(0, 36).join(" ") + "…";
+      if (npc) npc.line = display;
       hideCampSpeechPin();
       selectedBubbleSpeaker = speaker;
       selectedBubbleLine = display;
       selectedBubbleColor = opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9";
       selectedBubbleMood = mood || npc?.mood || "neutral";
       selectedBubbleAgentId = opts.agentId || npc?.id || "";
-      // Reasonable hold — not forever, not a stuck essay panel
-      const holdMs = Math.max(20000, Math.min(campReadHoldSec(display, 24) * 1000, 60000));
+      const holdMs = Math.max(12000, Math.min(campReadHoldSec(display, 16) * 1000, 40000));
       speechHold.set(speaker, { line: display, until: Date.now() + holdMs, front: true });
-      // Do NOT use pinnedSpeech here — that triggers agent meditation/drag conflicts
-      // Only freeze free-pos when explicitly dragging (opts.lockPos)
+      // Free position only after a real drag (opts.lockPos) — not on mere tap
       if (opts.lockPos && opts.anchorSx != null && opts.anchorSy != null) {
         bubbleFreePos.set(speaker, clampBubbleAnchor(opts.anchorSx, opts.anchorSy));
       }
@@ -10385,11 +10387,14 @@
 
     function hideCampSpeechPin() {
       const panel = document.getElementById("camp-speech-pin");
-      if (!panel) return;
-      panel.classList.remove("show");
-      panel.hidden = true;
-      panel.setAttribute("aria-hidden", "true");
-      panel.style.display = "none";
+      if (panel) {
+        panel.classList.remove("show");
+        panel.hidden = true;
+        panel.setAttribute("aria-hidden", "true");
+        panel.style.cssText = "display:none!important;visibility:hidden!important;pointer-events:none!important;";
+        const body = panel.querySelector(".csp-body");
+        if (body) body.textContent = "";
+      }
       pinnedSpeechKey = "";
       document.querySelectorAll("#convo-lines .line.pinned-line").forEach((el) => {
         el.classList.remove("pinned-line");
@@ -10397,7 +10402,6 @@
     }
 
     function pinCampSpeech(speaker, text, mood, opts = {}) {
-      // No HTML pin — canvas select only
       selectSpeechBubble(speaker, text, mood, opts);
       hideCampSpeechPin();
     }
@@ -14507,17 +14511,20 @@
           const lift = dragTarget.lift || 22;
           let bx = sx - (dragTarget.grabOx ?? boxW / 2);
           let by = sy - (dragTarget.grabOy ?? boxH / 2);
-          bx = Math.max(pad, Math.min((viewW || 400) - boxW - pad, bx));
-          by = Math.max(pad, Math.min((viewH || 300) - boxH - pad, by));
+          const vw = Math.max(viewW || 400, 100);
+          const vh = Math.max(viewH || 300, 100);
+          bx = Math.max(pad, Math.min(vw - boxW - pad, bx));
+          by = Math.max(pad, Math.min(vh - boxH - pad, by));
           const ax = bx + boxW / 2;
           const ay = by + boxH + lift;
           bubbleFreePos.set(dragTarget.speaker, clampBubbleAnchor(ax, ay));
           selectedBubbleSpeaker = dragTarget.speaker;
           if (dragTarget.line) {
-            selectedBubbleLine = dragTarget.line;
+            const short = dragTarget.line.split(/\s+/).slice(0, 40).join(" ");
+            selectedBubbleLine = short;
             speechHold.set(dragTarget.speaker, {
-              line: dragTarget.line,
-              until: Date.now() + 90000,
+              line: short,
+              until: Date.now() + 60000,
               front: true,
             });
           }
@@ -15432,9 +15439,10 @@
       if (!canvasCampChatOnly() && !convoReadingHold && !quiet) {
         updateNowSpeaking(speaker, clean, moodVal);
       }
-      // Keep bottom reply rail in sync (fixed height — text scrolls inside)
+      // Reply rail: short preview only — never dump a full monologue into the dock text box
       if (!quiet && speaker && speaker !== "Camp" && !isVisitorSpeaker?.(speaker)) {
-        setCampReplyRail?.(speaker, clean);
+        const preview = clean.split(/\s+/).slice(0, 28).join(" ") + (clean.split(/\s+/).length > 28 ? "…" : "");
+        setCampReplyRail?.(speaker, preview);
       }
       notifyLunaEmbed(speaker, clean);
       if (agentId && agentMoods[agentId] !== undefined) markAgentSpeaking(agentId, holdSec * 1000);

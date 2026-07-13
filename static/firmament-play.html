@@ -4015,7 +4015,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-11-284-FOCUS-TALK";
+    const CAMP_BUILD = "2026-07-12-285-NO-RANDOM-REFRESH";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5216,8 +5216,13 @@
       return 68;
     }
     function getCampLayoutKey() {
-      if (!isCampMobile()) return `${viewW}x${viewH}`;
-      return `${isLandscape() ? "L" : "P"}z${getWorldZoom().toFixed(2)}`;
+      // Bucket sizes so 1–30px chrome jitter doesn't re-spread every agent (felt like a page refresh).
+      if (!isCampMobile()) {
+        const bw = Math.round(viewW / 48) * 48;
+        const bh = Math.round(viewH / 48) * 48;
+        return `${bw}x${bh}`;
+      }
+      return `${isLandscape() ? "L" : "P"}z${getWorldZoom().toFixed(1)}`;
     }
     let lastSpreadZoom = 0;
     let lastLayoutKey = "";
@@ -6730,6 +6735,27 @@
       if (isCampMobile()) return Math.min(dpr, isIOS() ? 2.5 : 3);
       return Math.min(dpr, 2);
     }
+    // Hysteresis so sub-pixel / chrome jitter doesn't wipe the canvas buffer (white flash = "random refresh").
+    let stableViewW = 0;
+    let stableViewH = 0;
+    const SIZE_HYST_PX = 12;
+
+    function stabilizeCampSize(w, h) {
+      w = Math.max(1, Math.round(w));
+      h = Math.max(1, Math.round(h));
+      if (stableViewW < 2 || stableViewH < 2) {
+        stableViewW = w;
+        stableViewH = h;
+        return { w, h };
+      }
+      if (Math.abs(w - stableViewW) >= SIZE_HYST_PX || Math.abs(h - stableViewH) >= SIZE_HYST_PX) {
+        // Real orientation flip / big chrome change
+        stableViewW = w;
+        stableViewH = h;
+      }
+      return { w: stableViewW, h: stableViewH };
+    }
+
     function applyCanvasDimensions(w, h) {
       if (!canvas || !ctx) return;
       campDpr = campDisplayDpr();
@@ -6739,6 +6765,7 @@
       const bh = Math.max(1, Math.round(h * campDpr));
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
+      // Only reallocate buffer when size actually changes — realloc clears to transparent/black flash
       if (canvas.width !== bw || canvas.height !== bh) {
         canvas.width = bw;
         canvas.height = bh;
@@ -6749,12 +6776,19 @@
       if (!canvas || !ctx) return;
       syncUILayout();
       const sig = campLayoutSignature();
+      // iOS: only hard-reset layout on real orientation flips, not every keyboard/URL-bar twitch
       if (isIOS() && lastLayoutSig && sig !== lastLayoutSig) {
-        resetCampLayoutState();
+        const prevL = lastLayoutSig.includes("@L");
+        const nextL = sig.includes("@L");
+        if (prevL !== nextL) {
+          resetCampLayoutState();
+          stableViewW = 0;
+          stableViewH = 0;
+        }
       }
       lastLayoutSig = sig;
-      const { w, h } = getCampCanvasSize();
-      if (w < 2 || h < 2) {
+      const raw = getCampCanvasSize();
+      if (raw.w < 2 || raw.h < 2) {
         if (resizeRetry < 16) {
           resizeRetry += 1;
           scheduleResize();
@@ -6762,11 +6796,12 @@
         return;
       }
       resizeRetry = 0;
+      const { w, h } = stabilizeCampSize(raw.w, raw.h);
       applyCanvasDimensions(w, h);
       ensureViewCamera();
       const zoom = getWorldZoom();
       const layoutKey = getCampLayoutKey();
-      const zoomChanged = Math.abs(zoom - lastSpreadZoom) > 0.005;
+      const zoomChanged = Math.abs(zoom - lastSpreadZoom) > 0.04;
       if (!campSpreadInit || zoomChanged || layoutKey !== lastLayoutKey) {
         campSpreadInit = true;
         lastSpreadZoom = zoom;
@@ -6780,6 +6815,8 @@
     function onCampOrientationChange() {
       clearTimeout(orientTimer);
       orientTimer = setTimeout(() => {
+        stableViewW = 0;
+        stableViewH = 0;
         resetCampLayoutState();
         window.scrollTo(0, 0);
         recenterCampViewNow({ blurInput: true });
@@ -6791,31 +6828,39 @@
       }, isIOS() ? 80 : 30);
     }
     function onVisualViewportChange() {
+      // Keyboard / URL-bar: adjust dock only — don't thrash canvas realloc or NPC spread
       if (isIOS()) {
         syncKeyboardDock();
         syncViewportOffset();
-        window.scrollTo(0, 0);
-        scheduleResize();
         return;
       }
       syncViewportOffset();
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      scheduleResize();
+      scheduleResize({ debounceMs: 180 });
     }
-    window.addEventListener("resize", () => scheduleResize());
+    window.addEventListener("resize", () => scheduleResize({ debounceMs: 80 }));
     window.addEventListener("orientationchange", onCampOrientationChange);
     if (screen.orientation) {
       screen.orientation.addEventListener("change", onCampOrientationChange);
     }
-    window.addEventListener("pageshow", () => setTimeout(scheduleResize, 50));
+    window.addEventListener("pageshow", (e) => {
+      // bfcache restore — soft resize only, never full reload
+      if (e.persisted) scheduleResize({ debounceMs: 60 });
+      else setTimeout(() => scheduleResize({ debounceMs: 40 }), 50);
+    });
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", onVisualViewportChange);
-      window.visualViewport.addEventListener("scroll", onVisualViewportChange);
+      // scroll fires constantly with mobile chrome — never full layout hard-reset
+      window.visualViewport.addEventListener("scroll", () => {
+        if (isIOS()) {
+          syncKeyboardDock();
+          syncViewportOffset();
+        } else {
+          syncViewportOffset();
+        }
+      });
     }
     if (typeof ResizeObserver !== "undefined") {
-      const layoutObs = new ResizeObserver(() => scheduleResize());
+      const layoutObs = new ResizeObserver(() => scheduleResize({ debounceMs: 100 }));
       const hdr = document.getElementById("camp-header");
       const dock = document.getElementById("action-bar");
       if (hdr) layoutObs.observe(hdr);
@@ -6826,12 +6871,16 @@
       }
     }
     window.addEventListener("load", () => scheduleResize());
-    window.addEventListener("focus", () => scheduleResize());
+    // Tab focus used to re-spread the whole meadow — only soft-sync UI chrome
+    window.addEventListener("focus", () => {
+      syncViewportOffset();
+      scheduleResize({ debounceMs: 220 });
+    });
     if (document.fonts?.ready) {
-      document.fonts.ready.then(() => scheduleResize()).catch(() => {});
+      document.fonts.ready.then(() => scheduleResize({ debounceMs: 80 })).catch(() => {});
     }
     if (typeof MutationObserver !== "undefined") {
-      const bodyClassObs = new MutationObserver(() => scheduleResize({ debounceMs: 40 }));
+      const bodyClassObs = new MutationObserver(() => scheduleResize({ debounceMs: 120 }));
       bodyClassObs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     }
     scheduleResize();
@@ -15280,43 +15329,102 @@
       document.getElementById("pixel-wrap").classList.remove("active");
     };
 
+    let playWsReconnectTimer = 0;
+    let playWsPingTimer = 0;
+    let playWsEverJoined = false;
+    let playWsManualClose = false;
+
+    function stopPlayLobbyHeartbeat() {
+      if (playWsPingTimer) {
+        clearInterval(playWsPingTimer);
+        playWsPingTimer = 0;
+      }
+    }
+
+    function startPlayLobbyHeartbeat() {
+      stopPlayLobbyHeartbeat();
+      // Keep proxy + visitor last_seen alive so idle tabs don't thrash reconnect
+      playWsPingTimer = setInterval(() => {
+        if (!playWs || playWs.readyState !== WebSocket.OPEN) return;
+        try {
+          playWs.send(JSON.stringify({ type: "play.ping" }));
+        } catch (_) {}
+      }, 22000);
+    }
+
     function connectPlayLobby() {
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      if (playWsReconnectTimer) {
+        clearTimeout(playWsReconnectTimer);
+        playWsReconnectTimer = 0;
+      }
       if (playWs) {
+        playWsManualClose = true;
+        try { playWs.onclose = null; } catch (_) {}
         try { playWs.close(); } catch (_) {}
+        playWs = null;
+        playWsManualClose = false;
       }
       playWs = new WebSocket(`${proto}//${location.host}/ws/firmament/play`);
       playWs.onopen = () => {
+        startPlayLobbyHeartbeat();
         playWs.send(JSON.stringify({
           type: "play.join",
           visitor_id: myVisitorId,
           name: myVisitorName,
           color: player.color,
+          x: player.x,
+          y: player.y,
         }));
       };
       playWs.onmessage = (ev) => {
         let msg;
         try { msg = JSON.parse(ev.data); } catch (_) { return; }
+        if (msg.type === "play.pong") return;
         if (msg.type === "play.welcome") {
+          const wasRejoin = playWsEverJoined;
+          playWsEverJoined = true;
           myVisitorId = msg.visitor_id || myVisitorId;
           localStorage.setItem("luna-play-visitor-id", myVisitorId);
           if (msg.visitor) {
-            player.color = msg.visitor.color || player.color;
+            // Soft rejoin: keep local color/name; only fill missing
+            player.color = player.color || msg.visitor.color || player.color;
+            if (msg.visitor.color) player.color = msg.visitor.color;
             player.name = msg.visitor.name || player.name;
             myVisitorName = player.name;
+            // Restore world position if server remembers us (avoid snap-to-spawn on reconnect)
+            if (wasRejoin && Number.isFinite(msg.visitor.x) && Number.isFinite(msg.visitor.y)) {
+              // Prefer local player pos unless we just booted
+            } else if (Number.isFinite(msg.visitor.x) && Number.isFinite(msg.visitor.y) && !wasRejoin) {
+              if (Math.abs(msg.visitor.x) > 1 || Math.abs(msg.visitor.y - 120) > 1) {
+                player.x = msg.visitor.x;
+                player.y = msg.visitor.y;
+              }
+            }
             localStorage.setItem("luna-play-visitor-color", player.color);
             localStorage.setItem("luna-play-visitor-name", myVisitorName);
             updateYouBadge();
           }
-          applyGlobalNpcMode(msg.npc_mode || npcMode);
-          if (msg.visitor_id) {
-            const pullWallet = () => { loadCampBonds(); loadCampWallet(); };
-            if (isSlowDevice()) setTimeout(pullWallet, 6000);
-            else pullWallet();
+          if (!wasRejoin) {
+            applyGlobalNpcMode(msg.npc_mode || npcMode);
+            if (msg.visitor_id) {
+              const pullWallet = () => { loadCampBonds(); loadCampWallet(); };
+              if (isSlowDevice()) setTimeout(pullWallet, 6000);
+              else pullWallet();
+            }
           }
-          otherVisitors.clear();
+          // Merge visitors — never wipe the whole list on soft reconnect flash
+          const seen = new Set();
           for (const v of msg.visitors || []) {
-            if (v.id !== myVisitorId) otherVisitors.set(v.id, { ...v });
+            if (!v?.id || v.id === myVisitorId) continue;
+            seen.add(v.id);
+            const prev = otherVisitors.get(v.id) || {};
+            otherVisitors.set(v.id, { ...prev, ...v });
+          }
+          if (!wasRejoin) {
+            for (const id of [...otherVisitors.keys()]) {
+              if (!seen.has(id)) otherVisitors.delete(id);
+            }
           }
           updateVisitorsOnlineLabel();
           if (!campLines.length) {
@@ -15340,8 +15448,16 @@
         }
       };
       playWs.onclose = () => {
-        document.getElementById("visitors-online").textContent = "Reconnecting to camp…";
-        setTimeout(connectPlayLobby, 3500);
+        stopPlayLobbyHeartbeat();
+        if (playWsManualClose) return;
+        const el = document.getElementById("visitors-online");
+        if (el) el.textContent = "Camp link soft-reconnect…";
+        // Backoff so a flapping proxy doesn't spam reconnects
+        const delay = playWsEverJoined ? 4500 + Math.random() * 1500 : 2500;
+        playWsReconnectTimer = setTimeout(connectPlayLobby, delay);
+      };
+      playWs.onerror = () => {
+        // onclose will schedule reconnect — avoid double timers
       };
     }
 

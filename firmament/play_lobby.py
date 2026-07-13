@@ -21,7 +21,8 @@ class PlayLobby:
     """In-memory lobby for /firmament/play — syncs visitors and chatter across tabs."""
 
     MAX_CHATTER = 100
-    VISITOR_STALE_SEC = 50.0
+    # Was 50s — standing still / background tabs got pruned and rejoins felt like a refresh
+    VISITOR_STALE_SEC = 240.0
 
     def __init__(self) -> None:
         self.visitors: dict[str, dict] = {}
@@ -137,6 +138,9 @@ class PlayLobby:
         visitor_id: str | None,
         name: str | None,
         color: str | None,
+        *,
+        x: float | None = None,
+        y: float | None = None,
     ) -> dict:
         vid = (visitor_id or "").strip()[:64] or str(uuid.uuid4())[:10]
         display = (name or "").strip()[:24] or f"Traveler-{vid[:4]}"
@@ -144,13 +148,24 @@ class PlayLobby:
         if not tint or not tint.startswith("#"):
             tint = VISITOR_COLORS[len(self.visitors) % len(VISITOR_COLORS)]
 
+        # Soft rejoin: keep world position so reconnect doesn't snap people to spawn
+        prev = self.visitors.get(vid) or {}
+        px = float(prev.get("x", 0.0))
+        py = float(prev.get("y", 120.0))
+        if x is not None and y is not None:
+            try:
+                px = float(x)
+                py = float(y)
+            except (TypeError, ValueError):
+                pass
+
         self.visitors[vid] = {
             "id": vid,
             "name": display,
-            "color": tint,
-            "x": 0.0,
-            "y": 120.0,
-            "mood": "happy",
+            "color": tint or prev.get("color") or tint,
+            "x": px,
+            "y": py,
+            "mood": prev.get("mood") or "happy",
             "last_seen": time.time(),
         }
         self._ws_map[ws] = vid
@@ -162,6 +177,7 @@ class PlayLobby:
             "visitors": self.visitor_snapshot(),
             "chatter": self.chatter[-50:],
             "npc_mode": self.npc_mode,
+            "rejoin": bool(prev),
         }
         await self.send_to(ws, welcome)
         await self.broadcast(
@@ -174,7 +190,21 @@ class PlayLobby:
         msg_type = str(raw.get("type") or "")
 
         if msg_type == "play.join":
-            await self.join(ws, raw.get("visitor_id"), raw.get("name"), raw.get("color"))
+            x = raw.get("x")
+            y = raw.get("y")
+            try:
+                x_f = float(x) if x is not None else None
+                y_f = float(y) if y is not None else None
+            except (TypeError, ValueError):
+                x_f, y_f = None, None
+            await self.join(
+                ws,
+                raw.get("visitor_id"),
+                raw.get("name"),
+                raw.get("color"),
+                x=x_f,
+                y=y_f,
+            )
             return None
 
         vid = self._ws_map.get(ws)

@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "284-FOCUS-TALK"
+LUNA_BUILD = "285-NO-RANDOM-REFRESH"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -126,10 +126,13 @@ async def luna_no_cache_middleware(request: Request, call_next):
             response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
+    # Only wipe browser cache when caller *explicitly* asks (was causing random
+    # "refreshed" sessions when PWA start_url always used fresh=1).
     if (
         is_cloud_mode()
         and path in ("/", "/visit", "/firmament/play", "/camp", "/play")
         and request.query_params.get("fresh") == "1"
+        and request.query_params.get("wipe") == "1"
     ):
         response.headers["Clear-Site-Data"] = '"cache"'
     if is_cloud_mode() and _request_is_https(request):
@@ -3276,7 +3279,8 @@ async def manifest():
         }
     if not isinstance(data, dict):
         data = {}
-    data["start_url"] = f"/visit?fresh=1&v={LUNA_BUILD}"
+    # No fresh=1 — that forced cache wipes / session thrash on every PWA open
+    data["start_url"] = f"/firmament/play?v={LUNA_BUILD}"
     return JSONResponse(
         data,
         media_type="application/manifest+json",

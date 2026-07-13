@@ -10400,7 +10400,7 @@
       } catch (_) {}
     }
 
-    /** Select bubble: canvas front + HTML panel with selectable text */
+    /** Select bubble: canvas front only — no popup / text box */
     function selectSpeechBubble(speaker, text, mood, opts = {}) {
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
@@ -10409,6 +10409,8 @@
         npc.fullLine = clean;
         npc.line = clean;
       }
+      // Never open the HTML pin panel when selecting a meadow bubble
+      hideCampSpeechPin();
       selectedBubbleSpeaker = speaker;
       selectedBubbleLine = clean;
       selectedBubbleColor = opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9";
@@ -10417,21 +10419,17 @@
       const holdMs = Math.max(90000, campReadHoldSec(clean, 40) * 1000);
       speechHold.set(speaker, { line: clean, until: Date.now() + holdMs, front: true });
       pinnedSpeech.set(speaker, { line: clean, mood: selectedBubbleMood });
-      showCampSpeechPin(speaker, clean, selectedBubbleMood, {
-        agentId: selectedBubbleAgentId,
-        color: selectedBubbleColor,
-      });
-      if (opts.focusChat !== false && selectedBubbleAgentId) {
+      // Soft highlight only — do not focus talk bar / open panels
+      if (opts.focusChat && selectedBubbleAgentId) {
         try {
           focusChatAgent?.(selectedBubbleAgentId, { focusInput: false, rail: false, quiet: true });
         } catch (_) {}
       }
-      setCampReplyRail?.(speaker, clean);
-      showToast?.(`${speaker} · bubble front · text selectable`);
     }
 
     function openAgentScrollBubble(speaker, text, mood, opts = {}) {
-      selectSpeechBubble(speaker, text, mood, opts);
+      // Keep same path as select — front bubble only, no text box
+      selectSpeechBubble(speaker, text, mood, { ...opts, focusChat: false });
     }
 
     function hideCampSpeechPin() {
@@ -14500,18 +14498,12 @@
         const npc = roamersBySpeaker(bubbleHit.speaker);
         const full = (npc?.fullLine || bubbleHit.line || selectedBubbleLine || "").trim();
         const aid = bubbleHit.agentId || npc?.id;
-        // Click/tap bubble → select, bring to front, open selectable panel
-        if (selectedBubbleSpeaker === bubbleHit.speaker && full === selectedBubbleLine) {
-          // Second tap on same bubble: still keep front; optional re-focus panel
-          showCampSpeechPin(bubbleHit.speaker, full, bubbleHit.mood, { agentId: aid });
-        } else {
-          selectSpeechBubble(bubbleHit.speaker, full, bubbleHit.mood, {
-            color: bubbleHit.color,
-            agentId: aid,
-            focusChat: true,
-          });
-        }
-        if (aid) focusChatAgent?.(aid, { focusInput: false, rail: false, quiet: true });
+        // Click/tap bubble → bring to front on canvas only (no text box popup)
+        selectSpeechBubble(bubbleHit.speaker, full, bubbleHit.mood, {
+          color: bubbleHit.color,
+          agentId: aid,
+          focusChat: false,
+        });
         return;
       }
       const hit = hitTestCamp(sx, sy);

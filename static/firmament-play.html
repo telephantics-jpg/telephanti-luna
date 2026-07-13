@@ -1044,87 +1044,28 @@
       text-align: center; color: #64748b; font-size: 0.8rem;
       padding: 28px 16px; line-height: 1.5; font-style: italic;
     }
-    /* Speech pin panel OFF — select/drag stays on canvas only (no popup paragraph) */
+    /* Kill speech pin / popup text box completely — never show */
     #camp-speech-pin,
-    #camp-speech-pin.show {
+    #camp-speech-pin.show,
+    #camp-speech-pin[hidden],
+    #camp-text-expand,
+    #camp-text-expand.show {
       display: none !important;
       visibility: hidden !important;
       pointer-events: none !important;
-      z-index: -1 !important;
+      opacity: 0 !important;
+      width: 0 !important;
+      height: 0 !important;
+      max-width: 0 !important;
       max-height: 0 !important;
       overflow: hidden !important;
-    }
-    @keyframes csp-pop {
-      from { opacity: 0; transform: translateY(8px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    #camp-speech-pin .csp-head {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      padding: 10px 12px 8px;
-      border-bottom: 1px solid rgba(103, 232, 249, 0.22);
-      flex-shrink: 0;
-      cursor: grab;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    #camp-speech-pin .csp-who {
-      color: #67e8f9; font-weight: 800; font-size: 0.88rem;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      flex: 1;
-    }
-    #camp-speech-pin .csp-hint {
-      font-size: 0.62rem; color: #94a3b8; margin-left: 6px; font-weight: 500;
-      flex-shrink: 0;
-    }
-    #camp-speech-pin-close {
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      background: rgba(15, 23, 42, 0.9); color: #cbd5e1;
-      border-radius: 8px; width: 32px; height: 30px;
-      font-size: 0.9rem; cursor: pointer; flex-shrink: 0;
-    }
-    #camp-speech-pin .csp-body {
-      flex: 1;
-      min-height: 80px;
-      max-height: min(62vh, 560px);
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-      padding: 14px 16px 18px;
-      font-size: 0.98rem;
-      line-height: 1.6;
-      color: #f8fafc;
-      white-space: pre-wrap;
-      word-break: break-word;
-      user-select: text;
-      -webkit-user-select: text;
-      cursor: text;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(103, 232, 249, 0.55) rgba(15, 23, 42, 0.35);
-    }
-    #camp-speech-pin .csp-body::-webkit-scrollbar { width: 8px; }
-    #camp-speech-pin .csp-body::-webkit-scrollbar-thumb {
-      background: rgba(103, 232, 249, 0.5); border-radius: 99px;
-    }
-    @media (min-width: 900px) {
-      #camp-speech-pin {
-        left: auto;
-        right: calc(var(--sidebar-w) + var(--gap) * 2 + 8px);
-        top: calc(var(--header-h) + var(--gap) + 8px);
-        width: min(400px, 34vw);
-        max-width: min(400px, 34vw);
-        margin: 0;
-      }
-      body.camp-focus #camp-speech-pin {
-        right: calc(var(--sidebar-w) + var(--gap) * 2 + 8px);
-      }
-    }
-    @media (max-width: 899px) {
-      #camp-speech-pin {
-        top: auto;
-        bottom: calc(var(--dock-h) + 12px + env(safe-area-inset-bottom, 0px));
-        max-height: min(48vh, 420px);
-      }
-      #camp-speech-pin .csp-body { max-height: min(38vh, 340px); font-size: 0.9rem; }
+      position: fixed !important;
+      left: -9999px !important;
+      top: -9999px !important;
+      z-index: -999 !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
     }
     #camp-talk-target-wrap { position: relative; flex: 0 0 auto; max-width: min(46%, 280px); min-width: 148px; }
     #camp-talk-target-wrap select {
@@ -3674,14 +3615,7 @@
     <button type="button" id="btn-find-friends"></button>
   </div>
   <div id="mood-panel"><div id="mood-rows"></div></div>
-  <div id="camp-speech-pin" hidden>
-    <div class="csp-head">
-      <span class="csp-who">Agent</span>
-      <span class="csp-hint">selected · text selectable · front</span>
-      <button type="button" id="camp-speech-pin-close" title="Close selected line">✕</button>
-    </div>
-    <div class="csp-body" tabindex="0"></div>
-  </div>
+  <!-- camp-speech-pin removed — bubbles select/drag on canvas only -->
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
   <button type="button" id="camp-tpx-fab" title="Telephantix — play album at camp" aria-label="Play Telephantix music">TX</button>

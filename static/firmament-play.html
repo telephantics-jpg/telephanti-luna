@@ -4062,7 +4062,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-13-291-AGENT-WORLD";
+    const CAMP_BUILD = "2026-07-13-292-BUBBLE-FRONT-SHORT";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10360,6 +10360,8 @@
     let selectedBubbleColor = "#67e8f9";
     let selectedBubbleMood = "neutral";
     let selectedBubbleAgentId = "";
+    /** Free-drag screen anchors for bubbles: speaker → { sx, sy } tip/anchor point */
+    const bubbleFreePos = new Map();
     const speechTextEl = document.getElementById("speech-text");
     const speechWhoEl = document.querySelector("#speech-now .who");
 
@@ -10419,12 +10421,65 @@
       const holdMs = Math.max(90000, campReadHoldSec(clean, 40) * 1000);
       speechHold.set(speaker, { line: clean, until: Date.now() + holdMs, front: true });
       pinnedSpeech.set(speaker, { line: clean, mood: selectedBubbleMood });
+      // Optional: seed free pos at agent head so first drag feels natural
+      if (opts.seedPos && !bubbleFreePos.has(speaker) && npc) {
+        const s = worldToScreen(camp.x + npc.x, camp.y + npc.y);
+        bubbleFreePos.set(speaker, { sx: s.x, sy: s.y - 8 });
+      }
+      if (opts.anchorSx != null && opts.anchorSy != null) {
+        bubbleFreePos.set(speaker, { sx: opts.anchorSx, sy: opts.anchorSy });
+      }
       // Soft highlight only — do not focus talk bar / open panels
       if (opts.focusChat && selectedBubbleAgentId) {
         try {
           focusChatAgent?.(selectedBubbleAgentId, { focusInput: false, rail: false, quiet: true });
         } catch (_) {}
       }
+    }
+
+    function clearBubbleFreePos(speaker) {
+      if (speaker) bubbleFreePos.delete(speaker);
+      else bubbleFreePos.clear();
+    }
+
+    function clampBubbleAnchor(sx, sy) {
+      const pad = 24;
+      return {
+        sx: Math.max(pad, Math.min(viewW - pad, sx)),
+        sy: Math.max(pad + 40, Math.min(viewH - pad, sy)),
+      };
+    }
+
+    function startBubbleDrag(bubbleHit, sx, sy, pointerId) {
+      const speaker = bubbleHit.speaker;
+      const full = (bubbleHit.line || selectedBubbleLine || "").trim();
+      selectSpeechBubble(speaker, full, bubbleHit.mood, {
+        color: bubbleHit.color,
+        agentId: bubbleHit.agentId,
+        focusChat: false,
+        anchorSx: bubbleHit.anchorSx ?? (bubbleHit.bx + bubbleHit.boxW / 2),
+        anchorSy: bubbleHit.anchorSy ?? (bubbleHit.by + bubbleHit.boxH + 22),
+      });
+      dragTarget = {
+        kind: "bubble",
+        speaker,
+        agentId: bubbleHit.agentId || "",
+        moved: false,
+        startSx: sx,
+        startSy: sy,
+        pointerId,
+        // Grab offset inside the box so bubble doesn't jump under finger
+        grabOx: sx - bubbleHit.bx,
+        grabOy: sy - bubbleHit.by,
+        boxW: bubbleHit.boxW,
+        boxH: bubbleHit.boxH,
+        color: bubbleHit.color,
+        mood: bubbleHit.mood,
+        line: full,
+      };
+      pendingCampAction = null;
+      canvas.classList.add("dragging");
+      try { canvas.setPointerCapture(pointerId); } catch (_) {}
     }
 
     function openAgentScrollBubble(speaker, text, mood, opts = {}) {
@@ -10464,6 +10519,7 @@
         if (npc) endAgentMeditation?.(npc.id);
       }
       pinnedSpeech.clear();
+      if (selectedBubbleSpeaker) clearBubbleFreePos(selectedBubbleSpeaker);
       selectedBubbleSpeaker = null;
       selectedBubbleLine = "";
       selectedBubbleAgentId = "";
@@ -13178,13 +13234,26 @@
       const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 72);
       const boxW = Math.min(maxW, textW + 32);
       const boxH = lines.length * lineH + 18 + (selected ? 10 : 0);
-      let bx = sx - boxW / 2;
-      // Lift selected bubble slightly so it reads as "front"
-      let by = above ? sy - boxH - (selected ? 36 : 22) : sy + 16;
+      const lift = selected ? 36 : 22;
+      // Free-dragged bubbles use stored screen anchor; otherwise float above agent
+      let ax = sx;
+      let ay = sy;
+      let bx = ax - boxW / 2;
+      let by = above ? ay - boxH - lift : ay + 16;
       const pad = mobile ? 8 : 12;
-      bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
-      by = Math.max(pad, Math.min(viewH - boxH - pad, by));
-      // Soft shadow under selected
+      // Only auto-clamp when NOT free-dragged (free pos already clamped on drag)
+      if (!meta?.freePos) {
+        bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
+        by = Math.max(pad, Math.min(viewH - boxH - pad, by));
+        ax = bx + boxW / 2;
+        ay = above ? by + boxH + lift : by - 16;
+      } else {
+        bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
+        by = Math.max(pad, Math.min(viewH - boxH - pad, by));
+        ax = bx + boxW / 2;
+        ay = above ? by + boxH + lift : by - 16;
+      }
+      // Soft shadow under selected / dragged
       if (selected) {
         ctx.fillStyle = "rgba(0,0,0,0.45)";
         ctx.beginPath();
@@ -13204,18 +13273,18 @@
         ctx.strokeRect(bx + 3, by + 3, boxW - 6, boxH - 6);
         ctx.font = `700 ${Math.max(10, fontSize - 2)}px Segoe UI`;
         ctx.fillStyle = "#fde68a";
-        ctx.fillText("✦ front · selectable", bx + 12, by + 12);
+        ctx.fillText("✦ front · drag me", bx + 12, by + 12);
       }
       ctx.fillStyle = color + "33";
       ctx.beginPath();
       if (above) {
-        ctx.moveTo(sx - 8, by + boxH);
-        ctx.lineTo(sx, by + boxH + 12);
-        ctx.lineTo(sx + 8, by + boxH);
+        ctx.moveTo(ax - 8, by + boxH);
+        ctx.lineTo(ax, by + boxH + 12);
+        ctx.lineTo(ax + 8, by + boxH);
       } else {
-        ctx.moveTo(sx - 8, by);
-        ctx.lineTo(sx, by - 10);
-        ctx.lineTo(sx + 8, by);
+        ctx.moveTo(ax - 8, by);
+        ctx.lineTo(ax, by - 10);
+        ctx.lineTo(ax + 8, by);
       }
       ctx.closePath();
       ctx.fill();
@@ -13235,6 +13304,9 @@
         color,
         mood: meta?.mood || "neutral",
         selected,
+        anchorSx: ax,
+        anchorSy: ay,
+        lift,
       };
       speechBubbleRects.push(rect);
       return rect;
@@ -13273,7 +13345,9 @@
       for (const n of queue) {
         if (drawn >= max && n.name !== selectedBubbleSpeaker && n.id !== selectedBubbleAgentId) continue;
         const s = worldToScreen(camp.x + n.x, camp.y + n.y);
-        if (isCampMobile() && (s.x < -48 || s.x > viewW + 48 || s.y < -48 || s.y > viewH + 48)
+        const free = bubbleFreePos.get(n.name);
+        // Free-dragged bubbles stay visible even if agent is off-screen
+        if (!free && isCampMobile() && (s.x < -48 || s.x > viewW + 48 || s.y < -48 || s.y > viewH + 48)
             && n.name !== selectedBubbleSpeaker) continue;
         const color = n.color || AGENT_COLORS[n.id] || "#67e8f9";
         const thinkLine = (n.line || "").trim();
@@ -13291,12 +13365,15 @@
         const me = MOOD_EMOJI[n.mood || "neutral"] || "";
         const ae = AGENT_EMOJI[n.id] || "";
         const bubbleText = `${ae}${me ? " " + me : ""} ${activeLine}`.trim();
-        drawSpeechBubble(s.x, s.y - 8, bubbleText, color, true, {
+        const ax = free ? free.sx : s.x;
+        const ay = free ? free.sy : (s.y - 8);
+        drawSpeechBubble(ax, ay, bubbleText, color, true, {
           speaker: n.name,
           agentId: n.id,
           mood: n.mood || "neutral",
           selected: isSel,
           fullLine: activeLine,
+          freePos: !!free,
         });
         drawn += 1;
       }
@@ -14495,15 +14572,8 @@
       const { sx, sy } = campPointerPos(ev);
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       if (bubbleHit?.speaker) {
-        const npc = roamersBySpeaker(bubbleHit.speaker);
-        const full = (npc?.fullLine || bubbleHit.line || selectedBubbleLine || "").trim();
-        const aid = bubbleHit.agentId || npc?.id;
-        // Click/tap bubble → bring to front on canvas only (no text box popup)
-        selectSpeechBubble(bubbleHit.speaker, full, bubbleHit.mood, {
-          color: bubbleHit.color,
-          agentId: aid,
-          focusChat: false,
-        });
+        // Press on bubble → select + start drag (tap still works if no move)
+        startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
         return;
       }
       const hit = hitTestCamp(sx, sy);

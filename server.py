@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "289-EMOJI-PULSE"
+LUNA_BUILD = "290-SELECT-BUBBLE"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)

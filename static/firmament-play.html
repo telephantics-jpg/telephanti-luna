@@ -1044,49 +1044,76 @@
       text-align: center; color: #64748b; font-size: 0.8rem;
       padding: 28px 16px; line-height: 1.5; font-style: italic;
     }
-    /* Full monologue pin panel OFF — long text goes to 💬 Chat only */
-    #camp-speech-pin,
-    #camp-speech-pin.show {
-      display: none !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
+    /* Selected bubble panel — front, selectable text (copy/highlight) */
+    #camp-speech-pin {
+      display: none;
       position: fixed;
-      z-index: -1;
-      left: 0; right: 0; top: 0;
-      max-width: 0;
-      margin: 0;
-      background: transparent;
-      border: none;
-      box-shadow: none;
+      z-index: 55;
+      left: max(12px, env(safe-area-inset-left));
+      right: max(12px, env(safe-area-inset-right));
+      top: calc(var(--header-h) + 12px);
+      max-width: min(520px, 94vw);
+      margin: 0 auto;
+      background: linear-gradient(180deg, rgba(8, 16, 32, 0.98), rgba(4, 10, 20, 0.97));
+      border: 2px solid rgba(103, 232, 249, 0.55);
+      border-radius: 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(253, 230, 138, 0.2);
+      flex-direction: column;
+      max-height: min(72vh, 640px);
+      pointer-events: auto;
+      user-select: text;
+      -webkit-user-select: text;
+      animation: csp-pop 0.18s ease-out;
+    }
+    #camp-speech-pin.show {
+      display: flex;
+    }
+    @keyframes csp-pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
     #camp-speech-pin .csp-head {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      padding: 8px 10px 6px;
+      padding: 10px 12px 8px;
       border-bottom: 1px solid rgba(103, 232, 249, 0.22);
       flex-shrink: 0;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
     }
     #camp-speech-pin .csp-who {
-      color: #67e8f9; font-weight: 800; font-size: 0.82rem;
+      color: #67e8f9; font-weight: 800; font-size: 0.88rem;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex: 1;
     }
     #camp-speech-pin .csp-hint {
-      font-size: 0.62rem; color: #64748b; margin-left: 6px; font-weight: 500;
+      font-size: 0.62rem; color: #94a3b8; margin-left: 6px; font-weight: 500;
+      flex-shrink: 0;
     }
     #camp-speech-pin-close {
       border: 1px solid rgba(148, 163, 184, 0.35);
       background: rgba(15, 23, 42, 0.9); color: #cbd5e1;
-      border-radius: 8px; width: 30px; height: 28px;
-      font-size: 0.85rem; cursor: pointer; flex-shrink: 0;
+      border-radius: 8px; width: 32px; height: 30px;
+      font-size: 0.9rem; cursor: pointer; flex-shrink: 0;
     }
     #camp-speech-pin .csp-body {
-      max-height: min(68vh, 620px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+      flex: 1;
+      min-height: 80px;
+      max-height: min(62vh, 560px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
-      padding: 12px 14px 16px;
-      font-size: 0.95rem; line-height: 1.58; color: #f8fafc;
-      white-space: pre-wrap; word-break: break-word;
+      padding: 14px 16px 18px;
+      font-size: 0.98rem;
+      line-height: 1.6;
+      color: #f8fafc;
+      white-space: pre-wrap;
+      word-break: break-word;
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: text;
       scrollbar-width: thin;
       scrollbar-color: rgba(103, 232, 249, 0.55) rgba(15, 23, 42, 0.35);
-      min-height: 120px;
     }
     #camp-speech-pin .csp-body::-webkit-scrollbar { width: 8px; }
     #camp-speech-pin .csp-body::-webkit-scrollbar-thumb {
@@ -1095,11 +1122,23 @@
     @media (min-width: 900px) {
       #camp-speech-pin {
         left: auto;
-        right: calc(var(--sidebar-w) + var(--gap) * 2);
-        width: min(360px, 32vw);
-        max-width: none;
+        right: calc(var(--sidebar-w) + var(--gap) * 2 + 8px);
+        top: calc(var(--header-h) + var(--gap) + 8px);
+        width: min(400px, 34vw);
+        max-width: min(400px, 34vw);
         margin: 0;
       }
+      body.camp-focus #camp-speech-pin {
+        right: calc(var(--sidebar-w) + var(--gap) * 2 + 8px);
+      }
+    }
+    @media (max-width: 899px) {
+      #camp-speech-pin {
+        top: auto;
+        bottom: calc(var(--dock-h) + 12px + env(safe-area-inset-bottom, 0px));
+        max-height: min(48vh, 420px);
+      }
+      #camp-speech-pin .csp-body { max-height: min(38vh, 340px); font-size: 0.9rem; }
     }
     #camp-talk-target-wrap { position: relative; flex: 0 0 auto; max-width: min(46%, 280px); min-width: 148px; }
     #camp-talk-target-wrap select {
@@ -1676,12 +1715,6 @@
       #camp-chat-panel .ccp-bubble {
         max-height: min(46vh, 420px) !important;
         font-size: 0.95rem !important;
-      }
-      #camp-speech-pin,
-      #camp-speech-pin.show {
-        display: none !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
       }
       #camp-live-stamp {
         left: auto !important;
@@ -2825,7 +2858,6 @@
       #now-speaking,
       #camp-chatter-fab,
       #camp-keyboard-reply,
-      #camp-speech-pin,
       #convo-log .sub,
       .dock-scroll-hint,
       #dock-tip,

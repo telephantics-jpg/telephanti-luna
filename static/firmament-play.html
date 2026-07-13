@@ -1044,29 +1044,15 @@
       text-align: center; color: #64748b; font-size: 0.8rem;
       padding: 28px 16px; line-height: 1.5; font-style: italic;
     }
-    /* Selected bubble panel — front, selectable text (copy/highlight) */
-    #camp-speech-pin {
-      display: none;
-      position: fixed;
-      z-index: 55;
-      left: max(12px, env(safe-area-inset-left));
-      right: max(12px, env(safe-area-inset-right));
-      top: calc(var(--header-h) + 12px);
-      max-width: min(520px, 94vw);
-      margin: 0 auto;
-      background: linear-gradient(180deg, rgba(8, 16, 32, 0.98), rgba(4, 10, 20, 0.97));
-      border: 2px solid rgba(103, 232, 249, 0.55);
-      border-radius: 16px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(253, 230, 138, 0.2);
-      flex-direction: column;
-      max-height: min(72vh, 640px);
-      pointer-events: auto;
-      user-select: text;
-      -webkit-user-select: text;
-      animation: csp-pop 0.18s ease-out;
-    }
+    /* Speech pin panel OFF — select/drag stays on canvas only (no popup paragraph) */
+    #camp-speech-pin,
     #camp-speech-pin.show {
-      display: flex;
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
     }
     @keyframes csp-pop {
       from { opacity: 0; transform: translateY(8px) scale(0.98); }
@@ -4062,7 +4048,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-13-292-BUBBLE-FRONT-SHORT";
+    const CAMP_BUILD = "2026-07-13-294-BUBBLE-DRAG-FIX";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10368,72 +10354,44 @@
     function showBigSpeech(who, line, holdSec = 52) {
       const text = (line || "").trim();
       if (!text) return;
-      if (pinnedSpeech.has(who) || selectedBubbleSpeaker === who) {
-        const keep = pinnedSpeech.get(who)?.line || selectedBubbleLine || text;
-        speechHold.set(who, { line: keep, until: Date.now() + 86400000, front: true });
-        return;
-      }
+      // Always update to latest speech — do not freeze an old paragraph forever
       if (convoReadingHold && !canvasCampChatOnly()) return;
-      speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
-    }
-
-    function showCampSpeechPin(speaker, text, mood, opts = {}) {
-      const panel = document.getElementById("camp-speech-pin");
-      const whoEl = panel?.querySelector(".csp-who");
-      const bodyEl = panel?.querySelector(".csp-body");
-      const clean = String(text || "").trim();
-      if (!panel || !clean) return;
-      const aid = opts.agentId || "";
-      const emo = (aid && AGENT_EMOJI[aid]) || "";
-      const moodEm = MOOD_EMOJI[mood] || "";
-      if (whoEl) whoEl.textContent = `${emo} ${speaker || "Agent"} ${moodEm}`.trim();
-      if (bodyEl) {
-        bodyEl.textContent = clean;
-        // Selectable real text for copy/highlight
-        bodyEl.style.userSelect = "text";
-        bodyEl.style.webkitUserSelect = "text";
+      const hold = Math.max(8, Math.min(holdSec || 52, 90));
+      speechHold.set(who, { line: text, until: Date.now() + hold * 1000 });
+      if (selectedBubbleSpeaker === who) {
+        selectedBubbleLine = text;
       }
-      panel.hidden = false;
-      panel.classList.add("show");
-      panel.setAttribute("aria-hidden", "false");
-      pinnedSpeechKey = `${speaker}::${clean}`;
-      try {
-        bodyEl?.focus?.({ preventScroll: true });
-      } catch (_) {}
     }
 
-    /** Select bubble: canvas front only — no popup / text box */
+    function showCampSpeechPin() {
+      // Permanently disabled — never open the HTML paragraph panel
+      hideCampSpeechPin();
+    }
+
+    /** Select bubble: canvas front only — no popup / no size explosion */
     function selectSpeechBubble(speaker, text, mood, opts = {}) {
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase());
+      // Prefer short display line already on the bubble; store full separately
+      const display = opts.displayLine || clean;
       if (npc) {
-        npc.fullLine = clean;
-        npc.line = clean;
+        if (!npc.fullLine || clean.length >= String(npc.fullLine).length) npc.fullLine = clean;
+        npc.line = display;
       }
-      // Never open the HTML pin panel when selecting a meadow bubble
       hideCampSpeechPin();
       selectedBubbleSpeaker = speaker;
-      selectedBubbleLine = clean;
+      selectedBubbleLine = display;
       selectedBubbleColor = opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9";
       selectedBubbleMood = mood || npc?.mood || "neutral";
       selectedBubbleAgentId = opts.agentId || npc?.id || "";
-      const holdMs = Math.max(90000, campReadHoldSec(clean, 40) * 1000);
-      speechHold.set(speaker, { line: clean, until: Date.now() + holdMs, front: true });
-      pinnedSpeech.set(speaker, { line: clean, mood: selectedBubbleMood });
-      // Optional: seed free pos at agent head so first drag feels natural
-      if (opts.seedPos && !bubbleFreePos.has(speaker) && npc) {
-        const s = worldToScreen(camp.x + npc.x, camp.y + npc.y);
-        bubbleFreePos.set(speaker, { sx: s.x, sy: s.y - 8 });
-      }
-      if (opts.anchorSx != null && opts.anchorSy != null) {
-        bubbleFreePos.set(speaker, { sx: opts.anchorSx, sy: opts.anchorSy });
-      }
-      // Soft highlight only — do not focus talk bar / open panels
-      if (opts.focusChat && selectedBubbleAgentId) {
-        try {
-          focusChatAgent?.(selectedBubbleAgentId, { focusInput: false, rail: false, quiet: true });
-        } catch (_) {}
+      // Reasonable hold — not forever, not a stuck essay panel
+      const holdMs = Math.max(20000, Math.min(campReadHoldSec(display, 24) * 1000, 60000));
+      speechHold.set(speaker, { line: display, until: Date.now() + holdMs, front: true });
+      // Do NOT use pinnedSpeech here — that triggers agent meditation/drag conflicts
+      // Only freeze free-pos when explicitly dragging (opts.lockPos)
+      if (opts.lockPos && opts.anchorSx != null && opts.anchorSy != null) {
+        bubbleFreePos.set(speaker, clampBubbleAnchor(opts.anchorSx, opts.anchorSy));
       }
     }
 
@@ -10443,22 +10401,24 @@
     }
 
     function clampBubbleAnchor(sx, sy) {
-      const pad = 24;
+      const pad = 28;
+      const w = Math.max(viewW || 300, 100);
+      const h = Math.max(viewH || 150, 100);
       return {
-        sx: Math.max(pad, Math.min(viewW - pad, sx)),
-        sy: Math.max(pad + 40, Math.min(viewH - pad, sy)),
+        sx: Math.max(pad, Math.min(w - pad, sx)),
+        sy: Math.max(pad + 20, Math.min(h - pad, sy)),
       };
     }
 
     function startBubbleDrag(bubbleHit, sx, sy, pointerId) {
       const speaker = bubbleHit.speaker;
-      const full = (bubbleHit.line || selectedBubbleLine || "").trim();
+      // Use the short line shown on the bubble, not a giant full monologue
+      const full = String(bubbleHit.line || selectedBubbleLine || "").trim();
       selectSpeechBubble(speaker, full, bubbleHit.mood, {
         color: bubbleHit.color,
         agentId: bubbleHit.agentId,
         focusChat: false,
-        anchorSx: bubbleHit.anchorSx ?? (bubbleHit.bx + bubbleHit.boxW / 2),
-        anchorSy: bubbleHit.anchorSy ?? (bubbleHit.by + bubbleHit.boxH + 22),
+        displayLine: full,
       });
       dragTarget = {
         kind: "bubble",
@@ -10468,22 +10428,24 @@
         startSx: sx,
         startSy: sy,
         pointerId,
-        // Grab offset inside the box so bubble doesn't jump under finger
         grabOx: sx - bubbleHit.bx,
         grabOy: sy - bubbleHit.by,
-        boxW: bubbleHit.boxW,
-        boxH: bubbleHit.boxH,
+        boxW: bubbleHit.boxW || 200,
+        boxH: bubbleHit.boxH || 80,
+        lift: bubbleHit.lift || 22,
         color: bubbleHit.color,
         mood: bubbleHit.mood,
         line: full,
       };
       pendingCampAction = null;
       canvas.classList.add("dragging");
+      try {
+        (campStage || canvas).setPointerCapture?.(pointerId);
+      } catch (_) {}
       try { canvas.setPointerCapture(pointerId); } catch (_) {}
     }
 
     function openAgentScrollBubble(speaker, text, mood, opts = {}) {
-      // Keep same path as select — front bubble only, no text box
       selectSpeechBubble(speaker, text, mood, { ...opts, focusChat: false });
     }
 
@@ -10493,6 +10455,7 @@
       panel.classList.remove("show");
       panel.hidden = true;
       panel.setAttribute("aria-hidden", "true");
+      panel.style.display = "none";
       pinnedSpeechKey = "";
       document.querySelectorAll("#convo-lines .line.pinned-line").forEach((el) => {
         el.classList.remove("pinned-line");
@@ -10500,7 +10463,9 @@
     }
 
     function pinCampSpeech(speaker, text, mood, opts = {}) {
+      // No HTML pin — canvas select only
       selectSpeechBubble(speaker, text, mood, opts);
+      hideCampSpeechPin();
     }
 
     function unpinCampSpeech() {
@@ -10513,13 +10478,8 @@
             front: false,
           });
         }
+        clearBubbleFreePos(selectedBubbleSpeaker);
       }
-      for (const [speaker] of pinnedSpeech) {
-        const npc = roamersBySpeaker(speaker);
-        if (npc) endAgentMeditation?.(npc.id);
-      }
-      pinnedSpeech.clear();
-      if (selectedBubbleSpeaker) clearBubbleFreePos(selectedBubbleSpeaker);
       selectedBubbleSpeaker = null;
       selectedBubbleLine = "";
       selectedBubbleAgentId = "";
@@ -13220,21 +13180,19 @@
         return drawThoughtBubble(sx, sy, "…", color), null;
       }
       const selected = !!(meta?.selected || (meta?.speaker && meta.speaker === selectedBubbleSpeaker));
-      // Selected bubble: bigger, more lines, gold frame, drawn later = on top
-      const maxW = selected
-        ? (ios ? 280 : mobile ? 320 : Math.min(520, Math.floor(viewW * 0.55)))
-        : (ios ? 240 : mobile ? 280 : Math.min(420, Math.floor(viewW * 0.42)));
-      const fontSize = selected ? (ios ? 13 : mobile ? 14 : 15) : (ios ? 12 : mobile ? 13 : 14);
+      // Keep same size when selected — only gold frame + draw order (no giant paragraph popup)
+      const maxW = ios ? 240 : mobile ? 280 : Math.min(400, Math.floor(viewW * 0.4));
+      const fontSize = ios ? 12 : mobile ? 13 : 14;
       const lineH = fontSize + 5;
-      const maxLines = selected ? (ios ? 14 : mobile ? 16 : 22) : (ios ? 8 : mobile ? 10 : 14);
+      const maxLines = ios ? 6 : mobile ? 7 : 8;
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
       const lines = wrapCanvasLines(raw, maxW - 24, maxLines, fontSize);
       if (!lines.length) return null;
       const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 72);
       const boxW = Math.min(maxW, textW + 32);
-      const boxH = lines.length * lineH + 18 + (selected ? 10 : 0);
-      const lift = selected ? 36 : 22;
+      const boxH = lines.length * lineH + 18 + (selected ? 6 : 0);
+      const lift = selected ? 28 : 22;
       // Free-dragged bubbles use stored screen anchor; otherwise float above agent
       let ax = sx;
       let ay = sy;
@@ -13268,12 +13226,9 @@
       ctx.lineWidth = selected ? 3.5 : 2.5;
       ctx.stroke();
       if (selected) {
-        ctx.strokeStyle = "rgba(103, 232, 249, 0.65)";
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(bx + 3, by + 3, boxW - 6, boxH - 6);
-        ctx.font = `700 ${Math.max(10, fontSize - 2)}px Segoe UI`;
-        ctx.fillStyle = "#fde68a";
-        ctx.fillText("✦ front · drag me", bx + 12, by + 12);
+        ctx.strokeStyle = "rgba(103, 232, 249, 0.55)";
+        ctx.lineWidth = 1.25;
+        ctx.strokeRect(bx + 2, by + 2, boxW - 4, boxH - 4);
       }
       ctx.fillStyle = color + "33";
       ctx.beginPath();
@@ -13288,7 +13243,7 @@
       }
       ctx.closePath();
       ctx.fill();
-      const textTop = selected ? by + 22 : by + 14;
+      const textTop = by + 14;
       lines.forEach((ln, i) => {
         const isHint = ln.startsWith("↕");
         ctx.fillStyle = isHint ? "#67e8f9" : "#f8fafc";
@@ -13358,10 +13313,15 @@
         }
         const held = speechHold.get(n.name);
         const isSel = n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId;
-        const activeLine = (isSel && selectedBubbleLine)
+        // Never dump full monologue into the canvas bubble (that was the stuck paragraph)
+        let activeLine = (isSel && selectedBubbleLine)
           || (held && held.until > now ? held.line : null)
-          || (isSel ? n.fullLine || n.line : null);
+          || (n.line || "");
+        activeLine = String(activeLine || "").trim();
         if (!activeLine) continue;
+        // Cap display length on canvas for readability
+        const words = activeLine.split(/\s+/);
+        if (words.length > 55) activeLine = words.slice(0, 55).join(" ") + "…";
         const me = MOOD_EMOJI[n.mood || "neutral"] || "";
         const ae = AGENT_EMOJI[n.id] || "";
         const bubbleText = `${ae}${me ? " " + me : ""} ${activeLine}`.trim();
@@ -14569,22 +14529,24 @@
       if (!isCanvasMapTarget(ev.target) && !isCanvasMapTarget(document.elementFromPoint(ev.clientX, ev.clientY))) return;
       if (ev.pointerType === "touch") ev.preventDefault();
       hideAgentActionMenu();
+      hideCampSpeechPin();
       const { sx, sy } = campPointerPos(ev);
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       if (bubbleHit?.speaker) {
-        // Press on bubble → select + start drag (tap still works if no move)
         startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
         return;
       }
       const hit = hitTestCamp(sx, sy);
       if (hit) {
-        if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref)) {
+        // Only true meditation pins — not bubble selection
+        if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref) && !selectedBubbleSpeaker) {
           startCampDrag(hit, sx, sy, ev.pointerId, { fromPin: true });
           return;
         }
         startCampDrag(hit, sx, sy, ev.pointerId);
         return;
       }
+      // Tap empty meadow: deselect bubble free-drag (optional soft clear of selection gold only)
       dragTarget = {
         kind: "meadow",
         moved: false,
@@ -14600,8 +14562,33 @@
       if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
       const { sx, sy } = campPointerPos(ev);
       const dragDist = Math.hypot(sx - dragTarget.startSx, sy - dragTarget.startSy);
-      if (dragDist > campDragThreshold()) {
+      // Bubbles use a lower threshold so drag feels responsive
+      const thresh = dragTarget.kind === "bubble" ? Math.min(6, campDragThreshold()) : campDragThreshold();
+      if (dragDist > thresh) {
         dragTarget.moved = true;
+        if (dragTarget.kind === "bubble") {
+          const pad = 12;
+          const boxW = dragTarget.boxW || 200;
+          const boxH = dragTarget.boxH || 80;
+          const lift = dragTarget.lift || 22;
+          let bx = sx - (dragTarget.grabOx ?? boxW / 2);
+          let by = sy - (dragTarget.grabOy ?? boxH / 2);
+          bx = Math.max(pad, Math.min((viewW || 400) - boxW - pad, bx));
+          by = Math.max(pad, Math.min((viewH || 300) - boxH - pad, by));
+          const ax = bx + boxW / 2;
+          const ay = by + boxH + lift;
+          bubbleFreePos.set(dragTarget.speaker, clampBubbleAnchor(ax, ay));
+          selectedBubbleSpeaker = dragTarget.speaker;
+          if (dragTarget.line) {
+            selectedBubbleLine = dragTarget.line;
+            speechHold.set(dragTarget.speaker, {
+              line: dragTarget.line,
+              until: Date.now() + 90000,
+              front: true,
+            });
+          }
+          return;
+        }
         if (dragTarget.kind !== "meadow" && dragTarget.kind !== "pond") {
           placeDragAt(sx, sy, dragTarget);
         }
@@ -14611,6 +14598,7 @@
     function onCampPointerUp(ev) {
       trackCampPointerUp(ev);
       try { canvas.releasePointerCapture(ev.pointerId); } catch (_) {}
+      try { (campStage || canvas).releasePointerCapture?.(ev.pointerId); } catch (_) {}
       canvas.classList.remove("dragging");
       if (campPinchState) return;
       if (!dragTarget) return;
@@ -14619,6 +14607,15 @@
       const { sx, sy } = campPointerPos(ev);
       const dragDist = Math.hypot(sx - target.startSx, sy - target.startSy);
       const wasTap = dragDist <= campTapSlop();
+      if (target.kind === "bubble") {
+        // Tap = front only (no free-pos freeze). Drag = keep parked free pos.
+        if (!target.moved) {
+          // Pure tap: clear free pos so bubble follows agent again, stays selected front
+          clearBubbleFreePos(target.speaker);
+        }
+        hideCampSpeechPin();
+        return;
+      }
       if (target.kind === "meadow" || target.kind === "pond") {
         const w = screenToWorld(sx, sy);
         const b = getCampRelativeBounds();
@@ -14661,6 +14658,19 @@
       el.addEventListener("pointerup", onCampPointerUp);
       el.addEventListener("pointercancel", onCampPointerUp);
     };
+    // Window capture so bubble drag keeps working if pointer leaves the canvas
+    if (!window.__lunaBubbleDragBound) {
+      window.__lunaBubbleDragBound = true;
+      window.addEventListener("pointermove", (ev) => {
+        if (dragTarget?.kind === "bubble") onCampPointerMove(ev);
+      }, { passive: false });
+      window.addEventListener("pointerup", (ev) => {
+        if (dragTarget?.kind === "bubble") onCampPointerUp(ev);
+      });
+      window.addEventListener("pointercancel", (ev) => {
+        if (dragTarget?.kind === "bubble") onCampPointerUp(ev);
+      });
+    }
     bindCampMapPointer(canvas);
     if (campStage && campStage !== canvas) {
       campStage.addEventListener("pointerdown", (ev) => {

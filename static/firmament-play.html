@@ -4018,7 +4018,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-12-287-DIALOGUE-ONLY";
+    const CAMP_BUILD = "2026-07-13-289-EMOJI-PULSE";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10076,6 +10076,17 @@
       thor: "#38bdf8", zeus: "#facc15",
       ambrosia: "#f59e0b", rhea: "#d4a574",
     };
+    const AGENT_EMOJI = {
+      luna: "🌙", hermes: "⚡", oracle: "🔮", caduceus: "🐍", sentinel: "🤖",
+      dionysus: "🍇", jesus: "✝️", michael: "🗡️", gabriel: "📯", raphael: "💚",
+      uriel: "🔥", aurora: "✨", violet: "💜", seraph: "😇", odin: "🐦‍⬛",
+      thor: "🔨", zeus: "⚡", ambrosia: "🍯", rhea: "🌾", wanderer: "🧭",
+      ara: "🟢", mika: "🟢",
+    };
+    const MOOD_EMOJI = {
+      happy: "😄", neutral: "😐", alert: "👀", afraid: "😰", urgent: "🚨",
+      think: "🤔", love: "💕", flirt: "😏",
+    };
     const AGENT_ROLES = {
       luna: "today's curator", hermes: "breaking-signal scout", oracle: "culture forecaster",
       caduceus: "wellness & calm takes", sentinel: "fact-check monitor", dionysus: "nightlife & chaos energy",
@@ -10087,6 +10098,8 @@
       wanderer: "roaming hot take",
     };
     const AGENT_QUIPS = AGENT_ROLES;
+    // Floating emoji bursts when someone talks
+    const speakFx = []; // { x, y, emoji, born, life, vx, vy, color }
     let campPulseItems = [];
     let campTweetTimer = 0;
     const LOCAL_TWEET_TEMPLATES = {
@@ -10843,13 +10856,62 @@
       ctx.fillText("🍇", cx - 14 + sway, cy - 18);
     }
 
+    function spawnSpeakFx(wx, wy, agentId, mood) {
+      const s = worldToScreen(wx, wy);
+      const emo = MOOD_EMOJI[mood] || AGENT_EMOJI[agentId] || "💬";
+      const agentE = AGENT_EMOJI[agentId] || "✨";
+      const now = Date.now();
+      for (let i = 0; i < 4; i++) {
+        speakFx.push({
+          x: s.x + (Math.random() - 0.5) * 28,
+          y: s.y - 40 - Math.random() * 20,
+          emoji: i === 0 ? emo : (i === 1 ? agentE : (Math.random() < 0.5 ? emo : agentE)),
+          born: now,
+          life: 900 + Math.random() * 500,
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: -0.45 - Math.random() * 0.35,
+          color: AGENT_COLORS[agentId] || "#67e8f9",
+        });
+      }
+      while (speakFx.length > 48) speakFx.shift();
+    }
+
+    function drawSpeakFx() {
+      if (!speakFx.length) return;
+      const now = Date.now();
+      ctx.save();
+      ctx.textAlign = "center";
+      for (let i = speakFx.length - 1; i >= 0; i--) {
+        const p = speakFx[i];
+        const age = now - p.born;
+        if (age > p.life) {
+          speakFx.splice(i, 1);
+          continue;
+        }
+        const k = age / p.life;
+        p.x += p.vx * 16;
+        p.y += p.vy * 16;
+        const alpha = 1 - k;
+        const size = 14 + (1 - k) * 8;
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.font = `${Math.round(size)}px Segoe UI`;
+        ctx.fillText(p.emoji, p.x, p.y);
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
     function drawAgentAvatar(n, wx, wy) {
       if (n.insideHouse) return;
       const u = campUnitScale();
       const med = agentMeditation.get(n.id);
       const t = Date.now() / 1000;
       const sitting = !med && (n.behavior === "sit" || (n.behavior === "stand" && n.idle > 18));
-      const floatY = med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) * u : 0;
+      const speaking = speakingAgentId === n.id || (n.speakAnimUntil && Date.now() < n.speakAnimUntil);
+      // Bounce / hop when talking
+      const talkBob = speaking ? Math.sin(t * 10 + (n.id?.charCodeAt?.(0) || 0)) * 5 * u : 0;
+      const talkScale = speaking ? 1 + Math.sin(t * 8) * 0.04 : 1;
+      const floatY = (med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) * u : 0) + talkBob;
       const s = worldToScreen(wx, wy);
       const cy = s.y + floatY + (sitting ? 9 * u : 0);
       if (med) {
@@ -10893,12 +10955,27 @@
         ctx.arc(s.x, cy, 36 * u, 0, Math.PI * 2);
         ctx.stroke();
       }
-      if (speakingAgentId === n.id) {
-        ctx.strokeStyle = n.color;
+      if (speaking) {
+        // Pulsing speak ring
+        const pulse = 38 + Math.sin(t * 7) * 5;
+        ctx.strokeStyle = n.color || AGENT_COLORS[n.id] || "#67e8f9";
         ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.55 + Math.sin(t * 7) * 0.25;
         ctx.beginPath();
-        ctx.arc(s.x, cy, 40 * u, 0, Math.PI * 2);
+        ctx.arc(s.x, cy, pulse * u, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.globalAlpha = 0.25;
+        ctx.beginPath();
+        ctx.arc(s.x, cy, (pulse + 8) * u, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        // Floating mood / agent emoji above head
+        const me = MOOD_EMOJI[n.mood] || "💬";
+        const ae = AGENT_EMOJI[n.id] || "✨";
+        ctx.font = `${Math.round(16 * u)}px Segoe UI`;
+        ctx.textAlign = "center";
+        ctx.fillText(me, s.x - 12 * u, cy - 72 * u + Math.sin(t * 6) * 3);
+        ctx.fillText(ae, s.x + 14 * u, cy - 78 * u + Math.cos(t * 5) * 3);
       }
       drawAvatarShadow(s.x, cy, (sitting ? 16 : 20) * u);
       if (sitting) {
@@ -10928,9 +11005,9 @@
         uriel: drawHeavenFigure,
       };
       ctx.save();
-      if (u !== 1) {
+      if (u !== 1 || talkScale !== 1) {
         ctx.translate(s.x, cy);
-        ctx.scale(u, u);
+        ctx.scale(u * talkScale, u * talkScale);
         ctx.translate(-s.x, -cy);
       }
       if (drawers[n.id]) {
@@ -10944,7 +11021,8 @@
       }
       ctx.restore();
       if (n.mood) {
-        const m = n.mood.slice(0, 10);
+        const mEmoji = MOOD_EMOJI[n.mood] || "";
+        const m = `${mEmoji} ${n.mood}`.trim().slice(0, 14);
         ctx.font = `bold ${Math.round(9 * u)}px Segoe UI`;
         const mw = ctx.measureText(m).width;
         ctx.fillStyle = "rgba(8, 14, 24, 0.92)";
@@ -10955,10 +11033,11 @@
         ctx.textAlign = "center";
         ctx.fillText(m, s.x, cy - 48 * u);
       }
+      const nameE = AGENT_EMOJI[n.id] || "";
       ctx.font = `bold ${Math.round(12 * u)}px Segoe UI`;
       ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
-      ctx.fillText(n.name, s.x, cy - 62 * u);
+      ctx.fillText(`${nameE} ${n.name}`.trim(), s.x, cy - 62 * u);
       const quip = AGENT_QUIPS[n.id];
       if (quip) {
         ctx.font = `italic ${Math.round(9 * u)}px Segoe UI`;
@@ -11390,7 +11469,7 @@
     }
 
     function campAmbientPrompt(npc, replyTo) {
-      // Pure scene seed only — no "you are / add your take / paragraphs" for models to recite
+      // Scene seed + optional 𝕏 pulse signal (riff, don't news-anchor)
       const v = myVisitorName || player.name || "a visitor";
       const ctx = campContextSuffix().replace(/^\s*\(|\)\s*$/g, "") || "camp is humming";
       const whoNear = allRoamers()
@@ -11398,19 +11477,27 @@
         .slice(0, 3)
         .map((n) => n.name)
         .join(", ");
+      let pulseBit = "";
+      if (campPulseItems.length && Math.random() < 0.55) {
+        const it = campPulseItems[Math.floor(Math.random() * Math.min(campPulseItems.length, 8))];
+        const h = String(it?.text || "").replace(/\s+/g, " ").trim().slice(0, 100);
+        if (h) pulseBit = `\nWorld pulse (${it.source || "pulse"}): ${h}`;
+      }
       if (replyTo?.line) {
         const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 160);
         const who = replyTo.name || "them";
         return (
           `${who}: ${idea}\n` +
           `Place: ${ctx}.` +
-          (whoNear ? ` Nearby: ${whoNear}.` : "")
+          (whoNear ? ` Nearby: ${whoNear}.` : "") +
+          pulseBit
         );
       }
       return (
         `Quiet beat at camp. ${v} is around.\n` +
         `Place: ${ctx}.` +
-        (whoNear ? ` Nearby: ${whoNear}.` : "")
+        (whoNear ? ` Nearby: ${whoNear}.` : "") +
+        pulseBit
       );
     }
 
@@ -12494,6 +12581,11 @@
 
     function markAgentSpeaking(agentId, holdMs = 8000) {
       speakingAgentId = agentId;
+      const npc = allRoamers().find((n) => n.id === agentId);
+      if (npc) {
+        npc.speakAnimUntil = Date.now() + Math.min(holdMs, 12000);
+        spawnSpeakFx(camp.x + npc.x, camp.y + npc.y, agentId, npc.mood || agentMoods[agentId] || "happy");
+      }
       renderAgentStrip();
       if (speakingTimer) clearTimeout(speakingTimer);
       speakingTimer = setTimeout(() => {
@@ -12703,8 +12795,11 @@
         const held = speechHold.get(n.name);
         const active = held && held.until > now ? held : null;
         if (!active?.line) continue;
-        // Full reply wrapped on canvas (14 lines desktop / 10 mobile)
-        drawSpeechBubble(s.x, s.y - 8, active.line, color, true, {
+        // Mood/agent emoji prefix for livelier bubbles
+        const me = MOOD_EMOJI[n.mood || "neutral"] || "";
+        const ae = AGENT_EMOJI[n.id] || "";
+        const bubbleText = `${ae}${me ? " " + me : ""} ${active.line}`.trim();
+        drawSpeechBubble(s.x, s.y - 8, bubbleText, color, true, {
           speaker: n.name,
           agentId: n.id,
           mood: n.mood || "neutral",
@@ -14683,10 +14778,16 @@
         const color = speakerColorFor(entry.speaker);
         const role = you || camp ? "" : speakerRole(entry.speaker);
         const roleHtml = role ? `<span class="speaker-role">${escapeHtml(role)}</span>` : "";
-        const moodHtml = camp ? "" : `<span class="mood-tag ${mc}">${escapeHtml(entry.mood || "")}</span>`;
-        const whoLabel = you ? (myVisitorName || player.name || "You") : entry.speaker;
-        const time = formatConvoTime(entry.t);
+        const moodEm = MOOD_EMOJI[entry.mood] || "";
+        const moodHtml = camp ? "" : `<span class="mood-tag ${mc}">${moodEm} ${escapeHtml(entry.mood || "")}</span>`;
         const sp = String(entry.speaker || "").toLowerCase();
+        let whoLabel = you ? (myVisitorName || player.name || "You") : entry.speaker;
+        if (!you && !camp) {
+          const hit = allRoamers().find((n) => n.name === entry.speaker || n.id === sp);
+          const eid = hit?.id || Object.entries(agentNames || {}).find(([, n]) => String(n).toLowerCase() === sp)?.[0];
+          if (eid && AGENT_EMOJI[eid]) whoLabel = `${AGENT_EMOJI[eid]} ${whoLabel}`;
+        }
+        const time = formatConvoTime(entry.t);
         const isFocus = !!(focusId && (
           sp === focusId
           || (focusName && sp === focusName)
@@ -15003,9 +15104,9 @@
         setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
         return;
       }
-      // Prefer pairs (2); rare trio (3) — never flood
+      // Prefer pairs (2); trios more often for livelier cross-talk
       let pool = campConversePairs();
-      if (Math.random() < 0.18 && campConverseTrios().length) {
+      if (Math.random() < 0.32 && campConverseTrios().length) {
         pool = campConverseTrios();
       }
       pool = pool.map((g) => filterConverseGroup(g)).filter(Boolean);
@@ -15016,8 +15117,8 @@
       let pick = forced || pool[Math.floor(Math.random() * pool.length)];
       if (pick && pick.length > 3) pick = pick.slice(0, 3);
       const topic = pickLocalConverseTopic();
-      // Enough rounds for logical back-and-forth (pair ~5–7 turns)
-      const rounds = pick.length >= 3 ? 2 : (Math.random() < 0.4 ? 2 : 3);
+      // Enough rounds for real back-and-forth (pair ~5–9 turns)
+      const rounds = pick.length >= 3 ? (Math.random() < 0.5 ? 2 : 3) : (Math.random() < 0.45 ? 3 : 2);
       const label = converseGroupLabel(pick);
       converseBusy = true;
       setCampLifeStatus(`${label} are walking to chat…`);
@@ -15276,10 +15377,12 @@
           setCampLifeStatus(live
             ? "Live multi-brains · pick an agent · type · long unique replies"
             : "Toolbar: TX · talk below · brains reconnecting");
-          const convA = isSlowDevice() ? 52000 : 18000;
-          const convB = isSlowDevice() ? 130000 : 42000;
+          const convA = isSlowDevice() ? 36000 : 12000;
+          const convB = isSlowDevice() ? 90000 : 28000;
+          const convC = isSlowDevice() ? 140000 : 48000;
           setTimeout(() => runCampConverse(["luna", "hermes"]), convA);
           setTimeout(() => runCampConverse(["jesus", "luna"]), convB);
+          setTimeout(() => runCampConverse(["oracle", "violet"]), convC);
         }
       }).catch(() => {
         campServerOnline = false;
@@ -15753,6 +15856,7 @@
           drawAgentAvatar(n, camp.x + n.x, camp.y + n.y);
         }
         drawAgentSpeechBubbles();
+        drawSpeakFx();
         drawOtherVisitors();
         updateCampCat();
         drawCampCat();

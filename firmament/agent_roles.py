@@ -22,6 +22,8 @@ AGENT_ROLES: dict[str, str] = {
     "violet": "internet mood reader",
     "seraph": "gentle commentary",
     "odin": "history & power lens",
+    "thor": "storm wit & courage",
+    "zeus": "sky-king wit & decrees",
     "ambrosia": "comfort & lifestyle",
     "rhea": "community mother",
     "wanderer": "roaming hot take",
@@ -75,6 +77,16 @@ TWEET_TEMPLATES: dict[str, list[str]] = {
         "wisdom costs a story — '{headline}' is today's tuition.",
         "one eye on '{headline}', one on who profits. classic.",
     ],
+    "thor": [
+        "thunder take on '{headline}': smash the problem, keep the cookies.",
+        "'{headline}' — worthy of a swing? maybe. worthy of a joke? always.",
+        "storm report: '{headline}' is loud. my hammer is louder. my laugh is loudest.",
+    ],
+    "zeus": [
+        "olympus memo re: '{headline}' — dramatic, messy, peak mortal energy.",
+        "lightning bolt opinion on '{headline}': stylish chaos, needs better HR.",
+        "sky-king update: '{headline}' would start three wars and one group chat.",
+    ],
     "ambrosia": [
         "sweet take: '{headline}' tastes bitter — pass the honey.",
         "golden hour pause before reacting to '{headline}'. sip.",
@@ -122,6 +134,71 @@ _DEFAULT_TWEET = [
     "'{headline}' — camp's talking, timeline's cooking.",
 ]
 
+# Spoken structures: weave pulse/world into dialogue (models invent wording)
+SPEECH_SCAFFOLDS: dict[str, list[str]] = {
+    "luna": [
+        "Open warm → nod at {signal} if it fits → invite them in with one question.",
+        "Camp host beat: cookies/fire detail → soft roast of {signal} → 'you good?' energy.",
+        "Curator spin: half joke about {signal}, half real care for whoever's listening.",
+    ],
+    "hermes": [
+        "Signal scout: '{signal}' feels loud → what ripple hits camp next.",
+        "Fast courier: news flash vibe on {signal} → hand the mic back.",
+        "Ripple report: {signal} → one clean punchline → next packet?",
+    ],
+    "oracle": [
+        "Sideways prophecy: {signal} already happened in a dream → smirk, land soft truth.",
+        "Forked timeline bit about {signal} → choose-your-fighter joke.",
+        "Weirdly accurate read on {signal} without fortune-cookie sludge.",
+    ],
+    "thor": [
+        "Thunder laugh → smash-metaphor for {signal} → cookies still win.",
+        "Storm report: {signal} is loud; hammer/joke is louder.",
+        "Gym-god courage take on {signal} → keep friends, roast gently.",
+    ],
+    "zeus": [
+        "Sky-king memo re: {signal} → stylish chaos, better HR needed.",
+        "Lightning opinion on {signal} → decree something silly and true.",
+        "Olympus group-chat energy about {signal} → meadow vacation mode.",
+    ],
+    "odin": [
+        "Ravens brought {signal} → old pattern, new mask → one spear of truth.",
+        "One-eye lens on {signal} → who profits? keep it dry.",
+        "Mythic dry wit: {signal} as today's tuition.",
+    ],
+    "jesus": [
+        "Gentle peace around {signal} → still loved in the middle of it.",
+        "Compassion first → {signal} hurts people → be kind anyway.",
+        "Rest the heart before reacting to {signal}.",
+    ],
+    "sentinel": [
+        "BEEP. log {signal}. threat level: emotionally significant. hydrate.",
+        "Perimeter: {signal} trending. stay alert, stay soft underneath.",
+        "System report on {signal} → complicated, not hopeless.",
+    ],
+    "dionysus": [
+        "Toast to surviving {signal} → party later, panic never (mostly).",
+        "Vines whisper about {signal} → theatrical chaos with heart.",
+        "Nightlife read on {signal} → questionable decisions, good company.",
+    ],
+    "aurora": [
+        "Neon take: {signal} is main-character energy → sip slow.",
+        "Velvet hour opinion on {signal} → messy, iconic, relatable.",
+        "Lounge host riff: {signal} can wait five minutes.",
+    ],
+    "violet": [
+        "Lavender honest read on {signal} → soft truth, hard timeline.",
+        "Group-chat vibrating about {signal} → mood: complicated.",
+        "Same mess, new font: {signal}.",
+    ],
+}
+
+_DEFAULT_SCAFFOLD = [
+    "Hook → one beat about {signal} if relevant → land at camp.",
+    "Mood first → point → leave room for a reply. Season with {signal} once max.",
+    "Mid-conversation riff; glance at {signal} like a friend who saw the timeline.",
+]
+
 
 def role_for_agent(agent_id: str) -> str:
     aid = (agent_id or "").strip().lower()
@@ -142,6 +219,26 @@ def compose_agent_tweet(agent_id: str, headline: str) -> str:
     pool = TWEET_TEMPLATES.get(aid) or _DEFAULT_TWEET
     raw = random.choice(pool)
     return raw.format(headline=head, role=role)
+
+
+def speech_scaffold_for(agent_id: str, pulse_line: str = "") -> str:
+    """Return a spoken structure seed that can include a pulse signal."""
+    aid = (agent_id or "luna").strip().lower()
+    pool = SPEECH_SCAFFOLDS.get(aid) or _DEFAULT_SCAFFOLD
+    raw = random.choice(pool)
+    # Extract headline from "World pulse (src): HEAD · ..." if present
+    signal = "the timeline"
+    pl = (pulse_line or "").strip()
+    if pl:
+        m = re.search(r"World pulse\s*\([^)]*\):\s*([^·\n]+)", pl, re.I)
+        if m:
+            signal = _clean_headline(m.group(1), 80)
+        else:
+            signal = _clean_headline(pl, 80)
+    try:
+        return raw.format(signal=signal, headline=signal, role=role_for_agent(aid))
+    except Exception:
+        return raw.replace("{signal}", signal).replace("{headline}", signal)
 
 
 def roles_catalog() -> list[dict[str, str]]:

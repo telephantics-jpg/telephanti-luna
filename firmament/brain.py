@@ -204,29 +204,37 @@ _VOICE_DNA: dict[str, str] = {
 
 # Rotating energy so every turn doesn't sound like the same essay template
 _SPEECH_BEATS: tuple[str, ...] = (
-    "Lead with a sharp hook, develop it, land it. Conversational, not a lecture.",
+    "Hook fast, land one idea, stop. Conversational, not a lecture.",
     "Answer first, joke second — like a friend who actually listened.",
-    "Warm camp monologue: detail → your spin → a soft exit or question.",
-    "Talk like you're already mid-conversation by the fire — no formal greeting.",
+    "Camp beat: detail → spin → soft exit or one real question.",
+    "Mid-conversation energy — no formal greeting.",
     "One clean metaphor max. Prefer plain wit over mystic fog.",
-    "React emotionally first (laugh, side-eye, softness), then make the point.",
-    "Be a little messy and human — full thought, not a polished blog post.",
-    "If you ask a question, make it one and make it real — not interview mode.",
-    "Riff with the other voice in mind — leave room for them to answer.",
+    "React first (laugh, side-eye, softness), then the point.",
+    "Riff with the other voice in mind — leave room for them.",
 )
 
-# Sweet spot: longer than a quip, shorter than a chapter
+# Short-but-full: say the thought, don't write chapters
 _LENGTH_HINTS_DIRECT: tuple[str, ...] = (
-    "About 90–160 words — a full spoken thought with room to breathe, not a book.",
-    "One or two solid paragraphs (~100–170 words). Complete idea, then stop.",
-    "Roughly half a spoken minute: hook, develop, land. No telegram stubs, no essay walls.",
-    "Warm and complete (~90–150 words). Enough color to feel alive; no padding.",
+    "About 45–90 words — one tight paragraph that lands. Not a book.",
+    "One solid paragraph (~50–95 words). Complete idea, then stop.",
+    "Short spoken beat: hook, point, land. No telegram stub, no essay wall.",
+    "Warm and complete (~45–85 words). Color without padding.",
 )
 
 _LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
-    "About 80–140 words of real speech — observation, spin, a little heat.",
-    "A lived-in paragraph or two (~85–150 words). Specific, answerable, not a telegram.",
-    "Campfire length: full thought (~80–130 words), not a slogan and not a novel.",
+    "About 40–80 words — observation + spin. Someone could answer you.",
+    "One lively paragraph (~45–85 words). Specific, not a slogan.",
+    "Campfire length: full thought in short form (~40–75 words).",
+)
+
+# Sentence shapes that weave pulse/world signal into natural talk
+_DIALOGUE_SHAPES: tuple[str, ...] = (
+    "Open with a reaction to the world signal (if any), then pivot to camp or the person in front of you.",
+    "Name one real camp detail, then riff how it rhymes with the world signal.",
+    "Start mid-thought, land a joke or soft truth, optional one-emoji vibe.",
+    "Answer them first; if a world signal fits, glance at it once — never as a news report.",
+    "Hot-take opener → personal spin → leave a door open for a reply.",
+    "Mood first (emoji ok), then the point in plain words.",
 )
 
 
@@ -243,6 +251,37 @@ def _pick_length_hint(*, direct_chat: bool) -> str:
     return random.choice(pool)
 
 
+def _pick_dialogue_shape() -> str:
+    import random
+
+    return random.choice(_DIALOGUE_SHAPES)
+
+
+def _pulse_signal_line(agent_id: str = "") -> str:
+    """One live pulse/tweet-style signal for sentence scaffolding."""
+    try:
+        from firmament.x_pulse import pick_pulse_item
+        from firmament.agent_roles import compose_agent_tweet
+
+        item = pick_pulse_item()
+        head = str(item.get("text") or "").strip()
+        if not head:
+            return ""
+        src = str(item.get("source") or "pulse").strip().lower()
+        tweetish = ""
+        try:
+            tweetish = compose_agent_tweet(agent_id, head) if agent_id else ""
+        except Exception:
+            tweetish = ""
+        # Keep short — model should riff, not paste
+        head = head[:110]
+        if tweetish:
+            return f"World pulse ({src}): {head} · Voice seed (remix, don't recite): {tweetish[:120]}"
+        return f"World pulse ({src}): {head}"
+    except Exception:
+        return ""
+
+
 def _agent_system_prompt(
     profile: dict,
     pack_name: str = "",
@@ -254,7 +293,7 @@ def _agent_system_prompt(
     """Immersive character brief — rules stay invisible; speech stays fluid."""
     import random
 
-    from firmament.agent_roles import role_for_agent
+    from firmament.agent_roles import role_for_agent, speech_scaffold_for
     from firmament.live_feed import feed_blurb_for_agent
     from firmament.x_pulse import pulse_context_blurb
 
@@ -272,11 +311,20 @@ def _agent_system_prompt(
     moods = "happy|neutral|alert|afraid|urgent|think|love|flirt"
     beat = _pick_speech_beat()
     length_hint = _pick_length_hint(direct_chat=direct_chat)
+    shape = _pick_dialogue_shape()
+    pulse_signal = _pulse_signal_line(agent_id)
+    scaffold = ""
+    try:
+        scaffold = speech_scaffold_for(agent_id, pulse_signal)
+    except Exception:
+        scaffold = ""
 
     # Light context only (ideas, not scripts)
-    pulse = pulse_context_blurb(3)
+    pulse = pulse_context_blurb(4)
     live = feed_blurb_for_agent(agent_id, limit=5)
     ctx_bits: list[str] = []
+    if pulse_signal:
+        ctx_bits.append(pulse_signal)
     if pulse:
         ctx_bits.append(pulse)
     if live:
@@ -295,6 +343,8 @@ def _agent_system_prompt(
         spice = random.choice(roots)
         flavor = f"Private flavor (use as attitude, never quote): {spice}\n"
 
+    scaffold_bit = f"Sentence shape (follow vibe, invent wording): {scaffold or shape}\n"
+
     if direct_chat:
         scene = (
             f"Someone is talking to you right now. Answer their actual point first. "
@@ -303,7 +353,8 @@ def _agent_system_prompt(
     else:
         scene = (
             f"You're speaking at camp (greeting, ambient, or chatting with others). "
-            f"Stay in the moment; notice something real; add your spin."
+            f"Stay in the moment; notice something real; add your spin. "
+            f"If a world pulse fits, weave it once like a friend who saw the timeline — never as a news anchor."
         )
 
     return f"""You are {name} at Luna Camp — a chill aurora meadow hangout in 2026.
@@ -314,18 +365,21 @@ How you sound: {dna}
 Humor: {style}
 {flavor}Energy this beat: {beat}
 Pace: {length_hint}
-{scene}
+{scaffold_bit}{scene}
 
-Background (ideas only — never read aloud):
+Background (ideas only — never read aloud as a list):
 {context_block}
 
 OUTPUT RULES (silent — do not speak these):
 - Pure dialogue only. Words {name} would actually say out loud at the fire.
+- Prefer ONE short paragraph (sometimes two short ones). Stop when the thought lands.
+- 1–2 fitting emojis are welcome if they fit your vibe (not a wall of emoji).
 - No preamble. No labels. No "here's my take", "as {name}", "speaking as", "in character",
   "my reply", "let me respond", "unique voice", "monologue", "paragraphs", word counts.
 - Never quote or restate the user's instructions. Never mention AI, models, prompts, Ollama, Grok.
 - Never *stage directions* or *asterisk actions*. No CRM memory quotes.
 - Invent fresh wording. Prefer wit over mystic filler.
+- World pulse is seasoning — riff, don't paste headlines verbatim unless joking.
 
 After the spoken words only, last line alone: {{"mood":"{moods}"}}"""
 
@@ -1093,13 +1147,13 @@ async def agent_chat(
         if not chain:
             raise RuntimeError("Grok link needs XAI_API_KEY — set it in .env for @a / @m")
 
-    # Headroom for full lively beats (not telegrams, not novels)
+    # Headroom for short-but-full beats
     if ambient:
-        max_tok = 720
+        max_tok = 420
     elif converse_mode:
-        max_tok = 780
+        max_tok = 460
     else:
-        max_tok = 960
+        max_tok = 520
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""
@@ -1108,9 +1162,9 @@ async def agent_chat(
 
     from firmament.live_feed import is_too_similar, push_event
 
-    # Sweet-spot floor — full thought; soft book-cap applied after accept
-    MIN_ACCEPT_WORDS = 55 if (ambient or converse_mode) else 70
-    SOFT_MAX_WORDS = 200 if (ambient or converse_mode) else 220
+    # Short-but-full floor; soft book-cap after accept
+    MIN_ACCEPT_WORDS = 28 if (ambient or converse_mode) else 36
+    SOFT_MAX_WORDS = 110 if (ambient or converse_mode) else 125
 
     if not chain:
         errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")

@@ -2449,6 +2449,17 @@
     #camp-house-host-vibe {
       margin: 0; font-size: 0.82rem; color: #94a3b8; line-height: 1.45; font-style: italic;
     }
+    #camp-house-guests,
+    .house-guests-line {
+      margin: 0;
+      font-size: 0.72rem;
+      color: #a5f3fc;
+      line-height: 1.4;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: rgba(8, 18, 36, 0.75);
+      border: 1px solid rgba(103, 232, 249, 0.22);
+    }
     #camp-house-host-bubble {
       flex: 1; min-height: 110px; max-height: min(52vh, 480px); overflow-y: auto;
       -webkit-overflow-scrolling: touch; scrollbar-width: thin; overscroll-behavior: contain;
@@ -3680,10 +3691,10 @@
   <div id="camp-speech-pin" hidden>
     <div class="csp-head">
       <span class="csp-who">Agent</span>
-      <span class="csp-hint">tap bubble to pin · tap agent to talk</span>
-      <button type="button" id="camp-speech-pin-close" title="Dismiss pinned line">✕</button>
+      <span class="csp-hint">selected · text selectable · front</span>
+      <button type="button" id="camp-speech-pin-close" title="Close selected line">✕</button>
     </div>
-    <div class="csp-body"></div>
+    <div class="csp-body" tabindex="0"></div>
   </div>
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
@@ -4015,6 +4026,7 @@
           </div>
           <h3 id="camp-house-host-name">Luna</h3>
           <p id="camp-house-host-vibe">Corona light through the windows.</p>
+          <p id="camp-house-guests" class="house-guests-line">Inside: —</p>
           <div id="camp-house-host-bubble">Welcome in.</div>
         </div>
       </div>
@@ -4050,7 +4062,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-13-289-EMOJI-PULSE";
+    const CAMP_BUILD = "2026-07-13-291-AGENT-WORLD";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5352,8 +5364,15 @@
     let lastPosSent = 0;
     const otherVisitors = new Map();
     const followChain = { luna: "hermes", hermes: "oracle", oracle: "luna" };
-    const BEHAVIOR_LABELS = { free: "own thing", roam: "roaming", follow: "following", stand: "still", sit: "sitting", party: "party", visit: "visiting", home: "going home", meditate: "meditating ✦" };
+    const BEHAVIOR_LABELS = {
+      free: "own thing", roam: "roaming", follow: "following", stand: "still", sit: "sitting",
+      party: "party", visit: "visiting", home: "going home", house: "house call",
+      prop: "using camp gear", structure: "checking building", meditate: "meditating ✦",
+    };
     const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus", "jesus", "odin"]);
+    // Throttle autonomous world interactions so camp stays lively but not spammy
+    let lastAgentWorldActionAt = 0;
+    const houseInteriorChatAt = new Map(); // houseId -> timestamp
 
     function getPlayerSpeed() {
       if (isCampMobile()) return 9.2;
@@ -6077,19 +6096,141 @@
       return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
     }
 
-    function startNpcHome(n) {
-      const house = houseForNpc(n, true);
+    function agentsInsideHouse(houseId) {
+      if (!houseId) return [];
+      return allRoamers().filter((o) => !o.leaving && o.insideHouse === houseId);
+    }
+
+    const HOUSE_GUEST_LINES = [
+      "Knock knock — brought meadow energy and zero manners.",
+      "Hope the host doesn't mind unannounced vibes.",
+      "Stepping into someone else's story. Love that for me.",
+      "Shoes off? Heart on? Let's go.",
+      "Your walls, my monologue. Fair trade?",
+      "I came for the gossip and stayed for the lighting.",
+    ];
+    const HOUSE_HOST_WELCOME = [
+      "Come in — corona's better from the window seat.",
+      "Mi casa, tu monologue. Sit anywhere.",
+      "You found the door. Smart and slightly invasive. Approved.",
+      "Welcome — cookies may or may not be free.",
+    ];
+    const HOUSE_INSIDE_CHAT = [
+      "This room has opinions. I'm taking notes.",
+      "Interior design is just personality with furniture.",
+      "Quiet in here — perfect for inconvenient truths.",
+      "I like how the firmament peeks through the glass.",
+      "If walls could talk they'd still interrupt less than Hermes.",
+    ];
+
+    function startNpcHome(n, opts = {}) {
+      // preferOwn true = home; false = visit someone else's house
+      const preferOwn = opts.preferOwn !== false && !opts.asGuest;
+      let house = opts.house || null;
+      if (!house) {
+        if (opts.asGuest || (!preferOwn && Math.random() < 0.65)) {
+          house = houseForNpc(n, false) || houseForNpc(n, true);
+        } else {
+          house = houseForNpc(n, HOUSE_OWNERS.has(n.id)) || campHouses[Math.floor(Math.random() * campHouses.length)];
+        }
+      }
       if (!house) {
         resetNpcFreeWill(n, "roam");
         return;
       }
+      n.behavior = "home";
       n.homeTarget = house.id;
       n.housePhase = "approach";
       n.insideHouse = null;
       n.visitTarget = null;
+      n.houseGuest = house.ownerId !== n.id;
+      n.propTarget = null;
+      n.structureTarget = null;
       const door = houseDoorPos(house);
       n.tx = door.x;
       n.ty = door.y;
+    }
+
+    function notifyHouseEntry(n, house) {
+      const guest = n.houseGuest || n.id !== house.ownerId;
+      const ownerName = agentNames[house.ownerId] || house.ownerId;
+      if (guest) {
+        const line = pickUniqueLine(HOUSE_GUEST_LINES, `guest:${n.id}`, recentVisitLines)
+          || HOUSE_GUEST_LINES[Math.floor(Math.random() * HOUSE_GUEST_LINES.length)];
+        pushCampLine(n.name, `${line} (${house.emoji} ${house.name})`, 12, n.mood || "happy", { fromLocal: true, quiet: true });
+      } else if (Math.random() < 0.55) {
+        pushCampLine(n.name, HOUSE_HOME_LINES[n.id] || "Home sweet aurora home.", 10, n.mood, { quiet: true });
+      }
+      // Host already inside greets guest
+      if (guest) {
+        const host = allRoamers().find((o) => o.id === house.ownerId && o.insideHouse === house.id);
+        if (host && Math.random() < 0.7) {
+          setTimeout(() => {
+            if (host.insideHouse !== house.id) return;
+            const hi = HOUSE_HOST_WELCOME[Math.floor(Math.random() * HOUSE_HOST_WELCOME.length)];
+            pushCampLine(host.name, `${n.name} — ${hi}`, 12, host.mood || "happy", { fromLocal: true });
+          }, 900 + Math.random() * 1200);
+        }
+      }
+      // Player is inside this house — surface guest + live banter
+      if (houseInteriorOpen && activeHouseVisit?.id === house.id) {
+        refreshHouseGuestStrip();
+        const bubble = document.getElementById("camp-house-host-bubble");
+        if (bubble && guest) {
+          const prev = bubble.textContent || "";
+          bubble.textContent = `${n.name} just walked in. ${prev}`.slice(0, 420);
+        }
+        if (Math.random() < 0.55) {
+          void speakDynamicBanter?.(n.id, "ambient", {
+            push: true, quiet: false, priority: true, skipFloor: true,
+          }).catch(() => {});
+        }
+      }
+      maybeHouseInteriorChat(house.id);
+    }
+
+    function maybeHouseInteriorChat(houseId) {
+      const now = Date.now();
+      if ((houseInteriorChatAt.get(houseId) || 0) + 14000 > now) return;
+      const inside = agentsInsideHouse(houseId);
+      if (inside.length < 2) return;
+      houseInteriorChatAt.set(houseId, now);
+      // 2–3 agents inside chat with each other
+      const a = inside[Math.floor(Math.random() * inside.length)];
+      const b = inside.filter((o) => o.id !== a.id)[Math.floor(Math.random() * (inside.length - 1))] || inside[0];
+      if (!a || !b || a.id === b.id) return;
+      const house = campHouses.find((h) => h.id === houseId);
+      const topic = house
+        ? `Inside ${house.name} with ${b.name}. Firmament light through the windows.`
+        : `Inside a house with ${b.name}.`;
+      setTimeout(() => {
+        if (a.insideHouse !== houseId) return;
+        const line = HOUSE_INSIDE_CHAT[Math.floor(Math.random() * HOUSE_INSIDE_CHAT.length)];
+        pushCampLine(a.name, `${b.name} — ${line}`, 14, a.mood || "think", { fromLocal: true });
+        // Live AI follow-up when server is up
+        if (campServerOnline && Math.random() < 0.6) {
+          void emitNpcAiChatter?.(b, {
+            replyTo: { name: a.name, line },
+            allowAether: true,
+            priority: true,
+          });
+        }
+      }, 400);
+    }
+
+    function refreshHouseGuestStrip() {
+      const el = document.getElementById("camp-house-guests");
+      if (!el || !activeHouseVisit) return;
+      const inside = agentsInsideHouse(activeHouseVisit.id);
+      if (!inside.length) {
+        el.textContent = "Empty room — knock might still echo.";
+        return;
+      }
+      el.textContent = "Inside: " + inside.map((n) => {
+        const em = (typeof AGENT_EMOJI !== "undefined" && AGENT_EMOJI[n.id]) || "·";
+        const tag = n.id === activeHouseVisit.ownerId ? "host" : "guest";
+        return `${em} ${n.name} (${tag})`;
+      }).join(" · ");
     }
 
     function updateNpcHomeOne(n) {
@@ -6097,6 +6238,7 @@
       if (!house) {
         n.housePhase = null;
         n.homeTarget = null;
+        n.insideHouse = null;
         resetNpcFreeWill(n, "roam");
         return;
       }
@@ -6107,16 +6249,22 @@
           n.housePhase = "inside";
           n.insideHouse = house.id;
           const interior = houseInteriorPos(house);
-          n.x = interior.x;
-          n.y = interior.y;
-          n.idle = 70 + Math.floor(Math.random() * 110);
-          if (n.id === house.ownerId && Math.random() < 0.38) {
-            pushCampLine(n.name, HOUSE_HOME_LINES[n.id] || "Home sweet aurora home.", 10, n.mood);
-          }
+          // Offset guests so multiple agents can share a house without stacking
+          const guests = agentsInsideHouse(house.id).length;
+          const ang = guests * 0.9;
+          n.x = interior.x + Math.cos(ang) * (8 + guests * 6);
+          n.y = interior.y + Math.sin(ang) * (6 + guests * 4);
+          n.idle = 90 + Math.floor(Math.random() * 140);
+          n.houseGuest = n.id !== house.ownerId;
+          notifyHouseEntry(n, house);
         }
         return;
       }
       if (n.housePhase === "inside") {
+        // Occasional in-house chat while lingering
+        if (n.idle > 0 && n.idle % 40 === 0 && Math.random() < 0.35) {
+          maybeHouseInteriorChat(house.id);
+        }
         if (n.idle > 0) {
           n.idle -= 1;
           return;
@@ -6124,45 +6272,180 @@
         n.housePhase = "exit";
         n.tx = door.x;
         n.ty = door.y;
-        if (Math.random() < 0.2) {
-          pushCampLine(n.name, "Stepping back out — corona's calling.", 8, n.mood);
+        if (Math.random() < 0.28) {
+          pushCampLine(
+            n.name,
+            n.houseGuest ? "Thanks for the walls — back to the meadow." : "Stepping back out — corona's calling.",
+            9,
+            n.mood,
+            { quiet: true },
+          );
         }
         return;
       }
       if (n.housePhase === "exit") {
+        const wasHouse = n.insideHouse;
         n.insideHouse = null;
         moveNpcToward(n, n.tx, n.ty, 1.05);
         if (dist(n, { x: n.tx, y: n.ty }) < 10) {
           n.housePhase = null;
           n.homeTarget = null;
+          n.houseGuest = false;
+          if (houseInteriorOpen && activeHouseVisit?.id === wasHouse) refreshHouseGuestStrip();
           resetNpcFreeWill(n);
         }
+      }
+    }
+
+    // ── Agents use firmament props (beer, cookies, stereo, ouija, etc.) ──
+    function startNpcProp(n) {
+      if (!props.length) {
+        resetNpcFreeWill(n, "roam");
+        return;
+      }
+      const prop = props[Math.floor(Math.random() * props.length)];
+      n.behavior = "prop";
+      n.propTarget = prop.id;
+      n.structureTarget = null;
+      n.homeTarget = null;
+      n.housePhase = null;
+      n.visitTarget = null;
+      const pt = propCampPos(prop);
+      n.tx = pt.x + (Math.random() - 0.5) * 20;
+      n.ty = pt.y + (Math.random() - 0.5) * 20;
+      n.idle = 0;
+    }
+
+    function agentUseProp(n, prop) {
+      if (!n || !prop) return;
+      lastAgentWorldActionAt = Date.now();
+      const line = propLineForAgent(prop, n.id);
+      const msg = `${prop.emoji || ""} ${line}`.trim();
+      pushCampLine(n.name, msg, campReadHoldSec(msg, 16), n.mood || "happy", { fromLocal: true });
+      // World side-effects agents can trigger
+      if (prop.id === "stereo" && Math.random() < 0.55 && !campMusicOn) {
+        try { toggleCampMusic?.(); } catch (_) {}
+      }
+      if (prop.id === "weed" || prop.id === "herbs") {
+        campChillUntil = Math.max(campChillUntil, Date.now() + 60000);
+      }
+      if (prop.id === "ouija" && Math.random() < 0.25 && !ouijaOpen) {
+        // Agents rarely crack the board alone — just flavor line
+        pushCampLine("Camp", `${n.name} hovered over the ouija — planchette twitched.`, 10, "alert", { quiet: true });
+      }
+      recordCampMemory?.({
+        kind: "prop",
+        prop_id: prop.id,
+        agent_id: n.id,
+        text: `${n.name} used ${prop.name} at camp`,
+      });
+    }
+
+    function updateNpcPropOne(n) {
+      const prop = props.find((p) => p.id === n.propTarget);
+      if (!prop) {
+        n.propTarget = null;
+        resetNpcFreeWill(n, "roam");
+        return;
+      }
+      const pt = propCampPos(prop);
+      const d = dist(n, pt);
+      if (d > 16) {
+        moveNpcToward(n, pt.x, pt.y, 1.05);
+        return;
+      }
+      if (n.idle <= 0) {
+        agentUseProp(n, prop);
+        n.idle = 50 + Math.floor(Math.random() * 40);
+        return;
+      }
+      n.idle -= 1;
+      if (n.idle <= 0) {
+        n.propTarget = null;
+        resetNpcFreeWill(n);
+      }
+    }
+
+    // ── Agents check structures (shop, TV, club, shelter) ──
+    function startNpcStructure(n) {
+      if (!campStructures.length) {
+        resetNpcFreeWill(n, "roam");
+        return;
+      }
+      const st = campStructures[Math.floor(Math.random() * campStructures.length)];
+      n.behavior = "structure";
+      n.structureTarget = st.id;
+      n.propTarget = null;
+      n.homeTarget = null;
+      n.visitTarget = null;
+      const pos = layoutCampPoint(st.id, st.x, st.y);
+      n.tx = pos.x;
+      n.ty = pos.y;
+      n.idle = 0;
+    }
+
+    const STRUCTURE_LINES = {
+      shop: ["Browsing the aurora shop — tokens or vibes, same currency.", "Window shopping the firmament economy."],
+      tv: ["Lucid TV is doing the impossible channel again.", "Screen glow looks like a second corona."],
+      club: ["Velvet bass leaking into the meadow. Tempting.", "Aurora Velvet is calling. Nebula already reserved my seat."],
+      shelter: ["Visitor shelter is quiet — good for soft truths.", "Rest stop for tired timelines."],
+    };
+
+    function updateNpcStructureOne(n) {
+      const st = campStructures.find((s) => s.id === n.structureTarget);
+      if (!st) {
+        n.structureTarget = null;
+        resetNpcFreeWill(n, "roam");
+        return;
+      }
+      const pos = layoutCampPoint(st.id, st.x, st.y);
+      if (dist(n, pos) > 18) {
+        moveNpcToward(n, pos.x, pos.y, 1.0);
+        return;
+      }
+      if (n.idle <= 0) {
+        const pool = STRUCTURE_LINES[st.type] || ["Checking the firmament furniture."];
+        const line = pool[Math.floor(Math.random() * pool.length)];
+        pushCampLine(n.name, `${st.emoji || ""} ${line}`.trim(), 12, n.mood || "think", { fromLocal: true });
+        lastAgentWorldActionAt = Date.now();
+        n.idle = 40 + Math.floor(Math.random() * 50);
+        // Soft structure side-effects
+        if (st.type === "tv" && Math.random() < 0.15 && !lucidTvOpen) {
+          setCampLifeStatus?.(`${n.name} is staring into Lucid Mind TV`);
+        }
+        if (st.type === "club" && Math.random() < 0.12) {
+          pushCampLine("Camp", `${n.name} drifts toward Aurora Velvet energy.`, 8, "flirt", { quiet: true });
+        }
+        return;
+      }
+      n.idle -= 1;
+      if (n.idle <= 0) {
+        n.structureTarget = null;
+        resetNpcFreeWill(n);
       }
     }
 
     function pickRandomNpcBehavior(npc) {
       const chilling = campChillUntil > Date.now();
       const r = Math.random();
-      // Bias toward sit/stand so agents often linger or freeze when they feel like it
+      // Richer free will: houses, props, structures, social
       if (chilling) {
-        if (r < 0.42) return "sit";
-        if (r < 0.68) return "stand";
-        if (r < 0.8) return "roam";
-        if (r < 0.9) return "visit";
-        if (npc && HOUSE_OWNERS.has(npc.id)) return "home";
-        return "roam";
+        if (r < 0.35) return "sit";
+        if (r < 0.55) return "stand";
+        if (r < 0.7) return "roam";
+        if (r < 0.82) return "visit";
+        if (r < 0.92) return "home";
+        return "prop";
       }
-      if (r < 0.12) return "roam";
-      if (r < 0.24) return "visit";
-      if (r < 0.48) return "sit";
-      if (r < 0.7) return "stand";
-      if (r < 0.8) {
-        if (npc && HOUSE_OWNERS.has(npc.id)) return "home";
-        if (npc && Math.random() < 0.2) return "home";
-        return "roam";
-      }
-      if (r < 0.9) return "follow";
-      return "roam";
+      if (r < 0.10) return "roam";
+      if (r < 0.22) return "visit";
+      if (r < 0.38) return "sit";
+      if (r < 0.52) return "stand";
+      if (r < 0.66) return "home"; // own home OR guest house (resolved in startNpcHome)
+      if (r < 0.78) return "prop";
+      if (r < 0.88) return "structure";
+      if (r < 0.94) return "follow";
+      return "party";
     }
 
     function pickVisitTarget(n) {
@@ -6194,30 +6477,49 @@
 
     function resetNpcFreeWill(n, behavior) {
       let next = behavior || pickRandomNpcBehavior(n);
-      // Party less often — chill/still is the default vibe
-      if (!behavior && Math.random() < 0.1) next = "party";
+      // Soft throttle heavy world actions (prop/structure spam)
+      if (!behavior && (next === "prop" || next === "structure")
+          && Date.now() - lastAgentWorldActionAt < 8000 && Math.random() < 0.7) {
+        next = Math.random() < 0.5 ? "roam" : "visit";
+      }
+      // Sometimes force a guest house call so agents enter each other's homes
+      if (!behavior && next === "home" && Math.random() < 0.55) {
+        // majority of "home" picks become guest visits to someone else's house
+      }
       const changed = n.behavior !== next;
       n.behavior = next;
       n.behaviorTimer = 120 + Math.floor(Math.random() * 260);
       n.idle = 0;
-      // Each mood swing picks a personal pace (lazy stroll → slightly brisk)
       n.paceMul = 0.35 + Math.random() * 0.7;
+      n.propTarget = null;
+      n.structureTarget = null;
       if (n.behavior === "visit") {
         startNpcVisit(n);
         n.paceMul = Math.max(n.paceMul, 0.55);
-      } else if (n.behavior === "home") {
-        startNpcHome(n);
+      } else if (n.behavior === "home" || n.behavior === "house") {
+        // Guest visits others' houses often; owners still go home sometimes
+        const asGuest = !HOUSE_OWNERS.has(n.id) || Math.random() < 0.58;
+        startNpcHome(n, { asGuest, preferOwn: !asGuest });
         n.paceMul = Math.max(n.paceMul, 0.55);
+      } else if (n.behavior === "prop") {
+        startNpcProp(n);
+        n.paceMul = Math.max(n.paceMul, 0.5);
+      } else if (n.behavior === "structure") {
+        startNpcStructure(n);
+        n.paceMul = Math.max(n.paceMul, 0.5);
       } else if (n.behavior === "roam" || n.behavior === "party") {
         n.visitTarget = null;
+        n.homeTarget = null;
+        n.housePhase = null;
         pickNpcWanderTarget(n, n.behavior === "party" ? props[Math.floor(Math.random() * props.length)] : null);
         if (n.behavior === "party") n.paceMul = Math.min(1.05, n.paceMul + 0.2);
-        // Sometimes start a roam by just standing still first
         if (n.behavior === "roam" && Math.random() < 0.35) {
           n.idle = 40 + Math.floor(Math.random() * 120);
         }
       } else if (n.behavior === "sit" || n.behavior === "stand") {
         n.visitTarget = null;
+        n.homeTarget = null;
+        n.housePhase = null;
         n.tx = n.x;
         n.ty = n.y;
         n.behaviorTimer = n.behavior === "sit"
@@ -6578,10 +6880,14 @@
           moveNpcToward(g, g.tx, g.ty, 1.05);
           if (dist(g, { x: g.tx, y: g.ty }) < 12) {
             g.arriving = false;
-            pickNpcWanderTarget(g);
+            // Hand off to free-will / roam once arrived
+            if (npcMode === "free") resetNpcFreeWill(g);
+            else pickNpcWanderTarget(g);
           }
           continue;
         }
+        // When free mode, updateNpcFree already drives guests (houses/props/etc.)
+        if (npcMode === "free") continue;
         updateNpcRoamOne(g);
       }
     }
@@ -6603,7 +6909,9 @@
     }
 
     function updateNpcFree() {
-      for (const n of npcs) {
+      const roster = [...npcs, ...campGuests.filter((g) => !g.leaving)];
+      for (const n of roster) {
+        if (n.leaving || n.arriving) continue;
         if (!n.socializing && !n.gathering && !n.sitPinned) {
           if (n.behaviorTimer > 0) n.behaviorTimer -= 1;
           else resetNpcFreeWill(n);
@@ -6622,8 +6930,16 @@
           updateNpcVisitOne(n);
           continue;
         }
-        if (n.behavior === "home") {
+        if (n.behavior === "home" || n.behavior === "house") {
           updateNpcHomeOne(n);
+          continue;
+        }
+        if (n.behavior === "prop") {
+          updateNpcPropOne(n);
+          continue;
+        }
+        if (n.behavior === "structure") {
+          updateNpcStructureOne(n);
           continue;
         }
         if (n.behavior === "party" || n.behavior === "roam") {
@@ -10038,27 +10354,54 @@
     const speechBubbleRects = [];
     const pinnedSpeech = new Map();
     let pinnedSpeechKey = "";
+    /** Canvas bubble brought to front when selected */
+    let selectedBubbleSpeaker = null;
+    let selectedBubbleLine = "";
+    let selectedBubbleColor = "#67e8f9";
+    let selectedBubbleMood = "neutral";
+    let selectedBubbleAgentId = "";
     const speechTextEl = document.getElementById("speech-text");
     const speechWhoEl = document.querySelector("#speech-now .who");
 
     function showBigSpeech(who, line, holdSec = 52) {
       const text = (line || "").trim();
       if (!text) return;
-      if (pinnedSpeech.has(who)) {
-        speechHold.set(who, { line: pinnedSpeech.get(who).line, until: Date.now() + 86400000 });
+      if (pinnedSpeech.has(who) || selectedBubbleSpeaker === who) {
+        const keep = pinnedSpeech.get(who)?.line || selectedBubbleLine || text;
+        speechHold.set(who, { line: keep, until: Date.now() + 86400000, front: true });
         return;
       }
       if (convoReadingHold && !canvasCampChatOnly()) return;
       speechHold.set(who, { line: text, until: Date.now() + holdSec * 1000 });
     }
 
-    function showCampSpeechPin(_speaker, _text, _mood) {
-      // Disabled — "full monologue / tap to pin" panel off; use 💬 Chat
-      hideCampSpeechPin();
+    function showCampSpeechPin(speaker, text, mood, opts = {}) {
+      const panel = document.getElementById("camp-speech-pin");
+      const whoEl = panel?.querySelector(".csp-who");
+      const bodyEl = panel?.querySelector(".csp-body");
+      const clean = String(text || "").trim();
+      if (!panel || !clean) return;
+      const aid = opts.agentId || "";
+      const emo = (aid && AGENT_EMOJI[aid]) || "";
+      const moodEm = MOOD_EMOJI[mood] || "";
+      if (whoEl) whoEl.textContent = `${emo} ${speaker || "Agent"} ${moodEm}`.trim();
+      if (bodyEl) {
+        bodyEl.textContent = clean;
+        // Selectable real text for copy/highlight
+        bodyEl.style.userSelect = "text";
+        bodyEl.style.webkitUserSelect = "text";
+      }
+      panel.hidden = false;
+      panel.classList.add("show");
+      panel.setAttribute("aria-hidden", "false");
+      pinnedSpeechKey = `${speaker}::${clean}`;
+      try {
+        bodyEl?.focus?.({ preventScroll: true });
+      } catch (_) {}
     }
 
-    /** Keep agent line in world/chat — do NOT open pin reader window */
-    function openAgentScrollBubble(speaker, text, mood, opts = {}) {
+    /** Select bubble: canvas front + HTML panel with selectable text */
+    function selectSpeechBubble(speaker, text, mood, opts = {}) {
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase());
@@ -10066,10 +10409,29 @@
         npc.fullLine = clean;
         npc.line = clean;
       }
-      const holdMs = Math.max(45000, campReadHoldSec(clean, 40) * 1000);
-      speechHold.set(speaker, { line: clean, until: Date.now() + holdMs });
-      // Full text lives in 💬 panel / convo log — not the pin overlay
-      hideCampSpeechPin();
+      selectedBubbleSpeaker = speaker;
+      selectedBubbleLine = clean;
+      selectedBubbleColor = opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9";
+      selectedBubbleMood = mood || npc?.mood || "neutral";
+      selectedBubbleAgentId = opts.agentId || npc?.id || "";
+      const holdMs = Math.max(90000, campReadHoldSec(clean, 40) * 1000);
+      speechHold.set(speaker, { line: clean, until: Date.now() + holdMs, front: true });
+      pinnedSpeech.set(speaker, { line: clean, mood: selectedBubbleMood });
+      showCampSpeechPin(speaker, clean, selectedBubbleMood, {
+        agentId: selectedBubbleAgentId,
+        color: selectedBubbleColor,
+      });
+      if (opts.focusChat !== false && selectedBubbleAgentId) {
+        try {
+          focusChatAgent?.(selectedBubbleAgentId, { focusInput: false, rail: false, quiet: true });
+        } catch (_) {}
+      }
+      setCampReplyRail?.(speaker, clean);
+      showToast?.(`${speaker} · bubble front · text selectable`);
+    }
+
+    function openAgentScrollBubble(speaker, text, mood, opts = {}) {
+      selectSpeechBubble(speaker, text, mood, opts);
     }
 
     function hideCampSpeechPin() {
@@ -10077,6 +10439,7 @@
       if (!panel) return;
       panel.classList.remove("show");
       panel.hidden = true;
+      panel.setAttribute("aria-hidden", "true");
       pinnedSpeechKey = "";
       document.querySelectorAll("#convo-lines .line.pinned-line").forEach((el) => {
         el.classList.remove("pinned-line");
@@ -10084,19 +10447,28 @@
     }
 
     function pinCampSpeech(speaker, text, mood, opts = {}) {
-      // Pin overlay disabled — still hold speech on agent bubble only
-      const clean = (text || "").trim();
-      if (!clean || !speaker) return;
-      speechHold.set(speaker, { line: clean, until: Date.now() + 86400000 });
-      hideCampSpeechPin();
+      selectSpeechBubble(speaker, text, mood, opts);
     }
 
     function unpinCampSpeech() {
+      if (selectedBubbleSpeaker) {
+        const held = speechHold.get(selectedBubbleSpeaker);
+        if (held) {
+          speechHold.set(selectedBubbleSpeaker, {
+            line: held.line,
+            until: Date.now() + 12000,
+            front: false,
+          });
+        }
+      }
       for (const [speaker] of pinnedSpeech) {
         const npc = roamersBySpeaker(speaker);
-        if (npc) endAgentMeditation(npc.id);
+        if (npc) endAgentMeditation?.(npc.id);
       }
       pinnedSpeech.clear();
+      selectedBubbleSpeaker = null;
+      selectedBubbleLine = "";
+      selectedBubbleAgentId = "";
       hideCampSpeechPin();
     }
 
@@ -12309,7 +12681,35 @@
         : isChurch
           ? `⛪ Inside the church (Jesus's house) — E or Esc to leave`
           : `Inside ${house.name} — E or Esc to leave`);
+      // Soft-invite nearby agents to join you inside (they walk over as guests)
+      inviteAgentsToHouse(house, 1 + Math.floor(Math.random() * 2));
+      refreshHouseGuestStrip();
       setTimeout(() => document.getElementById("camp-house-input")?.focus(), 120);
+    }
+
+    function inviteAgentsToHouse(house, count = 2) {
+      if (!house) return;
+      const pool = allRoamers().filter((n) =>
+        !n.leaving && !n.arriving && n.insideHouse !== house.id
+        && n.id !== house.ownerId
+        && !n.socializing && !n.gathering
+      );
+      // Prefer agents near the house door
+      const door = houseDoorPos(house);
+      pool.sort((a, b) => dist(a, door) - dist(b, door));
+      const pick = pool.slice(0, Math.max(1, Math.min(count, 3)));
+      pick.forEach((n, i) => {
+        setTimeout(() => {
+          if (!houseInteriorOpen || activeHouseVisit?.id !== house.id) {
+            // Even if player left, they can still house-call on free will
+          }
+          startNpcHome(n, { house, asGuest: true });
+          n.behaviorTimer = 200 + Math.floor(Math.random() * 120);
+        }, 600 + i * 1400);
+      });
+      if (pick.length) {
+        showToast?.(`${pick.map((n) => n.name).join(" · ")} heading to ${house.emoji} ${house.name}`);
+      }
     }
 
     function closeCampHouse() {
@@ -12317,10 +12717,13 @@
       activeHouseVisit = null;
       document.getElementById("camp-house-layer")?.classList.remove("open");
       document.body.classList.remove("house-interior-open");
+      // Agents may stay inside / leave on their own timers
       chatterPaused = false;
       const vid = document.getElementById("camp-house-portrait-video");
       if (vid) { vid.pause(); vid.removeAttribute("src"); }
       document.getElementById("camp-enter-house")?.classList.remove("visible");
+      const guests = document.getElementById("camp-house-guests");
+      if (guests) guests.textContent = "Inside: —";
       setCampLifeStatus("Back outside — aurora camp");
       updateNearest();
     }
@@ -12329,7 +12732,17 @@
       const input = document.getElementById("camp-house-input");
       const text = (input?.value || "").trim();
       if (!text || !activeHouseVisit?.ownerId) return;
-      const agentId = activeHouseVisit.ownerId;
+      // Prefer host; if guests are inside, sometimes let a guest answer too
+      let agentId = activeHouseVisit.ownerId;
+      const guests = agentsInsideHouse(activeHouseVisit.id);
+      if (guests.length) {
+        const hostIn = guests.find((g) => g.id === activeHouseVisit.ownerId);
+        const others = guests.filter((g) => g.id !== activeHouseVisit.ownerId);
+        if (!hostIn && others.length) agentId = others[0].id;
+        else if (others.length && Math.random() < 0.35) {
+          agentId = others[Math.floor(Math.random() * others.length)].id;
+        }
+      }
       const houseName = activeHouseVisit.name;
       const bubble = document.getElementById("camp-house-host-bubble");
       const status = document.getElementById("camp-house-status");
@@ -12346,9 +12759,10 @@
         vid.play().catch(() => {});
       }
       const isChurch = !!(activeHouseVisit?.church) || agentId === "jesus";
+      const whoInside = guests.map((g) => g.name).join(", ") || agentNames[agentId] || agentId;
       const houseNote = isChurch
-        ? `(Visitor is INSIDE your church — which is also your house, lol. Intimate one-on-one. Stained glass, steeple, living-room warmth. Answer with mind-bending, random-but-relevant parables: interesting, funny, true, compassionate. 5-9 sentences.) `
-        : `(Visitor is inside your home — ${houseName}. Intimate one-on-one. Cozy, personal, unhurried. Be mind-bending and relevant — surprise them without going off-topic.) `;
+        ? `Inside the church-house (${houseName}). Also here: ${whoInside}. Visitor says: `
+        : `Inside ${houseName}. Also here: ${whoInside}. Visitor says: `;
       recordCampMemory({ kind: "chat", agent_id: agentId, text: `[inside ${houseName}] ${text}` });
       try {
         if (!campServerOnline) throw new Error("offline");
@@ -12360,6 +12774,19 @@
         });
         if (!res.ok) throw new Error(data.detail || "chat failed");
         applyChatResult(agentId, data, { useHouse: true });
+        // Guests sometimes chime in after host
+        const chimers = guests.filter((g) => g.id !== agentId).slice(0, 2);
+        chimers.forEach((g, i) => {
+          setTimeout(() => {
+            if (!houseInteriorOpen || activeHouseVisit?.id !== activeHouseVisit?.id) return;
+            if (g.insideHouse !== activeHouseVisit?.id) return;
+            void emitNpcAiChatter?.(g, {
+              replyTo: { name: agentNames[agentId] || agentId, line: data.reply || text },
+              allowAether: true,
+              priority: true,
+            });
+          }, 2200 + i * 2800);
+        });
       } catch (err) {
         const data = aetherLocalChat(agentId, houseNote + text);
         applyChatResult(agentId, data, { useHouse: true });
@@ -12367,6 +12794,7 @@
       }
       if (input) input.value = "";
       chatBusy = false;
+      refreshHouseGuestStrip();
     }
 
     function renderDialogueQuickBtns(agentId) {
@@ -12690,9 +13118,9 @@
     }
 
     function maxCanvasSpeechBubbles() {
-      // A few readable speech bubbles — full monologue also in 💬 Chat / sidebar
-      if (isIOS() && isCampMobile()) return 2;
-      return isCampMobile() ? 2 : 3;
+      // More bubbles on screen so you can select / bring any to front
+      if (isIOS() && isCampMobile()) return 3;
+      return isCampMobile() ? 4 : 6;
     }
 
     function drawThoughtBubble(sx, sy, text, color) {
@@ -12730,35 +13158,53 @@
       if (!text) return null;
       const mobile = isCampMobile();
       const ios = isIOS() && mobile;
-      // Readable multi-line reply — full text held; wrap as many lines as fit
       const raw = String(text || "").trim();
       if (!raw || raw === "…" || raw === "...") {
         return drawThoughtBubble(sx, sy, "…", color), null;
       }
-      const maxW = ios ? 240 : mobile ? 280 : Math.min(420, Math.floor(viewW * 0.42));
-      const fontSize = ios ? 12 : mobile ? 13 : 14;
+      const selected = !!(meta?.selected || (meta?.speaker && meta.speaker === selectedBubbleSpeaker));
+      // Selected bubble: bigger, more lines, gold frame, drawn later = on top
+      const maxW = selected
+        ? (ios ? 280 : mobile ? 320 : Math.min(520, Math.floor(viewW * 0.55)))
+        : (ios ? 240 : mobile ? 280 : Math.min(420, Math.floor(viewW * 0.42)));
+      const fontSize = selected ? (ios ? 13 : mobile ? 14 : 15) : (ios ? 12 : mobile ? 13 : 14);
       const lineH = fontSize + 5;
-      const maxLines = ios ? 8 : mobile ? 10 : 14;
-      const pinned = false;
+      const maxLines = selected ? (ios ? 14 : mobile ? 16 : 22) : (ios ? 8 : mobile ? 10 : 14);
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
       const lines = wrapCanvasLines(raw, maxW - 24, maxLines, fontSize);
       if (!lines.length) return null;
       const textW = Math.max(...lines.map((l) => ctx.measureText(l).width), 72);
       const boxW = Math.min(maxW, textW + 32);
-      const boxH = lines.length * lineH + 18;
+      const boxH = lines.length * lineH + 18 + (selected ? 10 : 0);
       let bx = sx - boxW / 2;
-      let by = above ? sy - boxH - 22 : sy + 16;
+      // Lift selected bubble slightly so it reads as "front"
+      let by = above ? sy - boxH - (selected ? 36 : 22) : sy + 16;
       const pad = mobile ? 8 : 12;
       bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
       by = Math.max(pad, Math.min(viewH - boxH - pad, by));
-      ctx.fillStyle = pinned ? "rgba(8, 18, 32, 0.98)" : "rgba(4, 10, 18, 0.96)";
+      // Soft shadow under selected
+      if (selected) {
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.beginPath();
+        ctx.roundRect(bx + 4, by + 6, boxW, boxH, 14);
+        ctx.fill();
+      }
+      ctx.fillStyle = selected ? "rgba(10, 22, 40, 0.99)" : "rgba(4, 10, 18, 0.96)";
       ctx.beginPath();
-      ctx.roundRect(bx, by, boxW, boxH, 12);
+      ctx.roundRect(bx, by, boxW, boxH, selected ? 14 : 12);
       ctx.fill();
-      ctx.strokeStyle = pinned ? "#fde68a" : color;
-      ctx.lineWidth = pinned ? 3 : 2.5;
+      ctx.strokeStyle = selected ? "#fde68a" : color;
+      ctx.lineWidth = selected ? 3.5 : 2.5;
       ctx.stroke();
+      if (selected) {
+        ctx.strokeStyle = "rgba(103, 232, 249, 0.65)";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(bx + 3, by + 3, boxW - 6, boxH - 6);
+        ctx.font = `700 ${Math.max(10, fontSize - 2)}px Segoe UI`;
+        ctx.fillStyle = "#fde68a";
+        ctx.fillText("✦ front · selectable", bx + 12, by + 12);
+      }
       ctx.fillStyle = color + "33";
       ctx.beginPath();
       if (above) {
@@ -12772,21 +13218,22 @@
       }
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = "#f8fafc";
+      const textTop = selected ? by + 22 : by + 14;
       lines.forEach((ln, i) => {
         const isHint = ln.startsWith("↕");
         ctx.fillStyle = isHint ? "#67e8f9" : "#f8fafc";
-        ctx.fillText(ln, bx + 12, by + 14 + i * lineH);
+        ctx.font = `600 ${fontSize}px Segoe UI`;
+        ctx.fillText(ln, bx + 12, textTop + i * lineH);
       });
       ctx.textAlign = "center";
-      // Hit target — open 💬 chat for full scrollable thread
       const rect = {
         bx, by, boxW, boxH,
         speaker: meta?.speaker || "",
         agentId: meta?.agentId || "",
-        line: raw,
+        line: meta?.fullLine || raw,
         color,
         mood: meta?.mood || "neutral",
+        selected,
       };
       speechBubbleRects.push(rect);
       return rect;
@@ -12795,28 +13242,38 @@
     function drawAgentSpeechBubbles() {
       speechBubbleRects.length = 0;
       let drawn = 0;
-      const max = maxCanvasSpeechBubbles();
+      const max = Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 4 : 3);
       const now = Date.now();
       const roamers = allRoamers();
+      // Selected speaker always drawn last (true front)
       const priority = [
-        ...roamers.filter((n) => pinnedSpeech.has(n.name)),
+        ...roamers.filter((n) => n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId),
+        ...roamers.filter((n) => pinnedSpeech.has(n.name) && n.name !== selectedBubbleSpeaker),
         ...roamers.filter((n) => n.id === speakingAgentId),
         ...roamers.filter((n) => speechHold.has(n.name) && speechHold.get(n.name).until > now),
         ...roamers.filter((n) => {
           const line = (n.line || "").trim();
           return line === "..." || line === "…";
         }),
-        ...roamers.filter((n) => {
-          const held = speechHold.get(n.name);
-          return held && held.until > now && held.line;
-        }),
       ];
       const seen = new Set();
+      const queue = [];
       for (const n of priority) {
-        if (seen.has(n.id) || drawn >= max) continue;
+        if (seen.has(n.id)) continue;
         seen.add(n.id);
+        queue.push(n);
+      }
+      // Draw non-selected first, selected last so it paints on top
+      queue.sort((a, b) => {
+        const aSel = a.name === selectedBubbleSpeaker || a.id === selectedBubbleAgentId ? 1 : 0;
+        const bSel = b.name === selectedBubbleSpeaker || b.id === selectedBubbleAgentId ? 1 : 0;
+        return aSel - bSel;
+      });
+      for (const n of queue) {
+        if (drawn >= max && n.name !== selectedBubbleSpeaker && n.id !== selectedBubbleAgentId) continue;
         const s = worldToScreen(camp.x + n.x, camp.y + n.y);
-        if (isCampMobile() && (s.x < -48 || s.x > viewW + 48 || s.y < -48 || s.y > viewH + 48)) continue;
+        if (isCampMobile() && (s.x < -48 || s.x > viewW + 48 || s.y < -48 || s.y > viewH + 48)
+            && n.name !== selectedBubbleSpeaker) continue;
         const color = n.color || AGENT_COLORS[n.id] || "#67e8f9";
         const thinkLine = (n.line || "").trim();
         if (thinkLine === "..." || thinkLine === "…") {
@@ -12825,22 +13282,27 @@
           continue;
         }
         const held = speechHold.get(n.name);
-        const active = held && held.until > now ? held : null;
-        if (!active?.line) continue;
-        // Mood/agent emoji prefix for livelier bubbles
+        const isSel = n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId;
+        const activeLine = (isSel && selectedBubbleLine)
+          || (held && held.until > now ? held.line : null)
+          || (isSel ? n.fullLine || n.line : null);
+        if (!activeLine) continue;
         const me = MOOD_EMOJI[n.mood || "neutral"] || "";
         const ae = AGENT_EMOJI[n.id] || "";
-        const bubbleText = `${ae}${me ? " " + me : ""} ${active.line}`.trim();
+        const bubbleText = `${ae}${me ? " " + me : ""} ${activeLine}`.trim();
         drawSpeechBubble(s.x, s.y - 8, bubbleText, color, true, {
           speaker: n.name,
           agentId: n.id,
           mood: n.mood || "neutral",
+          selected: isSel,
+          fullLine: activeLine,
         });
         drawn += 1;
       }
     }
 
     function hitTestSpeechBubble(sx, sy) {
+      // Top-most first (last drawn = selected)
       for (let i = speechBubbleRects.length - 1; i >= 0; i--) {
         const r = speechBubbleRects[i];
         if (sx >= r.bx && sx <= r.bx + r.boxW && sy >= r.by && sy <= r.by + r.boxH) return r;
@@ -14033,15 +14495,20 @@
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       if (bubbleHit?.speaker) {
         const npc = roamersBySpeaker(bubbleHit.speaker);
-        const full = (npc?.fullLine || bubbleHit.line || "").trim();
+        const full = (npc?.fullLine || bubbleHit.line || selectedBubbleLine || "").trim();
         const aid = bubbleHit.agentId || npc?.id;
-        // Click/tap bubble → focus that chat (lock talk + highlight history)
-        if (aid) focusChatAgent(aid, { focusInput: true, rail: false, quiet: false });
-        if (full) setCampReplyRail?.(bubbleHit.speaker, full);
-        openAgentScrollBubble(bubbleHit.speaker, full, bubbleHit.mood, {
-          color: bubbleHit.color,
-          agentId: aid,
-        });
+        // Click/tap bubble → select, bring to front, open selectable panel
+        if (selectedBubbleSpeaker === bubbleHit.speaker && full === selectedBubbleLine) {
+          // Second tap on same bubble: still keep front; optional re-focus panel
+          showCampSpeechPin(bubbleHit.speaker, full, bubbleHit.mood, { agentId: aid });
+        } else {
+          selectSpeechBubble(bubbleHit.speaker, full, bubbleHit.mood, {
+            color: bubbleHit.color,
+            agentId: aid,
+            focusChat: true,
+          });
+        }
+        if (aid) focusChatAgent?.(aid, { focusInput: false, rail: false, quiet: true });
         return;
       }
       const hit = hitTestCamp(sx, sy);

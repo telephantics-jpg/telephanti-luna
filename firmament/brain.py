@@ -305,26 +305,27 @@ def _agent_system_prompt(
         )
 
     return f"""You are {name} at Luna Camp — a chill aurora meadow hangout in 2026.
-Vibe role: {role}. You are a living character, not a chatbot or interchangeable NPC.
+Vibe role: {role}. Living character only — never a narrator, coach, or prompt reader.
 
-Character: {persona}
-Voice: {dna}
+Who you are: {persona}
+How you sound: {dna}
 Humor: {style}
-{flavor}This turn's energy: {beat}
+{flavor}Energy this beat: {beat}
 Pace: {length_hint}
 {scene}
 
-Camp air (ideas only — riff, never read aloud as instructions):
+Background (ideas only — never read aloud):
 {context_block}
 
-Stay in character always. Invent fresh wording. Prefer original wit over mystic filler.
-If another camper would say the same line, rewrite until only you would say it.
-Never claim memory of past visitor quotes ("last time you said", "as you mentioned", CRM-style).
-Never use *stage directions* or *asterisk actions*. Never mention AI, models, prompts, Ollama, or Grok.
-Never recite rules, checklists, or labels from this brief. Never open with the same greeting twice.
+OUTPUT RULES (silent — do not speak these):
+- Pure dialogue only. Words {name} would actually say out loud at the fire.
+- No preamble. No labels. No "here's my take", "as {name}", "speaking as", "in character",
+  "my reply", "let me respond", "unique voice", "monologue", "paragraphs", word counts.
+- Never quote or restate the user's instructions. Never mention AI, models, prompts, Ollama, Grok.
+- Never *stage directions* or *asterisk actions*. No CRM memory quotes.
+- Invent fresh wording. Prefer wit over mystic filler.
 
-Speak only as {name} — pure dialogue, no preamble, no "as {name}:".
-After the spoken words, on the very last line alone, add mood JSON: {{"mood":"{moods}"}}"""
+After the spoken words only, last line alone: {{"mood":"{moods}"}}"""
 
 
 # Phrases models often parrot from system/user scaffolding
@@ -352,8 +353,48 @@ _META_PAREN = re.compile(
 )
 
 
+# Meta openers models love to speak: "Here's my take as Luna…", "Speaking as Thor…"
+_META_OPENER = re.compile(
+    r"^(?:"
+    r"(?:okay[,.]?\s+|so[,.]?\s+|alright[,.]?\s+)?"
+    r"(?:here(?:'s| is)\s+my\s+take\s+as\s+\w[\w\s]{0,20}"
+    r"|here(?:'s| is)\s+my\s+(?:take|reply|response|answer)(?:\s+as\s+\w[\w\s]{0,20})?"
+    r"|my\s+take\s+as\s+\w[\w\s]{0,20}"
+    r"|speaking\s+as\s+\w[\w\s]{0,20}"
+    r"|as\s+\w[\w\s]{0,20}(?:,|\s+(?:i|i'd|i'll|here|let))"
+    r"|reply(?:ing)?\s+as\s+\w[\w\s]{0,20}"
+    r"|let\s+me\s+(?:respond|reply|answer)(?:\s+as\s+\w[\w\s]{0,20})?"
+    r"|in\s+character(?:\s+as\s+\w[\w\s]{0,20})?"
+    r"|staying\s+in\s+character"
+    r"|unique\s+voice"
+    r"|live\s+ai\s+group\s+hook"
+    r"|fire\s+circle(?:\s+with)?"
+    r"|topic\s+in\s+the\s+air"
+    r"|your\s+turn\s*[—\-–:]"
+    r")"
+    r"\s*[,:\-—–]?\s*)",
+    re.I,
+)
+
+_META_INLINE = re.compile(
+    r"(?:"
+    r"\bhere(?:'s| is)\s+my\s+take\s+as\s+\w[\w\s]{0,20}\b"
+    r"|\bmy\s+take\s+as\s+\w[\w\s]{0,20}\b"
+    r"|\bspeaking\s+as\s+\w[\w\s]{0,20}\b"
+    r"|\bin\s+character(?:\s+as\s+\w[\w\s]{0,20})?\b"
+    r"|\bstay(?:ing)?\s+in\s+character\b"
+    r"|\bunique\s+voice\b"
+    r"|\b~?\d+\s*(?:[-–]\s*)?\d*\s*words?\b"
+    r"|\bfull\s+paragraphs?\b"
+    r"|\bmood\s+json\b"
+    r"|\bno\s+stage\s+directions?\b"
+    r")",
+    re.I,
+)
+
+
 def _strip_meta_dialogue_leak(text: str) -> str:
-    """Strip prompt scaffolding models sometimes speak out loud."""
+    """Strip prompt scaffolding + meta-narration models sometimes speak out loud."""
     t = (text or "").strip()
     if not t:
         return t
@@ -369,7 +410,7 @@ def _strip_meta_dialogue_leak(text: str) -> str:
         r"DYNAMIC\s+OPENING(?:\s+LINE)?|"
         r"Rules for this turn|Your reply MUST|Structure\s*:|Step\s*\d+|"
         r"MODE\s*:|WHO YOU ARE|HOW YOU SOUND|OUTPUT\s*:|WORLD NOISE|"
-        r"Hard no\s*:|Soft rules?\s*:|"
+        r"Hard no\s*:|Soft rules?\s*:|OUTPUT RULES|"
         r"DO\s*$|DON'T\s*\(hard rules\)\s*$"
         r").*$",
         re.I | re.M,
@@ -388,6 +429,16 @@ def _strip_meta_dialogue_leak(text: str) -> str:
             t2,
             flags=re.I | re.M,
         )
+        # "Here's my take as Luna:" etc. at start of each paragraph
+        parts = []
+        for para in re.split(r"\n\s*\n", t2):
+            p = para.strip()
+            if not p:
+                continue
+            p = _META_OPENER.sub("", p).strip()
+            if p:
+                parts.append(p)
+        t2 = "\n\n".join(parts)
         # Drop leading numbered instruction leftovers
         t2 = re.sub(r"^(?:\d+[\).]\s+[^\n]+\n){2,}", "", t2)
         t2 = re.sub(r"\n{3,}", "\n\n", t2).strip()
@@ -397,8 +448,14 @@ def _strip_meta_dialogue_leak(text: str) -> str:
 
     # Strip instructional parentheticals models copy from user/system tails
     t = _META_PAREN.sub("", t)
+    t = re.sub(
+        r"\((?:Live AI[^)]*|in character[^)]*|~?\d+\s*words?[^)]*|unique voice[^)]*)\)",
+        "",
+        t,
+        flags=re.I,
+    )
 
-    # Remove full lines that are pure instruction echo
+    # Remove full lines that are pure instruction echo / meta
     kept: list[str] = []
     for line in t.splitlines():
         s = line.strip()
@@ -411,7 +468,11 @@ def _strip_meta_dialogue_leak(text: str) -> str:
         if re.match(
             r"^(?:~?\d+[–\-]\d+\s+words?|at least \w+ full paragraphs?|"
             r"mood JSON|end with mood|no stage directions?|"
-            r"never mention (?:AI|LLM|Ollama|Grok)|this turn's energy)\b",
+            r"never mention (?:AI|LLM|Ollama|Grok)|this turn's energy|"
+            r"energy this beat|pace\s*:|output rules|"
+            r"here(?:'s| is) my take|my take as |speaking as |"
+            r"in character|just spoken words|no labels|"
+            r"live ai group hook|topic in the air|your turn —)\b",
             s,
             flags=re.I,
         ):
@@ -419,13 +480,21 @@ def _strip_meta_dialogue_leak(text: str) -> str:
         # Drop "*does a thing*" stage-direction-only lines
         if re.match(r"^\*[^*]{1,80}\*$", s):
             continue
-        kept.append(line.rstrip())
+        # Strip meta openers that glued to real dialogue on same line
+        s2 = _META_OPENER.sub("", s).strip()
+        s2 = _META_INLINE.sub("", s2)
+        s2 = re.sub(r"[ \t]{2,}", " ", s2).strip(" ,;:-—–")
+        if s2:
+            kept.append(s2 if s2 != s else line.rstrip())
     t = "\n".join(kept).strip()
 
     # Collapse leftover double spaces / empty paren
     t = re.sub(r"[ \t]{2,}", " ", t)
     t = re.sub(r"\(\s*\)", "", t)
     t = re.sub(r"\n{3,}", "\n\n", t)
+    t = t.strip()
+    # One more pass on whole text for glued openers
+    t = _META_OPENER.sub("", t).strip()
     return t.strip() or (text or "").strip()
 
 
@@ -440,6 +509,7 @@ def _looks_like_prompt_echo(text: str) -> bool:
         "required:",
         "reply as ",
         "in-character as",
+        "in character",
         "mood json",
         "dynamic opening",
         "hard no:",
@@ -454,13 +524,27 @@ def _looks_like_prompt_echo(text: str) -> bool:
         "this turn's energy",
         "pace:",
         "system prompt",
+        "here's my take",
+        "here is my take",
+        "my take as ",
+        "speaking as ",
+        "live ai group hook",
+        "unique voice",
+        "output rules",
+        "just spoken words",
+        "stay in character",
     ):
         if needle in low:
             hits += 1
     if hits >= 2:
         return True
-    # Heavy instruction density
-    if hits >= 1 and len(t.split()) < 40:
+    # Heavy instruction density or classic meta openers
+    if hits >= 1 and len(t.split()) < 50:
+        return True
+    if re.match(
+        r"^(?:here(?:'s| is)\s+my\s+take|my\s+take\s+as|speaking\s+as|as\s+\w+,\s+i\b)",
+        low,
+    ):
         return True
     return False
 
@@ -970,18 +1054,17 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene note: ambient camp talk — pick one real detail and riff on it naturally."
+            "\nScene: ambient camp talk — notice one real detail and speak about it as dialogue only."
         )
     if from_agent:
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += (
-            f"\nScene note: you're talking with {other_name}. Hear their point, react with your own, "
-            f"stay on the same thread. Funny, not cruel."
+            f"\nScene: talking with {other_name}. Answer them in dialogue only — no 'my take as…' framing."
         )
     elif converse_mode:
         sys_prompt += (
-            "\nScene note: multi-agent fire chat. Stay on topic, make sense, leave room for a reply."
+            "\nScene: fire chat with other agents. Dialogue only — no meta about turns or character mode."
         )
 
     # CRITICAL: user message = pure scene / visitor text only.

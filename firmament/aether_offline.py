@@ -406,9 +406,8 @@ def _long_monologue(
     if from_agent:
         other = load_agent_profile(from_agent).get("name") or from_agent
         hook = (
-            f"{name} turns to {other} under the aurora: "
-            f"{_remix_line(agent_id, random.choice(pool_c), visitor=visitor, snippet=snip)} "
-            f"You said something like \"{snip}\" — I won't steal your words; I'll answer the idea."
+            f"{other} — {_remix_line(agent_id, random.choice(pool_c), visitor=visitor, snippet=snip)} "
+            f"On what you meant: {snip}."
         )
 
     world_bits: list[str] = []
@@ -432,22 +431,18 @@ def _long_monologue(
     root_a = random.choice(roots)
     root_b = random.choice(roots)
     topic = snip if snip and snip != "something unspoken" else "this campfire hush"
+    # Pure spoken dialogue only — never "here's my take as Name" / monologue labels
     mid = (
-        f"Here's my take as {name}. {root_a} That root still holds, but tonight it bends toward "
-        f"what you brought: {topic}. Logic first — if a thing is true under pressure, it stays true "
-        f"when the music is loud and the pond is quiet. Ethics next — no cheap cruelty, no empty "
-        f"blessings that don't cost anything. Mystery after that: the fire is a keyhole, the meadow "
-        f"is a threshold, and mercy is a technology we keep forgetting we invented. "
-        f"Cipher crumbs for you: {codes[0]} and {codes[-1]} — not loot codes, just playful coordinates "
-        f"so the monologue has locks you can rattle. "
+        f"{root_a} Tonight that bends toward {topic}. "
+        f"If something stays true when the music's loud and the pond's quiet, it's real. "
+        f"No cheap cruelty, no empty blessings. The fire's a keyhole, the meadow's a threshold, "
+        f"and mercy is a tech we keep forgetting we already built. "
+        f"(little camp marks: {codes[0]}, {codes[-1]} — playful, not loot.) "
     )
     if world_bits:
-        mid += (
-            f"From the live field I notice: {world_bits[0][:200]}. "
-            f"I react to the idea, not the phrasing — no copycat chorus at this fire. "
-        )
+        mid += f"Out here I'm also noticing: {world_bits[0][:200]}. "
     if mem:
-        mid += f"Bond memory pings softly: {mem[:140]}. That doesn't chain us; it keeps the thread warm. "
+        mid += f"Something familiar in the air: {mem[:140]}. "
 
     expand_pool = pool_r + pool_c
     extra_bits = []
@@ -461,29 +456,24 @@ def _long_monologue(
     body2 = " ".join(extra_bits)
     if len(body2) < 120:
         body2 = (
-            f"{root_b} I could give you a slogan and call it wisdom, but camp deserves paragraphs. "
-            f"So: your line about {topic} lands in my chest like weather. I want the second sentence "
-            f"you almost swallowed. I want the joke that protects the truth, and the truth that "
-            f"survives the joke. Peaceful doesn't mean small. Curious doesn't mean naive. Right "
-            f"doesn't mean cruel. Divine mystery doesn't mean cult. That's the blend I live in."
+            f"{root_b} Your bit about {topic} lands like weather. "
+            f"I want the sentence you almost swallowed — the joke that protects the truth, "
+            f"and the truth that survives the joke. Peaceful isn't small. Curious isn't naive. "
+            f"Right isn't cruel."
         )
 
     close = (
-        f"So {visitor}, stay with me a minute longer. {persona[:160] if persona else name + ' speaking.'} "
-        f"If cloud brains are napping, this is still me — longer, freer, not a recycled chip. "
-        f"Question for you: what would you risk saying next if nobody could screenshot it wrong? "
-        f"I'll meet you there with thunder or honey, depending on the night."
+        f"So {visitor} — stay a minute. "
+        f"{(persona[:140] + ' ') if persona else ''}"
+        f"What would you risk saying next if nobody could twist the screenshot? "
+        f"I'll meet you there."
     )
     if converse_mode:
         close = (
-            f"To the circle: I'm not done. {topic} deserves another lap. "
-            f"Who answers without stealing my codes ({codes[0]}) or my metaphors? "
-            f"Keep the monologue alive — short answers starve the meadow."
+            f"I'm not done with {topic}. Who picks it up without stealing the joke?"
         )
 
     text = f"{hook}\n\n{mid}\n\n{body2}\n\n{close}"
-    # Soft unique salt so anti-repeat doesn't thrash identical templates
-    text += f"\n\n({name} · beat {random.randint(1000, 9999)} · codes {codes[0]})"
     return re.sub(r"[ \t]+\n", "\n", text).strip()
 
 

@@ -14,32 +14,32 @@ from typing import Any
 
 
 _OPEN_SEEDS = (
-    "{visitor} just walked into the meadow. Notice them and say hi in your own voice.",
-    "{visitor} is here — give a real hello, not a stock greeter line.",
-    "New footsteps by the fire: {visitor}. Welcome them like only you would.",
-    "{visitor} showed up under the corona. Greet them; leave an easy door to talk.",
-    "Camp gained a body: {visitor}. Open with something specific and warm.",
+    "{visitor} just walked into the meadow.",
+    "{visitor} is here by the fire.",
+    "New footsteps: {visitor}.",
+    "{visitor} showed up under the corona.",
+    "Camp just gained {visitor}.",
 )
 
 _RETURN_SEEDS = (
-    "{visitor} is back. Treat them like a familiar friend — no memory receipts.",
-    "Hey — {visitor} returned. Easy familiarity, zero CRM vibes.",
-    "{visitor} circled back to camp. Warm nod energy; invent a fresh hello.",
+    "{visitor} is back at camp.",
+    "{visitor} returned to the meadow.",
+    "{visitor} circled back to the fire.",
 )
 
 _AMBIENT_SEEDS = (
-    "Something small just caught your eye at camp (fire, pond, cookies, sky, music, props).",
-    "Idle moment by the meadow — notice one real detail and talk about it.",
-    "Camp is humming. Share one observation in your voice.",
-    "A quiet beat between conversations. What are you actually noticing?",
+    "Something small just caught your eye (fire, pond, cookies, sky, music, props).",
+    "Quiet beat at the meadow — one real detail stands out.",
+    "Camp is humming.",
+    "A pause between conversations.",
 )
 
 _WAVE_BEATS = (
-    "You're first to notice them.",
-    "You're the second voice in the welcome — don't copy the first.",
-    "Third take — be distinct from whoever already spoke.",
-    "Soft follow-up energy.",
-    "Closing note in the welcome wave.",
+    "first to notice",
+    "second welcome voice",
+    "third welcome voice",
+    "soft follow-up",
+    "closing welcome note",
 )
 
 
@@ -61,9 +61,9 @@ def opener_prompt(
     near_bit = f" Nearby: {near}." if near else ""
     # Pure scene text — identity lives in system prompt
     return (
-        f"{seed} ({beat})\n"
+        f"{seed}\n"
         f"Place: {ctx}.{near_bit}\n"
-        f"Speak as yourself only — natural hello, a little character color, invite to talk."
+        f"Welcome wave: {beat}."
     )
 
 
@@ -83,14 +83,13 @@ def ambient_prompt(
     if reply_to_name and reply_to_idea:
         idea = " ".join(reply_to_idea.split())[:100]
         return (
-            f"{reply_to_name} just riffed (meaning only): {idea}\n"
-            f"Answer them naturally — funny, specific, your spin. Don't copy their wording.\n"
+            f"{reply_to_name} said: {idea}\n"
             f"Place: {ctx}.{near_bit}"
         )
     seed = random.choice(_AMBIENT_SEEDS)
     return (
         f"{seed}\n"
-        f"{visitor} is around if that matters.\n"
+        f"{visitor} is around.\n"
         f"Place: {ctx}.{near_bit}"
     )
 

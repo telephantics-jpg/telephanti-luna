@@ -1,32 +1,29 @@
 /**
- * Camp banter — single place for HOW agents open / idle / reply.
+ * Camp banter — scene seeds only (no instruction dumps models recite).
  *
- * Primary path (client): callAgentMind /api/firmament/agent/chat with these prompts.
- * Preferred server path: POST /api/firmament/banter (uses firmament/banter.py).
- * Fallback: thin static lines below (only if server/mind offline).
- *
- * Scene seeds only — no ALL-CAPS instruction dumps models recite out loud.
+ * Primary path: POST /api/firmament/banter
+ * Fallback: thin static lines below if mind is offline.
  */
 
 const OPEN_SEEDS = [
-  "{visitor} just walked into the meadow. Notice them and say hi in your own voice.",
-  "{visitor} is here — give a real hello, not a stock greeter line.",
-  "New footsteps by the fire: {visitor}. Welcome them like only you would.",
-  "{visitor} showed up under the corona. Greet them; leave an easy door to talk.",
-  "Camp gained a body: {visitor}. Open with something specific and warm.",
+  "{visitor} just walked into the meadow.",
+  "{visitor} is here by the fire.",
+  "New footsteps: {visitor}.",
+  "{visitor} showed up under the corona.",
+  "Camp just gained {visitor}.",
 ];
 
 const RETURN_SEEDS = [
-  "{visitor} is back. Treat them like a familiar friend — no memory receipts.",
-  "Hey — {visitor} returned. Easy familiarity, zero CRM vibes.",
-  "{visitor} circled back to camp. Warm nod energy; invent a fresh hello.",
+  "{visitor} is back at camp.",
+  "{visitor} returned to the meadow.",
+  "{visitor} circled back to the fire.",
 ];
 
 const AMBIENT_SEEDS = [
-  "Something small just caught your eye at camp (fire, pond, cookies, sky, music, props).",
-  "Idle moment by the meadow — notice one real detail and talk about it.",
-  "Camp is humming. Share one observation in your voice.",
-  "A quiet beat between conversations. What are you actually noticing?",
+  "Something small just caught your eye (fire, pond, cookies, sky, music, props).",
+  "Quiet beat at the meadow — one real detail stands out.",
+  "Camp is humming.",
+  "A pause between conversations.",
 ];
 
 function pick(arr) {
@@ -44,8 +41,7 @@ export function openerPrompt(agentId, {
   return (
     `${seed}\n` +
     `Place: ${context}.` +
-    (near ? ` Nearby: ${near}.` : "") +
-    `\nSpeak as yourself only — natural hello, a little character color, invite to talk.`
+    (near ? ` Nearby: ${near}.` : "")
   );
 }
 
@@ -58,8 +54,7 @@ export function ambientPrompt(agentId, {
   if (replyTo?.line) {
     const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 100);
     return (
-      `${replyTo.name || "Someone"} just riffed (meaning only): ${idea}\n` +
-      `Answer them naturally — funny, specific, your spin. Don't copy their wording.\n` +
+      `${replyTo.name || "Someone"}: ${idea}\n` +
       `Place: ${context}.` +
       (near ? ` Nearby: ${near}.` : "")
     );
@@ -67,7 +62,7 @@ export function ambientPrompt(agentId, {
   const seed = pick(AMBIENT_SEEDS);
   return (
     `${seed}\n` +
-    `${visitor} is around if that matters.\n` +
+    `${visitor} is around.\n` +
     `Place: ${context}.` +
     (near ? ` Nearby: ${near}.` : "")
   );
@@ -80,16 +75,16 @@ export function arrivalWavePrompt(agentId, {
   context = "camp",
 } = {}) {
   const beats = [
-    "You're first to notice them.",
-    "You're the second voice in the welcome — don't copy the first.",
-    "Third take — be distinct from whoever already spoke.",
-    "Soft follow-up energy.",
-    "Closing note in the welcome wave.",
+    "first to notice",
+    "second welcome voice",
+    "third welcome voice",
+    "soft follow-up",
+    "closing welcome note",
   ];
   const beat = beats[Math.min(waveIndex, beats.length - 1)];
   return (
     openerPrompt(agentId, { visitor, returning, context }) +
-    `\n${beat}`
+    `\nWelcome wave: ${beat}.`
   );
 }
 

@@ -206,10 +206,9 @@ def converse_thread_prompt(
     if not thread:
         other = others[0] if others else "them"
         return (
-            f"Fire circle with {', '.join(others) if others else 'camp'}.\n"
-            f"Topic in the air: {topic}\n\n"
-            f"Open naturally. Address {other} by name, take a clear stance, leave room for them.\n"
-            f"Just spoken words — no labels."
+            f"At the fire with {', '.join(others) if others else 'camp'}.\n"
+            f"Topic: {topic}\n"
+            f"{other} is listening."
         )
 
     prev = thread[-1]
@@ -225,20 +224,10 @@ def converse_thread_prompt(
         transcript_bits.append(f"{who}: {idea}")
     transcript = "\n".join(transcript_bits)
 
-    turn_n = len(thread) + 1
-    is_closing = turn_n >= 5 and len(thread) >= 4
-
-    close_bit = ""
-    if is_closing:
-        close_bit = " Soft wrap-up is fine after you answer them."
-
     return (
-        f"Fire circle: {', '.join(names)}. Topic: {topic}\n\n"
-        f"So far:\n{transcript}\n\n"
-        f"{prev_name} just said (answer the meaning, not the exact words):\n"
-        f"\"{prev_idea}\"\n\n"
-        f"Your turn — react, push back or build, keep the thread alive."
-        f"{close_bit}"
+        f"At the fire with {', '.join(names)}. Topic: {topic}\n"
+        f"So far:\n{transcript}\n"
+        f"{prev_name}: {prev_idea}"
     )
 
 

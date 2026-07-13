@@ -4018,7 +4018,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-12-286-SPEECH-NO-REFRESH";
+    const CAMP_BUILD = "2026-07-12-287-DIALOGUE-ONLY";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -7386,7 +7386,7 @@
 
     function buildEvolvingPrompt(agentId, userText) {
       const thread = getCampChatThread(agentId);
-      // Only last couple beats as loose context — don't force "you said earlier" callbacks
+      // Loose context only — never instruction labels the model can speak
       const prior = thread
         .filter((m) => !m.thinking && m.text && m.role === "you")
         .slice(-2)
@@ -7394,10 +7394,8 @@
         .join(" / ");
       if (!prior) return userText;
       return (
-        `(Same conversation, natural. Keep the vibe going — funny, original, in character. ` +
-        `Do NOT say "last time you said" or quote them awkwardly. Just answer what they mean now.)\n` +
-        `Recent visitor vibes (ideas only): ${prior}\n\n` +
-        `They say now: ${userText}`
+        `Earlier: ${prior}\n` +
+        `Now: ${userText}`
       );
     }
 
@@ -8153,8 +8151,7 @@
       for (const id of order) {
         await chat(
           id,
-          `(The visitor said to the whole camp: "${text}". Answer as yourself only. ` +
-          `Unique voice — do not copy other agents. 1–2 solid paragraphs. Real question at end.)`,
+          `Visitor to the whole camp: ${text}`,
           { useDialogue: false, fromCampBar: true },
         );
         await new Promise((r) => setTimeout(r, 500));
@@ -8525,7 +8522,7 @@
           setCampLifeStatus(`${label} answers first — everyone else hears too…`);
           await chat(
             primary,
-            `(The visitor speaks directly to ${label}, but the whole aurora camp overhears: "${talkText}" — answer as ${label} in your true voice, 5-9 sentences. Theatrical irony + mind-bending twist welcome. Funny, true, random-but-relevant.)`,
+            `Visitor to ${label} (camp overhears): ${talkText}`,
             { useDialogue: false, fromCampBar: true },
           );
           await new Promise((r) => setTimeout(r, 500));
@@ -8539,7 +8536,7 @@
           for (const id of order) {
             await chat(
               id,
-              `(You overheard the visitor say to ${label}: "${talkText}" — add your own reaction in character, 3-6 sentences. Dry humor + real take. Don't just nod.)`,
+              `Overheard — visitor to ${label}: ${talkText}`,
               { useDialogue: false, fromCampBar: true },
             );
             await new Promise((r) => setTimeout(r, 550));
@@ -9148,14 +9145,13 @@
         const hi = (b.highlights || [])[0];
         return hi ? `${id} remembers ${hi}` : "";
       }).filter(Boolean).join("; ");
+      // Scene only — spirit identity lives in system prompt / persona when possible
       return [
-        `You are ${type.name} ${type.glyph} — ${type.voice}.`,
-        "You just manifested at Luna Firmament camp because a visitor pressed Conjure.",
-        `Camp context: ${ctx}`,
-        bond ? `Bond hints: ${bond}.` : "",
-        "Speak AS the spirit only (NOT Oracle/Luna).",
-        "Give 5-8 sentences: mysterious, witty, ironically true, relevant to camp — reference agents, props, aurora, or recent chatter when it fits. Let the monologue breathe.",
-        "End with something that makes the visitor want to conjure again.",
+        `${type.name} ${type.glyph} just appeared at camp.`,
+        type.voice ? `Vibe: ${type.voice}.` : "",
+        `Camp: ${ctx}`,
+        bond ? `Bond air: ${bond}.` : "",
+        "Visitor pressed Conjure — they want to hear you.",
       ].filter(Boolean).join(" ");
     }
 
@@ -11394,7 +11390,7 @@
     }
 
     function campAmbientPrompt(npc, replyTo) {
-      // Used by emitNpcAiChatter — real talk when replyTo is set (no meta "logical dialogue")
+      // Pure scene seed only — no "you are / add your take / paragraphs" for models to recite
       const v = myVisitorName || player.name || "a visitor";
       const ctx = campContextSuffix().replace(/^\s*\(|\)\s*$/g, "") || "camp is humming";
       const whoNear = allRoamers()
@@ -11406,17 +11402,14 @@
         const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 160);
         const who = replyTo.name || "them";
         return (
-          `You are ${npc.name || npc.id} at camp. ${who} just said (meaning only): "${idea}".\n` +
-          `Talk back to ${who} naturally — answer what they meant, add your take, keep it conversational. ` +
-          `One to two short paragraphs. Funny, original, YOUR voice. No step lists, no 'dialogue mode' talk. ` +
-          `Camp: ${ctx}.` +
+          `${who}: ${idea}\n` +
+          `Place: ${ctx}.` +
           (whoNear ? ` Nearby: ${whoNear}.` : "")
         );
       }
       return (
-        `You're ${npc.name || npc.id} at camp. Notice something real (fire, music, pond, ${v}, props) ` +
-        `and talk about it in one to two short paragraphs — natural speech someone could answer. ` +
-        `Camp: ${ctx}.` +
+        `Quiet beat at camp. ${v} is around.\n` +
+        `Place: ${ctx}.` +
         (whoNear ? ` Nearby: ${whoNear}.` : "")
       );
     }
@@ -15062,7 +15055,7 @@
               const npc = allRoamers().find((n) => n.id === speakerId) || { id: speakerId, name: agentNames[speakerId] || speakerId };
               const msg = prev
                 ? campAmbientPrompt(npc, prev)
-                : `(Live AI group hook with ${label}) Topic: ${topic}. Start the banter in character, ~400 words, unique voice — do not copy other agents.`;
+                : `At the fire with ${label}. Topic: ${topic}.`;
               const { res, data } = await firmamentSecurePost("/api/firmament/agent/chat", {
                 agent_id: speakerId,
                 message: msg,

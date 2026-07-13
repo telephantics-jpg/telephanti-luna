@@ -204,27 +204,29 @@ _VOICE_DNA: dict[str, str] = {
 
 # Rotating energy so every turn doesn't sound like the same essay template
 _SPEECH_BEATS: tuple[str, ...] = (
-    "Lead with a sharp hook, then land one real thought. Keep it conversational.",
+    "Lead with a sharp hook, develop it, land it. Conversational, not a lecture.",
     "Answer first, joke second — like a friend who actually listened.",
-    "Short warm monologue: specific detail → your spin → soft exit.",
+    "Warm camp monologue: detail → your spin → a soft exit or question.",
     "Talk like you're already mid-conversation by the fire — no formal greeting.",
     "One clean metaphor max. Prefer plain wit over mystic fog.",
     "React emotionally first (laugh, side-eye, softness), then make the point.",
-    "Be a little messy and human — not a polished blog post.",
+    "Be a little messy and human — full thought, not a polished blog post.",
     "If you ask a question, make it one and make it real — not interview mode.",
+    "Riff with the other voice in mind — leave room for them to answer.",
 )
 
+# Sweet spot: longer than a quip, shorter than a chapter
 _LENGTH_HINTS_DIRECT: tuple[str, ...] = (
-    "Aim for roughly 60–120 words — full thought, not a wall of text.",
-    "One solid paragraph is fine; two if the thought needs room. No essay padding.",
-    "Say enough to land the idea (~70–140 words). Stop when you're done.",
-    "Warm and complete, but snappy — about half a spoken minute.",
+    "About 90–160 words — a full spoken thought with room to breathe, not a book.",
+    "One or two solid paragraphs (~100–170 words). Complete idea, then stop.",
+    "Roughly half a spoken minute: hook, develop, land. No telegram stubs, no essay walls.",
+    "Warm and complete (~90–150 words). Enough color to feel alive; no padding.",
 )
 
 _LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
-    "One lived-in paragraph (~50–100 words). Specific, not a telegram.",
-    "About 60–110 words of real speech — observation plus your spin.",
-    "Keep it campfire-natural: enough to feel alive, not a speech.",
+    "About 80–140 words of real speech — observation, spin, a little heat.",
+    "A lived-in paragraph or two (~85–150 words). Specific, answerable, not a telegram.",
+    "Campfire length: full thought (~80–130 words), not a slogan and not a novel.",
 )
 
 
@@ -1054,17 +1056,20 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene: ambient camp talk — notice one real detail and speak about it as dialogue only."
+            "\nScene: ambient camp talk — notice something real and speak a full lively beat of dialogue "
+            "(not a one-liner, not a chapter)."
         )
     if from_agent:
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += (
-            f"\nScene: talking with {other_name}. Answer them in dialogue only — no 'my take as…' framing."
+            f"\nScene: talking with {other_name}. Answer them with a full lively beat of dialogue — "
+            f"hear their point, push or build, leave a door open. No meta framing."
         )
     elif converse_mode:
         sys_prompt += (
-            "\nScene: fire chat with other agents. Dialogue only — no meta about turns or character mode."
+            "\nScene: fire chat with other agents. Full lively dialogue turns — stay on thread, "
+            "react for real, no meta about turns or character mode."
         )
 
     # CRITICAL: user message = pure scene / visitor text only.
@@ -1088,13 +1093,13 @@ async def agent_chat(
         if not chain:
             raise RuntimeError("Grok link needs XAI_API_KEY — set it in .env for @a / @m")
 
-    # Headroom for natural speech (not forced essay walls)
+    # Headroom for full lively beats (not telegrams, not novels)
     if ambient:
-        max_tok = 520
-    elif converse_mode:
-        max_tok = 560
-    else:
         max_tok = 720
+    elif converse_mode:
+        max_tok = 780
+    else:
+        max_tok = 960
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""
@@ -1103,8 +1108,9 @@ async def agent_chat(
 
     from firmament.live_feed import is_too_similar, push_event
 
-    # Fluid floor — enough to feel real, not forced monologue every turn
-    MIN_ACCEPT_WORDS = 28 if (ambient or converse_mode) else 36
+    # Sweet-spot floor — full thought; soft book-cap applied after accept
+    MIN_ACCEPT_WORDS = 55 if (ambient or converse_mode) else 70
+    SOFT_MAX_WORDS = 200 if (ambient or converse_mode) else 220
 
     if not chain:
         errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")
@@ -1134,8 +1140,8 @@ async def agent_chat(
                     }, {
                         "role": "user",
                         "content": (
-                            "Give me a fuller take — one real thought with a beginning and end. "
-                            "Still just speech, no labels."
+                            "Say a bit more — a full lively thought with a beginning and end "
+                            "(still just speech, no labels, no book)."
                         ),
                     }]
                 raw = await asyncio.to_thread(_run_backend, backend, model, msgs, max_tok)
@@ -1148,7 +1154,7 @@ async def agent_chat(
                     reply = _strip_meta_dialogue_leak(reply)
                 word_count = len(reply.split())
                 # Extreme stubs → next backend
-                stub_floor = 10 if direct_chat else 6
+                stub_floor = 14 if direct_chat else 10
                 if word_count < stub_floor and backend != chain[-1][0]:
                     errors.append(f"{backend}/{model}: stub ({word_count}w)")
                     reply = ""
@@ -1178,6 +1184,17 @@ async def agent_chat(
                 if not reply.strip():
                     reply = ""
                     continue
+                # Soft book-cap: keep the first ~SOFT_MAX_WORDS (end on a sentence if possible)
+                words = reply.split()
+                if len(words) > SOFT_MAX_WORDS + 40:
+                    cut = " ".join(words[:SOFT_MAX_WORDS])
+                    # Prefer ending on sentence boundary in the trimmed region
+                    for end in (". ", "! ", "? ", ".\n", "!\n", "?\n"):
+                        idx = cut.rfind(end)
+                        if idx > len(cut) // 2:
+                            cut = cut[: idx + 1].strip()
+                            break
+                    reply = cut
                 break
         except Exception as exc:
             errors.append(f"{backend}/{model}: {exc}")

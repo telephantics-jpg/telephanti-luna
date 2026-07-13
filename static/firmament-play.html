@@ -4171,26 +4171,26 @@
       );
       if (!typing) e.stopImmediatePropagation();
     }, true);
-    // Calmer pace: room for 1–3 speakers + visitor-focused replies to finish
+    // Livelier camp: more dialogue beats, still leaves room for visitor replies
     const CAMP_PACE = {
-      readMinSec: 40,
-      readMaxSec: 280,
-      charsPerSec: 11,
-      converseGapMs: 12000,
-      converseGapChillMs: 18000,
-      nextConverseMinMs: 48000,
-      nextConverseRandMs: 42000,
-      retryConverseMs: 18000,
-      idleChatterMinMs: 28000,
-      idleChatterRandMs: 32000,
-      proximityMinMs: 28000,
+      readMinSec: 36,
+      readMaxSec: 220,
+      charsPerSec: 12,
+      converseGapMs: 8500,
+      converseGapChillMs: 12000,
+      nextConverseMinMs: 28000,
+      nextConverseRandMs: 24000,
+      retryConverseMs: 12000,
+      idleChatterMinMs: 14000,
+      idleChatterRandMs: 16000,
+      proximityMinMs: 14000,
     };
-    /** Speech floor — only a few agents talk at once; addressed agent keeps the mic */
+    /** Speech floor — a few agents talk at once; addressed agent keeps the mic */
     const campSpeechFloor = {
       active: new Set(),
       focusId: null,
       focusUntil: 0,
-      maxConcurrent: 3,
+      maxConcurrent: 4,
     };
     function speechFloorHasFocus() {
       return !!(campSpeechFloor.focusId && Date.now() < campSpeechFloor.focusUntil);
@@ -6349,11 +6349,11 @@
           return;
         }
         n.idle = 140 + Math.floor(Math.random() * 200);
-        // Rare sit monologue — only if speech floor free (max ~1–3 camp-wide)
+        // Sit monologue — more often, still respect speech floor
         if (!n.socializing && !n.gathering && !converseBusy && !chatterPaused
             && !ambientAiBusy && !speechFloorHasFocus()
-            && canAgentTakeFloor(n.id, { max: 2 })
-            && Math.random() < 0.08) {
+            && canAgentTakeFloor(n.id, { max: 3 })
+            && Math.random() < 0.14) {
           void emitNpcAiChatter(n, { allowAether: true });
         }
         return;
@@ -6363,10 +6363,10 @@
         n.idle -= 1;
         return;
       }
-      n.idle = 120 + Math.floor(Math.random() * 180);
-      if (!n.socializing && !n.gathering && Math.random() < 0.1
+      n.idle = 90 + Math.floor(Math.random() * 140);
+      if (!n.socializing && !n.gathering && Math.random() < 0.16
           && !converseBusy && !chatterPaused && !ambientAiBusy
-          && !speechFloorHasFocus() && canAgentTakeFloor(n.id, { max: 2 })) {
+          && !speechFloorHasFocus() && canAgentTakeFloor(n.id, { max: 3 })) {
         void emitNpcAiChatter(n, { allowAether: true });
       }
       if (n.behaviorTimer <= 0) resetNpcFreeWill(n);
@@ -11514,18 +11514,25 @@
       if (!pool.length) return;
       ambientAiBusy = true;
       try {
-        // Prefer logical pair dialogue (A→B→A) when server is up
-        const dialogue = campServerOnline && pool.length >= 2 && Math.random() < 0.72;
+        // Prefer pair dialogue (A→B→A…) — more turns, livelier meadow
+        const dialogue = campServerOnline && pool.length >= 2 && Math.random() < 0.88;
         if (dialogue) {
           const a = pickAmbientSpeaker(pool);
           let b = pickAmbientSpeaker(pool.filter((n) => n.id !== a.id)) || pool[(pool.indexOf(a) + 1) % pool.length];
           if (b.id === a.id) b = pool[(pool.indexOf(a) + 1) % pool.length];
-          // 3–4 turns: open → reply → reply → optional cap
-          const turns = Math.random() < 0.45 ? 4 : 3;
+          // 4–6 turns when lively; sometimes pull a third voice
+          let speakers = [a, b];
+          if (pool.length >= 3 && Math.random() < 0.35) {
+            const c = pickAmbientSpeaker(pool.filter((n) => n.id !== a.id && n.id !== b.id));
+            if (c) speakers = [a, b, c];
+          }
+          const turns = speakers.length >= 3
+            ? (Math.random() < 0.5 ? 6 : 5)
+            : (Math.random() < 0.4 ? 6 : 4);
           let prev = null;
           for (let t = 0; t < turns; t++) {
             if (chatterPaused || converseBusy) break;
-            const speaker = (t % 2 === 0) ? a : b;
+            const speaker = speakers[t % speakers.length];
             const res = await emitNpcAiChatter(speaker, {
               replyTo: prev || undefined,
               noFallback: false,
@@ -11534,7 +11541,7 @@
             });
             if (!res?.line) break;
             prev = { name: res.name || speaker.name, line: res.line };
-            await new Promise((r) => setTimeout(r, 1600 + Math.random() * 2000));
+            await new Promise((r) => setTimeout(r, 1200 + Math.random() * 1600));
           }
           return;
         }

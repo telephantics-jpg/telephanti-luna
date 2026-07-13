@@ -236,7 +236,7 @@ def total_converse_lines(agent_count: int, rounds: int) -> int:
     if agent_count < 2:
         return 2
     if agent_count == 2:
-        # e.g. rounds=2 → 5 turns (A B A B A), rounds=3 → 7
-        return max(5, min(8, rounds * 2 + 1))
-    # trio: keep it tight
-    return max(6, min(9, rounds * agent_count))
+        # e.g. rounds=2 → 5–7 turns, rounds=3 → up to 9
+        return max(5, min(9, rounds * 2 + 1))
+    # trio: a little more room for cross-talk
+    return max(6, min(11, rounds * agent_count))

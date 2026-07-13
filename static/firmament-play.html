@@ -12775,13 +12775,16 @@
         if (!res.ok) throw new Error(data.detail || "chat failed");
         applyChatResult(agentId, data, { useHouse: true });
         // Guests sometimes chime in after host
+        const houseId = activeHouseVisit.id;
         const chimers = guests.filter((g) => g.id !== agentId).slice(0, 2);
+        const hostName = agentNames[agentId] || agentId;
+        const replySeed = data.reply || text;
         chimers.forEach((g, i) => {
           setTimeout(() => {
-            if (!houseInteriorOpen || activeHouseVisit?.id !== activeHouseVisit?.id) return;
-            if (g.insideHouse !== activeHouseVisit?.id) return;
+            if (!houseInteriorOpen || activeHouseVisit?.id !== houseId) return;
+            if (g.insideHouse !== houseId) return;
             void emitNpcAiChatter?.(g, {
-              replyTo: { name: agentNames[agentId] || agentId, line: data.reply || text },
+              replyTo: { name: hostName, line: replySeed },
               allowAether: true,
               priority: true,
             });

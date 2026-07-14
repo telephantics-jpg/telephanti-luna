@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "296-BUBBLES-ONLY"
+LUNA_BUILD = "299-FULL-CAMP-3D"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -79,7 +79,7 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-_NO_CACHE_EXACT = {"/", "/visit", "/firmament/play", "/camp", "/play", "/manifest.json", "/sw.js", "/bubble", "/api/health"}
+_NO_CACHE_EXACT = {"/", "/visit", "/firmament/play", "/firmament/3d", "/firmament/three", "/camp", "/play", "/manifest.json", "/sw.js", "/bubble", "/api/health"}
 _STATIC_CACHE_EXTS = (
     ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".ico",
     ".mp3", ".mp4", ".webm", ".woff", ".woff2", ".mjs", ".js", ".css",
@@ -114,7 +114,11 @@ async def luna_no_cache_middleware(request: Request, call_next):
     path = request.url.path
     path_lower = path.lower()
     if path.startswith("/static/"):
-        if any(path_lower.endswith(ext) for ext in _STATIC_CACHE_EXTS):
+        # Three.js modules must not be immutable — split builds / updates break for a year otherwise
+        if "/vendor/three/" in path_lower or path_lower.endswith("firmament-three.html"):
+            response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+        elif any(path_lower.endswith(ext) for ext in _STATIC_CACHE_EXTS):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         else:
             response.headers["Cache-Control"] = "public, max-age=3600"
@@ -2484,6 +2488,24 @@ async def firmament_stream_page():
     raise HTTPException(status_code=404, detail="firmament-stream.html missing")
 
 
+@app.get("/firmament/3d")
+@app.get("/firmament/three")
+async def firmament_three_page():
+    """Browser Three.js 3D camp — same brains as /firmament/play, no Unreal install."""
+    path = STATIC_DIR / "firmament-three.html"
+    if path.is_file():
+        return FileResponse(
+            path,
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "X-Luna-Build": LUNA_BUILD,
+            },
+        )
+    raise HTTPException(status_code=404, detail="firmament-three.html missing")
+
+
 @app.get("/api/firmament/stream/status")
 async def firmament_stream_status_api(request: Request):
     """Is Unreal Pixel Streaming signalling up on port 8080?"""
@@ -2700,6 +2722,146 @@ class FirmamentCampMemoryBody(BaseModel):
     kind: str = "moment"
     text: str = ""
     prop_id: str = ""
+
+
+@app.get("/api/firmament/camp/catalog")
+async def firmament_camp_catalog_api():
+    """Shared world layout + visual keys for 2D / Three.js / Unreal clients."""
+    from firmament.world_catalog import catalog_public
+
+    return catalog_public()
+
+
+@app.get("/api/firmament/camp/protocol")
+async def firmament_camp_protocol_api():
+    """Discovery doc for Camp Protocol (catalog + interactions + event shape)."""
+    from firmament.camp_protocol import protocol_index
+
+    return protocol_index()
+
+
+@app.get("/api/firmament/visual/kits")
+async def firmament_visual_kits_api():
+    """Namesake visual kits — clients map kit_id → mesh / FX."""
+    from firmament.camp_protocol import list_visual_kits
+
+    return list_visual_kits()
+
+
+class FirmamentPropUseBody(BaseModel):
+    prop_id: str = ""
+    visitor_id: str = ""
+    visitor_name: str = ""
+    agent_id: str = ""
+    speak: bool = True
+
+
+class FirmamentHouseEnterBody(BaseModel):
+    house_id: str = ""
+    visitor_id: str = ""
+    visitor_name: str = ""
+    speak: bool = True
+
+
+class FirmamentCampBanterBody(BaseModel):
+    agent_a: str = ""
+    agent_b: str = ""
+    topic: str = ""
+    rounds: int = 2
+    visitor_id: str = ""
+    visitor_name: str = ""
+
+
+@app.post("/api/firmament/prop/use")
+async def firmament_prop_use_api(request: Request):
+    """Use camp prop → narration + memory + live brain reaction (CampEvent)."""
+    from firmament.camp_protocol import use_prop
+
+    raw, sealed = await _firmament_parse_body(request)
+    try:
+        body = FirmamentPropUseBody(**raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not body.prop_id.strip():
+        raise HTTPException(status_code=400, detail="prop_id required")
+    result = await use_prop(
+        body.prop_id.strip(),
+        visitor_id=body.visitor_id,
+        visitor_name=body.visitor_name,
+        agent_id=body.agent_id,
+        speak=body.speak,
+    )
+    return _firmament_maybe_seal(result, sealed_req=sealed, request=request)
+
+
+@app.post("/api/firmament/house/enter")
+async def firmament_house_enter_api(request: Request):
+    """Approach house → owner greets with live brain (CampEvent)."""
+    from firmament.camp_protocol import enter_house
+
+    raw, sealed = await _firmament_parse_body(request)
+    try:
+        body = FirmamentHouseEnterBody(**raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not body.house_id.strip():
+        raise HTTPException(status_code=400, detail="house_id required")
+    result = await enter_house(
+        body.house_id.strip(),
+        visitor_id=body.visitor_id,
+        visitor_name=body.visitor_name,
+        speak=body.speak,
+    )
+    return _firmament_maybe_seal(result, sealed_req=sealed, request=request)
+
+
+@app.post("/api/firmament/camp/banter")
+async def firmament_camp_banter_api(request: Request):
+    """Structured multi-agent banter as CampEvent (brains on server)."""
+    from firmament.camp_protocol import camp_banter
+
+    raw, sealed = await _firmament_parse_body(request)
+    try:
+        body = FirmamentCampBanterBody(**raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    result = await camp_banter(
+        agent_a=body.agent_a,
+        agent_b=body.agent_b,
+        topic=body.topic,
+        visitor_id=body.visitor_id,
+        visitor_name=body.visitor_name,
+        rounds=body.rounds,
+    )
+    return _firmament_maybe_seal(result, sealed_req=sealed, request=request)
+
+
+class FirmamentStructureUseBody(BaseModel):
+    structure_id: str = ""
+    visitor_id: str = ""
+    visitor_name: str = ""
+    speak: bool = True
+
+
+@app.post("/api/firmament/structure/use")
+async def firmament_structure_use_api(request: Request):
+    """Shop / TV / club / pond / shelter / fire — catalog + brain reaction."""
+    from firmament.camp_protocol import use_structure
+
+    raw, sealed = await _firmament_parse_body(request)
+    try:
+        body = FirmamentStructureUseBody(**raw)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not body.structure_id.strip():
+        raise HTTPException(status_code=400, detail="structure_id required")
+    result = await use_structure(
+        body.structure_id.strip(),
+        visitor_id=body.visitor_id,
+        visitor_name=body.visitor_name,
+        speak=body.speak,
+    )
+    return _firmament_maybe_seal(result, sealed_req=sealed, request=request)
 
 
 @app.get("/api/firmament/agents")

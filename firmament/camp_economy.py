@@ -98,17 +98,21 @@ EARN_RATES = {
 
 def _load_all() -> dict[str, dict]:
     try:
-        raw = json.loads(WALLET_PATH.read_text(encoding="utf-8"))
+        from firmament.crypto_box import load_json_file
+
+        raw = load_json_file(WALLET_PATH, {})
         if isinstance(raw, dict):
             return {k: v for k, v in raw.items() if isinstance(v, dict)}
-    except (OSError, json.JSONDecodeError):
+    except Exception:
         pass
     return {}
 
 
 def _save_all(data: dict[str, dict]) -> None:
     try:
-        WALLET_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        from firmament.crypto_box import save_json_file
+
+        save_json_file(WALLET_PATH, data)
     except OSError:
         pass
 

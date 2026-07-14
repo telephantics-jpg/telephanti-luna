@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      var h = (location.hostname || "").toLowerCase();
+      var cloud = h === "telephanti.com" || h === "www.telephanti.com" || /\.onrender\.com$/i.test(h);
+      if (cloud && location.protocol === "http:") {
+        location.replace("https://" + location.host + location.pathname + location.search + location.hash);
+      }
+    })();
+  </script>
   <title>Luna</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -122,7 +131,7 @@
       <button type="button" id="btn-min" title="Minimize to taskbar">—</button>
     </div>
     <div class="feed" id="feed">
-      <div class="bubble sys">Click 🎤 once so I can hear you — then talk naturally. Or type below.</div>
+      <div class="bubble sys">Mic is off — tap 🎤 when you want me to hear you. Or type below.</div>
     </div>
     <form class="compose" id="form">
       <input id="input" placeholder="Talk to Luna..." autocomplete="off" maxlength="2000" />
@@ -147,7 +156,7 @@
     let seeing = false;
     let serverOk = false;
     let soundOn = true;
-    let micOn = true;
+    let micOn = false;
     let camOn = true;
     let proactiveOn = true;
     let audioReady = false;
@@ -163,6 +172,7 @@
     let lunaMic = null;
     let listening = false;
     let speakQueue = Promise.resolve();
+    let activeSpeechId = 0;
 
     const profile = {
       user_name: "",
@@ -256,6 +266,21 @@
       if (recentLunaLines.length > RECENT_LINE_MAX) recentLunaLines.shift();
     }
 
+    function stopActiveSpeech() {
+      audioEl.pause();
+      audioEl.currentTime = 0;
+    }
+
+    function flushSpeakQueue() {
+      activeSpeechId += 1;
+      stopActiveSpeech();
+      speakQueue = Promise.resolve();
+    }
+
+    async function interruptLunaSpeech() {
+      flushSpeakQueue();
+    }
+
     async function deliverLunaLine(data) {
       if (!data?.text) return;
       const line = plainSpeech(data.text);
@@ -338,11 +363,15 @@
       }).catch(() => {});
     }
 
-    function speak(text, mood) {
+    function speak(text, mood, opts = {}) {
       const line = plainSpeech(text);
       if (!soundOn || !line) return;
-      speakQueue = speakQueue.then(async () => {
+      if (opts.cancelPrevious || opts.priority) flushSpeakQueue();
+      const run = async () => {
+        const speechId = ++activeSpeechId;
+        stopActiveSpeech();
         await unlockAudio();
+        if (speechId !== activeSpeechId) return;
         try {
           const { res, data } = await fetchJSON("/api/speak", {
             method: "POST",
@@ -356,6 +385,7 @@
             }),
           }, 30000);
           if (!res.ok) throw new Error("TTS failed");
+          if (speechId !== activeSpeechId) return;
           const blob = new Blob([b64ToBytes(data.audio_b64)], { type: "audio/mpeg" });
           audioEl.src = URL.createObjectURL(blob);
           audioEl.volume = 1;
@@ -363,7 +393,8 @@
         } catch (e) {
           console.warn("speak", e);
         }
-      }).catch(() => {});
+      };
+      speakQueue = speakQueue.then(run).catch(() => {});
     }
 
     async function startCam() {
@@ -446,6 +477,7 @@
         addBubble("sys", "I cannot reach my server — close this and double-click Luna Companion again.");
         return;
       }
+      flushSpeakQueue();
       chatBusy = true;
       chatBusySince = Date.now();
       lunaMic?.setBusy(true);
@@ -504,7 +536,7 @@
         history.push({ role: "assistant", content: full });
         feed.scrollTop = feed.scrollHeight;
         if (action?.mood) lunaMood = action.mood;
-        speak(full, action?.mood);
+        speak(full, action?.mood, { cancelPrevious: true });
       } catch (e) {
         const msg = e.name === "AbortError"
           ? "That took too long — try again."
@@ -528,6 +560,7 @@
 
     async function submitVoiceText(text) {
       if (!text || chatBusy) return;
+      if (!audioEl.paused) await interruptLunaSpeech();
       await unlockAudio();
       addBubble("you", text);
       history.push({ role: "user", content: text });
@@ -535,7 +568,7 @@
     }
 
     async function lunaAmbient() {
-      if (!proactiveOn || chatBusy || seeing) return;
+      if (!proactiveOn || chatBusy || seeing || !audioEl.paused) return;
       try {
         const { res, data } = await fetchJSON("/api/ambient", {
           method: "POST",
@@ -554,7 +587,7 @@
     }
 
     async function lunaMindInterject() {
-      if (!proactiveOn || chatBusy || seeing) return;
+      if (!proactiveOn || chatBusy || seeing || !audioEl.paused) return;
       try {
         const { res, data } = await fetchJSON("/api/interject", {
           method: "POST",
@@ -698,6 +731,7 @@
     input.addEventListener("focus", () => unlockAudio());
 
     document.getElementById("btn-sound").classList.remove("off");
+    btnMic.classList.add("off");
 
     setInterval(checkHealth, 12000);
     setInterval(() => {
@@ -718,11 +752,10 @@
         addBubble("sys", "Server offline — close this and double-click Luna Companion on Desktop.");
         return;
       }
-      addBubble("luna", "Mmm — there you are. Click 🎤 so I can hear you… or just type.");
-      history.push({ role: "assistant", content: "Mmm — there you are. Click 🎤 so I can hear you… or just type." });
+      addBubble("luna", "Hey — I'm here. Tap 🎤 if you want voice, or just type.");
+      history.push({ role: "assistant", content: "Hey — I'm here. Tap 🎤 if you want voice, or just type." });
       input.focus();
       startCam().catch(() => {});
-      addBubble("sys", "Tap 🎤 at the top, allow microphone, then speak.");
       startAmbient();
       fetchJSON("/api/react", {
         method: "POST",
@@ -741,7 +774,7 @@
         if (last) last.textContent = line;
         history[history.length - 1] = { role: "assistant", content: line };
         if (data.mood) lunaMood = data.mood;
-        speak(line, data.mood);
+        speak(line, data.mood, { cancelPrevious: true });
       }).catch((e) => console.warn("greet", e));
     })();
   </script>

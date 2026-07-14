@@ -1,0 +1,143 @@
+LUNA CAMP — WORLD ARCHITECTURE
+==============================
+Date: 2026-07-13
+Status: foundation (before namesake characters / fancy props)
+
+
+1) GOAL
+-------
+  One camp. Many bodies.
+
+  Minds, places, and objects are defined once.
+  2D browser, Three.js, and Unreal only *render* them differently.
+
+
+2) LAYERS (do not mix these)
+----------------------------
+
+  ┌──────────────────────────────────────────────────────────┐
+  │  A. PRESENTATION  (how it looks / controls)              │
+  │     /firmament/play     2D meadow + richest UI           │
+  │     /firmament/3d       Three.js WebGL body              │
+  │     Unreal LunaFirmament + optional Pixel Stream         │
+  └────────────────────────────┬─────────────────────────────┘
+                               │ fetch catalog + chat APIs
+  ┌────────────────────────────▼─────────────────────────────┐
+  │  B. WORLD CATALOG  (where things are + how to draw them) │
+  │     firmament/world/camp_catalog.json                    │
+  │     GET /api/firmament/camp/catalog                      │
+  │     props · houses · agent spawns · scale · visual keys  │
+  └────────────────────────────┬─────────────────────────────┘
+                               │
+  ┌────────────────────────────▼─────────────────────────────┐
+  │  C. BRAINS / MEMORY  (who they are + what they say)      │
+  │     firmament/agents/*.json  persona, voice, models      │
+  │     firmament/brain.py · camp_converse · camp_memory     │
+  │     POST /api/firmament/agent/chat                       │
+  │     POST /api/firmament/agents/converse                  │
+  └────────────────────────────┬─────────────────────────────┘
+                               │
+  ┌────────────────────────────▼─────────────────────────────┐
+  │  D. SESSION  (live multiplayer / lobby)                  │
+  │     play_lobby · WS /ws/firmament/play                   │
+  │     visitor positions, who is online                     │
+  └──────────────────────────────────────────────────────────┘
+
+
+3) COORDINATE SYSTEM (shared meadow units)
+------------------------------------------
+  Catalog positions use **meadow units** (same as 2D camp):
+
+    x  left/right   (negative west, positive east)
+    y  depth        (negative south, positive north toward houses)
+
+  Conversions:
+
+    Three.js:   worldX = x * scale.three
+                worldZ = y * scale.three
+                (scale.three default 0.018)
+
+    Unreal:     cm offsets * scale.unreal (see LunaCampBuilder)
+
+  Never hardcode layout only in HTML or only in C++.
+  Edit camp_catalog.json → all clients pick it up.
+
+
+4) ENTITY KINDS
+---------------
+  agent     character with brain id (luna, hermes, …)
+  prop      interactive object (beer, cookies, stereo, …)
+  house     structure owned by an agent id
+  landmark  fire, pond, shop, TV (non-agent buildings)
+  visitor   human player (session layer, not in catalog file)
+
+
+5) VISUAL KEYS (for namesake look — next phase)
+-----------------------------------------------
+  Catalog + agent files carry *keys*, not meshes:
+
+    visual.archetype   messenger | oracle | moon | thunder | …
+    visual.primary     hex color
+    visual.accent      hex color
+    visual.symbol      wing | eye | hammer | cross | …
+    visual.kit         three kit id / unreal mesh tag
+    visual.glb         optional path under /static/…
+
+  Presentation layers map keys → shapes/GLB/materials.
+  Change a key once → 2D icon + Three silhouette + Unreal mesh stay aligned.
+
+
+6) DATA FLOW
+------------
+  Boot client:
+    1. GET /api/firmament/camp/catalog
+    2. Spawn entities from catalog
+    3. GET /api/health (brain status)
+    4. Optional: GET /api/firmament/agents (full personas)
+
+  Interact:
+    click prop  → local FX + optional ambient chat
+    click agent → select + POST agent/chat
+    banter      → POST agents/converse
+    free will   → (2D today; Three later from same rules)
+
+
+7) FILE MAP
+-----------
+  firmament/world/camp_catalog.json     shared layout + visual keys
+  firmament/world_catalog.py            load/merge catalog
+  static/camp/camp-world.mjs            client helpers (scale, fetch)
+  static/firmament-three.html           Three presentation
+  static/firmament-play.html            2D presentation (migrate later)
+  unreal/.../LunaCampBuilder.cpp        Unreal presentation
+  firmament/agents/*.json               brain identity
+  docs/CAMP_ARCHITECTURE.txt            this file
+
+
+8) RULES OF THUMB
+-----------------
+  • Brains never know about Three.js meshes.
+  • Three never hardcodes persona text (use agent chat APIs).
+  • Layout lives in camp_catalog.json only.
+  • New prop = one catalog row + one visual kit mapping.
+  • New agent = agents/<id>.json + catalog spawn + visual key.
+  • Push browser files for live site; Unreal stays local until stream host.
+
+
+9) BUILD ORDER (agreed path)
+----------------------------
+  [done]  Three.js body boots and talks to brains
+  [done]  Shared catalog + API + client loader
+  [done]  Camp Protocol: prop/use · house/enter · banter · visual/kits (brains on server)
+  [next]  Namesake mesh kits (render visual.kit in Three)
+  [then]  2D camp reads same catalog (stop dual lists)
+  [later] Unreal reads same JSON (or export) for parity
+  [opt]   Pixel Stream for high-end 3D in browser
+
+
+10) WHAT NOT TO DO
+------------------
+  • Don’t rebuild Flash
+  • Don’t copy-paste prop lists into three + play + Unreal forever
+  • Don’t put LLM prompts inside Three scene code
+  • Don’t require Unreal to use the website daily

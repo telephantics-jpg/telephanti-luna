@@ -1,0 +1,93 @@
+LUNA CAMP PROTOCOL API
+======================
+Version: 2
+Module: firmament/camp_protocol.py
+Client: static/camp/camp-client.mjs + camp-features.mjs
+Catalog: firmament/world/camp_catalog.json (v2 — full 2D parity entities)
+
+
+PRINCIPLE
+---------
+  One catalog. Many bodies. Brains stay on the server.
+  Clients render CampEvent JSON — they do not invent ambient prompts.
+
+
+DISCOVERY
+---------
+  GET /api/firmament/camp/protocol
+
+
+WORLD
+-----
+  GET /api/firmament/camp/catalog
+  GET /api/firmament/visual/kits
+
+
+INTERACTIONS (text + brains)
+----------------------------
+  POST /api/firmament/prop/use
+    body: { "prop_id": "beer", "visitor_id": "...", "visitor_name": "You", "speak": true }
+    → CampEvent { message, lines[{agent_id,name,text,backend}], fx, kit }
+
+  POST /api/firmament/structure/use
+    body: { "structure_id": "aurora-shop" | "lucid-tv" | "aurora-velvet" | "pond" | … }
+    → CampEvent + meta.feature (shop|tv|club|pond|shelter|fire)
+
+  POST /api/firmament/house/enter
+    body: { "house_id": "luna", "visitor_id": "...", "speak": true }
+    → CampEvent with owner greeting line(s)
+
+  GET  /api/firmament/shop/catalog
+  GET  /api/firmament/lucid-feed
+  GET  /api/firmament/x-pulse
+
+  POST /api/firmament/camp/banter
+    body: { "agent_a": "luna", "agent_b": "hermes", "topic": "...", "rounds": 2 }
+    → CampEvent with multi-agent lines
+
+  POST /api/firmament/agent/chat
+    body: { "agent_id": "luna", "message": "hey" }
+    → classic { reply, backend, ... }
+
+
+CAMPEVENT SHAPE
+---------------
+  {
+    "ok": true,
+    "kind": "prop_use" | "house_enter" | "banter",
+    "target_id": "beer",
+    "message": "narration / toast",
+    "lines": [
+      { "agent_id": "luna", "name": "Luna", "text": "...", "mood": "happy", "backend": "ollama" }
+    ],
+    "fx": ["foam_hiss"],
+    "kit": { "kit_id": "cooler", "primary": "#f59e0b", ... },
+    "meta": {},
+    "ts": 0
+  }
+
+
+JS CLIENT
+---------
+  import { useProp, enterHouse, campBanter, agentChat, applyCampEvent } from "/static/camp/camp-client.mjs";
+
+  const ev = await useProp("beer");
+  applyCampEvent(ev, {
+    onNarration: (msg) => toast(msg),
+    onLine: (line) => speechBubble(line.agent_id, line.text),
+  });
+
+
+BRAINS
+------
+  Ollama (local) → Grok / free fallbacks via firmament.brain
+  Offline: protocol still returns witty fallback lines so camp never goes silent
+
+
+TEST (curl)
+-----------
+  curl -s http://127.0.0.1:8767/api/firmament/camp/protocol
+  curl -s http://127.0.0.1:8767/api/firmament/visual/kits
+  curl -s -X POST http://127.0.0.1:8767/api/firmament/prop/use -H "Content-Type: application/json" -d "{\"prop_id\":\"cookies\",\"visitor_name\":\"Stood\",\"speak\":true}"
+  curl -s -X POST http://127.0.0.1:8767/api/firmament/house/enter -H "Content-Type: application/json" -d "{\"house_id\":\"hermes\",\"visitor_name\":\"Stood\"}"
+  curl -s -X POST http://127.0.0.1:8767/api/firmament/camp/banter -H "Content-Type: application/json" -d "{\"agent_a\":\"luna\",\"agent_b\":\"oracle\",\"rounds\":2}"

@@ -21,6 +21,8 @@ DEFAULT = {
     "phase": "explore",
     "location": "luna_camp",
     "psychic_phase": "aurora_calm",
+    "weather": "aurora",
+    "time_of_day": "dawn",
     "last_event": "",
     "updated_at": 0.0,
 }
@@ -30,11 +32,13 @@ ZOMBIE_EVENTS = frozenset({"wave_start", "zombie_kill", "zombie_spawn", "zombie_
 
 def load() -> dict:
     try:
-        raw = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+        from firmament.crypto_box import load_json_file
+
+        raw = load_json_file(STATE_PATH, {})
         if isinstance(raw, dict):
             out = {**DEFAULT, **raw}
             return out
-    except (OSError, json.JSONDecodeError):
+    except Exception:
         pass
     return dict(DEFAULT)
 
@@ -42,7 +46,9 @@ def load() -> dict:
 def save(state: dict) -> dict:
     state = {**DEFAULT, **state, "updated_at": time.time()}
     try:
-        STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        from firmament.crypto_box import save_json_file
+
+        save_json_file(STATE_PATH, state)
     except OSError:
         pass
     return state
@@ -80,6 +86,10 @@ def apply_event(event: str, payload: dict | None = None) -> dict:
         state["location"] = str(payload.get("location", "outpost"))
     elif event == "ammo_pickup":
         state["ammo"] = int(state.get("ammo", 0)) + int(payload.get("amount", 15))
+    elif event == "weather_set":
+        state["weather"] = str(payload.get("weather", "aurora")).lower()[:24]
+        if payload.get("time_of_day"):
+            state["time_of_day"] = str(payload.get("time_of_day"))[:16]
     elif event == "reset":
         state = dict(DEFAULT)
 

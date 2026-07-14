@@ -1,4 +1,4 @@
-const CACHE = "luna-avatar-v296-bubbles-only"
+const CACHE = "luna-avatar-v297-three-camp"
 const ASSETS = ["/static/avatars/brunette.glb", "/static/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
@@ -20,8 +20,18 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.pathname.startsWith("/api/")) return;
 
-  // Always fetch fresh HTML â€” never cache the app shell
+  // Always fetch fresh HTML — never cache the app shell
   if (e.request.mode === "navigate" || url.pathname === "/" || url.pathname.endsWith(".html")) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+
+  // Never cache Three.js / ES modules — stale module graph = "Failed to fetch dynamically imported module"
+  if (
+    url.pathname.includes("/vendor/three/") ||
+    url.pathname.endsWith(".mjs") ||
+    url.pathname.includes("firmament-three")
+  ) {
     e.respondWith(fetch(e.request));
     return;
   }

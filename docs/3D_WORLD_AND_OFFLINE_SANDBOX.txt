@@ -1,0 +1,99 @@
+LUNA CAMP → 3D WORLD + OFFLINE SANDBOX
+========================================
+Date: 2026-07-13
+
+
+1) FLASH?
+---------
+  NO. Flash Player is dead (browsers blocked it years ago).
+  Do not rebuild camp in Flash / SWF / Ruffle unless it's a nostalgia toy.
+  Not a real product path for telephanti.com.
+
+
+2) WHAT'S YOUR BEST BET FOR 3D?
+-------------------------------
+  YOU ALREADY HAVE IT:
+
+    C:\Users\Stood\luna-avatar\unreal\LunaFirmament\
+
+  Unreal Engine project with:
+    - Camp builder / NPCs / atmosphere / weather
+    - LunaBridge plugin (talks to your Python brain on :8767)
+    - Pixel Streaming config (stream 3D into browser later)
+    - Mannequin characters + anims
+
+  RECOMMENDED SPLIT (best of both worlds):
+
+    A) BROWSER CAMP (firmament/play)
+       - Fast tweaks: chat, bubbles, houses, pulse, Grok/Ollama
+       - Offline sandbox for daily work
+       - Push to telephanti.com when it feels good
+
+    B) UNREAL CAMP (LunaFirmament)
+       - Real 3D world: walk, lighting, mountains, mannequins
+       - Same brain (local server) — agents still talk via HTTP
+       - Polish visuals offline, then optional Pixel Stream to web
+
+  ALTERNATIVE (web 3D without Unreal install) — LIVE NOW:
+    Three.js camp:
+      http://127.0.0.1:8767/firmament/3d
+    File: static/firmament-three.html
+    Same brains as 2D. No Unreal install. Push with normal site deploy.
+    Docs: docs/THREEJS_CAMP.txt
+    (Unreal still wins for open-world fidelity + Pixel Stream.)
+
+
+3) OFFLINE SANDBOX (tweak first, push later)
+--------------------------------------------
+  Folder:
+    C:\Users\Stood\luna-avatar\offline-sandbox\
+
+  Double-click:
+    OPEN_SANDBOX.bat
+
+  That:
+    - Starts LOCAL Luna server only (127.0.0.1:8767)
+    - Does NOT open telephanti.com
+    - Opens browser camp in sandbox mode
+    - Uses free brains / aether if Ollama is down
+    - Your edits stay on disk until YOU push
+
+  Workflow:
+    1. Edit files in luna-avatar\ (or notes in offline-sandbox\)
+    2. Refresh browser (Ctrl+F5)
+    3. When happy: git commit + push (or ask Grok to push)
+    4. Render redeploys telephanti.com
+
+
+4) UNREAL OFFLINE (3D tweak, no cloud required)
+-----------------------------------------------
+  Double-click:
+    PLAY_UNREAL_CAMP_OFFLINE.bat
+
+  Or:
+    1. OPEN_SANDBOX.bat   (brain running)
+    2. OPEN_UNREAL_CAMP.bat / CLICK_ME_OPEN_OPENWORLD.bat
+    3. Press Play in Unreal Editor
+
+  Brain URL should be:
+    http://127.0.0.1:8767
+
+
+5) WHEN TO PUSH WHAT
+--------------------
+  Browser chat / UI / bubbles / houses  →  push static + firmament + server
+  Unreal art / maps / mannequins        →  usually stay local (big binaries)
+  Pixel Stream live 3D on the site      →  needs a beefy host + stream config
+
+  Rule of thumb:
+    Tweak in offline-sandbox every day.
+    Push browser when it feels good.
+    Unreal is your 3D playground — merge to live only when stream/PC build is ready.
+
+
+6) SIMPLE DECISION
+------------------
+  Want 3D open world + best look?     → Unreal (you already started)
+  Want fast chat camp on phone/web?   → Browser firmament/play
+  Want Flash nostalgia?               → Skip it
+  Want offline tweak then push?       → offline-sandbox\OPEN_SANDBOX.bat

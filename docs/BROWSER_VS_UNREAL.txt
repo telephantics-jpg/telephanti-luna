@@ -1,0 +1,58 @@
+LUNA CAMP — WHAT TO OPEN (simple)
+==================================
+
+YOU ONLY NEED TWO THINGS FOR BROWSER PLAY
+-----------------------------------------
+
+  ① LUNA SERVER (her brain — chat, moods, party lines)
+     Double-click:
+       C:\Users\Stood\luna-avatar\RESTART_LUNA_SERVER.bat
+     Keep the black window OPEN.
+
+  ② BROWSER CAMP (where you play — phone or PC)
+     After ① is running, open:
+       http://127.0.0.1:8767/firmament/play
+     Or double-click:
+       C:\Users\Stood\luna-avatar\PLAY_IN_BROWSER.bat
+     (starts server + opens browser)
+
+  That's it. Unreal is NOT required.
+
+
+WHAT YOU GET IN THE BROWSER (no Unreal)
+---------------------------------------
+  - Luna, Hermes, Oracle walking near the campfire
+  - Talk: press T
+  - Beer cooler, grill steaks, camp herbs, cookies — walk up and press E (or tap)
+  - Camp chat log on the right (phone: "Camp chat" button)
+  - Mood panel + Roam / Follow / Stand / Own thing buttons
+  - Your own visitor character (shared with others on the site)
+  - Button: "Bring Luna & friends back" if they wandered off screen
+
+
+③ UNREAL 3D — OPTIONAL BONUS (you have NOT tried this yet — that's fine!)
+---------------------------------------------------------------------------
+  Same Luna server (①) powers Unreal too.
+  Unreal = full 3D mountains, mannequin walk, bigger world.
+
+  To try it LATER on your PC:
+    1. Run ① RESTART_LUNA_SERVER.bat
+    2. Double-click: CLICK_ME_OPEN_OPENWORLD.bat
+    3. Press green PLAY in Unreal
+    4. T = talk, Shift = run, walk to campfire
+
+  Browser already has chat + NPCs + beer/steaks. Unreal is extra eye candy.
+
+
+IF FRIENDS "DISAPPEARED" IN BROWSER
+-----------------------------------
+  They roamed off-screen. Tap:
+    "Bring Luna & friends back to campfire"
+  Or press the Roam / Own thing buttons — they stay near the fire now.
+
+
+PHONE (same Wi-Fi as PC)
+------------------------
+  After ① on PC, on phone browser use:
+    http://YOUR_PC_IP:8767/firmament/play
+  (RESTART_LUNA_SERVER.bat prints the IP when it starts)

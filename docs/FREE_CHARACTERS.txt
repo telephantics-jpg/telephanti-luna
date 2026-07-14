@@ -1,0 +1,75 @@
+FREE CHARACTER GRAPHICS FOR LUNA 3D CAMP
+=========================================
+
+What we use now (already in the repo)
+-------------------------------------
+  static/avatars/brunette.glb     Your Luna-style mesh (Luna, Aurora, Violet…)
+  static/avatars/characters/
+    soldier.glb                   three.js example (MIT) — Thor, Odin, Michael…
+    xbot.glb                      three.js example (MIT) — Hermes, Oracle, Jesus…
+    robot.glb                     RobotExpressive (MIT) — Sentinel
+
+  Loader: static/camp/camp-characters.mjs
+  Wired in: /firmament/3d
+
+
+Free upgrades you can drop in (no paywall)
+-----------------------------------------
+  1) Ready Player Me (best quick human avatars)
+     - https://readyplayer.me  → create free avatar → download .glb
+     - Put file in static/avatars/characters/me-luna.glb
+     - Map in camp-characters.mjs MODEL_FOR_AGENT.luna = "/static/avatars/characters/me-luna.glb"
+
+  2) Mixamo (animations + characters)
+     - https://www.mixamo.com  (free Adobe account)
+     - Download character as glTF/GLB with idle+walk
+     - Great for better walk cycles
+
+  3) Quaternius free packs
+     - https://quaternius.com  (CC0 many packs)
+     - Low-poly humans, RPG characters — perfect for camp crowd
+
+  4) Kenney.nl
+     - https://kenney.nl/assets  (CC0)
+     - Blocky / modular — stylized camp look
+
+  5) Poly Pizza / Poly Haven
+     - https://poly.pizza  /  https://polyhaven.com
+     - CC0 models; filter for characters
+
+  6) VRoid Hub (anime-style)
+     - Export VRM → convert to GLB (Blender) if you want stylized agents
+
+
+Tricks that make free models look better
+----------------------------------------
+  • Tint materials per agent color (already done — mood/prop glow)
+  • One shared GLB cloned with SkeletonUtils (memory-friendly)
+  • Hide capsules when GLB loads (already done)
+  • AnimationMixer: idle / walk / sit clips when the file has them
+  • Soft emissive glow = "alive" without fancy PBR
+  • Don't load 20 unique 10MB meshes — 3–4 templates + tint scales fine
+  • HDR / RoomEnvironment optional later for shinier materials
+
+
+How to add your own character
+-----------------------------
+  1. Drop myhero.glb into static/avatars/characters/
+  2. Edit static/camp/camp-characters.mjs:
+
+       MODEL_FOR_AGENT.oracle = "/static/avatars/characters/myhero.glb";
+
+  3. Hard-refresh /firmament/3d
+
+
+Unreal path (highest fidelity)
+------------------------------
+  MetaHumans + Fab free packs in unreal/LunaFirmament
+  Pixel Stream if you want that look in the browser (GPU host)
+
+
+Legal note
+----------
+  three.js example models: MIT (fine for this project)
+  Your brunette.glb: treat as your asset
+  Always check license on anything new you download

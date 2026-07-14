@@ -22,10 +22,20 @@ DEFAULT_PACK_ID = "aurora_playground"
 
 
 def _read_json(path: Path) -> dict:
+    from firmament.crypto_box import SENSITIVE_NAMES, load_json_file
+
+    if path.name in SENSITIVE_NAMES:
+        data = load_json_file(path, {})
+        return data if isinstance(data, dict) else {}
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _write_json(path: Path, data: dict) -> None:
+    from firmament.crypto_box import SENSITIVE_NAMES, save_json_file
+
+    if path.name in SENSITIVE_NAMES:
+        save_json_file(path, data)
+        return
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 

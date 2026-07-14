@@ -31,7 +31,7 @@
   "psychic_engine": {
     "enabled": true,
     "intensity": 0.75,
-    "shared_agents": ["hermes", "sentinel", "luna", "oracle", "caduceus", "dionysus", "jesus", "michael", "gabriel", "raphael", "uriel", "aurora", "violet", "seraph", "odin", "ambrosia", "rhea", "ara", "mika"],
+    "shared_agents": ["hermes", "sentinel", "luna", "oracle", "caduceus", "dionysus", "jesus", "michael", "gabriel", "raphael", "uriel", "aurora", "violet", "seraph", "odin", "thor", "zeus", "ambrosia", "rhea", "ara", "mika"],
     "zombie_mode": false,
     "pulse_color": "#67e8f9",
     "texture_overlay": "starfield_veil"
@@ -52,6 +52,8 @@
     { "id": "violet", "spawn": [0.92, 0.14, 98], "bubble_color": "#c084fc" },
     { "id": "seraph", "spawn": [0.52, 0.78, 106], "bubble_color": "#fda4af" },
     { "id": "odin", "spawn": [0.04, 0.06, 115], "bubble_color": "#94a3b8" },
+    { "id": "thor", "spawn": [0.12, 0.08, 116], "bubble_color": "#38bdf8" },
+    { "id": "zeus", "spawn": [0.28, 0.05, 117], "bubble_color": "#facc15" },
     { "id": "ambrosia", "spawn": [0.62, 0.42, 102], "bubble_color": "#f59e0b" },
     { "id": "rhea", "spawn": [0.96, 0.08, 118], "bubble_color": "#d4a574" },
     { "id": "ara", "spawn": [0.22, 0.62, 102], "bubble_color": "#4ade80" },

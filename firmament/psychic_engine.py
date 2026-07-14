@@ -39,10 +39,12 @@ DEFAULT = {
 
 def load() -> dict:
     try:
-        raw = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+        from firmament.crypto_box import load_json_file
+
+        raw = load_json_file(STATE_PATH, {})
         if isinstance(raw, dict):
             return {**DEFAULT, **raw}
-    except (OSError, json.JSONDecodeError):
+    except Exception:
         pass
     return dict(DEFAULT)
 
@@ -50,7 +52,9 @@ def load() -> dict:
 def save(state: dict) -> dict:
     state = {**DEFAULT, **state, "updated_at": time.time()}
     try:
-        STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        from firmament.crypto_box import save_json_file
+
+        save_json_file(STATE_PATH, state)
     except OSError:
         pass
     return state

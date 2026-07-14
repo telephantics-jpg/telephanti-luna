@@ -17,6 +17,7 @@ _DATA_FILES = (
     "firmament_camp_memory.json",
     "firmament_game_state.json",
     "firmament_psychic_state.json",
+    "firmament_wallets.json",
     "luna_stats.json",
     "pet_settings.json",
     "omni_buddy_state.json",

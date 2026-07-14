@@ -1,0 +1,68 @@
+LUNA CAMP — THREE.JS 3D (browser, no Unreal)
+============================================
+
+WHAT IT IS
+----------
+  Real-time WebGL 3D meadow in the browser.
+  Same Luna brains as 2D camp (/api/firmament/agent/chat).
+  No Flash. No Unreal install. Works offline on your PC.
+
+OPEN
+----
+  1. Start server (OPEN_OFFLINE_SANDBOX.bat or RESTART_LUNA_SERVER.bat)
+  2. Browser:
+       http://127.0.0.1:8767/firmament/3d
+     or
+       http://127.0.0.1:8767/firmament/three
+
+  From 2D camp: tap chip  "🎲 3D Camp"
+
+CONTROLS
+--------
+  Drag          orbit camera
+  Scroll/pinch  zoom
+  Click agent   select + talk
+  Click prop    use (beer, cookies, …)
+  Click house   approach owner
+  WASD          move your visitor
+  Send / Enter  chat with selected agent
+  Banter        agents converse via API
+
+FILES
+-----
+  static/firmament-three.html     the 3D scene + UI
+  static/vendor/three/            Three.js (already in repo)
+  server.py                       routes /firmament/3d and /firmament/three
+
+VS 2D CAMP VS UNREAL
+--------------------
+  2D camp (/firmament/play)   richest UI, free-will, multiplayer visitors
+  Three.js (/firmament/3d)    3D look in any browser, good graphics path
+  Unreal + stream             best fidelity, needs GPU PC + Pixel Streaming
+
+TWEAK LOOP
+----------
+  Edit firmament-three.html → Ctrl+F5
+  Push only when you like it (git push origin main)
+
+ARCHITECTURE
+------------
+  See docs/CAMP_ARCHITECTURE.txt
+
+  Shared layout:
+    firmament/world/camp_catalog.json
+    GET /api/firmament/camp/catalog
+    static/camp/camp-world.mjs
+
+  Three.js reads the catalog (not hard-coded lists).
+  Next: namesake visual kits → then 2D camp uses same file.
+
+
+NEXT UPGRADES
+-------------
+  - Namesake character / house / prop kits from visual.archetype
+  - Point 2D firmament-play at same catalog
+  - GLB characters (GLTFLoader)
+  - Unreal reads same JSON
+  - Sky / weather API
+

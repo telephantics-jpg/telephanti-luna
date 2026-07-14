@@ -411,20 +411,22 @@
       #camp-pick-agent-fab,
       #camp-pick-agent-sheet { display: none !important; }
     }
-    #camp-tpx-fab {
+    #camp-tpx-fab,
+    #camp-3d-fab {
       position: fixed;
       z-index: 22;
       left: max(12px, env(safe-area-inset-left));
       bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 10px);
-      width: 54px;
-      height: 54px;
+      min-width: 108px;
+      height: 44px;
+      padding: 0 14px;
       border-radius: 999px;
       border: 2px solid #7dd3fc;
       background: linear-gradient(135deg, #0c4a6e, #0284c7 45%, #38bdf8);
       color: #e0f2fe;
-      font-size: 0.82rem;
+      font-size: 0.72rem;
       font-weight: 900;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.02em;
       box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
       cursor: pointer;
       touch-action: manipulation;
@@ -432,17 +434,38 @@
       display: none;
       align-items: center;
       justify-content: center;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    #camp-3d-fab {
+      left: auto;
+      right: max(12px, env(safe-area-inset-right));
+      min-width: 72px;
+      border-color: #c4b5fd;
+      background: linear-gradient(135deg, #312e81, #7c3aed 50%, #a78bfa);
+      color: #f5f3ff;
     }
     #camp-tpx-fab.active {
       border-color: #e0f2fe;
       box-shadow: 0 0 18px rgba(56, 189, 248, 0.65);
     }
-    #camp-tpx-fab:active { transform: scale(0.94); }
+    #camp-tpx-fab:active, #camp-3d-fab:active { transform: scale(0.94); }
     @media (max-width: 899px) {
-      #camp-tpx-fab { display: flex; }
+      #camp-tpx-fab, #camp-3d-fab { display: flex; }
     }
     @media (min-width: 900px) {
-      #camp-tpx-fab { display: none !important; }
+      #camp-tpx-fab, #camp-3d-fab { display: none !important; }
+    }
+    .dock-compact .dock-icon.dock-3d {
+      background: linear-gradient(135deg, #312e81, #7c3aed 50%, #a78bfa);
+      border-color: #c4b5fd;
+      color: #f5f3ff;
+      font-size: 0.68rem;
+      font-weight: 900;
+      min-width: 52px;
+      width: auto;
+      padding: 0 10px;
+      text-decoration: none;
     }
     #trippy-veil {
       position: fixed; z-index: 2; pointer-events: none;
@@ -1331,8 +1354,10 @@
     .dock-compact .dock-icon.dock-tpx {
       background: linear-gradient(135deg, #0c4a6e, #0284c7 45%, #38bdf8);
       border-color: #7dd3fc;
-      font-size: 0.72rem; font-weight: 900; letter-spacing: 0.04em;
+      font-size: 0.58rem; font-weight: 900; letter-spacing: 0.01em;
       color: #e0f2fe;
+      min-width: 88px; width: auto; padding: 0 10px;
+      white-space: nowrap;
     }
     .dock-compact .dock-icon.dock-tpx.active {
       box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
@@ -2783,8 +2808,31 @@
         font-size: 16px !important;
       }
 
-      #camp-header .header-row.top,
-      #free-tools-row,
+      #camp-header .header-row.top {
+        display: none !important;
+      }
+      /* Phone: show only the 3D Camp chip in free-tools-row (was fully hidden) */
+      #free-tools-row {
+        display: flex !important;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 6px;
+        max-height: none !important;
+        height: auto !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        padding: 2px 0 4px !important;
+        margin: 0 !important;
+      }
+      #free-tools-row > *:not(#chip-3d-camp):not(#chip-unreal-stream) {
+        display: none !important;
+      }
+      #chip-3d-camp {
+        display: inline-flex !important;
+        font-size: 0.78rem !important;
+        padding: 8px 14px !important;
+        flex-shrink: 0;
+      }
       #unreal-hint,
       #camp-life-status,
       #status-toast,
@@ -3581,7 +3629,8 @@
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
-        <button type="button" class="agent-chip visitor-chip" id="chip-camp-tpx" title="Telephantix music at camp"><span class="dot" style="background:#38bdf8;color:#38bdf8"></span><span class="chip-text"><span class="aname">TX</span><span class="amood">music</span></span></button>
+        <a class="agent-chip visitor-chip" id="chip-camp-3d" href="/firmament/3d" title="Open 3D camp mode"><span class="dot" style="background:#a78bfa;color:#a78bfa"></span><span class="chip-text"><span class="aname">🎲 3D Camp</span><span class="amood">walk mode</span></span></a>
+        <button type="button" class="agent-chip visitor-chip" id="chip-camp-tpx" title="Telephantix music at camp"><span class="dot" style="background:#38bdf8;color:#38bdf8"></span><span class="chip-text"><span class="aname">Telephantix</span><span class="amood">music</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus-invite" title="Invite Dionysus to camp"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">🍷 Dionysus</span><span class="amood">invite</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
       </div>
@@ -3596,6 +3645,7 @@
       <button type="button" class="free-tool-chip native" id="chip-x-pulse" title="Today's headlines — agents tweet takes">𝕏 Pulse</button>
       <span class="free-tool-chip native" id="chip-ollama" title="Local Ollama/Llama — no API tokens">🦙 Ollama…</span>
       <span class="free-tool-chip" id="chip-tts" title="Edge TTS — free">🔊 TTS free</span>
+      <a class="free-tool-chip native" id="chip-3d-camp" href="/firmament/3d" title="Three.js 3D camp — same brains, no Unreal" style="border-color:rgba(167,139,250,0.75);background:linear-gradient(135deg,rgba(49,46,129,0.95),rgba(124,58,237,0.45));color:#ede9fe;font-weight:800">🎲 3D Camp</a>
       <a class="free-tool-chip" id="chip-unreal-stream" href="/firmament/stream" style="display:none">🎮 Unreal stream</a>
     </div>
     <div id="camp-life-status" class="live">Camp is live…</div>
@@ -3618,7 +3668,8 @@
   <!-- camp-speech-pin removed — bubbles select/drag on canvas only -->
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
-  <button type="button" id="camp-tpx-fab" title="Telephantix — play album at camp" aria-label="Play Telephantix music">TX</button>
+  <a id="camp-3d-fab" href="/firmament/3d" title="Open 3D Camp mode" aria-label="Open 3D Camp">🎲 3D</a>
+  <button type="button" id="camp-tpx-fab" title="Telephantix — play album at camp" aria-label="Play Telephantix music">Telephantix</button>
   <div id="camp-pick-agent-sheet" hidden aria-hidden="true" style="display:none !important">
     <div class="cpas-backdrop" id="camp-pick-agent-backdrop"></div>
     <div class="cpas-panel">
@@ -3750,8 +3801,9 @@
       <button type="button" id="camp-zoom-reset" title="Reset map zoom" aria-label="Reset zoom">↺</button>
     </div>
     <div class="dock-compact">
+      <a class="dock-icon dock-3d" id="btn-camp-3d" href="/firmament/3d" title="3D Camp mode — walk the meadow in 3D">🎲 3D</a>
       <div class="dock-music-group" aria-label="Camp music">
-        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix — your album at camp">TX</button>
+        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix — your album at camp">Telephantix</button>
         <button type="button" class="dock-icon dock-music-off" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
       </div>
       <button type="button" class="dock-icon" id="btn-lucid-tv" title="Lucid Mind TV — real mysterious feeds" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
@@ -3771,7 +3823,7 @@
       <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
       <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
     </div>
-    <div id="dock-tip" class="dock-tip">TX = Telephantix · 🔇 off · swipe toolbar →</div>
+    <div id="dock-tip" class="dock-tip">🎲 3D = full 3D camp · Telephantix = album · swipe toolbar →</div>
     <div class="dock-scroll-hint">swipe toolbar →</div>
   </footer>
   <audio id="camp-music-audio" preload="none" playsinline></audio>
@@ -3982,7 +4034,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-13-295-NO-TEXTBOX";
+    const CAMP_BUILD = "2026-07-13-298-3D-ENTRY";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -13210,11 +13262,20 @@
       let drawn = 0;
       const max = Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 4 : 3);
       const now = Date.now();
+      // Expire selection when speech ends — nothing stuck "always front"
+      if (selectedBubbleSpeaker) {
+        const held = speechHold.get(selectedBubbleSpeaker);
+        if (!held || held.until <= now) {
+          clearBubbleFreePos(selectedBubbleSpeaker);
+          selectedBubbleSpeaker = null;
+          selectedBubbleLine = "";
+          selectedBubbleAgentId = "";
+        }
+      }
       const roamers = allRoamers();
-      // Selected speaker always drawn last (true front)
+      // Selected drawn last so it paints on top of other chat bubbles (still a bubble, not a text box)
       const priority = [
         ...roamers.filter((n) => n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId),
-        ...roamers.filter((n) => pinnedSpeech.has(n.name) && n.name !== selectedBubbleSpeaker),
         ...roamers.filter((n) => n.id === speakingAgentId),
         ...roamers.filter((n) => speechHold.has(n.name) && speechHold.get(n.name).until > now),
         ...roamers.filter((n) => {
@@ -13229,7 +13290,6 @@
         seen.add(n.id);
         queue.push(n);
       }
-      // Draw non-selected first, selected last so it paints on top
       queue.sort((a, b) => {
         const aSel = a.name === selectedBubbleSpeaker || a.id === selectedBubbleAgentId ? 1 : 0;
         const bSel = b.name === selectedBubbleSpeaker || b.id === selectedBubbleAgentId ? 1 : 0;
@@ -13239,7 +13299,6 @@
         if (drawn >= max && n.name !== selectedBubbleSpeaker && n.id !== selectedBubbleAgentId) continue;
         const s = worldToScreen(camp.x + n.x, camp.y + n.y);
         const free = bubbleFreePos.get(n.name);
-        // Free-dragged bubbles stay visible even if agent is off-screen
         if (!free && isCampMobile() && (s.x < -48 || s.x > viewW + 48 || s.y < -48 || s.y > viewH + 48)
             && n.name !== selectedBubbleSpeaker) continue;
         const color = n.color || AGENT_COLORS[n.id] || "#67e8f9";
@@ -13251,15 +13310,14 @@
         }
         const held = speechHold.get(n.name);
         const isSel = n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId;
-        // Never dump full monologue into the canvas bubble (that was the stuck paragraph)
+        // Chat bubble text only — short, same as normal speech bubbles
         let activeLine = (isSel && selectedBubbleLine)
           || (held && held.until > now ? held.line : null)
           || (n.line || "");
         activeLine = String(activeLine || "").trim();
         if (!activeLine) continue;
-        // Cap display length on canvas for readability
         const words = activeLine.split(/\s+/);
-        if (words.length > 55) activeLine = words.slice(0, 55).join(" ") + "…";
+        if (words.length > 36) activeLine = words.slice(0, 36).join(" ") + "…";
         const me = MOOD_EMOJI[n.mood || "neutral"] || "";
         const ae = AGENT_EMOJI[n.id] || "";
         const bubbleText = `${ae}${me ? " " + me : ""} ${activeLine}`.trim();
@@ -14549,15 +14607,20 @@
       const dragDist = Math.hypot(sx - target.startSx, sy - target.startSy);
       const wasTap = dragDist <= campTapSlop();
       if (target.kind === "bubble") {
-        // Tap = front only (no free-pos freeze). Drag = keep parked free pos.
-        if (!target.moved) {
-          // Pure tap: clear free pos so bubble follows agent again, stays selected front
-          clearBubbleFreePos(target.speaker);
-        }
+        // Tap = select chat bubble (gold). Drag = park bubble where dropped.
+        if (!target.moved) clearBubbleFreePos(target.speaker);
         hideCampSpeechPin();
         return;
       }
       if (target.kind === "meadow" || target.kind === "pond") {
+        // Tap empty meadow: clear selection / parked bubble so nothing stuck in front
+        if (wasTap && selectedBubbleSpeaker) {
+          clearBubbleFreePos(selectedBubbleSpeaker);
+          selectedBubbleSpeaker = null;
+          selectedBubbleLine = "";
+          selectedBubbleAgentId = "";
+          hideCampSpeechPin();
+        }
         const w = screenToWorld(sx, sy);
         const b = getCampRelativeBounds();
         walkPlayerTo(
@@ -14840,7 +14903,12 @@
     document.getElementById("dialogue-input")?.addEventListener("focus", onCampInputFocus);
     document.getElementById("camp-talk-input")?.addEventListener("blur", onCampInputBlur);
     document.getElementById("dialogue-input")?.addEventListener("blur", onCampInputBlur);
-    document.getElementById("camp-speech-pin-close")?.addEventListener("click", () => unpinCampSpeech());
+    // Ensure leftover pin DOM (if any from cache) never shows
+    try {
+      document.getElementById("camp-speech-pin")?.remove();
+      document.getElementById("camp-text-expand")?.setAttribute("hidden", "");
+      hideCampSpeechPin();
+    } catch (_) {}
     document.getElementById("convo-dock-toggle").onclick = (ev) => {
       ev.stopPropagation();
       minimizeSpeechBubble();
@@ -15809,27 +15877,42 @@
         caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
       }
     } catch (_) {}
-    // Live stamp — prove this exact HTML loaded
+    // Live / sandbox stamp — prove this exact HTML loaded
     try {
+      const _qs = new URLSearchParams(location.search);
+      const isSandbox = _qs.has("sandbox") || _qs.get("offline") === "1"
+        || location.hostname === "127.0.0.1" || location.hostname === "localhost";
+      const modeLabel = isSandbox ? "SANDBOX" : "LIVE";
       const stamp = document.getElementById("camp-live-stamp");
       if (stamp) {
-        stamp.textContent = `✦ LIVE ${CAMP_BUILD}`;
+        stamp.textContent = `✦ ${modeLabel} ${CAMP_BUILD}`;
+        if (isSandbox) {
+          stamp.style.borderColor = "#38bdf8";
+          stamp.title = "Local offline sandbox — not telephanti.com. Tweak, then push when ready.";
+        }
         stamp.onclick = () => { stamp.style.display = "none"; };
         setTimeout(() => {
           fetch("/api/health", { cache: "no-store" })
             .then((r) => r.json())
             .then((h) => {
-              stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server ${h.build || "?"}`;
-              if (String(h.build || "").includes("264") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("263")) {
+              stamp.textContent = `✦ ${modeLabel} ${CAMP_BUILD} · server ${h.build || "?"}`;
+              if (isSandbox) {
+                stamp.style.borderColor = "#38bdf8";
+              } else if (String(h.build || "").includes("264") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("263") || String(h.build || "").includes("296")) {
                 stamp.style.borderColor = "#86efac";
               } else {
                 stamp.style.borderColor = "#fbbf24";
                 stamp.textContent += " · OLD SERVER? hard-refresh";
               }
             })
-            .catch(() => { stamp.textContent = `✦ LIVE ${CAMP_BUILD} · server offline`; stamp.style.borderColor = "#f87171"; });
+            .catch(() => {
+              stamp.textContent = `✦ ${modeLabel} ${CAMP_BUILD} · server offline`;
+              stamp.style.borderColor = isSandbox ? "#fbbf24" : "#f87171";
+            });
         }, 400);
-        showToast?.(`Camp build ${CAMP_BUILD} loaded`);
+        showToast?.(isSandbox
+          ? `Sandbox ${CAMP_BUILD} — local only, push when ready`
+          : `Camp build ${CAMP_BUILD} loaded`);
       }
     } catch (_) {}
     const grokBuildEl = document.getElementById("grok-term-build");

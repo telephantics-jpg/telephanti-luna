@@ -1,11 +1,22 @@
 @echo off
-title Open LIVE Luna Camp (PC · telephanti.com)
+title Open LIVE Luna Camp on Render
+cd /d "%~dp0"
+
 echo.
-echo  Opening LIVE camp with cache-bust so you get build 262...
-echo  URL: https://telephanti.com/firmament/play?v=262-BRAIN-FIX
+echo  Connecting to Render cloud host...
+echo  https://telephanti.com/firmament/play
 echo.
-start "" "https://telephanti.com/firmament/play?v=262-BRAIN-FIX&fresh=%RANDOM%"
-echo  If the green LIVE stamp top-right does not say 262, press Ctrl+Shift+R
-echo  Then look for the 💬 Chat button in the bottom dock.
+
+REM Prefer public domain; fall back to onrender if needed
+curl -s -o nul -m 15 "https://telephanti.com/api/health"
+if errorlevel 1 (
+  echo  Public domain slow — opening onrender.com direct...
+  start "" "https://telephanti-luna.onrender.com/firmament/play?v=265&fresh=%RANDOM%"
+) else (
+  start "" "https://telephanti.com/firmament/play?v=265&fresh=%RANDOM%"
+)
+
+echo  If page spins, wait 30s for free-tier wake, then refresh.
+echo  Local free Ollama = START_CAMP_SERVER.bat instead.
 echo.
 pause

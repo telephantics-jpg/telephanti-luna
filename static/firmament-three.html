@@ -94,7 +94,11 @@
       position: fixed; inset: 0; z-index: 12; pointer-events: none; overflow: hidden;
     }
     .bubble3d {
-      position: absolute; max-width: min(280px, 70vw);
+      position: absolute;
+      /* Fixed frame — text content still updates dynamically */
+      width: min(248px, 72vw);
+      height: 112px;
+      box-sizing: border-box;
       transform: translate(-50%, -100%);
       background: rgba(8, 14, 28, 0.92);
       border: 1px solid rgba(196, 181, 253, 0.45);
@@ -102,8 +106,14 @@
       font-size: clamp(0.72rem, 2.4vw, 0.85rem); line-height: 1.35;
       color: #f1f5f9; box-shadow: 0 8px 28px rgba(0,0,0,0.35);
       animation: pop 0.22s ease-out;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      pointer-events: auto;
     }
     .bubble3d .who { display: block; font-weight: 700; color: var(--violet); font-size: 0.72rem; margin-bottom: 3px; }
+    .bubble3d .say { display: block; }
     @keyframes pop { from { opacity: 0; transform: translate(-50%, -90%) scale(0.92); } to { opacity: 1; transform: translate(-50%, -100%) scale(1); } }
 
     #dock {
@@ -164,7 +174,8 @@
       padding: 6px 14px; font-size: 0.72rem; color: #a5f3fc; pointer-events: none;
     }
     .bubble3d {
-      max-width: min(320px, 78vw) !important;
+      width: min(260px, 78vw) !important;
+      height: 120px !important;
       font-size: clamp(0.8rem, 2.6vw, 0.95rem) !important;
       border-width: 2px !important;
       z-index: 14;
@@ -216,7 +227,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-13-three-v17-bootfix";
+    const BUILD = "2026-07-14-three-v18-static-bubble";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     function showBootError(msg) {
@@ -1571,7 +1582,8 @@
       const el = document.createElement("div");
       el.className = "bubble3d";
       el.style.borderColor = "#" + (st.def.color >>> 0).toString(16).padStart(6, "0");
-      el.innerHTML = `<span class="who">${escapeHtml(st.def.name)}</span>${escapeHtml(String(text).slice(0, 280))}`;
+      // Full dynamic line; fixed CSS box clips/scrolls long replies
+      el.innerHTML = `<span class="who">${escapeHtml(st.def.name)}</span><span class="say">${escapeHtml(String(text || "").trim())}</span>`;
       speechLayer.appendChild(el);
       const item = { el, mesh: st.mesh, agentId, until: performance.now() + ms };
       activeBubbles.push(item);

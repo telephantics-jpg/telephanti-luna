@@ -150,8 +150,10 @@
       background: #34d399; color: #052e1a;
     }
     .bubble3d.dimmed {
-      opacity: 0.4 !important;
-      filter: saturate(0.5);
+      opacity: 0.55 !important;
+      filter: saturate(0.65);
+      /* stay clickable under a large FRONT box when their rect sticks out */
+      pointer-events: auto !important;
     }
     /* Long-press lock — never auto-hide, stays readable on phone */
     .bubble3d.locked {
@@ -160,9 +162,9 @@
       opacity: 1 !important;
       filter: none !important;
       background: rgba(6, 28, 22, 0.97) !important;
-      height: auto !important;
-      max-height: min(48vh, 320px) !important;
-      min-height: 120px;
+      height: 120px !important;
+      max-height: 120px !important;
+      min-height: 120px !important;
     }
     .bubble3d.holding {
       border-color: #fbbf24 !important;
@@ -176,17 +178,17 @@
       background: linear-gradient(0deg, rgba(2,6,23,0.96), rgba(2,6,23,0.75) 60%, transparent);
       display: flex; flex-direction: column; gap: 8px;
     }
-    /* Selected bubble — gold FRONT like 2D camp */
+    /* Selected bubble — gold FRONT like 2D camp (JS sets z-index per pick — no fixed 999) */
     .bubble3d.front {
       border-color: #fde68a !important;
       box-shadow: 0 0 0 3px rgba(253, 230, 138, 0.85), 0 14px 40px rgba(0,0,0,0.6) !important;
-      height: auto !important;
-      max-height: min(42vh, 280px) !important;
-      min-height: 120px;
+      /* keep same frame size as others so one agent doesn't cover every other chat */
+      height: 120px !important;
+      max-height: 120px !important;
+      min-height: 120px !important;
       opacity: 1 !important;
       filter: none !important;
       background: rgba(12, 20, 40, 0.98) !important;
-      z-index: 999 !important;
     }
     #talk-row {
       display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
@@ -238,9 +240,6 @@
       font-size: clamp(0.8rem, 2.6vw, 0.95rem) !important;
       border-width: 2px !important;
     }
-    .bubble3d.front {
-      height: auto !important;
-    }
     #ground-marker {
       /* rendered in 3d */
     }
@@ -286,7 +285,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-16-three-v27-front-like-2d";
+    const BUILD = "2026-07-16-three-v28-any-agent-front";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     function showBootError(msg) {
@@ -1625,6 +1624,8 @@
 
     const activeBubbles = [];
     let orbitPinnedForBubble = false;
+    /** Agent id the visitor last FRONT-selected (any agent — not just Hermes). */
+    let selectedSpeechAgentId = "";
     const LONG_PRESS_MS = 480; // phone-friendly hold to lock
 
     function setOrbitEnabled(on) {
@@ -1637,24 +1638,33 @@
       } catch (_) {}
     }
 
-    /** Geometry hit-test: all visible bubbles under (x,y), highest stack first. */
+    /**
+     * All visible bubbles under (x,y) — sorted so the *closest center* wins.
+     * (Old code always preferred highest z-index, so a FRONT Hermes box ate every click.)
+     */
     function bubblesAtPoint(x, y) {
       const hits = [];
+      const pad = 12;
       for (const b of activeBubbles) {
         const el = b.el;
         if (!el || el.style.display === "none" || el.hidden) continue;
         const r = el.getBoundingClientRect();
         if (r.width < 2 || r.height < 2) continue;
-        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-          hits.push(b);
+        if (
+          x >= r.left - pad &&
+          x <= r.right + pad &&
+          y >= r.top - pad &&
+          y <= r.bottom + pad
+        ) {
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const dist = Math.hypot(x - cx, y - cy);
+          hits.push({ b, dist, area: r.width * r.height, el });
         }
       }
-      // Locked boxes win ties so they stay selectable on top of stacks
-      hits.sort((a, b) => {
-        const lockBoost = (x) => (x.holdLocked ? 1000 : 0);
-        return (lockBoost(b) + (b.stackRank || 0)) - (lockBoost(a) + (a.stackRank || 0));
-      });
-      return hits;
+      // Closest center first; if tie, prefer smaller (easier to pick a non-FRONT box)
+      hits.sort((a, b) => a.dist - b.dist || a.area - b.area);
+      return hits.map((h) => h.b);
     }
 
     let lastBubblePickAt = 0;
@@ -1663,21 +1673,37 @@
     function bubbleFromPoint(x, y, { cycle = true } = {}) {
       const geom = bubblesAtPoint(x, y);
       if (geom.length) {
+        // Prefer closest bubble; if same as current FRONT and another is under finger, cycle
         const top = geom[0];
         const now = performance.now();
-        const isNewClick = now - lastBubblePickAt > 280;
         if (
           cycle &&
-          isNewClick &&
           geom.length > 1 &&
+          now - lastBubblePickAt > 250 &&
+          lastBubblePickEl === top.el &&
           top.el.classList.contains("front") &&
-          !top.holdLocked &&
-          lastBubblePickEl === top.el
+          !top.holdLocked
         ) {
           return geom[1].el;
         }
         return top.el;
       }
+      // Nearest bubble within slop (fat finger) even if slightly outside rect
+      let best = null;
+      let bestD = 48;
+      for (const b of activeBubbles) {
+        const el = b.el;
+        if (!el || el.style.display === "none") continue;
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const d = Math.hypot(x - cx, y - cy);
+        if (d < bestD) {
+          bestD = d;
+          best = el;
+        }
+      }
+      if (best) return best;
       try {
         const stack = document.elementsFromPoint(x, y) || [];
         for (const node of stack) {
@@ -1707,29 +1733,37 @@
     }
 
     /**
-     * Same idea as 2D meadow: the pressed box becomes FRONT immediately.
-     * DOM re-order + z-index so it paints above every other speech box.
+     * Pressed agent's box becomes FRONT — works for Luna, Hermes, Oracle, anyone.
      */
     function bringBubbleFront(el, opts = {}) {
       if (!el) return false;
       const target = activeBubbles.find((b) => b.el === el);
       if (!target) return false;
 
-      // Paint last in speech-layer = true top of stack
+      selectedSpeechAgentId = target.agentId || "";
+      // Talk-to menu follows whichever chat you picked (not stuck on Hermes)
+      try {
+        if (selectedSpeechAgentId && whoEl) {
+          whoEl.value = selectedSpeechAgentId;
+          const nm = target.el.querySelector?.(".who")?.textContent || selectedSpeechAgentId;
+          if (msgEl) msgEl.placeholder = `Talk to ${nm}…`;
+        }
+      } catch (_) {}
+
       try {
         const layer = speechLayer || document.body;
-        if (el.parentNode !== layer) layer.appendChild(el);
-        else layer.appendChild(el); // re-append = move to end
+        layer.appendChild(el); // last child = paints on top
       } catch (_) {}
 
       bubbleFrontZ = Math.min((bubbleFrontZ || 220) + 1, 980);
-      const rank = target.holdLocked || opts.lock ? 990 : 800 + (bubbleFrontZ % 100);
+      const rank = target.holdLocked || opts.lock ? 990 : 850 + (bubbleFrontZ % 80);
 
       for (const b of activeBubbles) {
         const isFront = b.el === el;
         b.el.classList.toggle("front", isFront);
         b.el.classList.toggle("dimmed", !isFront && !b.holdLocked);
         b.el.setAttribute("aria-pressed", isFront ? "true" : "false");
+        b.el.setAttribute("data-agent", b.agentId || "");
         b.el.style.pointerEvents = "auto";
         if (isFront) {
           b.stackRank = rank;
@@ -1744,15 +1778,15 @@
           const st = agentState.find((a) => a.def.id === b.agentId);
           if (st) st.speakUntil = b.until;
         } else if (b.holdLocked) {
-          // Other locked boxes stay readable, slightly under selected
-          b.stackRank = 900;
-          b.el.style.setProperty("z-index", "900", "important");
+          b.stackRank = 700;
+          b.el.style.setProperty("z-index", "700", "important");
           b.el.style.opacity = "1";
           b.el.style.filter = "none";
           b.el.classList.add("locked");
           ensureFrontChip(b.el, true);
         } else {
-          b.stackRank = 210 + activeBubbles.indexOf(b);
+          // Keep other agents' chats visible + tappable (not buried under one Hermes box)
+          b.stackRank = 300 + activeBubbles.indexOf(b);
           b.el.style.setProperty("z-index", String(b.stackRank), "important");
           b.frontPinned = false;
           clearFrontChip(b.el);
@@ -1766,12 +1800,20 @@
       lastBubblePickEl = el;
 
       if (!opts.quiet) {
-        const who = el.querySelector?.(".who")?.textContent || "Speech";
+        const who = el.querySelector?.(".who")?.textContent || target.agentId || "Speech";
         try {
           showToast(target.holdLocked ? `🔒 ${who} locked front` : `📌 ${who} FRONT`);
         } catch (_) {}
       }
       return true;
+    }
+
+    /** Bring a specific agent's open chat to front (if they have a bubble). */
+    function bringAgentSpeechFront(agentId) {
+      if (!agentId) return false;
+      const item = activeBubbles.find((b) => b.agentId === agentId && b.el?.style.display !== "none");
+      if (!item) return false;
+      return bringBubbleFront(item.el);
     }
 
     function setBubbleHoldLock(el, locked) {
@@ -1927,6 +1969,7 @@
 
       clearGeoHold();
       // Meadow tap: clear soft FRONT (locked stay)
+      selectedSpeechAgentId = "";
       for (const b of activeBubbles) {
         if (b.holdLocked) continue;
         b.el.classList.remove("front", "dimmed");
@@ -1973,21 +2016,39 @@
       ms = Math.max(Number(ms) || 22000, speechReadMs(body, 22000));
       const st = agentState.find((a) => a.def.id === agentId);
       if (!st) return;
-      // If this agent already has a HOLD-LOCKED box, update text in place — never remove it
+      const isSelected = selectedSpeechAgentId && agentId === selectedSpeechAgentId;
+
+      // Update existing bubble for this agent (keep selection / lock)
       for (let i = activeBubbles.length - 1; i >= 0; i--) {
         const prev = activeBubbles[i];
         if (prev.agentId !== agentId) continue;
-        if (prev.holdLocked && prev.el) {
+        if (prev.el) {
           const say = prev.el.querySelector(".say");
           if (say) say.textContent = body;
-          prev.until = Number.POSITIVE_INFINITY;
-          prev.el.classList.add("locked", "front");
-          ensureFrontChip(prev.el, true);
+          if (prev.holdLocked) {
+            prev.until = Number.POSITIVE_INFINITY;
+            prev.el.classList.add("locked", "front");
+            ensureFrontChip(prev.el, true);
+          } else {
+            prev.until = performance.now() + ms;
+            if (isSelected || prev.frontPinned) {
+              prev.frontPinned = true;
+              bringBubbleFront(prev.el, { quiet: true });
+            } else {
+              // Someone else is FRONT — this agent stays dimmed/tappable, not steal top
+              prev.el.classList.remove("front");
+              prev.el.classList.add("dimmed");
+              prev.stackRank = 300 + i;
+              prev.el.style.setProperty("z-index", String(prev.stackRank), "important");
+              clearFrontChip(prev.el);
+            }
+          }
           return;
         }
-        prev.el.remove();
+        prev.el?.remove();
         activeBubbles.splice(i, 1);
       }
+
       const el = document.createElement("div");
       el.className = "bubble3d";
       el.tabIndex = 0;
@@ -1998,9 +2059,10 @@
       el.style.position = "fixed";
       el.style.borderColor = "#" + (st.def.color >>> 0).toString(16).padStart(6, "0");
       el.style.pointerEvents = "auto";
-      bubbleFrontZ = Math.min(bubbleFrontZ + 1, 900);
-      el.style.zIndex = String(bubbleFrontZ);
-      el.title = "Tap = FRONT · Hold = lock";
+      // New ambient lines stay below a user-selected FRONT chat
+      const baseRank = isSelected ? 860 : (300 + activeBubbles.length);
+      el.style.setProperty("z-index", String(baseRank), "important");
+      el.title = `${st.def.name} — tap for FRONT · hold to lock`;
       el.innerHTML = `<span class="who">${escapeHtml(st.def.name)}</span><span class="say">${escapeHtml(body)}</span>`;
       bindBubbleSelect(el);
       const layer = speechLayer || document.body;
@@ -2010,13 +2072,18 @@
         mesh: st.mesh,
         agentId,
         until: performance.now() + ms,
-        stackRank: bubbleFrontZ,
-        frontPinned: false,
+        stackRank: baseRank,
+        frontPinned: !!isSelected,
         holdLocked: false,
       };
       activeBubbles.push(item);
       st.speakUntil = item.until;
       st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 75000 + Math.random() * 45000);
+      if (isSelected) {
+        bringBubbleFront(el, { quiet: true });
+      } else if (selectedSpeechAgentId) {
+        el.classList.add("dimmed");
+      }
     }
 
     // Offline-only fallbacks (brains down). Normal path = real AI.
@@ -2085,9 +2152,10 @@
     }
     function updateBubbles() {
       const now = performance.now();
+      // Screen positions first, then fan out overlaps so every agent is tappable
+      const placed = [];
       for (let i = activeBubbles.length - 1; i >= 0; i--) {
         const b = activeBubbles[i];
-        // Hold-locked boxes never auto-remove (phone long-press)
         if (b.holdLocked) {
           b.until = Number.POSITIVE_INFINITY;
         } else if (now > b.until) {
@@ -2098,14 +2166,32 @@
         const v = b.mesh.position.clone();
         v.y += 2.4;
         v.project(camera);
-        const x = (v.x * 0.5 + 0.5) * window.innerWidth;
-        const y = (-v.y * 0.5 + 0.5) * window.innerHeight;
-        if (v.z > 1) {
+        let x = (v.x * 0.5 + 0.5) * window.innerWidth;
+        let y = (-v.y * 0.5 + 0.5) * window.innerHeight;
+        if (v.z > 1 || v.z < -1) {
           b.el.style.display = "none";
-        } else {
-          b.el.style.display = "block";
-          b.el.style.left = `${x}px`;
-          b.el.style.top = `${y}px`;
+          continue;
+        }
+        // Nudge stacked boxes so Luna / Hermes / Oracle don't sit on one click target
+        for (let n = 0; n < 6; n++) {
+          let clash = false;
+          for (const p of placed) {
+            if (Math.hypot(x - p.x, y - p.y) < 56) {
+              x += (n % 2 === 0 ? 1 : -1) * (28 + n * 10);
+              y -= 18 + n * 6;
+              clash = true;
+              break;
+            }
+          }
+          if (!clash) break;
+        }
+        placed.push({ x, y, b });
+        b.el.style.display = "block";
+        b.el.style.left = `${x}px`;
+        b.el.style.top = `${y}px`;
+        // Keep FRONT above ambient for the selected agent only
+        if (b.frontPinned || b.holdLocked || b.agentId === selectedSpeechAgentId) {
+          b.el.style.setProperty("z-index", String(b.stackRank || 860), "important");
         }
       }
     }
@@ -2159,6 +2245,10 @@
             msgEl.focus();
             logLine("Camp", `Talking to ${u.name} — use chips or type.`);
             showToast(`✦ ${u.name}`);
+            // If they already have a speech box, bring THAT agent's chat FRONT
+            if (!bringAgentSpeechFront(u.id)) {
+              selectedSpeechAgentId = u.id;
+            }
             // face visitor toward them + walk nearby
             const st = agentState.find((a) => a.def.id === u.id);
             if (st) {

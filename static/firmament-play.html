@@ -415,19 +415,19 @@
     #camp-3d-fab {
       position: fixed;
       z-index: 22;
-      left: max(12px, env(safe-area-inset-left));
-      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 10px);
-      min-width: 108px;
-      height: 44px;
-      padding: 0 14px;
+      left: max(8px, env(safe-area-inset-left));
+      bottom: calc(var(--dock-h) + env(safe-area-inset-bottom, 0px) + 6px);
+      min-width: 44px;
+      height: 32px;
+      padding: 0 10px;
       border-radius: 999px;
-      border: 2px solid #7dd3fc;
+      border: 1px solid #7dd3fc;
       background: linear-gradient(135deg, #0c4a6e, #0284c7 45%, #38bdf8);
       color: #e0f2fe;
-      font-size: 0.72rem;
+      font-size: 0.62rem;
       font-weight: 900;
       letter-spacing: 0.02em;
-      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
       cursor: pointer;
       touch-action: manipulation;
       pointer-events: auto;
@@ -436,11 +436,12 @@
       justify-content: center;
       white-space: nowrap;
       text-decoration: none;
+      opacity: 0.92;
     }
     #camp-3d-fab {
       left: auto;
-      right: max(12px, env(safe-area-inset-right));
-      min-width: 72px;
+      right: max(8px, env(safe-area-inset-right));
+      min-width: 48px;
       border-color: #c4b5fd;
       background: linear-gradient(135deg, #312e81, #7c3aed 50%, #a78bfa);
       color: #f5f3ff;
@@ -708,15 +709,22 @@
     #camp-x-pulse {
       position: fixed; z-index: 27; right: max(var(--gap), env(safe-area-inset-right, 0px));
       top: calc(var(--header-h) + var(--gap) + 4px);
-      width: min(340px, 92vw);
-      max-height: min(42vh, 320px);
+      width: min(260px, 78vw);
+      max-height: min(32vh, 240px);
       display: none; flex-direction: column;
-      background: rgba(4, 10, 18, 0.98);
-      border: 2px solid rgba(29, 155, 240, 0.45);
-      border-radius: 14px;
-      box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+      background: rgba(4, 10, 18, 0.96);
+      border: 1px solid rgba(29, 155, 240, 0.4);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
       overflow: hidden;
+      font-size: 0.72rem;
     }
+    #camp-x-pulse .cxp-tpx {
+      font-size: 0.62rem; color: #7dd3fc; text-decoration: none;
+      border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px;
+      padding: 2px 6px; white-space: nowrap;
+    }
+    #camp-x-pulse .cxp-tpx:hover { background: rgba(14, 116, 144, 0.35); }
     #camp-x-pulse.show { display: flex; }
     #camp-x-pulse .cxp-head {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -1356,8 +1364,13 @@
       border-color: #7dd3fc;
       font-size: 0.58rem; font-weight: 900; letter-spacing: 0.01em;
       color: #e0f2fe;
-      min-width: 88px; width: auto; padding: 0 10px;
+      min-width: 36px; width: auto; padding: 0 7px;
       white-space: nowrap;
+    }
+    .dock-compact .dock-icon.dock-feature-sm {
+      width: 40px; height: 40px; font-size: 1.05rem;
+      border-width: 1px;
+      opacity: 0.95;
     }
     .dock-compact .dock-icon.dock-tpx.active {
       box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
@@ -1374,17 +1387,19 @@
     .dock-compact .dock-icon:active { transform: scale(0.94); }
     #camp-music-now {
       display: none;
-      width: 100%;
+      width: auto;
+      max-width: min(280px, 70vw);
       align-items: center;
-      gap: 10px;
-      padding: 9px 12px;
-      margin-top: 6px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, rgba(12, 74, 110, 0.97), rgba(2, 132, 199, 0.92), rgba(14, 165, 233, 0.88));
-      border: 2px solid #7dd3fc;
-      box-shadow: 0 0 22px rgba(56, 189, 248, 0.45);
+      gap: 6px;
+      padding: 4px 8px;
+      margin-top: 4px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(12, 74, 110, 0.92), rgba(2, 132, 199, 0.85));
+      border: 1px solid rgba(125, 211, 252, 0.55);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
       pointer-events: auto;
-      animation: camp-music-now-glow 2s ease-in-out infinite alternate;
+      animation: none;
+      font-size: 0.68rem;
     }
     #camp-music-now.visible { display: flex; }
     #camp-music-now.pending {
@@ -2146,13 +2161,18 @@
     }
     #camp-shop-layer.open { display: flex; }
     #camp-shop-panel {
-      width: min(520px, 100%); max-height: min(78vh, 640px);
+      width: min(400px, 94%); max-height: min(62vh, 480px);
       display: flex; flex-direction: column;
       background: linear-gradient(160deg, rgba(12, 10, 28, 0.98), rgba(8, 16, 32, 0.98));
-      border: 2px solid rgba(167, 139, 250, 0.45); border-radius: 18px;
-      padding: 16px; overflow: hidden;
-      transform: perspective(700px) rotateX(2deg);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.55), 0 0 40px rgba(103, 232, 249, 0.12);
+      border: 1px solid rgba(167, 139, 250, 0.4); border-radius: 14px;
+      padding: 12px; overflow: hidden;
+      transform: none;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    }
+    #camp-shop-panel .shop-tpx {
+      font-size: 0.68rem; color: #7dd3fc; text-decoration: none;
+      display: inline-flex; gap: 4px; align-items: center;
+      margin-bottom: 6px;
     }
     #camp-shop-panel h2 {
       font-size: 1.15rem; color: var(--cyan); margin-bottom: 4px;
@@ -2194,13 +2214,17 @@
     }
     #lucid-tv-layer.open { display: flex; }
     #lucid-tv-panel {
-      width: min(920px, 100%); max-height: min(88vh, 720px);
-      display: flex; flex-direction: column; gap: 8px;
+      width: min(640px, 96%); max-height: min(72vh, 560px);
+      display: flex; flex-direction: column; gap: 6px;
       background: linear-gradient(165deg, rgba(10, 8, 28, 0.98), rgba(4, 8, 18, 0.98));
-      border: 2px solid rgba(167, 139, 250, 0.42); border-radius: 16px;
-      padding: 12px; overflow: hidden;
-      transform: perspective(820px) rotateX(1.2deg);
-      box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 36px rgba(103, 232, 249, 0.14);
+      border: 1px solid rgba(167, 139, 250, 0.38); border-radius: 12px;
+      padding: 10px; overflow: hidden;
+      transform: none;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.55);
+    }
+    #lucid-tv-panel .tpx-x-link {
+      font-size: 0.68rem; color: #a5f3fc; text-decoration: none;
+      border: 1px solid rgba(103, 232, 249, 0.3); border-radius: 6px; padding: 3px 8px;
     }
     #lucid-tv-head {
       display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
@@ -2467,13 +2491,17 @@
     }
     #camp-club-layer.open { display: flex; }
     #camp-club-panel {
-      width: min(720px, 100%); max-height: min(88vh, 640px);
-      display: flex; flex-direction: column; gap: 10px;
+      width: min(480px, 94%); max-height: min(70vh, 480px);
+      display: flex; flex-direction: column; gap: 8px;
       background: linear-gradient(165deg, rgba(24, 4, 28, 0.98), rgba(8, 4, 18, 0.99));
-      border: 2px solid rgba(236, 72, 153, 0.55);
-      border-radius: 18px; padding: 14px;
-      box-shadow: 0 0 48px rgba(236, 72, 153, 0.35), 0 24px 60px rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(236, 72, 153, 0.45);
+      border-radius: 12px; padding: 10px;
+      box-shadow: 0 0 24px rgba(236, 72, 153, 0.25), 0 14px 36px rgba(0, 0, 0, 0.55);
       overflow: hidden;
+    }
+    #camp-club-panel .tpx-x-link {
+      font-size: 0.68rem; color: #fbcfe8; text-decoration: none;
+      border: 1px solid rgba(244, 114, 182, 0.35); border-radius: 6px; padding: 3px 8px;
     }
     #camp-club-head {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -3664,11 +3692,11 @@
     </div>
     <div id="camp-life-status" class="live">Camp is live…</div>
     <div id="camp-music-now" aria-live="polite" hidden>
-      <div class="camp-music-now-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="camp-music-now-eq" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
       <div class="camp-music-now-meta">
-        <span class="camp-music-now-badge" id="camp-music-now-badge">MUSIC</span>
-        <span class="camp-music-now-artist" id="camp-music-now-artist">Camp</span>
-        <span class="camp-music-now-title" id="camp-music-now-title">Tap toolbar below</span>
+        <a class="camp-music-now-badge" id="camp-music-now-badge" href="https://x.com/Telephantix" target="_blank" rel="noopener noreferrer" title="Telephantix on X">TX</a>
+        <span class="camp-music-now-artist" id="camp-music-now-artist">TX</span>
+        <span class="camp-music-now-title" id="camp-music-now-title">album</span>
       </div>
     </div>
   </header>
@@ -3683,7 +3711,7 @@
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
   <a id="camp-3d-fab" href="/firmament/3d" title="Open 3D Camp mode" aria-label="Open 3D Camp">🎲 3D</a>
-  <button type="button" id="camp-tpx-fab" title="Telephantix — play album at camp" aria-label="Play Telephantix music">Telephantix</button>
+  <button type="button" id="camp-tpx-fab" title="Telephantix music · long-press opens X @Telephantix" aria-label="Play Telephantix music">TX</button>
   <div id="camp-pick-agent-sheet" hidden aria-hidden="true" style="display:none !important">
     <div class="cpas-backdrop" id="camp-pick-agent-backdrop"></div>
     <div class="cpas-panel">
@@ -3720,11 +3748,12 @@
   </div>
   <div id="camp-x-pulse" hidden role="dialog" aria-label="X Pulse headlines">
     <div class="cxp-head">
-      <span>𝕏 Pulse — today</span>
+      <span>𝕏 Pulse</span>
+      <a class="cxp-tpx" href="https://x.com/Telephantix" target="_blank" rel="noopener noreferrer" title="Telephantix on X">@Telephantix</a>
       <button type="button" id="camp-x-pulse-close" title="Close pulse">✕</button>
     </div>
     <div id="camp-x-pulse-items">Loading headlines…</div>
-    <button type="button" id="camp-x-pulse-tweet">🐦 Random agent tweet</button>
+    <button type="button" id="camp-x-pulse-tweet">🐦 Agent take</button>
   </div>
   <div id="grok-terminal" class="collapsed" aria-label="Grok terminal chat">
     <div class="grok-term-head">
@@ -3817,11 +3846,12 @@
     <div class="dock-compact">
       <a class="dock-icon dock-3d" id="btn-camp-3d" href="/firmament/3d" title="3D Camp mode — walk the meadow in 3D">🎲 3D</a>
       <div class="dock-music-group" aria-label="Camp music">
-        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix — your album at camp">Telephantix</button>
-        <button type="button" class="dock-icon dock-music-off" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
+        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix album · hold for X @Telephantix">TX</button>
+        <button type="button" class="dock-icon dock-music-off dock-feature-sm" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
       </div>
-      <button type="button" class="dock-icon" id="btn-lucid-tv" title="Lucid Mind TV — real mysterious feeds" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
-      <button type="button" class="dock-icon" id="btn-camp-shop" title="Aurora shop — spend tokens" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
+      <button type="button" class="dock-icon dock-feature-sm" id="btn-lucid-tv" title="Lucid Mind TV" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
+      <button type="button" class="dock-icon dock-feature-sm" id="btn-camp-shop" title="Aurora shop" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
+      <button type="button" class="dock-icon dock-feature-sm" id="btn-camp-carnival" title="Aurora Carnival ride" style="background:linear-gradient(135deg,#9a3412,#f97316);border-color:#fdba74">🎡</button>
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" aria-label="Summon Jesus and archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem;font-weight:900">✦ Heaven</button>
       <button type="button" class="dock-icon" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Mysterious Unknown — summon a stranger from the aether · agents react">❓ Unknown</button>
@@ -3880,10 +3910,11 @@
   </div>
   <div id="camp-shop-layer" role="dialog" aria-label="Aurora camp shop">
     <div id="camp-shop-panel" onclick="event.stopPropagation()">
-      <h2>🏪 Aurora Shop <span id="camp-shop-balance">🪙 …</span></h2>
-      <div class="shop-sub">Earn tokens by chatting · buy camp goodies · get weird</div>
+      <h2>🏪 Shop <span id="camp-shop-balance">🪙 …</span></h2>
+      <a class="shop-tpx" href="https://x.com/Telephantix" target="_blank" rel="noopener noreferrer" title="Telephantix on X">𝕏 @Telephantix</a>
+      <div class="shop-sub">Tokens from chat · camp goodies</div>
       <div id="camp-shop-items">Loading wares…</div>
-      <button type="button" id="camp-shop-close">Close shop</button>
+      <button type="button" id="camp-shop-close">Close</button>
     </div>
   </div>
   <div id="dialogue-backdrop">
@@ -3939,8 +3970,9 @@
   <div id="lucid-tv-layer" role="dialog" aria-label="Lucid mind TV">
     <div id="lucid-tv-panel" onclick="event.stopPropagation()">
       <div id="lucid-tv-head">
-        <h2 id="lucid-tv-title">📺 Lucid Mind TV</h2>
-        <span id="lucid-tv-sub">tuning real feeds from agent dreams…</span>
+        <h2 id="lucid-tv-title">📺 Lucid TV</h2>
+        <a class="tpx-x-link" href="https://x.com/Telephantix" target="_blank" rel="noopener noreferrer">𝕏 TX</a>
+        <span id="lucid-tv-sub">agent-dream feeds…</span>
       </div>
       <div id="lucid-tv-thought">The screen hasn't decided what to show you yet.</div>
       <div id="lucid-tv-screen-wrap">
@@ -3948,18 +3980,19 @@
         <iframe id="lucid-tv-frame" title="Lucid mind feed" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen></iframe>
       </div>
       <div class="lucid-tv-actions">
-        <button type="button" class="primary" id="lucid-tv-next">⟳ Next channel</button>
-        <button type="button" id="lucid-tv-mute">🔇 Muted (tap for sound)</button>
-        <button type="button" id="lucid-tv-open">↗ Open feed</button>
-        <button type="button" id="lucid-tv-close">← Back to camp</button>
+        <button type="button" class="primary" id="lucid-tv-next">⟳ Next</button>
+        <button type="button" id="lucid-tv-mute">🔇 Mute</button>
+        <button type="button" id="lucid-tv-open">↗ Open</button>
+        <button type="button" id="lucid-tv-close">← Camp</button>
       </div>
     </div>
   </div>
   <div id="camp-club-layer" role="dialog" aria-label="Aurora Velvet lounge">
     <div id="camp-club-panel" onclick="event.stopPropagation()">
       <div id="camp-club-head">
-        <h2>💃 Aurora Velvet</h2>
-        <button type="button" id="camp-club-close">← Back to camp</button>
+        <h2>💃 Velvet</h2>
+        <a class="tpx-x-link" href="https://x.com/Telephantix" target="_blank" rel="noopener noreferrer">𝕏 TX</a>
+        <button type="button" id="camp-club-close">← Camp</button>
       </div>
       <div id="camp-club-stage" aria-hidden="true">
         <span class="club-neon">Aurora Velvet</span>
@@ -4048,7 +4081,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-14-299-STATIC-BUBBLE";
+    const CAMP_BUILD = "2026-07-16-302-BUBBLE-FRONT-FIX";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4201,26 +4234,29 @@
       );
       if (!typing) e.stopImmediatePropagation();
     }, true);
-    // Livelier camp: more dialogue beats, still leaves room for visitor replies
+    // Slow + sparse talk — fewer lines, longer on-screen so visitors can read
     const CAMP_PACE = {
-      readMinSec: 36,
-      readMaxSec: 220,
-      charsPerSec: 12,
-      converseGapMs: 8500,
-      converseGapChillMs: 12000,
-      nextConverseMinMs: 28000,
-      nextConverseRandMs: 24000,
-      retryConverseMs: 12000,
-      idleChatterMinMs: 14000,
-      idleChatterRandMs: 16000,
-      proximityMinMs: 14000,
+      readMinSec: 72,
+      readMaxSec: 360,
+      charsPerSec: 6,
+      converseGapMs: 22000,
+      converseGapChillMs: 30000,
+      nextConverseMinMs: 65000,
+      nextConverseRandMs: 55000,
+      retryConverseMs: 28000,
+      idleChatterMinMs: 42000,
+      idleChatterRandMs: 48000,
+      proximityMinMs: 36000,
     };
-    /** Speech floor — a few agents talk at once; addressed agent keeps the mic */
+    /** Telephantix on X — music / club / pulse / shop brand home */
+    const TELEPHANTIX_X_URL = "https://x.com/Telephantix";
+    const TELEPHANTIX_SITE_URL = "https://telephanti.com";
+    /** Speech floor — one or two voices max so bubbles stay readable */
     const campSpeechFloor = {
       active: new Set(),
       focusId: null,
       focusUntil: 0,
-      maxConcurrent: 4,
+      maxConcurrent: 2,
     };
     function speechFloorHasFocus() {
       return !!(campSpeechFloor.focusId && Date.now() < campSpeechFloor.focusUntil);
@@ -4228,6 +4264,15 @@
     function canAgentTakeFloor(agentId, opts = {}) {
       const id = String(agentId || "").toLowerCase();
       if (!id) return false;
+      // Visitor pinned/locked a bubble to front — hush ambient so they can finish reading
+      if (
+        typeof bubbleFrontPinned !== "undefined" &&
+        (bubbleFrontPinned || bubbleHoldLocked) &&
+        !opts.priority &&
+        !opts.allowWhilePinned
+      ) {
+        if (id !== String(selectedBubbleAgentId || "").toLowerCase()) return false;
+      }
       if (opts.priority || id === campSpeechFloor.focusId) return true;
       if (speechFloorHasFocus() && campSpeechFloor.focusId !== id) return false;
       if (chatInflight && chatInflight.size > 0 && !chatInflight.has(id) && !opts.ambientOk) return false;
@@ -5178,6 +5223,7 @@
       "odin-hall": "edge", "hermes-home": "edge", "dionysus-home": "edge", "aurora-shop": "edge",
       "luna-home": "edge", "oracle-home": "edge", "visitor-shelter": "edge", "aurora-velvet": "edge",
       "lucid-tv": "mid", pond: "edge", "camp-cat": "mid",
+      "aurora-carnival": "edge",
       stereo: "edge", beer: "edge", steaks: "edge", herbs: "edge",
       weed: "edge", cookies: "edge", ouija: "mid",
     };
@@ -5537,7 +5583,25 @@
       { id: "aurora-velvet", type: "club", name: "Aurora Velvet", emoji: "💃", x: -520, y: -90,
         color: "#ec4899", roof: "#9d174d", wall: "#831843", enterRadius: 48,
         doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.08 } },
+      { id: "aurora-carnival", type: "carnival", name: "Aurora Carnival", emoji: "🎡", x: 560, y: -260,
+        color: "#f97316", roof: "#fdba74", wall: "#9a3412", enterRadius: 58,
+        doorOffset: { x: 0, y: -0.36 }, interior: { x: 0, y: 0.1 } },
     ];
+    /** Ferris / carousel ride — agents + visitor board; real carnival SFX via Web Audio */
+    const carnivalRide = {
+      spinning: false,
+      angle: 0,
+      seats: 6,
+      riders: new Map(), // key: agentId | "player" -> seat index
+      until: 0,
+      soundOn: true,
+      lastBarkAt: 0,
+    };
+    let carnivalAudioCtx = null;
+    let carnivalMasterGain = null;
+    let carnivalLoopNodes = [];
+    let carnivalBarkTimer = null;
+    let carnivalMelodyTimer = null;
     let stripClubOpen = false;
     const campCat = {
       name: "Nebula",
@@ -6305,9 +6369,12 @@
     function agentUseProp(n, prop) {
       if (!n || !prop) return;
       lastAgentWorldActionAt = Date.now();
-      const line = propLineForAgent(prop, n.id);
-      const msg = `${prop.emoji || ""} ${line}`.trim();
-      pushCampLine(n.name, msg, campReadHoldSec(msg, 16), n.mood || "happy", { fromLocal: true });
+      // Only speak on some prop uses — fewer bubbles, more read time
+      if (Math.random() < 0.4) {
+        const line = propLineForAgent(prop, n.id);
+        const msg = `${prop.emoji || ""} ${line}`.trim();
+        pushCampLine(n.name, msg, campReadHoldSec(msg, 28), n.mood || "happy", { fromLocal: true });
+      }
       // World side-effects agents can trigger
       if (prop.id === "stereo" && Math.random() < 0.55 && !campMusicOn) {
         try { toggleCampMusic?.(); } catch (_) {}
@@ -6375,7 +6442,301 @@
       tv: ["Lucid TV is doing the impossible channel again.", "Screen glow looks like a second corona."],
       club: ["Velvet bass leaking into the meadow. Tempting.", "Aurora Velvet is calling. Nebula already reserved my seat."],
       shelter: ["Visitor shelter is quiet — good for soft truths.", "Rest stop for tired timelines."],
+      carnival: [
+        "Calliope hits different under the aurora. I'm boarding.",
+        "Ferris gondola has my name on it — soft scream optional.",
+        "Carnival lights, real carousel noise, zero emails. Perfect.",
+      ],
     };
+    const CARNIVAL_RIDE_LINES = [
+      "Wheee — corona from the top seat looks like a halo.",
+      "If this gondola falls, blame Hermes' physics pamphlet.",
+      "Carnival calliope + aurora = illegal levels of joy.",
+      "Hold the bar. Or don't. I'm dramatic either way.",
+      "I can see Luna's house from here. Wave, cottage.",
+    ];
+
+    function carnivalStruct() {
+      return campStructures.find((s) => s.type === "carnival" || s.id === "aurora-carnival");
+    }
+
+    function ensureCarnivalAudio() {
+      if (carnivalAudioCtx) return carnivalAudioCtx;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      carnivalAudioCtx = new AC();
+      carnivalMasterGain = carnivalAudioCtx.createGain();
+      carnivalMasterGain.gain.value = 0.22;
+      carnivalMasterGain.connect(carnivalAudioCtx.destination);
+      return carnivalAudioCtx;
+    }
+
+    function stopCarnivalSound() {
+      if (carnivalBarkTimer) {
+        clearInterval(carnivalBarkTimer);
+        carnivalBarkTimer = null;
+      }
+      if (carnivalMelodyTimer) {
+        clearInterval(carnivalMelodyTimer);
+        carnivalMelodyTimer = null;
+      }
+      for (const n of carnivalLoopNodes) {
+        try { n.stop?.(); } catch (_) {}
+        try { n.disconnect?.(); } catch (_) {}
+      }
+      carnivalLoopNodes = [];
+    }
+
+    /** Real carnival-ish SFX: calliope waltz + steam whistle + crowd hush (Web Audio) */
+    function startCarnivalSound() {
+      if (!carnivalRide.soundOn) return;
+      const ctx = ensureCarnivalAudio();
+      if (!ctx) return;
+      stopCarnivalSound();
+      try { ctx.resume?.(); } catch (_) {}
+      const now = ctx.currentTime;
+      // Calliope-style staggered square/triangle partials (fairground organ)
+      const melody = [523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 587.33, 523.25];
+      const beat = 0.28;
+      for (let bar = 0; bar < 8; bar++) {
+        melody.forEach((freq, i) => {
+          const t0 = now + (bar * melody.length + i) * beat;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = i % 2 === 0 ? "square" : "triangle";
+          osc.frequency.value = freq * (1 + (Math.random() - 0.5) * 0.004);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.09, t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + beat * 0.9);
+          osc.connect(g);
+          g.connect(carnivalMasterGain);
+          osc.start(t0);
+          osc.stop(t0 + beat);
+          carnivalLoopNodes.push(osc);
+        });
+      }
+      // Low steam-engine / ride motor rumble
+      const rumble = ctx.createOscillator();
+      const rumbleG = ctx.createGain();
+      rumble.type = "sawtooth";
+      rumble.frequency.value = 48;
+      rumbleG.gain.value = 0.035;
+      rumble.connect(rumbleG);
+      rumbleG.connect(carnivalMasterGain);
+      rumble.start(now);
+      rumble.stop(now + melody.length * beat * 8 + 0.2);
+      carnivalLoopNodes.push(rumble);
+      // Periodic whistle + bark so it feels alive while spinning
+      const scheduleBark = () => {
+        if (!carnivalRide.spinning || !carnivalAudioCtx) return;
+        try {
+          const c = carnivalAudioCtx;
+          const t = c.currentTime;
+          const wh = c.createOscillator();
+          const wg = c.createGain();
+          wh.type = "sine";
+          wh.frequency.setValueAtTime(880, t);
+          wh.frequency.exponentialRampToValueAtTime(1320, t + 0.35);
+          wg.gain.setValueAtTime(0.0001, t);
+          wg.gain.exponentialRampToValueAtTime(0.12, t + 0.05);
+          wg.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+          wh.connect(wg);
+          wg.connect(carnivalMasterGain);
+          wh.start(t);
+          wh.stop(t + 0.6);
+          // Soft crowd "oooh"
+          const noiseBuf = c.createBuffer(1, c.sampleRate * 0.4, c.sampleRate);
+          const data = noiseBuf.getChannelData(0);
+          for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+          const src = c.createBufferSource();
+          const ng = c.createGain();
+          const bp = c.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.frequency.value = 900;
+          src.buffer = noiseBuf;
+          ng.gain.value = 0.05;
+          src.connect(bp);
+          bp.connect(ng);
+          ng.connect(carnivalMasterGain);
+          src.start(t + 0.1);
+        } catch (_) {}
+      };
+      scheduleBark();
+      carnivalBarkTimer = setInterval(scheduleBark, 4200);
+      // Loop calliope phrase while ride spins
+      const loopMs = Math.floor(melody.length * beat * 8 * 1000);
+      const reloopMelody = () => {
+        if (!carnivalRide.spinning) return;
+        const c = carnivalAudioCtx;
+        if (!c || !carnivalMasterGain) return;
+        const t0 = c.currentTime;
+        melody.forEach((freq, i) => {
+          const t = t0 + i * beat;
+          const osc = c.createOscillator();
+          const g = c.createGain();
+          osc.type = i % 2 === 0 ? "square" : "triangle";
+          osc.frequency.value = freq;
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.08, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + beat * 0.85);
+          osc.connect(g);
+          g.connect(carnivalMasterGain);
+          osc.start(t);
+          osc.stop(t + beat);
+        });
+      };
+      carnivalMelodyTimer = setInterval(reloopMelody, loopMs - 80);
+    }
+
+    function nextCarnivalSeat() {
+      const used = new Set(carnivalRide.riders.values());
+      for (let i = 0; i < carnivalRide.seats; i++) {
+        if (!used.has(i)) return i;
+      }
+      return Math.floor(Math.random() * carnivalRide.seats);
+    }
+
+    function carnivalSeatWorld(seatIdx, angleOffset = 0) {
+      const st = carnivalStruct();
+      if (!st) return { x: player.x, y: player.y };
+      const base = layoutCampWorld(st.id, st.x, st.y);
+      const ang = carnivalRide.angle + angleOffset + (seatIdx / carnivalRide.seats) * Math.PI * 2;
+      const r = 52;
+      return {
+        x: base.x + Math.cos(ang) * r,
+        y: base.y + Math.sin(ang) * r * 0.55 - Math.sin(ang) * 18,
+      };
+    }
+
+    function boardCarnivalRider(key, opts = {}) {
+      const seat = opts.seat != null ? opts.seat : nextCarnivalSeat();
+      carnivalRide.riders.set(key, seat);
+      if (key === "player") {
+        const pos = carnivalSeatWorld(seat);
+        player.x = pos.x;
+        player.y = pos.y;
+        player.tx = pos.x;
+        player.ty = pos.y;
+      } else {
+        const n = allRoamers().find((a) => a.id === key);
+        if (n) {
+          n.behavior = "carnival";
+          n.structureTarget = "aurora-carnival";
+          n.rideSeat = seat;
+          n.idle = 9999;
+          const pos = carnivalSeatWorld(seat);
+          n.x = pos.x - camp.x;
+          n.y = pos.y - camp.y;
+          n.tx = n.x;
+          n.ty = n.y;
+        }
+      }
+      return seat;
+    }
+
+    function leaveCarnivalRider(key) {
+      carnivalRide.riders.delete(key);
+      if (key === "player") return;
+      const n = allRoamers().find((a) => a.id === key);
+      if (n) {
+        n.rideSeat = null;
+        n.behavior = "roam";
+        n.structureTarget = null;
+        n.idle = 0;
+        resetNpcFreeWill?.(n, "roam");
+      }
+    }
+
+    function startCarnivalRide(opts = {}) {
+      const st = carnivalStruct();
+      if (!st) {
+        showToast("Carnival not on the meadow yet");
+        return;
+      }
+      carnivalRide.spinning = true;
+      carnivalRide.until = Date.now() + (opts.ms || 48000);
+      if (opts.boardPlayer !== false) boardCarnivalRider("player");
+      // Invite a few agents onto empty seats
+      const pool = allRoamers().filter((n) => !n.leaving && !n.insideHouse && !carnivalRide.riders.has(n.id));
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const invite = pool.slice(0, opts.guests != null ? opts.guests : 3);
+      invite.forEach((n) => boardCarnivalRider(n.id));
+      startCarnivalSound();
+      setCampLifeStatus("🎡 Aurora Carnival spinning — calliope live");
+      if (!opts.quiet) {
+        pushCampLine(
+          "Camp",
+          "🎡 Aurora Carnival revs up — real fairground noise, gondolas loading.",
+          22,
+          "happy",
+          { fromLocal: true, quiet: true },
+        );
+        showToast("🎡 Ride on — tap carnival again to hop off");
+      }
+      // Sparse ride lines so chat stays readable
+      invite.slice(0, 2).forEach((n, i) => {
+        setTimeout(() => {
+          if (!carnivalRide.spinning || !carnivalRide.riders.has(n.id)) return;
+          const line = CARNIVAL_RIDE_LINES[Math.floor(Math.random() * CARNIVAL_RIDE_LINES.length)];
+          pushCampLine(n.name, `🎡 ${line}`, campReadHoldSec(line, 40), n.mood || "happy", {
+            fromLocal: true,
+          });
+        }, 5000 + i * 9000);
+      });
+    }
+
+    function stopCarnivalRide(opts = {}) {
+      if (!carnivalRide.spinning && carnivalRide.riders.size === 0) return;
+      carnivalRide.spinning = false;
+      carnivalRide.until = 0;
+      stopCarnivalSound();
+      const keys = [...carnivalRide.riders.keys()];
+      keys.forEach((k) => leaveCarnivalRider(k));
+      carnivalRide.riders.clear();
+      if (!opts.quiet) {
+        setCampLifeStatus("Carnival winds down — calliope rests");
+        showToast("🎡 Ride over — feet on meadow again");
+      }
+    }
+
+    function toggleCarnivalRide(opts = {}) {
+      if (carnivalRide.spinning && carnivalRide.riders.has("player")) {
+        stopCarnivalRide(opts);
+        return false;
+      }
+      startCarnivalRide(opts);
+      return true;
+    }
+
+    function updateCarnivalRide(dt = 1) {
+      if (!carnivalRide.spinning) return;
+      carnivalRide.angle += 0.018 * dt;
+      // Keep riders in seats
+      for (const [key, seat] of carnivalRide.riders) {
+        const pos = carnivalSeatWorld(seat);
+        if (key === "player") {
+          player.x = pos.x;
+          player.y = pos.y;
+          player.tx = pos.x;
+          player.ty = pos.y;
+        } else {
+          const n = allRoamers().find((a) => a.id === key);
+          if (n) {
+            n.x = pos.x - camp.x;
+            n.y = pos.y - camp.y;
+            n.tx = n.x;
+            n.ty = n.y;
+            n.idle = 9999;
+          }
+        }
+      }
+      if (carnivalRide.until && Date.now() > carnivalRide.until) {
+        stopCarnivalRide({ quiet: false });
+      }
+    }
 
     function updateNpcStructureOne(n) {
       const st = campStructures.find((s) => s.id === n.structureTarget);
@@ -6392,9 +6753,12 @@
       if (n.idle <= 0) {
         const pool = STRUCTURE_LINES[st.type] || ["Checking the firmament furniture."];
         const line = pool[Math.floor(Math.random() * pool.length)];
-        pushCampLine(n.name, `${st.emoji || ""} ${line}`.trim(), 12, n.mood || "think", { fromLocal: true });
+        // Agents speak less at structures — only ~half the visits get a line
+        if (Math.random() < 0.48) {
+          pushCampLine(n.name, `${st.emoji || ""} ${line}`.trim(), campReadHoldSec(line, 28), n.mood || "think", { fromLocal: true });
+        }
         lastAgentWorldActionAt = Date.now();
-        n.idle = 40 + Math.floor(Math.random() * 50);
+        n.idle = 70 + Math.floor(Math.random() * 80);
         // Soft structure side-effects
         if (st.type === "tv" && Math.random() < 0.15 && !lucidTvOpen) {
           setCampLifeStatus?.(`${n.name} is staring into Lucid Mind TV`);
@@ -6402,10 +6766,24 @@
         if (st.type === "club" && Math.random() < 0.12) {
           pushCampLine("Camp", `${n.name} drifts toward Aurora Velvet energy.`, 8, "flirt", { quiet: true });
         }
+        if (st.type === "carnival") {
+          // Agent boards the spinning carnival (starts ride if needed)
+          if (!carnivalRide.spinning) {
+            carnivalRide.spinning = true;
+            carnivalRide.until = Date.now() + 40000;
+            startCarnivalSound();
+          }
+          boardCarnivalRider(n.id);
+          n.idle = 200 + Math.floor(Math.random() * 120);
+          return;
+        }
         return;
       }
       n.idle -= 1;
       if (n.idle <= 0) {
+        if (st.type === "carnival" && carnivalRide.riders.has(n.id)) {
+          leaveCarnivalRider(n.id);
+        }
         n.structureTarget = null;
         resetNpcFreeWill(n);
       }
@@ -6414,20 +6792,20 @@
     function pickRandomNpcBehavior(npc) {
       const chilling = campChillUntil > Date.now();
       const r = Math.random();
-      // Richer free will: houses, props, structures, social
+      // More sit/stand quiet time so chatter doesn't flood the meadow
       if (chilling) {
-        if (r < 0.35) return "sit";
-        if (r < 0.55) return "stand";
-        if (r < 0.7) return "roam";
-        if (r < 0.82) return "visit";
-        if (r < 0.92) return "home";
+        if (r < 0.42) return "sit";
+        if (r < 0.62) return "stand";
+        if (r < 0.74) return "roam";
+        if (r < 0.84) return "visit";
+        if (r < 0.93) return "home";
         return "prop";
       }
-      if (r < 0.10) return "roam";
+      if (r < 0.12) return "roam";
       if (r < 0.22) return "visit";
-      if (r < 0.38) return "sit";
-      if (r < 0.52) return "stand";
-      if (r < 0.66) return "home"; // own home OR guest house (resolved in startNpcHome)
+      if (r < 0.42) return "sit";
+      if (r < 0.56) return "stand";
+      if (r < 0.68) return "home";
       if (r < 0.78) return "prop";
       if (r < 0.88) return "structure";
       if (r < 0.94) return "follow";
@@ -6669,11 +7047,11 @@
           return;
         }
         n.idle = 140 + Math.floor(Math.random() * 200);
-        // Sit monologue — more often, still respect speech floor
+        // Sit monologue — rare so bubbles stay readable
         if (!n.socializing && !n.gathering && !converseBusy && !chatterPaused
-            && !ambientAiBusy && !speechFloorHasFocus()
-            && canAgentTakeFloor(n.id, { max: 3 })
-            && Math.random() < 0.14) {
+            && !ambientAiBusy && !speechFloorHasFocus() && !bubbleFrontPinned && !bubbleHoldLocked
+            && canAgentTakeFloor(n.id, { max: 1 })
+            && Math.random() < 0.04) {
           void emitNpcAiChatter(n, { allowAether: true });
         }
         return;
@@ -6683,10 +7061,11 @@
         n.idle -= 1;
         return;
       }
-      n.idle = 90 + Math.floor(Math.random() * 140);
-      if (!n.socializing && !n.gathering && Math.random() < 0.16
+      n.idle = 140 + Math.floor(Math.random() * 200);
+      if (!n.socializing && !n.gathering && Math.random() < 0.05
           && !converseBusy && !chatterPaused && !ambientAiBusy
-          && !speechFloorHasFocus() && canAgentTakeFloor(n.id, { max: 3 })) {
+          && !speechFloorHasFocus() && !bubbleFrontPinned && !bubbleHoldLocked
+          && canAgentTakeFloor(n.id, { max: 1 })) {
         void emitNpcAiChatter(n, { allowAether: true });
       }
       if (n.behaviorTimer <= 0) resetNpcFreeWill(n);
@@ -6903,6 +7282,11 @@
           else resetNpcFreeWill(n);
         }
 
+        if (n.behavior === "carnival" || carnivalRide.riders.has(n.id)) {
+          // Seat position driven by updateCarnivalRide
+          n.idle = 9999;
+          continue;
+        }
         if (n.behavior === "stand" || n.behavior === "meditate") continue;
         if (n.behavior === "sit") {
           updateNpcSitOne(n);
@@ -8185,7 +8569,7 @@
       if (!line || !window.speechSynthesis) return;
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(line);
-      u.rate = 1.14;
+      u.rate = 0.88;
       u.pitch = 0.9;
       u.volume = 0.98;
       const voices = window.speechSynthesis.getVoices();
@@ -10167,6 +10551,86 @@
         ctx.fillText(stripClubOpen ? "inside the lounge" : "tap — velvet lounge", s.x, s.y + 40);
         return;
       }
+      if (struct.type === "carnival") {
+        const spin = carnivalRide.angle;
+        const lit = carnivalRide.spinning ? 0.75 + Math.sin(t * 10) * 0.25 : 0.45;
+        // Platform
+        drawIsoBox(cx, cy, -1.15, -0.7, 0, 2.3, 1.35, 0.22,
+          { top: "#7c2d12", left: "#431407", right: "#9a3412", stroke: "#fdba74" });
+        // Center pole
+        ctx.strokeStyle = `rgba(253, 186, 116, ${0.7 + lit * 0.3})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y + 6);
+        ctx.lineTo(s.x, s.y - 78);
+        ctx.stroke();
+        // Ferris wheel rim
+        ctx.strokeStyle = `rgba(249, 115, 22, ${0.55 + lit * 0.4})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y - 40, 46, 38, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        // Spokes + gondolas
+        for (let i = 0; i < carnivalRide.seats; i++) {
+          const ang = spin + (i / carnivalRide.seats) * Math.PI * 2;
+          const gx = s.x + Math.cos(ang) * 42;
+          const gy = s.y - 40 + Math.sin(ang) * 34;
+          ctx.strokeStyle = "rgba(253, 230, 138, 0.55)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y - 40);
+          ctx.lineTo(gx, gy);
+          ctx.stroke();
+          const colors = ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7", "#ec4899"];
+          ctx.fillStyle = colors[i % colors.length];
+          ctx.beginPath();
+          ctx.roundRect(gx - 7, gy - 5, 14, 12, 3);
+          ctx.fill();
+          ctx.strokeStyle = "#fff7ed";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          // Rider glyph if occupied
+          for (const [key, seat] of carnivalRide.riders) {
+            if (seat !== i) continue;
+            ctx.font = "11px Segoe UI";
+            ctx.textAlign = "center";
+            if (key === "player") ctx.fillText("🧍", gx, gy + 2);
+            else {
+              const n = allRoamers().find((a) => a.id === key);
+              ctx.fillText(AGENT_EMOJI[n?.id] || "🙂", gx, gy + 2);
+            }
+          }
+        }
+        // Ticket booth
+        drawIsoBox(cx, cy, 0.55, -0.35, 0, 0.7, 0.55, 0.45,
+          { top: "#fde68a", left: "#b45309", right: "#f59e0b", stroke: "#fbbf24" });
+        ctx.font = "12px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("🎟️", s.x + 28, s.y - 18);
+        // Lights
+        for (let i = 0; i < 8; i++) {
+          const a = t * 3 + i * 0.8;
+          ctx.fillStyle = `hsla(${(i * 45 + t * 80) % 360}, 90%, 60%, ${0.35 + lit * 0.4})`;
+          ctx.beginPath();
+          ctx.arc(s.x + Math.cos(a) * 50, s.y - 40 + Math.sin(a) * 20, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        drawTrippyOrbs(s.x, s.y - 50, "#fb923c", t);
+        ctx.font = "bold 10px Segoe UI";
+        ctx.fillStyle = "#ffedd5";
+        ctx.fillText(`${struct.emoji} ${struct.name}`, s.x, s.y - 88);
+        ctx.font = "8px Segoe UI";
+        ctx.fillStyle = carnivalRide.spinning ? "#fde68a" : "#fdba74";
+        const nRiders = carnivalRide.riders.size;
+        ctx.fillText(
+          carnivalRide.spinning
+            ? `spinning · ${nRiders} riding · calliope on`
+            : "tap — ride the carnival",
+          s.x,
+          s.y + 44,
+        );
+        return;
+      }
       if (struct.type === "shop") {
         drawIsoBox(cx, cy, -1.0 + wobble, -0.62, 0, 2.0, 1.2, 0.65,
           { top: "#fde68a", left: struct.wall, right: struct.color, stroke: "#fbbf24" });
@@ -10346,18 +10810,38 @@
     let selectedBubbleColor = "#67e8f9";
     let selectedBubbleMood = "neutral";
     let selectedBubbleAgentId = "";
+    /** True after visitor taps a bubble — stays front until meadow tap / unpin */
+    let bubbleFrontPinned = false;
+    /** Long-press lock: never auto-expire / never forced behind (phone hold) */
+    let bubbleHoldLocked = false;
     /** Free-drag screen anchors for bubbles: speaker → { sx, sy } tip/anchor point */
     const bubbleFreePos = new Map();
     const speechTextEl = document.getElementById("speech-text");
     const speechWhoEl = document.querySelector("#speech-now .who");
 
-    function showBigSpeech(who, line, holdSec = 52) {
+    function showBigSpeech(who, line, holdSec = 72) {
       const text = (line || "").trim();
       if (!text) return;
       // Always update to latest speech — do not freeze an old paragraph forever
       if (convoReadingHold && !canvasCampChatOnly()) return;
-      const hold = Math.max(8, Math.min(holdSec || 52, 90));
-      speechHold.set(who, { line: text, until: Date.now() + hold * 1000 });
+      // Hold-locked / front-pinned bubble: update text, never lose front
+      if (selectedBubbleSpeaker === who && (bubbleFrontPinned || bubbleHoldLocked)) {
+        selectedBubbleLine = text;
+        const prev = speechHold.get(who);
+        speechHold.set(who, {
+          line: text,
+          until: bubbleHoldLocked ? Date.now() + 86400000 : Math.max(prev?.until || 0, Date.now() + 180000),
+          front: true,
+          holdLocked: bubbleHoldLocked,
+        });
+        return;
+      }
+      // Another speaker is locked front — still store this line so its bubble stays tappable
+      const hold = Math.max(18, Math.min(holdSec || 72, 180));
+      const prev = speechHold.get(who);
+      // Don't shorten a longer front hold with a short ambient refresh
+      const until = Math.max(prev?.until || 0, Date.now() + hold * 1000);
+      speechHold.set(who, { line: text, until, front: !!(prev?.front) });
       if (selectedBubbleSpeaker === who) {
         selectedBubbleLine = text;
       }
@@ -10376,25 +10860,82 @@
       const clean = (text || "").trim();
       if (!clean || !speaker) return;
       const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase());
-      // Short chat-bubble text only (same as normal meadow bubbles)
-      let display = opts.displayLine || clean;
+      // Prefer full reply when bringing front so you can finish reading
+      let display = opts.displayLine || opts.fullLine || npc?.fullLine || clean;
       // Strip emoji prefixes we add for drawing if re-selected
       display = display.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\s]+/u, "").trim() || display;
       const words = display.split(/\s+/).filter(Boolean);
-      if (words.length > 36) display = words.slice(0, 36).join(" ") + "…";
+      // Front pin allows a longer read; still caps so the box stays a bubble
+      const wordCap = opts.front || bubbleFrontPinned || bubbleHoldLocked ? 90 : 48;
+      if (words.length > wordCap) display = words.slice(0, wordCap).join(" ") + "…";
       if (npc) npc.line = display;
       hideCampSpeechPin();
+      // Switching to a different speaker drops soft front (not hold-lock unless changing target)
+      if (selectedBubbleSpeaker && selectedBubbleSpeaker !== speaker && bubbleHoldLocked) {
+        bubbleHoldLocked = false;
+      }
       selectedBubbleSpeaker = speaker;
       selectedBubbleLine = display;
       selectedBubbleColor = opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9";
       selectedBubbleMood = mood || npc?.mood || "neutral";
       selectedBubbleAgentId = opts.agentId || npc?.id || "";
-      const holdMs = Math.max(12000, Math.min(campReadHoldSec(display, 16) * 1000, 40000));
-      speechHold.set(speaker, { line: display, until: Date.now() + holdMs, front: true });
+      bubbleFrontPinned = opts.front !== false;
+      if (opts.holdLock) bubbleHoldLocked = true;
+      // Long enough to read slowly; front pin stays until meadow tap
+      const holdMs = bubbleHoldLocked
+        ? 86400000
+        : Math.max(60000, Math.min(campReadHoldSec(display, 56) * 1000, 300000));
+      speechHold.set(speaker, {
+        line: display,
+        until: Date.now() + holdMs,
+        front: true,
+        holdLocked: bubbleHoldLocked,
+      });
+      // Claim speech floor so ambient chatter doesn't bury this line
+      if (selectedBubbleAgentId) {
+        claimSpeechFloor(selectedBubbleAgentId, { focus: true, holdMs });
+      }
       // Free position only after a real drag (opts.lockPos) — not on mere tap
       if (opts.lockPos && opts.anchorSx != null && opts.anchorSy != null) {
         bubbleFreePos.set(speaker, clampBubbleAnchor(opts.anchorSx, opts.anchorSy));
       }
+      if (!opts.quiet) {
+        try {
+          showToast?.(
+            bubbleHoldLocked
+              ? `🔒 ${speaker} locked front — hold again to unlock`
+              : `📌 ${speaker} FRONT — tap another box to switch · hold to lock`,
+          );
+        } catch (_) {}
+      }
+    }
+
+    function toggleBubbleHoldLock(speaker, text, mood, opts = {}) {
+      if (!speaker) return;
+      if (bubbleHoldLocked && selectedBubbleSpeaker === speaker) {
+        bubbleHoldLocked = false;
+        const held = speechHold.get(speaker);
+        if (held) {
+          speechHold.set(speaker, {
+            ...held,
+            holdLocked: false,
+            until: Date.now() + 90000,
+            front: true,
+          });
+        }
+        bubbleFrontPinned = true;
+        try { showToast?.(`🔓 ${speaker} unlocked`); } catch (_) {}
+        try { navigator.vibrate?.(12); } catch (_) {}
+        return;
+      }
+      selectSpeechBubble(speaker, text || selectedBubbleLine || speechHold.get(speaker)?.line || "", mood, {
+        ...opts,
+        front: true,
+        holdLock: true,
+        quiet: false,
+        displayLine: text || selectedBubbleLine || speechHold.get(speaker)?.line || "",
+      });
+      try { navigator.vibrate?.(18); } catch (_) {}
     }
 
     function clearBubbleFreePos(speaker) {
@@ -10414,13 +10955,16 @@
 
     function startBubbleDrag(bubbleHit, sx, sy, pointerId) {
       const speaker = bubbleHit.speaker;
-      // Use the short line shown on the bubble, not a giant full monologue
+      // Full line from the hit rect so the tapped box is what goes front
       const full = String(bubbleHit.line || selectedBubbleLine || "").trim();
+      // Immediate front so paint order flips this frame (not quiet — show toast)
       selectSpeechBubble(speaker, full, bubbleHit.mood, {
         color: bubbleHit.color,
         agentId: bubbleHit.agentId,
         focusChat: false,
         displayLine: full,
+        front: true,
+        quiet: false,
       });
       dragTarget = {
         kind: "bubble",
@@ -10438,7 +10982,19 @@
         color: bubbleHit.color,
         mood: bubbleHit.mood,
         line: full,
+        holdTimer: 0,
+        holdFired: false,
       };
+      // Long-press lock (~0.5s) — phone-friendly pin that won't hide/go behind
+      dragTarget.holdTimer = setTimeout(() => {
+        if (!dragTarget || dragTarget.kind !== "bubble" || dragTarget.moved) return;
+        dragTarget.holdFired = true;
+        toggleBubbleHoldLock(speaker, full, bubbleHit.mood, {
+          color: bubbleHit.color,
+          agentId: bubbleHit.agentId,
+          displayLine: full,
+        });
+      }, 480);
       pendingCampAction = null;
       canvas.classList.add("dragging");
       try {
@@ -10472,21 +11028,32 @@
       hideCampSpeechPin();
     }
 
-    function unpinCampSpeech() {
+    function unpinCampSpeech(opts = {}) {
+      // Hold-locked boxes stay until user long-presses unlock (or force)
+      if (bubbleHoldLocked && !opts.force) {
+        try { showToast?.("🔒 Speech locked — long-press the box to unlock"); } catch (_) {}
+        return;
+      }
       if (selectedBubbleSpeaker) {
         const held = speechHold.get(selectedBubbleSpeaker);
         if (held) {
           speechHold.set(selectedBubbleSpeaker, {
             line: held.line,
-            until: Date.now() + 12000,
+            until: Date.now() + 18000,
             front: false,
+            holdLocked: false,
           });
         }
         clearBubbleFreePos(selectedBubbleSpeaker);
+        if (selectedBubbleAgentId) {
+          releaseSpeechFloor(selectedBubbleAgentId, { clearFocus: true });
+        }
       }
       selectedBubbleSpeaker = null;
       selectedBubbleLine = "";
       selectedBubbleAgentId = "";
+      bubbleFrontPinned = false;
+      bubbleHoldLocked = false;
       hideCampSpeechPin();
     }
 
@@ -12019,28 +12586,27 @@
       if (chatterPaused || converseBusy || ambientAiBusy || houseInteriorOpen) return;
       // Let visitor-addressed agent finish (and be read)
       if (speechFloorHasFocus() || chatInflight.size > 0) return;
-      const pool = allRoamers().filter((n) => !n.leaving && !n.socializing && !n.gathering && !n.insideHouse);
+      // Front-pinned / hold-locked bubble: hush ambient until visitor releases
+      if (bubbleFrontPinned || bubbleHoldLocked) return;
+      const pool = allRoamers().filter((n) =>
+        !n.leaving && !n.socializing && !n.gathering && !n.insideHouse
+        && n.behavior !== "carnival" && !carnivalRide.riders.has(n.id)
+      );
       if (!pool.length) return;
       ambientAiBusy = true;
       try {
-        // Prefer pair dialogue (A→B→A…) — more turns, livelier meadow
-        const dialogue = campServerOnline && pool.length >= 2 && Math.random() < 0.88;
+        // Short pair chats only sometimes — sparse meadow talk for readability
+        const dialogue = campServerOnline && pool.length >= 2 && Math.random() < 0.42;
         if (dialogue) {
           const a = pickAmbientSpeaker(pool);
           let b = pickAmbientSpeaker(pool.filter((n) => n.id !== a.id)) || pool[(pool.indexOf(a) + 1) % pool.length];
           if (b.id === a.id) b = pool[(pool.indexOf(a) + 1) % pool.length];
-          // 4–6 turns when lively; sometimes pull a third voice
-          let speakers = [a, b];
-          if (pool.length >= 3 && Math.random() < 0.35) {
-            const c = pickAmbientSpeaker(pool.filter((n) => n.id !== a.id && n.id !== b.id));
-            if (c) speakers = [a, b, c];
-          }
-          const turns = speakers.length >= 3
-            ? (Math.random() < 0.5 ? 6 : 5)
-            : (Math.random() < 0.4 ? 6 : 4);
+          const speakers = [a, b];
+          // 2 turns max so each line can be read
+          const turns = 2;
           let prev = null;
           for (let t = 0; t < turns; t++) {
-            if (chatterPaused || converseBusy) break;
+            if (chatterPaused || converseBusy || bubbleFrontPinned || bubbleHoldLocked) break;
             const speaker = speakers[t % speakers.length];
             const res = await emitNpcAiChatter(speaker, {
               replyTo: prev || undefined,
@@ -12050,7 +12616,8 @@
             });
             if (!res?.line) break;
             prev = { name: res.name || speaker.name, line: res.line };
-            await new Promise((r) => setTimeout(r, 1200 + Math.random() * 1600));
+            // Long pause between lines so text can be read
+            await new Promise((r) => setTimeout(r, 5500 + Math.random() * 4500));
           }
           return;
         }
@@ -12063,8 +12630,8 @@
 
     function scheduleCampIdleChatter() {
       if (idleChatterTimer) clearTimeout(idleChatterTimer);
-      // PC runs hot; mobile a bit slower but still lively
-      const slowMul = isSlowDevice() ? 1.25 : 0.85;
+      // Always lean slow — reading time > chatter density
+      const slowMul = isSlowDevice() ? 1.55 : 1.35;
       const delay = (CAMP_PACE.idleChatterMinMs + Math.random() * CAMP_PACE.idleChatterRandMs) * slowMul;
       idleChatterTimer = setTimeout(() => {
         tryCampIdleChatter();
@@ -13139,9 +13706,9 @@
     }
 
     function maxCanvasSpeechBubbles() {
-      // More bubbles on screen so you can select / bring any to front
-      if (isIOS() && isCampMobile()) return 3;
-      return isCampMobile() ? 4 : 6;
+      // Keep enough bubbles hittable so any can be brought to front
+      if (isIOS() && isCampMobile()) return 5;
+      return isCampMobile() ? 6 : 8;
     }
 
     function drawThoughtBubble(sx, sy, text, color) {
@@ -13184,12 +13751,17 @@
         return drawThoughtBubble(sx, sy, "…", color), null;
       }
       const selected = !!(meta?.selected || (meta?.speaker && meta.speaker === selectedBubbleSpeaker));
-      // Static bubble frame (same W×H always) — text inside stays dynamic
-      const boxW = ios ? 210 : mobile ? 230 : 248;
-      const fontSize = ios ? 12 : mobile ? 13 : 14;
+      const dim = !!(meta?.dim);
+      // Front bubble is larger so the visitor can read slowly; others stay compact
+      const boxW = selected
+        ? (ios ? 240 : mobile ? 268 : 300)
+        : (ios ? 210 : mobile ? 230 : 248);
+      const fontSize = selected
+        ? (ios ? 13 : mobile ? 14 : 15)
+        : (ios ? 12 : mobile ? 13 : 14);
       const lineH = fontSize + 5;
-      const maxLines = 4;
-      const padY = 16;
+      const maxLines = selected ? 6 : 4;
+      const padY = selected ? 18 : 16;
       const boxH = maxLines * lineH + padY;
       const textInnerW = boxW - 24;
       ctx.font = `600 ${fontSize}px Segoe UI`;
@@ -13217,22 +13789,37 @@
       }
       // Soft shadow under selected / dragged
       if (selected) {
-        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
         ctx.beginPath();
-        ctx.roundRect(bx + 4, by + 6, boxW, boxH, 14);
+        ctx.roundRect(bx + 5, by + 7, boxW, boxH, 14);
         ctx.fill();
       }
-      ctx.fillStyle = selected ? "rgba(10, 22, 40, 0.99)" : "rgba(4, 10, 18, 0.96)";
+      ctx.globalAlpha = dim ? 0.38 : 1;
+      ctx.fillStyle = selected ? "rgba(8, 18, 36, 0.995)" : "rgba(4, 10, 18, 0.96)";
       ctx.beginPath();
       ctx.roundRect(bx, by, boxW, boxH, selected ? 14 : 12);
       ctx.fill();
       ctx.strokeStyle = selected ? "#fde68a" : color;
-      ctx.lineWidth = selected ? 3.5 : 2.5;
+      ctx.lineWidth = selected ? 4 : 2.5;
       ctx.stroke();
       if (selected) {
-        ctx.strokeStyle = "rgba(103, 232, 249, 0.55)";
-        ctx.lineWidth = 1.25;
+        ctx.strokeStyle = "rgba(103, 232, 249, 0.7)";
+        ctx.lineWidth = 1.5;
         ctx.strokeRect(bx + 2, by + 2, boxW - 4, boxH - 4);
+        // FRONT / LOCK chip so it's obvious which box is on top
+        const chip = (meta?.holdLocked || bubbleHoldLocked) ? "🔒 LOCK" : "FRONT";
+        const chipW = (meta?.holdLocked || bubbleHoldLocked) ? 62 : 52;
+        ctx.fillStyle = (meta?.holdLocked || bubbleHoldLocked)
+          ? "rgba(52, 211, 153, 0.95)"
+          : "rgba(253, 230, 138, 0.95)";
+        ctx.beginPath();
+        ctx.roundRect(bx + boxW - chipW - 6, by - 11, chipW, 16, 6);
+        ctx.fill();
+        ctx.fillStyle = "#1c1917";
+        ctx.font = "bold 10px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(chip, bx + boxW - chipW / 2 - 6, by + 1);
+        ctx.textAlign = "left";
       }
       ctx.fillStyle = color + "33";
       ctx.beginPath();
@@ -13254,6 +13841,7 @@
         ctx.font = `600 ${fontSize}px Segoe UI`;
         ctx.fillText(ln, bx + 12, textTop + i * lineH);
       });
+      ctx.globalAlpha = 1;
       ctx.textAlign = "center";
       const rect = {
         bx, by, boxW, boxH,
@@ -13274,24 +13862,46 @@
     function drawAgentSpeechBubbles() {
       speechBubbleRects.length = 0;
       let drawn = 0;
-      const max = Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 4 : 3);
+      // Always draw several bubbles so you can TAP any of them to bring that one front
+      const max = Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 5 : 4);
       const now = Date.now();
-      // Expire selection when speech ends — nothing stuck "always front"
+      // Front-pinned / hold-locked stay until visitor releases them
       if (selectedBubbleSpeaker) {
         const held = speechHold.get(selectedBubbleSpeaker);
-        if (!held || held.until <= now) {
+        if (bubbleHoldLocked) {
+          speechHold.set(selectedBubbleSpeaker, {
+            line: held?.line || selectedBubbleLine,
+            until: now + 86400000,
+            front: true,
+            holdLocked: true,
+          });
+        } else if (bubbleFrontPinned && held) {
+          if (held.until <= now + 5000) {
+            speechHold.set(selectedBubbleSpeaker, {
+              line: held.line || selectedBubbleLine,
+              until: now + 180000,
+              front: true,
+            });
+          }
+        } else if (!held || held.until <= now) {
           clearBubbleFreePos(selectedBubbleSpeaker);
           selectedBubbleSpeaker = null;
           selectedBubbleLine = "";
           selectedBubbleAgentId = "";
+          bubbleFrontPinned = false;
+          bubbleHoldLocked = false;
         }
       }
       const roamers = allRoamers();
-      // Selected drawn last so it paints on top of other chat bubbles (still a bubble, not a text box)
+      // Queue everyone with a live line — selected drawn last so it paints ON TOP
       const priority = [
         ...roamers.filter((n) => n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId),
         ...roamers.filter((n) => n.id === speakingAgentId),
         ...roamers.filter((n) => speechHold.has(n.name) && speechHold.get(n.name).until > now),
+        ...roamers.filter((n) => {
+          const line = (n.line || "").trim();
+          return line && line !== "..." && line !== "…";
+        }),
         ...roamers.filter((n) => {
           const line = (n.line || "").trim();
           return line === "..." || line === "…";
@@ -13304,17 +13914,19 @@
         seen.add(n.id);
         queue.push(n);
       }
+      // Non-selected first, selected last → paints on top + hit-test finds it first when overlapping
       queue.sort((a, b) => {
         const aSel = a.name === selectedBubbleSpeaker || a.id === selectedBubbleAgentId ? 1 : 0;
         const bSel = b.name === selectedBubbleSpeaker || b.id === selectedBubbleAgentId ? 1 : 0;
         return aSel - bSel;
       });
       for (const n of queue) {
-        if (drawn >= max && n.name !== selectedBubbleSpeaker && n.id !== selectedBubbleAgentId) continue;
+        const isSel = n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId;
+        if (drawn >= max && !isSel) continue;
         const s = worldToScreen(camp.x + n.x, camp.y + n.y);
         const free = bubbleFreePos.get(n.name);
-        if (!free && isCampMobile() && (s.x < -48 || s.x > viewW + 48 || s.y < -48 || s.y > viewH + 48)
-            && n.name !== selectedBubbleSpeaker) continue;
+        if (!free && isCampMobile() && (s.x < -80 || s.x > viewW + 80 || s.y < -80 || s.y > viewH + 80)
+            && !isSel) continue;
         const color = n.color || AGENT_COLORS[n.id] || "#67e8f9";
         const thinkLine = (n.line || "").trim();
         if (thinkLine === "..." || thinkLine === "…") {
@@ -13323,18 +13935,20 @@
           continue;
         }
         const held = speechHold.get(n.name);
-        const isSel = n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId;
-        // Chat bubble text only — short, same as normal speech bubbles
+        // Prefer full line when front so the visitor can finish reading
         let activeLine = (isSel && selectedBubbleLine)
           || (held && held.until > now ? held.line : null)
+          || (isSel && n.fullLine)
           || (n.line || "");
         activeLine = String(activeLine || "").trim();
         if (!activeLine) continue;
         const words = activeLine.split(/\s+/);
-        if (words.length > 36) activeLine = words.slice(0, 36).join(" ") + "…";
+        const wordCap = isSel && (bubbleFrontPinned || bubbleHoldLocked) ? 90 : 48;
+        if (words.length > wordCap) activeLine = words.slice(0, wordCap).join(" ") + "…";
         const me = MOOD_EMOJI[n.mood || "neutral"] || "";
         const ae = AGENT_EMOJI[n.id] || "";
-        const bubbleText = `${ae}${me ? " " + me : ""} ${activeLine}`.trim();
+        const frontHint = isSel && bubbleHoldLocked ? " 🔒" : (isSel && bubbleFrontPinned ? " 📌" : "");
+        const bubbleText = `${ae}${me ? " " + me : ""} ${activeLine}${frontHint}`.trim();
         const ax = free ? free.sx : s.x;
         const ay = free ? free.sy : (s.y - 8);
         drawSpeechBubble(ax, ay, bubbleText, color, true, {
@@ -13342,20 +13956,46 @@
           agentId: n.id,
           mood: n.mood || "neutral",
           selected: isSel,
+          holdLocked: isSel && bubbleHoldLocked,
           fullLine: activeLine,
           freePos: !!free,
+          // Dim others but KEEP them drawn + hittable so you can switch front
+          dim: (bubbleFrontPinned || bubbleHoldLocked) && selectedBubbleSpeaker && !isSel,
         });
         drawn += 1;
       }
     }
 
     function hitTestSpeechBubble(sx, sy) {
-      // Top-most first (last drawn = selected)
+      // Fat-finger pad — critical on Android / iPhone
+      const pad = isCampMobile() ? 18 : 8;
+      // Top-most first (last drawn = selected / front)
       for (let i = speechBubbleRects.length - 1; i >= 0; i--) {
         const r = speechBubbleRects[i];
-        if (sx >= r.bx && sx <= r.bx + r.boxW && sy >= r.by && sy <= r.by + r.boxH) return r;
+        if (
+          sx >= r.bx - pad &&
+          sx <= r.bx + r.boxW + pad &&
+          sy >= r.by - pad &&
+          sy <= r.by + r.boxH + pad
+        ) {
+          return r;
+        }
       }
-      return null;
+      // Nearest bubble within slop if no direct hit (still on meadow)
+      let best = null;
+      let bestD = Infinity;
+      const slop = isCampMobile() ? 36 : 20;
+      for (const r of speechBubbleRects) {
+        const cx = r.bx + r.boxW / 2;
+        const cy = r.by + r.boxH / 2;
+        const d = Math.hypot(sx - cx, sy - cy);
+        const reach = Math.hypot(r.boxW / 2, r.boxH / 2) + slop;
+        if (d < reach && d < bestD) {
+          bestD = d;
+          best = r;
+        }
+      }
+      return best;
     }
 
     function updateAetherEntities() {
@@ -13591,6 +14231,7 @@
         else if (prop.structure.type === "shelter") useShelter();
         else if (prop.structure.type === "tv") openLucidTv();
         else if (prop.structure.type === "club") openStripClub();
+        else if (prop.structure.type === "carnival") toggleCarnivalRide();
         return;
       }
       if (prop.id === "ouija") {
@@ -13609,8 +14250,8 @@
         prop_id: prop.id,
         text: `${myVisitorName || player.name || "You"} shared ${prop.name} at camp — ${youMsg}`,
       });
-      // Only 1–3 unique agent reactions (not the whole camp repeating lines)
-      const howMany = prop.id === "weed" ? 3 : (1 + Math.floor(Math.random() * 2)); // 1–2, weed 3
+      // Sparse reactions — one agent usually, weed max 2
+      const howMany = prop.id === "weed" ? 2 : 1;
       const speakers = pickPropSpeakers(howMany);
       if (prop.id === "weed") {
         campChillUntil = Date.now() + 150000;
@@ -13769,7 +14410,9 @@
     }
 
     function campPointerPos(ev) {
-      const rect = (campStage || canvas).getBoundingClientRect();
+      // Always map through the canvas element — stage rect can be larger/offset
+      // and that misaligned bubble hit-tests (tap never brought the right box front).
+      const rect = canvas.getBoundingClientRect();
       const rawX = ev.clientX - rect.left;
       const rawY = ev.clientY - rect.top;
       const scaleX = viewW / Math.max(1, rect.width);
@@ -14577,6 +15220,11 @@
       if (dragDist > thresh) {
         dragTarget.moved = true;
         if (dragTarget.kind === "bubble") {
+          // Cancel long-press lock if finger slid (it's a drag, not a hold)
+          if (dragTarget.holdTimer) {
+            clearTimeout(dragTarget.holdTimer);
+            dragTarget.holdTimer = 0;
+          }
           const pad = 12;
           const boxW = dragTarget.boxW || 200;
           const boxH = dragTarget.boxH || 80;
@@ -14591,13 +15239,15 @@
           const ay = by + boxH + lift;
           bubbleFreePos.set(dragTarget.speaker, clampBubbleAnchor(ax, ay));
           selectedBubbleSpeaker = dragTarget.speaker;
+          bubbleFrontPinned = true;
           if (dragTarget.line) {
-            const short = dragTarget.line.split(/\s+/).slice(0, 40).join(" ");
+            const short = dragTarget.line.split(/\s+/).slice(0, 90).join(" ");
             selectedBubbleLine = short;
             speechHold.set(dragTarget.speaker, {
               line: short,
-              until: Date.now() + 60000,
+              until: Date.now() + (bubbleHoldLocked ? 86400000 : 180000),
               front: true,
+              holdLocked: bubbleHoldLocked,
             });
           }
           return;
@@ -14621,19 +15271,43 @@
       const dragDist = Math.hypot(sx - target.startSx, sy - target.startSy);
       const wasTap = dragDist <= campTapSlop();
       if (target.kind === "bubble") {
-        // Tap = select chat bubble (gold). Drag = park bubble where dropped.
-        if (!target.moved) clearBubbleFreePos(target.speaker);
+        if (target.holdTimer) {
+          clearTimeout(target.holdTimer);
+          target.holdTimer = 0;
+        }
+        // Long-press already locked — leave as-is
+        if (target.holdFired) {
+          hideCampSpeechPin();
+          return;
+        }
+        // Tap = select + bring front. Drag = park bubble where dropped.
+        if (!target.moved) {
+          clearBubbleFreePos(target.speaker);
+          // Re-assert front on release (in case ambient overwrote mid-drag)
+          selectSpeechBubble(target.speaker, target.line || selectedBubbleLine, target.mood, {
+            color: target.color,
+            agentId: target.agentId,
+            displayLine: target.line || selectedBubbleLine,
+            front: true,
+            quiet: true,
+          });
+        } else {
+          // Parked free-pos stays front-pinned for reading
+          bubbleFrontPinned = true;
+          speechHold.set(target.speaker, {
+            line: target.line || selectedBubbleLine || speechHold.get(target.speaker)?.line || "",
+            until: Date.now() + (bubbleHoldLocked ? 86400000 : 180000),
+            front: true,
+            holdLocked: bubbleHoldLocked,
+          });
+        }
         hideCampSpeechPin();
         return;
       }
       if (target.kind === "meadow" || target.kind === "pond") {
-        // Tap empty meadow: clear selection / parked bubble so nothing stuck in front
+        // Tap empty meadow: release soft front (hold-lock stays)
         if (wasTap && selectedBubbleSpeaker) {
-          clearBubbleFreePos(selectedBubbleSpeaker);
-          selectedBubbleSpeaker = null;
-          selectedBubbleLine = "";
-          selectedBubbleAgentId = "";
-          hideCampSpeechPin();
+          unpinCampSpeech();
         }
         const w = screenToWorld(sx, sy);
         const b = getCampRelativeBounds();
@@ -14819,7 +15493,37 @@
     updateCampMusicPrompt(); // strip any leftover TX tip node
     document.getElementById("btn-lucid-tv").onclick = () => openLucidTv();
     document.getElementById("btn-camp-shop").onclick = () => openCampShop();
+    document.getElementById("btn-camp-carnival")?.addEventListener("click", () => {
+      const st = carnivalStruct();
+      if (st) {
+        const sw = layoutCampWorld(st.id, st.x, st.y);
+        if (dist(player, sw) > (st.enterRadius || 58) + 20) {
+          walkPlayerTo(sw.x, sw.y);
+          pendingCampAction = { type: "structure", id: st.id };
+          showToast("🎡 Walking to Aurora Carnival…");
+          return;
+        }
+      }
+      toggleCarnivalRide();
+    });
     document.getElementById("camp-token-badge").onclick = () => openCampShop();
+    // Long-press TX → Telephantix on X
+    (function bindTpxXHold() {
+      const openTx = () => window.open(TELEPHANTIX_X_URL, "_blank", "noopener,noreferrer");
+      ["btn-camp-tpx", "camp-tpx-fab", "chip-camp-tpx"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        let holdT = null;
+        const clear = () => { if (holdT) { clearTimeout(holdT); holdT = null; } };
+        el.addEventListener("pointerdown", () => {
+          clear();
+          holdT = setTimeout(() => { holdT = null; openTx(); }, 650);
+        });
+        el.addEventListener("pointerup", clear);
+        el.addEventListener("pointerleave", clear);
+        el.addEventListener("pointercancel", clear);
+      });
+    })();
     document.getElementById("camp-shop-close").onclick = () => closeCampShop();
     document.getElementById("camp-shop-layer").onclick = () => closeCampShop();
     function wireHeavenSummonButtons() {
@@ -15532,17 +16236,18 @@
       if (npc && npcMode === "stand") {
         npc.idle = 99999;
       }
-      // Canvas bubble holds the FULL reply long enough to read paragraphs
-      const readHold = Math.max(holdSec, campReadHoldSec(clean, 48));
-      if (!quiet) showBigSpeech(speaker, clean, Math.min(readHold, 90));
+      // Canvas bubble holds the FULL reply long enough to read slowly
+      const readHold = Math.max(holdSec, campReadHoldSec(clean, 58));
+      if (!quiet) showBigSpeech(speaker, clean, Math.min(readHold, 180));
       if (!canvasCampChatOnly()) {
         setTimeout(() => {
           const latest = campLines[campLines.length - 1];
           if (latest?.text === clean && latest?.speaker === speaker
-              && !chatterPaused && !converseBusy && !convoReadingHold) {
+              && !chatterPaused && !converseBusy && !convoReadingHold
+              && !((bubbleFrontPinned || bubbleHoldLocked) && selectedBubbleSpeaker === speaker)) {
             showNowSpeakingIdle();
           }
-        }, Math.min(readHold, 90) * 1000 + 400);
+        }, Math.min(readHold, 180) * 1000 + 600);
       }
       if (npc) {
         npc.fullLine = clean;
@@ -16444,8 +17149,11 @@
         processPendingCampAction();
         updatePlayerSwim();
         updateNpcSocial();
-        enforceNpcSeparation(0.45);
-        clampPlayerWorld();
+        updateCarnivalRide(1);
+        if (!carnivalRide.riders.has("player")) {
+          enforceNpcSeparation(0.45);
+          clampPlayerWorld();
+        }
         drawGround();
         drawPsychicRipples();
         for (const h of campHouses) {

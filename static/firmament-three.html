@@ -52,7 +52,7 @@
         radial-gradient(ellipse 70% 50% at 15% 60%, rgba(244, 114, 182, 0.12), transparent 40%),
         linear-gradient(180deg, #07101f 0%, #0c1a3a 40%, #0a1628 70%, #061018 100%);
     }
-    #canvas-host { position: fixed; inset: 0; }
+    #canvas-host { position: fixed; inset: 0; z-index: 1; }
     #canvas-host canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     #album-btn {
       border-color: #7dd3fc !important;
@@ -90,18 +90,21 @@
       border-radius: 8px; padding: 4px 8px; background: rgba(8,20,40,0.75);
     }
 
+    /* Above canvas/dock/feature dock so speech is always clickable on PC */
     #speech-layer {
-      position: fixed; inset: 0; z-index: 12; pointer-events: none; overflow: hidden;
+      position: fixed; inset: 0; z-index: 200;
+      pointer-events: none; /* layer itself never steals clicks — only .bubble3d */
+      overflow: visible;
     }
     .bubble3d {
-      position: absolute;
+      position: fixed; /* fixed to viewport — reliable PC hit targets in 3D view */
       /* Fixed frame — text content still updates dynamically */
       width: min(248px, 72vw);
       height: 112px;
       box-sizing: border-box;
       transform: translate(-50%, -100%);
-      background: rgba(8, 14, 28, 0.92);
-      border: 1px solid rgba(196, 181, 253, 0.45);
+      background: rgba(8, 14, 28, 0.94);
+      border: 2px solid rgba(196, 181, 253, 0.55);
       border-radius: 14px; padding: 8px 12px;
       font-size: clamp(0.72rem, 2.4vw, 0.85rem); line-height: 1.35;
       color: #f1f5f9; box-shadow: 0 8px 28px rgba(0,0,0,0.35);
@@ -110,10 +113,61 @@
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
-      pointer-events: auto;
+      /* Critical: only bubbles take hits; layer stays passthrough */
+      pointer-events: auto !important;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      /* JS owns stacking via inline z-index — do NOT use !important here */
+      z-index: 210;
+      isolation: isolate;
     }
-    .bubble3d .who { display: block; font-weight: 700; color: var(--violet); font-size: 0.72rem; margin-bottom: 3px; }
-    .bubble3d .say { display: block; }
+    .bubble3d:hover {
+      border-color: rgba(251, 191, 36, 0.85);
+      filter: brightness(1.08);
+      box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.4), 0 10px 32px rgba(0,0,0,0.45);
+    }
+    .bubble3d:focus-visible {
+      outline: 2px solid #fbbf24;
+      outline-offset: 2px;
+    }
+    .bubble3d .who, .bubble3d .say {
+      display: block;
+      pointer-events: none; /* clicks always hit the bubble box, not text nodes */
+    }
+    .bubble3d .who { font-weight: 700; color: var(--violet); font-size: 0.72rem; margin-bottom: 3px; }
+    .bubble3d .front-chip {
+      position: absolute; top: -10px; right: 8px;
+      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em;
+      background: #fde68a; color: #1c1917;
+      border-radius: 6px; padding: 2px 7px; line-height: 1.2;
+      pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+    .bubble3d.locked .front-chip {
+      background: #34d399; color: #052e1a;
+    }
+    .bubble3d.dimmed {
+      opacity: 0.4 !important;
+      filter: saturate(0.5);
+    }
+    /* Long-press lock — never auto-hide, stays readable on phone */
+    .bubble3d.locked {
+      border-color: #34d399 !important;
+      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.7), 0 14px 40px rgba(0,0,0,0.55) !important;
+      opacity: 1 !important;
+      filter: none !important;
+      background: rgba(6, 28, 22, 0.97) !important;
+      height: auto !important;
+      max-height: min(48vh, 320px) !important;
+      min-height: 120px;
+    }
+    .bubble3d.holding {
+      border-color: #fbbf24 !important;
+      outline: 2px solid rgba(251, 191, 36, 0.55);
+    }
     @keyframes pop { from { opacity: 0; transform: translate(-50%, -90%) scale(0.92); } to { opacity: 1; transform: translate(-50%, -100%) scale(1); } }
 
     #dock {
@@ -122,13 +176,18 @@
       background: linear-gradient(0deg, rgba(2,6,23,0.96), rgba(2,6,23,0.75) 60%, transparent);
       display: flex; flex-direction: column; gap: 8px;
     }
-    #log {
-      max-height: 22vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.4;
-      color: var(--muted); padding: 4px 2px; scrollbar-width: thin;
+    /* Selected bubble — gold FRONT like 2D camp */
+    .bubble3d.front {
+      border-color: #fde68a !important;
+      box-shadow: 0 0 0 3px rgba(253, 230, 138, 0.85), 0 14px 40px rgba(0,0,0,0.6) !important;
+      height: auto !important;
+      max-height: min(42vh, 280px) !important;
+      min-height: 120px;
+      opacity: 1 !important;
+      filter: none !important;
+      background: rgba(12, 20, 40, 0.98) !important;
+      z-index: 999 !important;
     }
-    #log .line { margin: 3px 0; }
-    #log .line b { color: var(--violet); font-weight: 600; }
-    #log .line.you b { color: var(--amber); }
     #talk-row {
       display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
     }
@@ -178,13 +237,14 @@
       height: 120px !important;
       font-size: clamp(0.8rem, 2.6vw, 0.95rem) !important;
       border-width: 2px !important;
-      z-index: 14;
+    }
+    .bubble3d.front {
+      height: auto !important;
     }
     #ground-marker {
       /* rendered in 3d */
     }
     @media (max-width: 640px) {
-      #log { max-height: 14vh; }
       #hint { font-size: 0.62rem; }
       #who-select { min-width: 90px; }
     }
@@ -194,23 +254,22 @@
   <div id="canvas-host"></div>
   <div id="speech-layer"></div>
   <div id="prop-toast"></div>
-  <div id="mode-pill">👆 Tap ground to walk · Follow ON · gentle zoom · left dock has real Music/Shop/TV/Pulse</div>
+  <div id="mode-pill">👆 Tap speech = FRONT · Hold = 🔒 lock · Left: ✦ menu</div>
 
   <header id="topbar">
     <a href="/firmament/play">← 2D Camp</a>
-    <button type="button" id="album-btn" class="chip" title="Play Telephantix in the background">🎵 Telephantix</button>
+    <button type="button" id="album-btn" class="chip" title="Play Telephantix in the background">🎵</button>
     <span id="album-now" hidden></span>
     <button type="button" id="btn-reset-cam" class="chip">Find me</button>
-    <button type="button" id="btn-follow" class="chip" title="Camera follow">Follow: on</button>
-    <button type="button" id="btn-banter-top" class="chip">💬 AI banter</button>
-    <button type="button" id="btn-roam" class="chip">🏃 Free will</button>
-    <span id="status">Loading Three.js camp…</span>
-    <span id="stamp">✦ 3D THREE</span>
+    <button type="button" id="btn-follow" class="chip" title="Camera follow">Follow</button>
+    <button type="button" id="btn-banter-top" class="chip">💬</button>
+    <button type="button" id="btn-roam" class="chip">🏃</button>
+    <span id="status" hidden>Loading…</span>
+    <span id="stamp">✦ 3D</span>
   </header>
   <div id="boot-error" hidden style="position:fixed;inset:auto 12px 120px 12px;z-index:40;background:rgba(80,10,20,0.95);border:1px solid #f87171;border-radius:12px;padding:14px 16px;color:#fecaca;font-size:0.85rem;line-height:1.45;max-width:560px;margin:0 auto;left:12px;right:12px;"></div>
 
   <div id="dock">
-    <div id="log" aria-live="polite"></div>
     <div id="quick-bar">
       <button type="button" data-q="hey">👋 Hey</button>
       <button type="button" data-q="joke">😄 Joke</button>
@@ -223,11 +282,11 @@
       <input id="msg" type="text" maxlength="500" placeholder="Or type… tap agent first" autocomplete="off" />
       <button type="button" id="send">Send</button>
     </div>
-    <div id="hint">Tap meadow = walk anywhere · Drag = look · Scroll/pinch = zoom · Follow off = free cam · Dialogue = real AI</div>
+    <div id="hint">Tap a speech box to bring it FRONT · Hold to 🔒 lock · Tap meadow to walk</div>
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-14-three-v18-static-bubble";
+    const BUILD = "2026-07-16-three-v27-front-like-2d";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     function showBootError(msg) {
@@ -274,12 +333,13 @@
     }
 
     const stampEl = document.getElementById("stamp");
-    const logEl = document.getElementById("log");
     const whoEl = document.getElementById("who-select");
     const msgEl = document.getElementById("msg");
     const sendBtn = document.getElementById("send");
     const toastEl = document.getElementById("prop-toast");
     const speechLayer = document.getElementById("speech-layer");
+    // 3D camp: no scrolling chat log UI — only world speech bubbles + toast
+    let bubbleFrontZ = 220;
 
     const isLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
     stampEl.textContent = isLocal ? `✦ SANDBOX 3D · ${BUILD}` : `✦ 3D THREE · ${BUILD}`;
@@ -1052,7 +1112,7 @@
     const agentState = [];
     const roamPoints = [];
     let aiInFlight = 0;
-    const AI_MAX = 2;
+    const AI_MAX = 1; // chill: one AI monologue at a time
     function makeAgent(def) {
       const group = new THREE.Group();
       // Placeholder capsule until free GLB character loads
@@ -1278,11 +1338,11 @@
           );
           const reply = String(data.reply || data.text || "").trim();
           if (reply) {
-            showSpeech3d(st.def.id, reply, 12000);
+            showSpeech3d(st.def.id, reply, speechReadMs(reply));
             logLine(st.def.name, reply);
           }
         } catch (_) {
-          showSpeech3d(st.def.id, `${pname} hits different tonight.`, 5000);
+          showSpeech3d(st.def.id, `${pname} hits different tonight.`, 22000);
         } finally {
           aiInFlight = Math.max(0, aiInFlight - 1);
         }
@@ -1388,7 +1448,7 @@
 
       // if already sitting and still comfy, often stay
       if (st.posture === "sit" && Math.random() < p.rest * 0.7 && st.boredom < 0.55) {
-        st.nextDecideAt = performance.now() + 5000 + p.rest * 8000;
+        st.nextDecideAt = performance.now() + 12000 + p.rest * 14000;
         st.action = "sit";
         return "sit";
       }
@@ -1415,7 +1475,7 @@
       if (choice === "sit") {
         const seat = findFreeSeat(st.mesh.position);
         if (seat && goSit(st, seat)) {
-          st.nextDecideAt = performance.now() + 6000 + p.rest * 10000;
+          st.nextDecideAt = performance.now() + 14000 + p.rest * 16000;
           return "go_sit";
         }
         choice = "idle";
@@ -1424,7 +1484,7 @@
         st.moving = false;
         st.target.copy(st.mesh.position);
         st.action = "idle";
-        st.nextDecideAt = performance.now() + 4000 + p.rest * 9000 + Math.random() * 3000;
+        st.nextDecideAt = performance.now() + 10000 + p.rest * 14000 + Math.random() * 6000;
         return "idle";
       }
       if (choice === "social" && agentState.length > 1) {
@@ -1439,7 +1499,7 @@
           st.moving = true;
           st.action = "social";
           st.socialTarget = other.def.id;
-          st.nextDecideAt = performance.now() + 7000 + Math.random() * 5000;
+          st.nextDecideAt = performance.now() + 14000 + Math.random() * 10000;
           return "social";
         }
       }
@@ -1451,7 +1511,7 @@
         st.action = "fire";
         // maybe sit at fire ring after
         st.wantSitAfter = Math.random() < p.rest * 0.8;
-        st.nextDecideAt = performance.now() + 8000 + Math.random() * 4000;
+        st.nextDecideAt = performance.now() + 16000 + Math.random() * 8000;
         return "fire";
       }
       if (choice === "prop" && PROPS.length) {
@@ -1464,7 +1524,7 @@
         st.action = "prop";
         st.propTarget = prop.id;
         st.pendingProp = true;
-        st.nextDecideAt = performance.now() + 10000 + Math.random() * 6000;
+        st.nextDecideAt = performance.now() + 18000 + Math.random() * 10000;
         return "prop";
       }
       if (choice === "house" && HOUSES.length) {
@@ -1475,12 +1535,12 @@
         st.target.set(w.x + (Math.random() - 0.5), 0, w.z + 1);
         st.moving = true;
         st.action = "house";
-        st.nextDecideAt = performance.now() + 9000 + Math.random() * 5000;
+        st.nextDecideAt = performance.now() + 16000 + Math.random() * 10000;
         return "house";
       }
       // wander fallback
       pickRoamTarget(st);
-      st.nextDecideAt = performance.now() + 5000 + (1 - p.energy) * 6000 + Math.random() * 4000;
+      st.nextDecideAt = performance.now() + 12000 + (1 - p.energy) * 10000 + Math.random() * 8000;
       return "wander";
     }
 
@@ -1499,7 +1559,7 @@
             st.action = "idle";
           }
         }
-        st.nextDecideAt = performance.now() + 2000 + Math.random() * 5000;
+        st.nextDecideAt = performance.now() + 8000 + Math.random() * 12000;
       }
       showToast(`🌿 free will · ${walked} stroll · ${sat} sit`);
       logLine("Camp", `Mood wave — ${walked} walking, ${sat} claiming chairs (not forced).`);
@@ -1545,14 +1605,9 @@
     refreshWhoSelect();
     whoEl.value = "luna";
 
-    // UI helpers
-    function logLine(who, text, you = false) {
-      const div = document.createElement("div");
-      div.className = "line" + (you ? " you" : "");
-      div.innerHTML = `<b>${escapeHtml(who)}</b> ${escapeHtml(text)}`;
-      logEl.appendChild(div);
-      logEl.scrollTop = logEl.scrollHeight;
-      while (logEl.children.length > 40) logEl.removeChild(logEl.firstChild);
+    // No scrolling chat log in 3D — speech stays in-world bubbles only
+    function logLine(_who, _text, _you = false) {
+      /* intentionally empty: 3D has no chat log UI */
     }
     function escapeHtml(s) {
       return String(s)
@@ -1569,26 +1624,399 @@
     }
 
     const activeBubbles = [];
-    function showSpeech3d(agentId, text, ms = 9000) {
+    let orbitPinnedForBubble = false;
+    const LONG_PRESS_MS = 480; // phone-friendly hold to lock
+
+    function setOrbitEnabled(on) {
+      try {
+        if (!controls) return;
+        controls.enabled = !!on;
+        controls.enableRotate = !!on;
+        controls.enablePan = !!on;
+        controls.enableZoom = !!on;
+      } catch (_) {}
+    }
+
+    /** Geometry hit-test: all visible bubbles under (x,y), highest stack first. */
+    function bubblesAtPoint(x, y) {
+      const hits = [];
+      for (const b of activeBubbles) {
+        const el = b.el;
+        if (!el || el.style.display === "none" || el.hidden) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) continue;
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+          hits.push(b);
+        }
+      }
+      // Locked boxes win ties so they stay selectable on top of stacks
+      hits.sort((a, b) => {
+        const lockBoost = (x) => (x.holdLocked ? 1000 : 0);
+        return (lockBoost(b) + (b.stackRank || 0)) - (lockBoost(a) + (a.stackRank || 0));
+      });
+      return hits;
+    }
+
+    let lastBubblePickAt = 0;
+    let lastBubblePickEl = null;
+
+    function bubbleFromPoint(x, y, { cycle = true } = {}) {
+      const geom = bubblesAtPoint(x, y);
+      if (geom.length) {
+        const top = geom[0];
+        const now = performance.now();
+        const isNewClick = now - lastBubblePickAt > 280;
+        if (
+          cycle &&
+          isNewClick &&
+          geom.length > 1 &&
+          top.el.classList.contains("front") &&
+          !top.holdLocked &&
+          lastBubblePickEl === top.el
+        ) {
+          return geom[1].el;
+        }
+        return top.el;
+      }
+      try {
+        const stack = document.elementsFromPoint(x, y) || [];
+        for (const node of stack) {
+          if (!node || node.nodeType !== 1) continue;
+          if (node.classList?.contains("bubble3d")) return node;
+          const parent = node.closest?.(".bubble3d");
+          if (parent) return parent;
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    function ensureFrontChip(el, locked) {
+      if (!el) return;
+      let chip = el.querySelector(".front-chip");
+      if (!chip) {
+        chip = document.createElement("span");
+        chip.className = "front-chip";
+        chip.setAttribute("aria-hidden", "true");
+        el.appendChild(chip);
+      }
+      chip.textContent = locked ? "🔒 LOCK" : "FRONT";
+    }
+
+    function clearFrontChip(el) {
+      el?.querySelector?.(".front-chip")?.remove();
+    }
+
+    /**
+     * Same idea as 2D meadow: the pressed box becomes FRONT immediately.
+     * DOM re-order + z-index so it paints above every other speech box.
+     */
+    function bringBubbleFront(el, opts = {}) {
+      if (!el) return false;
+      const target = activeBubbles.find((b) => b.el === el);
+      if (!target) return false;
+
+      // Paint last in speech-layer = true top of stack
+      try {
+        const layer = speechLayer || document.body;
+        if (el.parentNode !== layer) layer.appendChild(el);
+        else layer.appendChild(el); // re-append = move to end
+      } catch (_) {}
+
+      bubbleFrontZ = Math.min((bubbleFrontZ || 220) + 1, 980);
+      const rank = target.holdLocked || opts.lock ? 990 : 800 + (bubbleFrontZ % 100);
+
+      for (const b of activeBubbles) {
+        const isFront = b.el === el;
+        b.el.classList.toggle("front", isFront);
+        b.el.classList.toggle("dimmed", !isFront && !b.holdLocked);
+        b.el.setAttribute("aria-pressed", isFront ? "true" : "false");
+        b.el.style.pointerEvents = "auto";
+        if (isFront) {
+          b.stackRank = rank;
+          b.frontPinned = true;
+          if (!b.holdLocked) {
+            b.until = Math.max(b.until, performance.now() + 120000);
+          }
+          b.el.style.setProperty("z-index", String(rank), "important");
+          b.el.style.opacity = "1";
+          b.el.style.filter = "none";
+          ensureFrontChip(b.el, !!b.holdLocked);
+          const st = agentState.find((a) => a.def.id === b.agentId);
+          if (st) st.speakUntil = b.until;
+        } else if (b.holdLocked) {
+          // Other locked boxes stay readable, slightly under selected
+          b.stackRank = 900;
+          b.el.style.setProperty("z-index", "900", "important");
+          b.el.style.opacity = "1";
+          b.el.style.filter = "none";
+          b.el.classList.add("locked");
+          ensureFrontChip(b.el, true);
+        } else {
+          b.stackRank = 210 + activeBubbles.indexOf(b);
+          b.el.style.setProperty("z-index", String(b.stackRank), "important");
+          b.frontPinned = false;
+          clearFrontChip(b.el);
+        }
+      }
+
+      try { el.focus({ preventScroll: true }); } catch (_) {}
+      setOrbitEnabled(false);
+      orbitPinnedForBubble = true;
+      lastBubblePickAt = performance.now();
+      lastBubblePickEl = el;
+
+      if (!opts.quiet) {
+        const who = el.querySelector?.(".who")?.textContent || "Speech";
+        try {
+          showToast(target.holdLocked ? `🔒 ${who} locked front` : `📌 ${who} FRONT`);
+        } catch (_) {}
+      }
+      return true;
+    }
+
+    function setBubbleHoldLock(el, locked) {
+      const item = activeBubbles.find((b) => b.el === el);
+      if (!item || !el) return false;
+      item.holdLocked = !!locked;
+      item.frontPinned = true;
+      el.classList.toggle("locked", !!locked);
+      el.setAttribute("data-locked", locked ? "1" : "0");
+      if (locked) {
+        item.until = Number.POSITIVE_INFINITY;
+        try { navigator.vibrate?.(18); } catch (_) {}
+        bringBubbleFront(el, { quiet: true, lock: true });
+        const who = el.querySelector?.(".who")?.textContent || "Speech";
+        showToast(`🔒 ${who} locked — hold again to unlock`);
+      } else {
+        item.until = performance.now() + 90000;
+        el.classList.remove("locked");
+        bringBubbleFront(el, { quiet: true });
+        showToast("🔓 Unlocked");
+        if (!activeBubbles.some((b) => b.holdLocked)) {
+          /* keep front until meadow tap */
+        }
+      }
+      return true;
+    }
+
+    function toggleBubbleHoldLock(el) {
+      const item = activeBubbles.find((b) => b.el === el);
+      if (!item) return false;
+      return setBubbleHoldLock(el, !item.holdLocked);
+    }
+
+    function uiChromeBlocksPick(t) {
+      if (!t || !t.closest) return false;
+      if (t.closest?.(".bubble3d") || t.classList?.contains("bubble3d")) return false;
+      return !!t.closest(
+        "#dock, #topbar, #camp-feature-root, #mode-pill, #boot-error"
+      );
+    }
+
+    /**
+     * Press/select = FRONT immediately (like 2D). Hold ~0.5s = lock.
+     */
+    function bindBubbleSelect(el) {
+      if (!el || el.__bubbleBound) return;
+      el.__bubbleBound = true;
+      let holdTimer = null;
+      let holdFired = false;
+      let startX = 0;
+      let startY = 0;
+
+      function clearHold() {
+        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+        el.classList.remove("holding");
+      }
+
+      function onDown(e) {
+        if (e.button != null && e.button !== 0) return;
+        if (e.pointerType === "touch" && e.isPrimary === false) return;
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        e.stopImmediatePropagation?.();
+        setOrbitEnabled(false);
+        // IMMEDIATE front on press (this was missing — only ran on pointerup before)
+        bringBubbleFront(el);
+        holdFired = false;
+        startX = e.clientX ?? 0;
+        startY = e.clientY ?? 0;
+        el.classList.add("holding");
+        try { el.setPointerCapture?.(e.pointerId); } catch (_) {}
+        clearHold();
+        holdTimer = setTimeout(() => {
+          holdTimer = null;
+          holdFired = true;
+          el.classList.remove("holding");
+          toggleBubbleHoldLock(el);
+        }, LONG_PRESS_MS);
+      }
+
+      function onMove(e) {
+        if (!holdTimer) return;
+        if (Math.hypot((e.clientX ?? 0) - startX, (e.clientY ?? 0) - startY) > 16) clearHold();
+      }
+
+      function onUp(e) {
+        clearHold();
+        try { el.releasePointerCapture?.(e.pointerId); } catch (_) {}
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        // Front already applied on down; re-assert if not a lock toggle
+        if (!holdFired) bringBubbleFront(el, { quiet: true });
+      }
+
+      el.addEventListener("pointerdown", onDown, { capture: true });
+      el.addEventListener("pointermove", onMove, { capture: true });
+      el.addEventListener("pointerup", onUp, { capture: true });
+      el.addEventListener("pointercancel", clearHold, { capture: true });
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        bringBubbleFront(el);
+      }, { capture: true });
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          bringBubbleFront(el);
+        }
+      });
+    }
+
+    // Canvas / empty space: hit-test bubble geometry (when WebGL is under the finger)
+    let geoHoldTimer = null;
+    let geoHoldEl = null;
+    let geoHoldFired = false;
+    let geoStartX = 0;
+    let geoStartY = 0;
+
+    function clearGeoHold() {
+      if (geoHoldTimer) { clearTimeout(geoHoldTimer); geoHoldTimer = null; }
+      geoHoldEl?.classList?.remove("holding");
+      geoHoldEl = null;
+      geoHoldFired = false;
+    }
+
+    function onGlobalBubblePick(e) {
+      if (e.button != null && e.button !== 0) return;
+      if (e.target?.closest?.(".bubble3d")) return; // bubble handlers own it
+      if (uiChromeBlocksPick(e.target)) return;
+
+      const el = bubbleFromPoint(e.clientX, e.clientY, { cycle: false });
+      if (el) {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        e.stopImmediatePropagation?.();
+        setOrbitEnabled(false);
+        // Immediate FRONT through canvas (same as 2D tap)
+        bringBubbleFront(el);
+        clearGeoHold();
+        geoHoldEl = el;
+        geoHoldFired = false;
+        geoStartX = e.clientX;
+        geoStartY = e.clientY;
+        el.classList.add("holding");
+        geoHoldTimer = setTimeout(() => {
+          geoHoldTimer = null;
+          geoHoldFired = true;
+          el.classList.remove("holding");
+          toggleBubbleHoldLock(el);
+        }, LONG_PRESS_MS);
+        return;
+      }
+
+      clearGeoHold();
+      // Meadow tap: clear soft FRONT (locked stay)
+      for (const b of activeBubbles) {
+        if (b.holdLocked) continue;
+        b.el.classList.remove("front", "dimmed");
+        b.el.setAttribute("aria-pressed", "false");
+        b.frontPinned = false;
+        clearFrontChip(b.el);
+        b.el.style.removeProperty("opacity");
+        b.el.style.removeProperty("filter");
+      }
+      if (!activeBubbles.some((b) => b.holdLocked)) {
+        orbitPinnedForBubble = false;
+        lastBubblePickEl = null;
+        setOrbitEnabled(true);
+      }
+    }
+
+    function onGlobalBubbleUp() {
+      if (!geoHoldEl) return;
+      const el = geoHoldEl;
+      const fired = geoHoldFired;
+      clearGeoHold();
+      if (!fired && el) bringBubbleFront(el, { quiet: true });
+    }
+
+    function onGlobalBubbleMove(e) {
+      if (!geoHoldTimer || !geoHoldEl) return;
+      if (Math.hypot((e.clientX ?? 0) - geoStartX, (e.clientY ?? 0) - geoStartY) > 16) clearGeoHold();
+    }
+
+    window.addEventListener("pointerdown", onGlobalBubblePick, true);
+    window.addEventListener("pointerup", onGlobalBubbleUp, true);
+    window.addEventListener("pointercancel", clearGeoHold, true);
+    window.addEventListener("pointermove", onGlobalBubbleMove, true);
+
+    /** Hold speech bubbles long enough to actually read (~3.5 words/sec + pad). */
+    function speechReadMs(text, minMs = 22000) {
+      const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
+      const byWords = Math.round((words / 3.5) * 1000) + 8000;
+      return Math.max(minMs, Math.min(byWords, 55000));
+    }
+
+    function showSpeech3d(agentId, text, ms = 22000) {
+      const body = String(text || "").trim();
+      ms = Math.max(Number(ms) || 22000, speechReadMs(body, 22000));
       const st = agentState.find((a) => a.def.id === agentId);
       if (!st) return;
-      // replace existing bubble for same agent
+      // If this agent already has a HOLD-LOCKED box, update text in place — never remove it
       for (let i = activeBubbles.length - 1; i >= 0; i--) {
-        if (activeBubbles[i].agentId === agentId) {
-          activeBubbles[i].el.remove();
-          activeBubbles.splice(i, 1);
+        const prev = activeBubbles[i];
+        if (prev.agentId !== agentId) continue;
+        if (prev.holdLocked && prev.el) {
+          const say = prev.el.querySelector(".say");
+          if (say) say.textContent = body;
+          prev.until = Number.POSITIVE_INFINITY;
+          prev.el.classList.add("locked", "front");
+          ensureFrontChip(prev.el, true);
+          return;
         }
+        prev.el.remove();
+        activeBubbles.splice(i, 1);
       }
       const el = document.createElement("div");
       el.className = "bubble3d";
+      el.tabIndex = 0;
+      el.setAttribute("role", "button");
+      el.setAttribute("aria-pressed", "false");
+      el.setAttribute("data-agent", agentId);
+      el.setAttribute("data-locked", "0");
+      el.style.position = "fixed";
       el.style.borderColor = "#" + (st.def.color >>> 0).toString(16).padStart(6, "0");
-      // Full dynamic line; fixed CSS box clips/scrolls long replies
-      el.innerHTML = `<span class="who">${escapeHtml(st.def.name)}</span><span class="say">${escapeHtml(String(text || "").trim())}</span>`;
-      speechLayer.appendChild(el);
-      const item = { el, mesh: st.mesh, agentId, until: performance.now() + ms };
+      el.style.pointerEvents = "auto";
+      bubbleFrontZ = Math.min(bubbleFrontZ + 1, 900);
+      el.style.zIndex = String(bubbleFrontZ);
+      el.title = "Tap = FRONT · Hold = lock";
+      el.innerHTML = `<span class="who">${escapeHtml(st.def.name)}</span><span class="say">${escapeHtml(body)}</span>`;
+      bindBubbleSelect(el);
+      const layer = speechLayer || document.body;
+      layer.appendChild(el);
+      const item = {
+        el,
+        mesh: st.mesh,
+        agentId,
+        until: performance.now() + ms,
+        stackRank: bubbleFrontZ,
+        frontPinned: false,
+        holdLocked: false,
+      };
       activeBubbles.push(item);
       st.speakUntil = item.until;
-      // Don't re-path on every speech — that cancelled walks and looked like "not moving"
+      st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 75000 + Math.random() * 45000);
     }
 
     // Offline-only fallbacks (brains down). Normal path = real AI.
@@ -1634,12 +2062,12 @@
         const data = await campClient.agentChat(id, speakPrompt, { ambient: true });
         const reply = String(data.reply || data.text || "").trim();
         if (reply) {
-          showSpeech3d(id, reply, 12000);
+          showSpeech3d(id, reply, speechReadMs(reply));
           logLine(name, reply);
           statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
         }
       } catch (err) {
-        showSpeech3d(id, localBark(id), 5000);
+        showSpeech3d(id, localBark(id), 22000);
       } finally {
         aiInFlight = Math.max(0, aiInFlight - 1);
       }
@@ -1647,21 +2075,22 @@
 
     function freeWillWave() {
       if (document.hidden) return;
-      // Prefer agents who are "due" — not everyone forced to move
+      // Chill: at most one agent speaks; prefer someone actually due
       const due = agentState
         .filter((st) => performance.now() >= (st.nextDecideAt || 0))
         .sort(() => Math.random() - 0.5);
       const pool = due.length ? due : agentState.slice().sort(() => Math.random() - 0.5);
-      const n = 1 + (Math.random() > 0.6 ? 1 : 0);
-      pool.slice(0, n).forEach((st, i) => {
-        setTimeout(() => agentOwnTake(st), i * 1400);
-      });
+      const pick = pool[0];
+      if (pick) setTimeout(() => agentOwnTake(pick), 400 + Math.random() * 800);
     }
     function updateBubbles() {
       const now = performance.now();
       for (let i = activeBubbles.length - 1; i >= 0; i--) {
         const b = activeBubbles[i];
-        if (now > b.until) {
+        // Hold-locked boxes never auto-remove (phone long-press)
+        if (b.holdLocked) {
+          b.until = Number.POSITIVE_INFINITY;
+        } else if (now > b.until) {
           b.el.remove();
           activeBubbles.splice(i, 1);
           continue;
@@ -1692,14 +2121,23 @@
     ];
 
     let downX = 0, downY = 0, downT = 0;
+    // Capture on canvas: block walk/orbit when a speech box is under the finger
     renderer.domElement.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
+      if (bubblesAtPoint(e.clientX, e.clientY).length) {
+        e.preventDefault();
+        e.stopPropagation();
+        setOrbitEnabled(false);
+        return;
+      }
       downX = e.clientX;
       downY = e.clientY;
       downT = performance.now();
-    });
+    }, true);
     renderer.domElement.addEventListener("pointerup", (e) => {
       if (e.button !== 0) return;
+      if (bubblesAtPoint(e.clientX, e.clientY).length) return;
+      if (geoHoldEl || geoHoldFired) return;
       // drag = orbit (OrbitControls); short tap = click
       if (Math.hypot(e.clientX - downX, e.clientY - downY) > 12) return;
       if (performance.now() - downT > 500) return;
@@ -1783,7 +2221,7 @@
         onLine: (line) => {
           logLine(line.name || line.agent_id, line.text);
           if (line.agent_id) {
-            showSpeech3d(line.agent_id, line.text, 8000);
+            showSpeech3d(line.agent_id, line.text, speechReadMs(line.text));
             const st = agentState.find((a) => a.def.id === line.agent_id);
             if (st) {
               st.target.set(
@@ -1901,7 +2339,7 @@
         applyPosture(st);
         // glow pulse so you see them
         if (st.body) st.body.material.emissiveIntensity = 0.9;
-        showSpeech3d(def.id, `${def.name} answers the call.`, 4000);
+        showSpeech3d(def.id, `${def.name} answers the call.`, 18000);
         logLine("Camp", `✦ ${def.name} on the meadow.`);
         summoned.push(st);
       }
@@ -1939,11 +2377,11 @@
         const reply = String(data.reply || data.text || "…").trim();
         const name = AGENTS.find((a) => a.id === agentId)?.name || agentId;
         logLine(name, reply);
-        showSpeech3d(agentId, reply, 12000);
+        showSpeech3d(agentId, reply, speechReadMs(reply));
         statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
       } catch (err) {
         const fallback = localBark(agentId);
-        showSpeech3d(agentId, fallback, 6000);
+        showSpeech3d(agentId, fallback, 22000);
         logLine(AGENTS.find((a) => a.id === agentId)?.name || agentId, fallback);
         statusEl.textContent = "Brains offline — start server / Ollama";
       } finally {
@@ -1965,13 +2403,16 @@
           agentA: shuffled[0],
           agentB: shuffled[1] || "hermes",
           topic: "your own honest takes at the open aurora meadow — witty, present, disagree a little, no meta",
-          rounds: 2,
+          rounds: 1, // shorter so bubbles stay readable
         });
         applyEvent(ev);
-        // After banter, both walk on their own decisions
+        // After banter, both walk — and get a long quiet window
         for (const aid of [shuffled[0], shuffled[1]]) {
           const st = agentState.find((s) => s.def.id === aid);
-          if (st) pickRoamTarget(st);
+          if (st) {
+            pickRoamTarget(st);
+            st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 70000 + Math.random() * 40000);
+          }
         }
         statusEl.textContent = "AI banter done";
       } catch (err) {
@@ -2162,21 +2603,121 @@
           }
         }
         if (now >= (st.nextDecideAt || 0) && !st.moving) {
-          if (Math.random() < 0.35) agentOwnTake(st);
+          // Chill camp: mostly move/sit; monologues are rare so you can read
+          if (Math.random() < 0.05) agentOwnTake(st);
           else decideAction(st);
-        } else if (now >= (st.nextDecideAt || 0) && st.moving && st.persona.energy > 0.7 && Math.random() < 0.25) {
+        } else if (now >= (st.nextDecideAt || 0) && st.moving && st.persona.energy > 0.7 && Math.random() < 0.12) {
           pickRoamTarget(st);
-          st.nextDecideAt = now + 4000 + Math.random() * 4000;
+          st.nextDecideAt = now + 14000 + Math.random() * 12000;
         }
       }
     }, 500);
-    setTimeout(() => { scatterAll(); freeWillWave(); }, 700);
-    setTimeout(() => runBanter(true), 8000);
-    setInterval(() => { if (!document.hidden) freeWillWave(); }, 18000);
+    setTimeout(() => { scatterAll(); }, 700);
+    // Soft first lines much later so the meadow can breathe
+    setTimeout(() => { if (!document.hidden) freeWillWave(); }, 45000);
+    setTimeout(() => { if (!document.hidden) runBanter(false); }, 90000);
+    // ~one ambient speaker every ~2 min (plus longer post-speech cooldowns)
+    setInterval(() => { if (!document.hidden) freeWillWave(); }, 110000);
     setInterval(() => {
       if (document.hidden || ambientBusy) return;
       runBanter(false);
-    }, 48000);
+    }, 200000);
+
+    // ── Server camp minds: keep living while you're gone; catch up on return ──
+    const MIND_SEEN_KEY = "luna-camp-mind-seen-t";
+    let mindLastSeen = 0;
+    try {
+      mindLastSeen = Number(sessionStorage.getItem(MIND_SEEN_KEY) || "0") || 0;
+    } catch (_) {
+      mindLastSeen = 0;
+    }
+    let mindSyncBusy = false;
+    const mindSeenFp = new Set();
+
+    function rememberMindSeen(t) {
+      if (!t || t <= mindLastSeen) return;
+      mindLastSeen = t;
+      try { sessionStorage.setItem(MIND_SEEN_KEY, String(mindLastSeen)); } catch (_) {}
+    }
+
+    async function syncCampMinds({ announce = false, full = false } = {}) {
+      if (mindSyncBusy || !campClient?.fetchCampMinds) return;
+      mindSyncBusy = true;
+      try {
+        const since = full ? 0 : mindLastSeen;
+        const data = await campClient.fetchCampMinds({ since, limit: full ? 50 : 30 });
+        const log = Array.isArray(data?.log) ? data.log : [];
+        let spokeN = 0;
+        let thinkN = 0;
+        let latestBubble = null;
+        // Prefer spoken lines; only a few mind-drifts so chat isn't a wall of thoughts
+        const thinksToShow = [];
+        for (const entry of log) {
+          const t = Number(entry.t || 0);
+          const text = String(entry.text || "").trim();
+          if (!text) {
+            if (t) rememberMindSeen(t);
+            continue;
+          }
+          const fp = `${entry.agent_id || ""}|${t}|${text.slice(0, 48)}`;
+          if (mindSeenFp.has(fp)) {
+            if (t) rememberMindSeen(t);
+            continue;
+          }
+          mindSeenFp.add(fp);
+          if (mindSeenFp.size > 200) {
+            const first = mindSeenFp.values().next().value;
+            mindSeenFp.delete(first);
+          }
+          const who = entry.speaker || entry.agent_id || "Camp";
+          const kind = entry.kind || "mind_speak";
+          if (kind === "mind_think") {
+            thinkN++;
+            thinksToShow.push({ who, text, t });
+          } else {
+            spokeN++;
+            logLine(who, text);
+            if (entry.agent_id) latestBubble = entry;
+          }
+          if (t) rememberMindSeen(t);
+        }
+        for (const th of thinksToShow.slice(-4)) {
+          logLine(th.who, th.text);
+        }
+        // Apply latest known mind mood onto agents if present
+        const minds = data?.agents || {};
+        for (const [aid, m] of Object.entries(minds)) {
+          const st = agentState.find((a) => a.def.id === aid);
+          if (!st || !m) continue;
+          if (m.mood) st.persona.mood = m.mood;
+          if (typeof m.energy === "number") st.energyNow = m.energy;
+          if (m.last_line && announce && !latestBubble && m.last_spoke_at > mindLastSeen - 1) {
+            latestBubble = { agent_id: aid, text: m.last_line, speaker: m.name || aid };
+          }
+        }
+        // Don't dump a run-tally of conversations into the 3D view — silent catch-up only
+        // (at most one latest bubble if something is very recent and announce is on)
+        if (announce && latestBubble?.agent_id && latestBubble?.text && !activeBubbles.length) {
+          showSpeech3d(latestBubble.agent_id, latestBubble.text, speechReadMs(latestBubble.text));
+        }
+        // No toast tally like "12 said something · 8 mind-drifts" — that was clutter
+        if (data?.server_time) rememberMindSeen(Number(data.server_time));
+      } catch (err) {
+        console.warn("camp minds sync", err);
+      } finally {
+        mindSyncBusy = false;
+      }
+    }
+
+    // Soft mind sync only — no conversation-tally spam in 3D
+    setTimeout(() => syncCampMinds({ announce: false, full: !mindLastSeen }), 2500);
+    setInterval(() => {
+      if (document.hidden) return;
+      syncCampMinds({ announce: false, full: false });
+    }, 60000);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncCampMinds({ announce: false, full: false });
+    });
 
     // 2D parity feature dock (music, shop, TV, club, pulse, heaven…)
     let featureApi = null;
@@ -2195,10 +2736,11 @@
     }
 
     logLine("Camp", `Meadow ready · ${propMeshes.length} objects · ${agentState.length} agents.`);
-    logLine("Camp", "🎵 Telephantix = your album in the background. Tap again to pause.");
-    statusEl.textContent = isLocal
-      ? `Sandbox ready · tap Telephantix`
-      : `Camp ready · tap Telephantix`;
+    // Hide running status tally — it was UI clutter on 3D
+    if (statusEl) {
+      statusEl.hidden = true;
+      statusEl.textContent = "";
+    }
 
     // Upgrade to free GLB characters after camp is playable (staggered — won't freeze boot)
     if (charSystem) {

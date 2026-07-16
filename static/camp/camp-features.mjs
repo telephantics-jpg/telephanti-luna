@@ -56,16 +56,33 @@ export function mountCampFeatures(opts) {
   root.id = "camp-feature-root";
   root.innerHTML = `
     <style>
-      #camp-feature-root { position: fixed; inset: 0; pointer-events: none; z-index: 45; }
-      #camp-feature-root .feat-dock {
+      /* Below speech bubbles (z~48–55) so chat boxes stay clickable on PC */
+      #camp-feature-root { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+      #camp-feature-root .feat-dock-wrap {
         pointer-events: auto; position: fixed; left: 8px; top: 50%; transform: translateY(-50%);
-        display: flex; flex-direction: column; gap: 6px; max-height: 72vh; overflow-y: auto;
-        z-index: 46;
+        display: flex; flex-direction: column; align-items: flex-start; gap: 5px; z-index: 46;
       }
+      #camp-feature-root .feat-dock-toggle {
+        background: rgba(8,14,28,0.96); border: 1px solid rgba(103,232,249,0.55); color: #67e8f9;
+        border-radius: 999px; padding: 8px 11px; font: inherit; font-size: 0.72rem; font-weight: 800;
+        cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.45); min-width: 0; line-height: 1.2;
+      }
+      #camp-feature-root .feat-dock-toggle:hover { border-color: #67e8f9; background: rgba(15,30,50,0.98); }
+      #camp-feature-root .feat-dock-toggle[aria-expanded="true"] {
+        border-color: #fbbf24; color: #fde68a;
+      }
+      /* Minimized by default — only the ✦ menu chip shows until expanded */
+      #camp-feature-root .feat-dock {
+        display: none !important; flex-direction: column; gap: 4px; max-height: 68vh; overflow-y: auto;
+        padding: 4px; background: rgba(6,10,20,0.88); border: 1px solid rgba(103,232,249,0.28);
+        border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      }
+      #camp-feature-root .feat-dock.open { display: flex !important; }
       #camp-feature-root .feat-dock button {
         background: rgba(8,14,28,0.94); border: 1px solid rgba(103,232,249,0.4); color: #67e8f9;
-        border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 0.74rem; cursor: pointer;
-        text-align: left; min-width: 112px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 0.68rem; cursor: pointer;
+        text-align: left; min-width: 0; max-width: 120px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;
       }
       #camp-feature-root .feat-dock button:hover { border-color: #67e8f9; background: rgba(15,30,50,0.98); }
       #camp-feature-root .feat-panel {
@@ -106,8 +123,16 @@ export function mountCampFeatures(opts) {
       #camp-feature-root .pulse-line a { color: #7dd3fc; }
       #camp-feature-root .err { color: #fca5a5; }
       #camp-feature-root .ok { color: #86efac; }
+      @media (max-width: 640px) {
+        #camp-feature-root .feat-dock-wrap { left: 6px; }
+        #camp-feature-root .feat-dock button { font-size: 0.6rem; padding: 3px 8px; max-width: 96px; }
+      }
     </style>
-    <div class="feat-dock" id="feat-dock"></div>
+    <div class="feat-dock-wrap" id="feat-dock-wrap">
+      <button type="button" class="feat-dock-toggle" id="feat-dock-toggle"
+        aria-expanded="false" aria-controls="feat-dock" title="Show / hide camp tools">✦ Menu</button>
+      <div class="feat-dock" id="feat-dock" role="group" aria-label="Camp actions"></div>
+    </div>
     <div class="feat-panel" id="feat-panel" role="dialog" aria-modal="true">
       <button type="button" class="feat-close" id="feat-close">Close</button>
       <h3 id="feat-title">Feature</h3>
@@ -118,17 +143,39 @@ export function mountCampFeatures(opts) {
   document.body.appendChild(root);
 
   const dock = root.querySelector("#feat-dock");
+  const dockToggle = root.querySelector("#feat-dock-toggle");
   const panel = root.querySelector("#feat-panel");
   const titleEl = root.querySelector("#feat-title");
   const subEl = root.querySelector("#feat-sub");
   const bodyEl = root.querySelector("#feat-body");
   root.querySelector("#feat-close").onclick = () => panel.classList.remove("open");
 
+  const DOCK_KEY = "luna-3d-feat-dock-open";
+  function setDockOpen(open) {
+    dock.classList.toggle("open", !!open);
+    dockToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    dockToggle.textContent = open ? "✕ Hide" : "✦ Menu";
+    dockToggle.title = open ? "Minimize tools" : "Expand camp tools (Music, Shop, TV…)";
+    try { localStorage.setItem(DOCK_KEY, open ? "1" : "0"); } catch (_) {}
+  }
+  // Always start minimized unless user left it open last time
+  let startOpen = false;
+  try { startOpen = localStorage.getItem(DOCK_KEY) === "1"; } catch (_) {}
+  setDockOpen(startOpen);
+
+  dockToggle.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDockOpen(!dock.classList.contains("open"));
+  });
+
   function openPanel(title, sub, html) {
     titleEl.textContent = title;
     subEl.textContent = sub || "";
     bodyEl.innerHTML = html || "";
     panel.classList.add("open");
+    // Minimize the 8 icons while a panel is open
+    setDockOpen(false);
   }
 
   function addBtn(label, onClick, show = true) {
@@ -136,6 +183,7 @@ export function mountCampFeatures(opts) {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = label;
+    b.title = label;
     b.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();

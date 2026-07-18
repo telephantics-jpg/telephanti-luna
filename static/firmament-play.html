@@ -1379,14 +1379,35 @@
     .dock-compact a.dock-icon.dock-tpx-site {
       display: inline-flex; align-items: center; justify-content: center;
       text-decoration: none;
-      background: linear-gradient(135deg, #0c4a6e, #0369a1);
-      border-color: #7dd3fc;
-      color: #e0f2fe;
+      background: linear-gradient(135deg, #422006, #b45309);
+      border-color: #fde68a;
+      color: #fef3c7;
       font-size: 0.95rem;
     }
     .dock-compact a.dock-icon.dock-tpx-site:hover {
-      border-color: #fde68a;
+      border-color: #fff;
+      color: #fffbeb;
+    }
+    /* Header home — back to telephanti.com */
+    a.camp-home-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      text-decoration: none;
+      border: 1px solid rgba(251, 191, 36, 0.55);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.72rem; font-weight: 800;
       color: #fef3c7;
+      background: linear-gradient(135deg, rgba(66, 32, 6, 0.95), rgba(180, 83, 9, 0.8));
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    a.camp-home-btn:hover {
+      border-color: #fde68a;
+      color: #fffbeb;
+    }
+    @media (max-width: 640px) {
+      a.camp-home-btn { padding: 5px 10px; font-size: 0.68rem; }
     }
     .dock-compact .dock-icon.dock-music-off {
       background: rgba(30, 41, 59, 0.95); border-color: rgba(148, 163, 184, 0.45);
@@ -3658,6 +3679,9 @@
       </div>
       <div class="header-row" style="gap:6px;flex-wrap:nowrap;margin-left:auto">
         <a id="btn-home-telephanti" class="camp-home-btn" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
+        <a class="camp-home-btn" href="https://telephantim.com/" title="Telephantim relics" target="_top" style="border-color:rgba(201,162,39,.55);color:#fde68a">Relics</a>
+        <a class="camp-home-btn" href="/firmament/play" title="Luna 2D" target="_top">2D</a>
+        <a class="camp-home-btn" href="/firmament/3d" title="Luna 3D" target="_top">3D</a>
         <button type="button" id="btn-header-heaven" title="Summon Jesus, archangels, Thor &amp; Zeus">✦ Heaven</button>
         <button type="button" id="camp-you-badge" title="Your camp name — tap to change">you</button>
         <button type="button" id="camp-token-badge" title="Open aurora shop">
@@ -4095,7 +4119,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-16-302-BUBBLE-FRONT-FIX";
+    const CAMP_BUILD = "2026-07-16-303-HOME-TELEPHANTI";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -17219,5 +17243,6 @@
       startGameLoop();
     }
   </script>
+  <script src="/static/world-nav.js?v=1" defer></script>
 </body>
 </html>

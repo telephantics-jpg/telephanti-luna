@@ -97,8 +97,12 @@
   function mount() {
     if (document.getElementById("world-nav")) return;
 
-    // Always inject the compact Relics | 2D | 3D bar on Luna pages (full page + iframe).
-    // In an iframe it postMessages telephantim.com so the hub swaps the main scene.
+    // Full-page Luna: show Relics | 2D | 3D.
+    // Inside telephantim.com iframe: skip — the hub already draws the same tiny bar on top.
+    if (inIframe()) {
+      return;
+    }
+
     injectStyles();
     var nav = document.createElement("nav");
     nav.id = "world-nav";

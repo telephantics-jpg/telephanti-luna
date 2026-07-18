@@ -86,6 +86,19 @@
       border-color: #fbbf24 !important;
       color: #fde68a !important;
     }
+    /* Always-visible home — top-left, not center */
+    #home-telephanti {
+      border-color: rgba(251, 191, 36, 0.55) !important;
+      background: linear-gradient(135deg, rgba(66, 32, 6, 0.95), rgba(180, 83, 9, 0.75)) !important;
+      color: #fef3c7 !important;
+      font-weight: 800 !important;
+      font-size: 0.75rem !important;
+      white-space: nowrap;
+    }
+    #home-telephanti:hover {
+      border-color: #fde68a !important;
+      color: #fffbeb !important;
+    }
     #album-now {
       font-size: 0.68rem; color: #fde68a; max-width: 160px; overflow: hidden;
       text-overflow: ellipsis; white-space: nowrap;
@@ -277,10 +290,11 @@
   <div id="mode-pill">👆 Tap speech = FRONT · Hold = 🔒 lock · Left: ✦ menu</div>
 
   <header id="topbar">
-    <a href="/firmament/play">← 2D Camp</a>
+    <a id="home-telephanti" class="chip" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
+    <a href="/firmament/play" class="chip" title="2D Luna Camp meadow">2D Camp</a>
     <div class="tx-cluster" title="Telephantix music + site">
       <button type="button" id="album-btn" class="chip" title="Play Telephantix music">TX</button>
-      <a id="telephanti-site-btn" class="chip" href="https://telephanti.com" target="_blank" rel="noopener noreferrer" title="Open telephanti.com">telephanti.com</a>
+      <a id="telephanti-site-btn" class="chip" href="https://telephanti.com/" title="Back to telephanti.com">telephanti.com</a>
     </div>
     <span id="album-now" hidden></span>
     <button type="button" id="btn-reset-cam" class="chip">Find me</button>
@@ -309,7 +323,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-16-three-v29-telephanti-link";
+    const BUILD = "2026-07-16-three-v30-home-btn";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     function showBootError(msg) {

@@ -2886,27 +2886,9 @@
       #camp-header .header-row.top {
         display: none !important;
       }
-      /* Phone: show only the 3D Camp chip in free-tools-row (was fully hidden) */
+      /* Phone: world switch is Relics|2D|3D tabs — hide bulky free-tools strip */
       #free-tools-row {
-        display: flex !important;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 6px;
-        max-height: none !important;
-        height: auto !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        padding: 2px 0 4px !important;
-        margin: 0 !important;
-      }
-      #free-tools-row > *:not(#chip-3d-camp):not(#chip-unreal-stream) {
         display: none !important;
-      }
-      #chip-3d-camp {
-        display: inline-flex !important;
-        font-size: 0.78rem !important;
-        padding: 8px 14px !important;
-        flex-shrink: 0;
       }
       #unreal-hint,
       #camp-life-status,
@@ -3679,9 +3661,6 @@
       </div>
       <div class="header-row" style="gap:6px;flex-wrap:nowrap;margin-left:auto">
         <a id="btn-home-telephanti" class="camp-home-btn" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
-        <a class="camp-home-btn" href="https://telephantim.com/" title="Telephantim relics" target="_top" style="border-color:rgba(201,162,39,.55);color:#fde68a">Relics</a>
-        <a class="camp-home-btn" href="/firmament/play" title="Luna 2D" target="_top">2D</a>
-        <a class="camp-home-btn" href="/firmament/3d" title="Luna 3D" target="_top">3D</a>
         <button type="button" id="btn-header-heaven" title="Summon Jesus, archangels, Thor &amp; Zeus">✦ Heaven</button>
         <button type="button" id="camp-you-badge" title="Your camp name — tap to change">you</button>
         <button type="button" id="camp-token-badge" title="Open aurora shop">
@@ -3708,23 +3687,19 @@
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
-        <a class="agent-chip visitor-chip" id="chip-camp-3d" href="/firmament/3d" title="Open 3D camp mode"><span class="dot" style="background:#a78bfa;color:#a78bfa"></span><span class="chip-text"><span class="aname">🎲 3D Camp</span><span class="amood">walk mode</span></span></a>
         <button type="button" class="agent-chip visitor-chip" id="chip-camp-tpx" title="Telephantix music at camp"><span class="dot" style="background:#38bdf8;color:#38bdf8"></span><span class="chip-text"><span class="aname">Telephantix</span><span class="amood">music</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus-invite" title="Invite Dionysus to camp"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">🍷 Dionysus</span><span class="amood">invite</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
       </div>
     </div>
     <div class="header-row" id="free-tools-row">
-      <a class="free-tool-chip native" href="/firmament/play">🌙 Camp (free)</a>
       <a class="free-tool-chip native" href="/?avatar=1&web=1&from=camp">✨ Luna chat</a>
-      <a class="free-tool-chip native" href="/firmament/play">🔥 Aurora camp</a>
       <a class="free-tool-chip" href="/firmament" target="_blank" rel="noopener">🔭 Observer</a>
       <button type="button" class="free-tool-chip native" id="chip-summon-heaven-tools" title="Summon Jesus &amp; archangels to camp" style="border-color:rgba(253,230,138,0.65);background:linear-gradient(135deg,rgba(66,32,6,0.9),rgba(253,230,138,0.22));color:#fef3c7;font-weight:700">✦ Summon Heaven</button>
       <button type="button" class="free-tool-chip native" id="chip-conjure-unknown" title="Mysterious Unknown — summon a stranger · agents react">❓ Mysterious Unknown</button>
       <button type="button" class="free-tool-chip native" id="chip-x-pulse" title="Today's headlines — agents tweet takes">𝕏 Pulse</button>
       <span class="free-tool-chip native" id="chip-ollama" title="Local Ollama/Llama — no API tokens">🦙 Ollama…</span>
       <span class="free-tool-chip" id="chip-tts" title="Edge TTS — free">🔊 TTS free</span>
-      <a class="free-tool-chip native" id="chip-3d-camp" href="/firmament/3d" title="Three.js 3D camp — same brains, no Unreal" style="border-color:rgba(167,139,250,0.75);background:linear-gradient(135deg,rgba(49,46,129,0.95),rgba(124,58,237,0.45));color:#ede9fe;font-weight:800">🎲 3D Camp</a>
       <a class="free-tool-chip" id="chip-unreal-stream" href="/firmament/stream" style="display:none">🎮 Unreal stream</a>
     </div>
     <div id="camp-life-status" class="live">Camp is live…</div>
@@ -3747,7 +3722,6 @@
   <!-- camp-speech-pin removed — bubbles select/drag on canvas only -->
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
-  <a id="camp-3d-fab" href="/firmament/3d" title="Open 3D Camp mode" aria-label="Open 3D Camp">🎲 3D</a>
   <button type="button" id="camp-tpx-fab" title="Telephantix music · long-press opens X @Telephantix" aria-label="Play Telephantix music">TX</button>
   <div id="camp-pick-agent-sheet" hidden aria-hidden="true" style="display:none !important">
     <div class="cpas-backdrop" id="camp-pick-agent-backdrop"></div>
@@ -3881,7 +3855,6 @@
       <button type="button" id="camp-zoom-reset" title="Reset map zoom" aria-label="Reset zoom">↺</button>
     </div>
     <div class="dock-compact">
-      <a class="dock-icon dock-3d" id="btn-camp-3d" href="/firmament/3d" title="3D Camp mode — walk the meadow in 3D">🎲 3D</a>
       <div class="dock-music-group" aria-label="Camp music">
         <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix album · hold for X @Telephantix">TX</button>
         <a class="dock-icon dock-feature-sm dock-tpx-site" id="btn-telephanti-site" href="https://telephanti.com/" title="Back to telephanti.com home">🏠</a>
@@ -17243,6 +17216,6 @@
       startGameLoop();
     }
   </script>
-  <script src="/static/world-nav.js?v=1" defer></script>
+  <script src="/static/world-nav.js?v=2" defer></script>
 </body>
 </html>

@@ -65,6 +65,27 @@
       border-color: #fbbf24 !important; color: #fde68a !important;
       box-shadow: 0 0 16px rgba(251, 191, 36, 0.35);
     }
+    /* TX music + site link stacked (not center — sits in topbar next to TX) */
+    .tx-cluster {
+      display: inline-flex; flex-direction: column; align-items: stretch; gap: 3px;
+      pointer-events: auto;
+    }
+    .tx-cluster #album-btn { width: 100%; text-align: center; padding: 5px 12px; }
+    #telephanti-site-btn {
+      border-color: rgba(125, 211, 252, 0.55) !important;
+      background: rgba(8, 20, 40, 0.92) !important;
+      color: #7dd3fc !important;
+      font-weight: 700 !important;
+      font-size: 0.62rem !important;
+      padding: 3px 8px !important;
+      letter-spacing: 0.03em;
+      text-align: center;
+      line-height: 1.2;
+    }
+    #telephanti-site-btn:hover {
+      border-color: #fbbf24 !important;
+      color: #fde68a !important;
+    }
     #album-now {
       font-size: 0.68rem; color: #fde68a; max-width: 160px; overflow: hidden;
       text-overflow: ellipsis; white-space: nowrap;
@@ -257,7 +278,10 @@
 
   <header id="topbar">
     <a href="/firmament/play">← 2D Camp</a>
-    <button type="button" id="album-btn" class="chip" title="Play Telephantix in the background">🎵</button>
+    <div class="tx-cluster" title="Telephantix music + site">
+      <button type="button" id="album-btn" class="chip" title="Play Telephantix music">TX</button>
+      <a id="telephanti-site-btn" class="chip" href="https://telephanti.com" target="_blank" rel="noopener noreferrer" title="Open telephanti.com">telephanti.com</a>
+    </div>
     <span id="album-now" hidden></span>
     <button type="button" id="btn-reset-cam" class="chip">Find me</button>
     <button type="button" id="btn-follow" class="chip" title="Camera follow">Follow</button>
@@ -285,7 +309,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-16-three-v28-any-agent-front";
+    const BUILD = "2026-07-16-three-v29-telephanti-link";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     function showBootError(msg) {

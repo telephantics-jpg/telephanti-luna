@@ -1376,6 +1376,18 @@
       box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
       border-color: #e0f2fe;
     }
+    .dock-compact a.dock-icon.dock-tpx-site {
+      display: inline-flex; align-items: center; justify-content: center;
+      text-decoration: none;
+      background: linear-gradient(135deg, #0c4a6e, #0369a1);
+      border-color: #7dd3fc;
+      color: #e0f2fe;
+      font-size: 0.95rem;
+    }
+    .dock-compact a.dock-icon.dock-tpx-site:hover {
+      border-color: #fde68a;
+      color: #fef3c7;
+    }
     .dock-compact .dock-icon.dock-music-off {
       background: rgba(30, 41, 59, 0.95); border-color: rgba(148, 163, 184, 0.45);
       font-size: 1rem; color: #cbd5e1;
@@ -3847,6 +3859,7 @@
       <a class="dock-icon dock-3d" id="btn-camp-3d" href="/firmament/3d" title="3D Camp mode — walk the meadow in 3D">🎲 3D</a>
       <div class="dock-music-group" aria-label="Camp music">
         <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix album · hold for X @Telephantix">TX</button>
+        <a class="dock-icon dock-feature-sm dock-tpx-site" id="btn-telephanti-site" href="https://telephanti.com" target="_blank" rel="noopener noreferrer" title="Open telephanti.com">🌐</a>
         <button type="button" class="dock-icon dock-music-off dock-feature-sm" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
       </div>
       <button type="button" class="dock-icon dock-feature-sm" id="btn-lucid-tv" title="Lucid Mind TV" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>

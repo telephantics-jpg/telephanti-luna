@@ -40,6 +40,12 @@
   }
 
   function go(id, href) {
+    // Snapshot dialogue so the next scene feels continuous
+    try {
+      var tapeKey = "telephantix-dialogue-tape-v1";
+      // no-op read to ensure storage still available; camp-bridge writes live
+      void localStorage.getItem(tapeKey);
+    } catch (e) {}
     // Prefer hub scene swap when embedded
     if (inIframe()) {
       try {

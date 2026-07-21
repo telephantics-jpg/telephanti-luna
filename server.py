@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "300-STATIC-BUBBLE"
+LUNA_BUILD = "301-CAMP-BRIDGE"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -177,6 +177,14 @@ async def prewarm_lipsync() -> None:
                 log.info("camp at-rest encrypt migrated: %s", ", ".join(migrated))
     except Exception as exc:
         log.warning("camp crypto migrate skipped: %s", exc)
+    # Camp mind states keep living while the visitor is gone (not just when tab is open)
+    try:
+        from firmament.camp_minds import start_background_loop
+
+        start_background_loop()
+        log.info("camp minds: background life loop on")
+    except Exception as exc:
+        log.warning("camp minds loop skipped: %s", exc)
 
 
 async def _firmament_parse_body(request: Request) -> tuple[dict, bool]:
@@ -2724,6 +2732,46 @@ class FirmamentCampMemoryBody(BaseModel):
     prop_id: str = ""
 
 
+@app.get("/api/firmament/suno-catalog")
+async def firmament_suno_catalog():
+    """Proxy / cache Telephantix full Suno playlist for camp radio (CORS-safe)."""
+    urls = [
+        "https://telephantim.com/suno-catalog.json",
+        "https://raw.githubusercontent.com/telephantics-jpg/telephantim-hub/gh-pages/suno-catalog.json",
+    ]
+    last_err = None
+    async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+        for url in urls:
+            try:
+                r = await client.get(url, headers={"User-Agent": "LunaCamp/1.0"})
+                r.raise_for_status()
+                data = r.json()
+                if isinstance(data, list) and data:
+                    return {
+                        "ok": True,
+                        "count": len(data),
+                        "source": url,
+                        "tracks": data,
+                    }
+            except Exception as exc:
+                last_err = str(exc)
+                continue
+    # Fallback: local short list if hub unreachable
+    fallback = [
+        {"id": "flowing-free", "title": "Flowing Free", "audio_url": "/static/camp/music/flowing-free.mp3"},
+        {"id": "loud-and-clear", "title": "Loud and Clear", "audio_url": "/static/camp/music/loud-and-clear.mp3"},
+        {"id": "abracadabra", "title": "Abracadabra", "audio_url": "/static/camp/music/abracadabra.mp3"},
+        {"id": "pulverised-dust", "title": "Pulverised Dust", "audio_url": "/static/camp/music/pulverised-dust.mp3"},
+    ]
+    return {
+        "ok": True,
+        "count": len(fallback),
+        "source": "local-fallback",
+        "tracks": fallback,
+        "error": last_err,
+    }
+
+
 @app.get("/api/firmament/camp/catalog")
 async def firmament_camp_catalog_api():
     """Shared world layout + visual keys for 2D / Three.js / Unreal clients."""
@@ -2926,6 +2974,23 @@ async def firmament_live_feed_get_api(limit: int = 20):
         **st,
         "events": recent_events(max(1, min(40, int(limit or 20)))),
     }
+
+
+@app.get("/api/firmament/camp/minds")
+async def firmament_camp_minds_api(since: float = 0.0, limit: int = 40):
+    """Mind states + while-you-were-away log. Lives on the server even if the tab closes."""
+    from firmament.camp_minds import ensure_roster, snapshot
+
+    ensure_roster()
+    return snapshot(since=float(since or 0), log_limit=max(1, min(80, int(limit or 40))))
+
+
+@app.post("/api/firmament/camp/minds/tick")
+async def firmament_camp_minds_tick_api():
+    """Optional manual mind step (debug / force drift)."""
+    from firmament.camp_minds import tick_once
+
+    return await tick_once()
 
 
 class FirmamentLiveFeedBody(BaseModel):
@@ -3299,6 +3364,16 @@ async def firmament_agent_chat_api(request: Request):
     if body.agent_id in hub.agents:
         hub.agents[body.agent_id]["state"] = "speak"
     hub._persist()
+    try:
+        from firmament.camp_minds import note_visitor_line
+
+        note_visitor_line(
+            body.agent_id,
+            str(result.get("reply") or ""),
+            mood=str(result.get("mood") or "happy"),
+        )
+    except Exception:
+        pass
     from firmament.play_lobby import get_play_lobby
 
     agent_name = str(hub.agents.get(body.agent_id, {}).get("name") or result.get("name") or body.agent_id)

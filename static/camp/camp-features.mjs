@@ -48,6 +48,21 @@ export function mountCampFeatures(opts) {
   let musicTracks = (catalog?.music && catalog.music.length)
     ? catalog.music
     : FALLBACK_MUSIC.slice();
+  // Full Telephantix queue (same as hub / 2D) when API available
+  import("/static/camp-bridge.mjs?v=301")
+    .then(async (mod) => {
+      try {
+        const tracks = await mod.loadSunoCatalog();
+        if (tracks?.length) {
+          musicTracks = tracks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            src: t.src || t.audio_url,
+          }));
+        }
+      } catch (_) {}
+    })
+    .catch(() => {});
 
   // Remove old root if hot-reloaded
   document.getElementById("camp-feature-root")?.remove();
@@ -222,9 +237,9 @@ export function mountCampFeatures(opts) {
       .catch(() => showToast("Tap Play again (browser blocked autoplay)"));
   }
 
-  addBtn("🎵 Music", () => {
+  addBtn("♪ Play music", () => {
     if (!musicTracks.length) musicTracks = FALLBACK_MUSIC.slice();
-    openPanel("Camp Music", `${musicTracks.length} tracks · same as 2D camp`, "");
+    openPanel("Play music", `${musicTracks.length} Telephantix tracks · hub queue`, "");
     const frag = document.createDocumentFragment();
     const controls = document.createElement("div");
     controls.className = "row";

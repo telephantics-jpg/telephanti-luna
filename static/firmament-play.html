@@ -24,14 +24,8 @@
   <meta name="twitter:image" content="https://telephanti.com/static/share/mercury-og.jpg" />
   <link rel="image_src" href="/static/share/mercury-og.jpg" />
   <link rel="apple-touch-icon" href="/static/share/mercury-square.jpg" />
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-418J7T1HZ1"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-418J7T1HZ1');
-  </script>
+  <!-- GA4 — accurate multi-site tagging (skips localhost; ?internal=1 / ?ga_debug=1) -->
+  <script src="/static/ga.js"></script>
   <title>Luna Camp — 260 PC</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -3687,7 +3681,7 @@
         <button type="button" class="agent-chip" data-agent="caduceus"><span class="dot" style="background:#34d399;color:#34d399"></span><span class="chip-text"><span class="aname">Caduceus</span><span class="amood">neutral</span></span></button>
         <button type="button" class="agent-chip" data-agent="sentinel"><span class="dot" style="background:#67e8f9;color:#67e8f9"></span><span class="chip-text"><span class="aname">Sentinel</span><span class="amood">alert</span></span></button>
         <button type="button" class="agent-chip" data-agent="jesus"><span class="dot" style="background:#fde68a;color:#fde68a"></span><span class="chip-text"><span class="aname">Jesus</span><span class="amood">love</span></span></button>
-        <button type="button" class="agent-chip visitor-chip" id="chip-camp-tpx" title="Telephantix music at camp"><span class="dot" style="background:#38bdf8;color:#38bdf8"></span><span class="chip-text"><span class="aname">Telephantix</span><span class="amood">music</span></span></button>
+        <button type="button" class="agent-chip visitor-chip" id="chip-camp-tpx" title="Play music — full Telephantix queue"><span class="dot" style="background:#38bdf8;color:#38bdf8"></span><span class="chip-text"><span class="aname">Play music</span><span class="amood">Telephantix</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus-invite" title="Invite Dionysus to camp"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">🍷 Dionysus</span><span class="amood">invite</span></span></button>
         <button type="button" class="agent-chip visitor-chip" id="chip-dionysus" data-agent="dionysus" style="display:none"><span class="dot" style="background:#e11d48;color:#e11d48"></span><span class="chip-text"><span class="aname">Dionysus</span><span class="amood">happy</span></span></button>
       </div>
@@ -3722,7 +3716,7 @@
   <!-- camp-speech-pin removed — bubbles select/drag on canvas only -->
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
-  <button type="button" id="camp-tpx-fab" title="Telephantix music · long-press opens X @Telephantix" aria-label="Play Telephantix music">TX</button>
+  <button type="button" id="camp-tpx-fab" title="Play music · long-press opens X @Telephantix" aria-label="Play music">♪</button>
   <div id="camp-pick-agent-sheet" hidden aria-hidden="true" style="display:none !important">
     <div class="cpas-backdrop" id="camp-pick-agent-backdrop"></div>
     <div class="cpas-panel">
@@ -3856,7 +3850,7 @@
     </div>
     <div class="dock-compact">
       <div class="dock-music-group" aria-label="Camp music">
-        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Telephantix album · hold for X @Telephantix">TX</button>
+        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Play music — full Telephantix queue · hold for X">♪ Music</button>
         <a class="dock-icon dock-feature-sm dock-tpx-site" id="btn-telephanti-site" href="https://telephanti.com/" title="Back to telephanti.com home">🏠</a>
         <button type="button" class="dock-icon dock-music-off dock-feature-sm" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
       </div>
@@ -4092,7 +4086,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-16-303-HOME-TELEPHANTI";
+    const CAMP_BUILD = "2026-07-21-304-PLAY-MUSIC-TAPE";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5651,7 +5645,8 @@
     let trippyHatUntil = 0;
     let psychicBoostUntil = 0;
     let shelterResting = false;
-    const CAMP_MUSIC_TRACKS = [
+    // Seed list — hydrated to full All I Got catalog via camp-bridge (hub/API)
+    let CAMP_MUSIC_TRACKS = [
       { id: "HbIa6PgpEaQ", title: "Flowing Free", src: "/static/camp/music/flowing-free.mp3" },
       { id: "FbtSCFKZhro", title: "Loud and Clear", src: "/static/camp/music/loud-and-clear.mp3" },
       { id: "0L9d8bB7SCw", title: "Holy Ghosts", src: "/static/camp/music/holy-ghosts.mp3" },
@@ -5661,6 +5656,42 @@
       { id: "2Ac05rguqDw", title: "Abracadabra", src: "/static/camp/music/abracadabra.mp3" },
       { id: "bT4kybUZuQM", title: "Pulverised Dust", src: "/static/camp/music/pulverised-dust.mp3" },
     ];
+    let campBridgeMod = null;
+    async function ensureCampBridge() {
+      if (campBridgeMod) return campBridgeMod;
+      try {
+        campBridgeMod = await import(`/static/camp-bridge.mjs?v=${CAMP_BUILD}`);
+      } catch (e) {
+        console.warn("camp-bridge load failed", e);
+        campBridgeMod = null;
+      }
+      return campBridgeMod;
+    }
+    async function hydrateCampMusicFromHub() {
+      const mod = await ensureCampBridge();
+      if (!mod?.loadSunoCatalog) return;
+      try {
+        const tracks = await mod.loadSunoCatalog();
+        if (tracks?.length) {
+          CAMP_MUSIC_TRACKS = tracks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            src: t.src || t.audio_url,
+          }));
+          try {
+            const st = mod.readMusicState?.() || {};
+            if (typeof st.trackIndex === "number" && st.trackIndex < CAMP_MUSIC_TRACKS.length) {
+              campMusicTrackIdx = st.trackIndex;
+            }
+          } catch (_) {}
+          updateCampMusicUi?.();
+        }
+      } catch (e) {
+        console.warn("hydrate camp music", e);
+      }
+    }
+    // Kick off full playlist load early
+    setTimeout(() => hydrateCampMusicFromHub(), 400);
     let campMusicOn = false;
     let campMusicPhase = 0;
     let campMusicTrackIdx = 0;
@@ -10402,16 +10433,25 @@
       if (tpxBtn) {
         tpxBtn.classList.toggle("active", tpxOn);
         tpxBtn.title = tpxOn
-          ? `Telephantix ON — ${track.title} (tap to stop)`
-          : "Telephantix — your album at camp";
+          ? `Play music ON — ${track.title} (${CAMP_MUSIC_TRACKS.length}) · tap to hide/stop`
+          : `Play music — full Telephantix queue (${CAMP_MUSIC_TRACKS.length})`;
+        // Prefer readable label when dock has room
+        if (tpxBtn.dataset.labelMode !== "icon") {
+          tpxBtn.setAttribute("aria-label", tpxOn ? "Hide music" : "Play music");
+        }
       }
       if (tpxFab) {
         tpxFab.classList.toggle("active", tpxOn);
-        tpxFab.title = tpxOn ? `TX on — ${track.title}` : "Telephantix — play album";
+        tpxFab.title = tpxOn ? `Music on — ${track.title}` : "Play music";
+        tpxFab.setAttribute("aria-label", tpxOn ? "Hide music" : "Play music");
       }
       if (tpxChip) {
         tpxChip.classList.toggle("speaking", tpxOn);
-        tpxChip.title = tpxOn ? `TX playing — ${track.title}` : "Tap for Telephantix music";
+        tpxChip.title = tpxOn ? `Playing — ${track.title}` : "Play music — Telephantix";
+        const amood = tpxChip.querySelector(".amood");
+        const aname = tpxChip.querySelector(".aname");
+        if (aname) aname.textContent = tpxOn ? "Playing…" : "Play music";
+        if (amood) amood.textContent = tpxOn ? (track.title || "on").slice(0, 18) : "Telephantix";
       }
       if (offBtn) {
         offBtn.classList.toggle("active", !active);
@@ -10430,6 +10470,14 @@
 
     function playCampMusicTrack(trackIdx = campMusicTrackIdx, opts = {}) {
       campMusicTrackIdx = trackIdx % CAMP_MUSIC_TRACKS.length;
+      try {
+        campBridgeMod?.writeMusicState?.({
+          trackIndex: campMusicTrackIdx,
+          title: CAMP_MUSIC_TRACKS[campMusicTrackIdx]?.title || "",
+          playing: !!campMusicOn,
+          scene: "luna-2d",
+        });
+      } catch (_) {}
       if (campMusicOn) openCampJukebox(opts);
       else updateCampMusicUi();
     }
@@ -12127,11 +12175,24 @@
 
     function campContextSuffix() {
       const bits = [];
-      if (campMusicOn && !campMusicMuted) bits.push("jukebox is playing");
+      if (campMusicOn && !campMusicMuted) {
+        const tr = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
+        bits.push(tr?.title ? `jukebox: ${tr.title}` : "jukebox is playing");
+      }
       if (campGuests.some((g) => g.id === "dionysus" && !g.leaving)) bits.push("Dionysus is at camp");
       if (stripClubOpen) bits.push("Aurora Velvet is open");
       if (campCat.following) bits.push("Nebula follows you");
       if (campWeather && campWeather !== "aurora") bits.push(`${campWeather} sky`);
+      // Seamless memory: last dialogue from tape (2D or 3D)
+      try {
+        const tape = campBridgeMod?.readDialogueTape?.() || null;
+        if (tape?.lines?.length) {
+          const last = tape.lines[tape.lines.length - 1];
+          if (last?.speaker && last?.text) {
+            bits.push(`recent: ${last.speaker} said “${String(last.text).slice(0, 72)}”`);
+          }
+        }
+      } catch (_) {}
       return bits.length ? ` (${bits.join(" · ")})` : "";
     }
 
@@ -12929,6 +12990,15 @@
     }
 
     function campBanterContext() {
+      // Prefer longer tape continuity when available
+      try {
+        const cont = campBridgeMod?.dialogueTapeContext?.(8, 520);
+        if (cont) {
+          const base =
+            typeof campContextSuffix === "function" ? campContextSuffix() : "";
+          return cont + (base || "");
+        }
+      } catch (_) {}
       return (typeof campContextSuffix === "function"
         ? campContextSuffix().replace(/^\s*\(|\)\s*$/g, "")
         : "") || "aurora meadow camp";
@@ -15924,19 +15994,32 @@
       if (isCampMobile()) return;
       try {
         const raw = sessionStorage.getItem(CAMP_CHAT_CACHE_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return;
-        for (const row of parsed) {
-          if (!row || !row.text || !row.speaker) continue;
-          campLines.push({
-            speaker: String(row.speaker),
-            text: String(row.text),
-            mood: row.mood || "neutral",
-            t: Number(row.t) || Date.now(),
-          });
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            for (const row of parsed) {
+              if (!row || !row.text || !row.speaker) continue;
+              campLines.push({
+                speaker: String(row.speaker),
+                text: String(row.text),
+                mood: row.mood || "neutral",
+                t: Number(row.t) || Date.now(),
+              });
+            }
+          }
         }
         while (campLines.length > CAMP_CHAT_CACHE_MAX) campLines.shift();
+      } catch (_) {}
+      // Merge cross-scene dialogue tape (2D/3D continuity)
+      try {
+        ensureCampBridge().then((mod) => {
+          if (!mod?.mergeTapeIntoArray) return;
+          const n = mod.mergeTapeIntoArray(campLines, { max: CAMP_CHAT_CACHE_MAX });
+          if (n > 0) {
+            saveCampChatCache();
+            renderConvoLog?.();
+          }
+        });
       } catch (_) {}
     }
 
@@ -16211,6 +16294,17 @@
         // Cache full session history in the PC right panel
         while (campLines.length > CAMP_CHAT_CACHE_MAX) campLines.shift();
         saveCampChatCache();
+        // Shared tape survives 2D ↔ 3D hops
+        try {
+          ensureCampBridge().then((mod) => {
+            mod?.pushDialogueTape?.({
+              speaker,
+              text: clean,
+              mood: moodVal,
+              scene: "luna-2d",
+            });
+          });
+        } catch (_) {}
         renderConvoLog();
         appendGrokTerminalLine(speaker, clean, moodVal);
       }
@@ -17216,6 +17310,6 @@
       startGameLoop();
     }
   </script>
-  <script src="/static/world-nav.js?v=2" defer></script>
+  <script src="/static/world-nav.js?v=3" defer></script>
 </body>
 </html>

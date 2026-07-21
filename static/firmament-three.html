@@ -292,7 +292,7 @@
   <header id="topbar">
     <a id="home-telephanti" class="chip" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
     <div class="tx-cluster" title="Telephantix music + site">
-      <button type="button" id="album-btn" class="chip" title="Play Telephantix music">TX</button>
+      <button type="button" id="album-btn" class="chip" title="Play music — full Telephantix queue">Play music</button>
       <a id="telephanti-site-btn" class="chip" href="https://telephanti.com/" title="Back to telephanti.com">telephanti.com</a>
     </div>
     <span id="album-now" hidden></span>
@@ -1641,9 +1641,23 @@
     refreshWhoSelect();
     whoEl.value = "luna";
 
-    // No scrolling chat log in 3D — speech stays in-world bubbles only
-    function logLine(_who, _text, _you = false) {
-      /* intentionally empty: 3D has no chat log UI */
+    // 3D has no full chat panel — still write shared dialogue tape for 2D continuity
+    function logLine(who, text, _you = false) {
+      const speaker = String(who || "Camp").trim();
+      const clean = String(text || "").trim();
+      if (!speaker || !clean) return;
+      try {
+        import(`/static/camp-bridge.mjs?v=301`)
+          .then((mod) => {
+            mod.pushDialogueTape?.({
+              speaker,
+              text: clean.slice(0, 480),
+              mood: _you ? "you" : "neutral",
+              scene: "luna-3d",
+            });
+          })
+          .catch(() => {});
+      } catch (_) {}
     }
     function escapeHtml(s) {
       return String(s)
@@ -2526,10 +2540,16 @@
       try {
         const pool = AGENTS.map((a) => a.id);
         const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+        let topic =
+          "your own honest takes at the open aurora meadow — witty, present, disagree a little, no meta";
+        try {
+          const cont = campBridge3d?.dialogueTapeContext?.(6, 400);
+          if (cont) topic = `${topic}. ${cont}`;
+        } catch (_) {}
         const ev = await campClient.campBanter({
           agentA: shuffled[0],
           agentB: shuffled[1] || "hermes",
-          topic: "your own honest takes at the open aurora meadow — witty, present, disagree a little, no meta",
+          topic,
           rounds: 1, // shorter so bubbles stay readable
         });
         applyEvent(ev);
@@ -2579,9 +2599,9 @@
       showToast(followPlayer ? "Camera follows you" : "Free camera — pan/zoom anywhere");
     });
 
-    // ── Your album (Telephantix tracks) — background music on button press ──
-    const ALBUM_TRACKS = (catalog.music && catalog.music.length)
-      ? catalog.music
+    // ── Play music — full Telephantix queue (hub catalog via camp-bridge) ──
+    let ALBUM_TRACKS = (catalog.music && catalog.music.length)
+      ? catalog.music.slice()
       : [
           { id: "flowing-free", title: "Flowing Free", src: "/static/camp/music/flowing-free.mp3" },
           { id: "loud-and-clear", title: "Loud and Clear", src: "/static/camp/music/loud-and-clear.mp3" },
@@ -2597,6 +2617,38 @@
     let albumOn = false;
     const albumBtn = document.getElementById("album-btn");
     const albumNow = document.getElementById("album-now");
+    let campBridge3d = null;
+
+    import("/static/camp-bridge.mjs?v=301")
+      .then(async (mod) => {
+        campBridge3d = mod;
+        try {
+          const tracks = await mod.loadSunoCatalog();
+          if (tracks?.length) {
+            ALBUM_TRACKS = tracks.map((t) => ({
+              id: t.id,
+              title: t.title,
+              src: t.src || t.audio_url,
+            }));
+            const st = mod.readMusicState?.() || {};
+            if (typeof st.trackIndex === "number" && st.trackIndex < ALBUM_TRACKS.length) {
+              albumIndex = st.trackIndex;
+            }
+            if (albumBtn) albumBtn.title = `Play music — ${ALBUM_TRACKS.length} songs`;
+          }
+          // Continuity toast: last dialogue from 2D
+          const tape = mod.readDialogueTape?.()?.lines || [];
+          if (tape.length) {
+            const last = tape[tape.length - 1];
+            if (last?.speaker && last?.text) {
+              showToast(`Camp remembers: ${last.speaker} — ${String(last.text).slice(0, 48)}…`);
+            }
+          }
+        } catch (e) {
+          console.warn("3d catalog hydrate", e);
+        }
+      })
+      .catch(() => {});
 
     function ensureAlbumAudio() {
       if (!albumAudio) {
@@ -2632,17 +2684,26 @@
         .then(() => {
           albumOn = true;
           albumBtn?.classList.add("playing");
+          if (albumBtn) albumBtn.textContent = "Hide music";
           if (albumNow) {
             albumNow.hidden = false;
             albumNow.textContent = `♪ ${t.title}`;
             albumNow.title = t.title;
           }
-          showToast(`🎵 Telephantix — ${t.title}`);
+          showToast(`🎵 ${t.title}`);
           logLine("Telephantix", `Playing: ${t.title}`);
           statusEl.textContent = `♪ ${t.title}`;
+          try {
+            campBridge3d?.writeMusicState?.({
+              trackIndex: albumIndex,
+              title: t.title,
+              playing: true,
+              scene: "luna-3d",
+            });
+          } catch (_) {}
         })
         .catch((err) => {
-          showToast("Tap Telephantix again if blocked");
+          showToast("Tap Play music again if blocked");
           logLine("Telephantix", err.message || "play blocked");
         });
     }
@@ -2651,12 +2712,20 @@
       albumOn = false;
       if (albumAudio) {
         albumAudio.pause();
-        albumAudio.currentTime = 0;
+        // Keep position so Hide ≠ hard stop restart (matches hub minimize spirit)
       }
       albumBtn?.classList.remove("playing");
+      if (albumBtn) albumBtn.textContent = "Play music";
       if (albumNow) albumNow.hidden = true;
-      showToast("🎵 Telephantix paused");
-      logLine("Telephantix", "Paused");
+      showToast("🎵 Music hidden — tap Play music to resume");
+      logLine("Telephantix", "Music minimized");
+      try {
+        campBridge3d?.writeMusicState?.({
+          trackIndex: albumIndex,
+          playing: false,
+          scene: "luna-3d",
+        });
+      } catch (_) {}
     }
 
     albumBtn?.addEventListener("click", () => {
@@ -3031,6 +3100,6 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
   </script>
-  <script src="/static/world-nav.js?v=2" defer></script>
+  <script src="/static/world-nav.js?v=3" defer></script>
 </body>
 </html>

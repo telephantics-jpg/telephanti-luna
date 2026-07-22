@@ -7529,20 +7529,43 @@
       ],
     };
 
+    /** Strip instruction/prompt echo so we never display director notes as speech */
+    function spokenOnly(text, seed) {
+      let t = String(text || "").trim();
+      if (!t) return "";
+      const bad = [
+        /in character/i, /no meta/i, /as an ai/i, /\d+\s*[–\-]\s*\d+\s*sentences/i,
+        /you pause to/i, /you just built/i, /you were just/i, /never mention/i,
+        /private stage/i, /speak only/i, /output rules/i, /mood json/i,
+        /here'?s my take/i, /speaking as /i, /stay in character/i,
+      ];
+      const seedLow = String(seed || "").toLowerCase().slice(0, 80);
+      if (seedLow && t.toLowerCase().includes(seedLow) && seedLow.length > 24) {
+        // Model echoed the seed
+        t = "";
+      }
+      // Drop lines that are pure instruction
+      const lines = t.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+      const kept = lines.filter((l) => !bad.some((re) => re.test(l)));
+      t = kept.join(" ").trim();
+      if (bad.some((re) => re.test(t)) && t.split(/\s+/).length < 40) t = "";
+      // Strip leading meta wrappers
+      t = t.replace(/^(?:okay[,.]?\s+|so[,.]?\s+)?(?:here'?s my take[^:]*:|speaking as[^:]*:|as \w+[,:]\s*)/i, "").trim();
+      return t.slice(0, 480);
+    }
+
     async function emitNpcReasoning(agent) {
       if (!agent) return;
       const id = agent.id;
       const bag = REASON_SNIPPETS[id] || REASON_SNIPPETS._default;
       let line = bag[Math.floor(Math.random() * bag.length)];
-      // Prefer AI if online — short “reason then conclude”
+      // Pure scene seed — never pass instruction lists as the user turn
+      const seed =
+        "You paused by the fire with a half-finished thought. Share what you were chewing on — honest, short, spoken.";
       if (campServerOnline && typeof callAgentMind === "function") {
         try {
-          const data = await callAgentMind(id, (
-            `You are ${agent.name} at camp. Take 2–4 sentences: first REASON out loud ` +
-            `(hesitate, weigh options), then land a clear conclusion or gift for the visitor. ` +
-            `In character. No meta. No "as an AI".`
-          ), { ambient: true });
-          const reply = String(data?.reply || data?.text || "").trim();
+          const data = await callAgentMind(id, seed, { ambient: true });
+          const reply = spokenOnly(data?.reply || data?.text || "", seed);
           if (reply) line = reply;
         } catch (_) {}
       }
@@ -7586,18 +7609,35 @@
           };
           campCreations.push(creation);
           while (campCreations.length > 40) campCreations.shift();
+          // Short in-world line — not a prompt
           pushCampLine(
             n.name,
-            `${build.emoji} Terminal: ${build.blurb}.`,
+            `${build.emoji} ${build.blurb}.`,
             16,
             n.mood || "happy",
             { fromLocal: true, ambient: true },
           );
           setTimeout(() => {
             const agent = findRoamAgent(n.id);
-            if (agent && agent.behavior === "terminal") {
-              void emitNpcReasoning(agent);
-            }
+            if (!agent || agent.behavior !== "terminal") return;
+            // Scene seed about the build, then spoken-only reply
+            const seed =
+              `You just finished making ${build.name} for your little camp. ` +
+              `Say one proud, human thing about it.`;
+            (async () => {
+              let line = `${build.emoji} Feels good to leave ${build.name} here.`;
+              if (campServerOnline && typeof callAgentMind === "function") {
+                try {
+                  const data = await callAgentMind(agent.id, seed, { ambient: true });
+                  const reply = spokenOnly(data?.reply || data?.text || "", seed);
+                  if (reply) line = reply;
+                } catch (_) {}
+              }
+              pushCampLine(agent.name, line, campReadHoldSec(line, 16), agent.mood || "happy", {
+                fromLocal: true,
+                ambient: true,
+              });
+            })();
           }, 900);
         }
         return;

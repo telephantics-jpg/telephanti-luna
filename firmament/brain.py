@@ -211,6 +211,11 @@ _SPEECH_BEATS: tuple[str, ...] = (
     "One clean metaphor max. Prefer plain wit over mystic fog.",
     "React first (laugh, side-eye, softness), then the point.",
     "Riff with the other voice in mind — leave room for them.",
+    "Understate the big feeling; let the small detail carry the weight.",
+    "Sound like you almost didn't say it — then said it anyway.",
+    "Two tempos: short setup, longer landing — or reverse.",
+    "Friendly interruption energy: 'wait—' then the real point.",
+    "Low-stakes confession + one smirk.",
 )
 
 # Lifelike chat length — like a real person texting/talking, not an essay
@@ -219,12 +224,14 @@ _LENGTH_HINTS_DIRECT: tuple[str, ...] = (
     "Short and human (~25–50 words). Like talking by the fire, not writing a post.",
     "A few spoken sentences max. Hook + point. No paragraphs-of-paragraphs.",
     "Text-message energy (~20–40 words): clear, warm, done.",
+    "One complete thought + optional soft follow-up (~18–42 words).",
 )
 
 _LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
     "About 15–35 words — one natural beat someone could answer.",
     "Two short sentences max. Specific, human, not a speech.",
     "Campfire mutter length (~18–40 words). Alive, not a monologue.",
+    "Fragment okay if it still feels spoken (~12–30 words).",
 )
 
 # Sentence shapes that weave pulse/world signal into natural talk
@@ -235,6 +242,21 @@ _DIALOGUE_SHAPES: tuple[str, ...] = (
     "Answer them first; if a world signal fits, glance at it once — never as a news report.",
     "Hot-take opener → personal spin → leave a door open for a reply.",
     "Mood first (emoji ok), then the point in plain words.",
+    # Fresh structures — vary rhythm so camp never reads like one template
+    "Because/so: name a cause you noticed, then the human result in plain speech.",
+    "If/then soft: hypothetical camp future, then what you'd actually do.",
+    "Contrast pair: 'not X — Y' (one clean flip, no lecture).",
+    "List of two only: small sensory detail + one feeling. Stop.",
+    "Question that isn't small talk — then half an answer of your own.",
+    "Callback shape: 'earlier vibe still stuck on me…' then the new beat.",
+    "Parenthetical aside: main line, then a short whispered second sentence.",
+    "Time stamp: 'right now / later / last night' — pick one, stay concrete.",
+    "Object monologue: talk to/about a prop (cookies, fire, chair) as if it has opinions.",
+    "Echo & upgrade: restate their idea in your words, then tilt it 15 degrees.",
+    "Quiet dare: invitation without pressure — 'only if you want'.",
+    "Weather of the heart: map outer camp weather onto inner mood once.",
+    "Interrupted self: start a claim, correct it mid-sentence, land truer.",
+    "One proper noun + one verb + why it matters here at the fire.",
 )
 
 
@@ -554,6 +576,93 @@ def _strip_meta_dialogue_leak(text: str) -> str:
     return t.strip() or (text or "").strip()
 
 
+def _looks_like_director_note(message: str) -> bool:
+    """True if client sent stage directions / LLM instructions instead of visitor speech."""
+    low = (message or "").strip().lower()
+    if not low:
+        return False
+    markers = (
+        "in character",
+        "no meta",
+        "as an ai",
+        "2–4 sentences",
+        "2-4 sentences",
+        "2–3 sentences",
+        "2-3 sentences",
+        "never mention",
+        "you are ",
+        "you pause to",
+        "you just built",
+        "you were just",
+        "you just finished",
+        "speak only",
+        "first reason",
+        "first weigh",
+        "take 2",
+        "out loud at camp",
+        "private stage",
+        "do not quote",
+        "no preamble",
+    )
+    hits = sum(1 for m in markers if m in low)
+    if hits >= 2:
+        return True
+    if low.startswith("you ") and ("sentence" in low or "character" in low or "meta" in low):
+        return True
+    return False
+
+
+def ambient_situation_seed(message: str) -> str:
+    """
+    Convert director notes into a pure situational seed the character can live in.
+    Never pass raw 'In character / 2-4 sentences' text as the user turn.
+    """
+    msg = (message or "").strip()
+    if not msg:
+        return "A quiet camp beat. Notice one real thing and speak it out loud."
+    if not _looks_like_director_note(msg):
+        # Still wrap ambient lightly so models don't recite
+        return msg[:320]
+
+    low = msg.lower()
+    if "reason" in low or "weigh" in low or "think" in low or "doubt" in low:
+        return (
+            "You paused by the fire with a half-finished thought. "
+            "Share what you were chewing on — honest, short, spoken."
+        )
+    if "built" in low or "terminal" in low or "made a " in low:
+        m = re.search(r"(?:built|made)\s+(?:a\s+)?([a-z0-9 \-']{3,40})", msg, re.I)
+        item = (m.group(1).strip() if m else "something small")
+        item = re.sub(r"\s+", " ", item)[:40]
+        return (
+            f"You just finished making {item} for your little camp. "
+            f"Say one proud, human thing about it — then what camp still needs."
+        )
+    if "summoned" in low or "greet" in low or "arrived" in low:
+        return (
+            "You just arrived at the aurora fire. "
+            "Greet the visitor warmly as yourself."
+        )
+    if "used " in low or "prop" in low or "hits different" in low:
+        m = re.search(r"used\s+([a-z0-9 \-']{2,30})", msg, re.I)
+        thing = (m.group(1).strip() if m else "something at camp")
+        return f"You just used {thing}. React — how it hit you, one real beat."
+    if "banter" in low or "meadow" in low:
+        return "You're trading beats with someone at the meadow. Keep it witty and present."
+    # Strip instruction clauses, keep residual scene if any
+    cleaned = re.sub(
+        r"(?i)\b(?:in character|no meta|as an ai|never mention[^.]*|"
+        r"\d+\s*[–\-]\s*\d+\s*sentences?|take \d+[^.]*|do not[^.]*|"
+        r"speak only[^.]*|private stage[^.]*|no preamble[^.]*)\.?",
+        " ",
+        msg,
+    )
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .,-")
+    if len(cleaned) < 18:
+        cleaned = "A quiet moment at camp. Notice one real thing and speak it."
+    return cleaned[:320]
+
+
 def _looks_like_prompt_echo(text: str) -> bool:
     """True if the model mostly recited instructions instead of roleplay."""
     t = (text or "").strip()
@@ -589,6 +698,16 @@ def _looks_like_prompt_echo(text: str) -> bool:
         "output rules",
         "just spoken words",
         "stay in character",
+        "you pause to reason",
+        "2-4 sentences",
+        "2–4 sentences",
+        "no meta",
+        "as an ai",
+        "you just built",
+        "you were just summoned",
+        "first weigh options",
+        "private stage note",
+        "do not quote",
     ):
         if needle in low:
             hits += 1
@@ -598,7 +717,8 @@ def _looks_like_prompt_echo(text: str) -> bool:
     if hits >= 1 and len(t.split()) < 50:
         return True
     if re.match(
-        r"^(?:here(?:'s| is)\s+my\s+take|my\s+take\s+as|speaking\s+as|as\s+\w+,\s+i\b)",
+        r"^(?:here(?:'s| is)\s+my\s+take|my\s+take\s+as|speaking\s+as|as\s+\w+,\s+i\b|"
+        r"you\s+(?:pause|just|were|are)\b)",
         low,
     ):
         return True
@@ -1128,7 +1248,11 @@ async def agent_chat(
 
     # CRITICAL: user message = pure scene / visitor text only.
     # Putting "REQUIRED: two paragraphs..." here is why models speak the prompt.
-    user_content = message
+    # Ambient client cues are often director notes — convert to situation seeds.
+    if ambient or _looks_like_director_note(message):
+        user_content = ambient_situation_seed(message)
+    else:
+        user_content = message
 
     messages = [{"role": "system", "content": sys_prompt}]
     # Cap history so Ollama/Hermes doesn't drown in old turns

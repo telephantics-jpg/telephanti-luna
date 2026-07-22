@@ -490,7 +490,23 @@ def aether_reply(
     flavor = AGENT_FLAVOR.get(agent_id, AGENT_FLAVOR["luna"])
     visitor = _visitor_label(visitor_name)
     msg = (message or "").strip()
-    snip = _snippet(msg, 120)
+    # Don't embed director/prompt text as the monologue topic
+    try:
+        from firmament.brain import _looks_like_director_note, ambient_situation_seed
+
+        if _looks_like_director_note(msg):
+            msg = ambient_situation_seed(msg)
+    except Exception:
+        low = msg.lower()
+        if "in character" in low or "no meta" in low or "as an ai" in low:
+            msg = "a quiet camp beat worth noticing"
+    snip = _snippet(msg, 80)
+    # Guard: if snippet still looks instructional, use a neutral topic
+    if any(
+        x in snip.lower()
+        for x in ("sentence", "character", "meta", "prompt", "you are ", "you pause")
+    ):
+        snip = "this campfire hush"
     mem = _memory_hint(camp_context)
 
     # Prefer long unique monologues over slogan chips / tweet one-liners

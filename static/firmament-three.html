@@ -1379,18 +1379,12 @@
       if (aiInFlight < AI_MAX) {
         aiInFlight++;
         try {
-          const data = await campClient.agentChat(
-            st.def.id,
-            `You (${st.def.name}) just used ${pname} at camp. Mood now: ${st.persona.mood}. ` +
-            `In 2–4 sentences in character: what you wanted to say, then how ${pname} changed your take. ` +
-            `Witty, present, no meta, no "as an AI".`,
-            { ambient: true },
-          );
-          const reply = String(data.reply || data.text || "").trim();
-          if (reply) {
-            showSpeech3d(st.def.id, reply, speechReadMs(reply));
-            logLine(st.def.name, reply);
-          }
+          const seed = `You just used ${pname}. React — how it hit you, one real beat.`;
+          const data = await campClient.agentChat(st.def.id, seed, { ambient: true });
+          const reply = spokenOnly3d(data.reply || data.text || "", seed)
+            || `${pname} hits different tonight.`;
+          showSpeech3d(st.def.id, reply, speechReadMs(reply));
+          logLine(st.def.name, reply);
         } catch (_) {
           showSpeech3d(st.def.id, `${pname} hits different tonight.`, 22000);
         } finally {
@@ -1579,7 +1573,7 @@
           if (st.action !== "reason") return;
           chatAgent(
             st.def.id,
-            `You pause to REASON out loud at camp: 2–4 sentences — first weigh options / doubt, then a clear conclusion. In character. No meta.`,
+            "You paused by the fire with a half-finished thought. Share what you were chewing on — honest, short, spoken.",
             true,
           );
         }, 1600 + Math.random() * 1800);
@@ -2686,7 +2680,7 @@
         setTimeout(() => {
           chatAgent(
             st.def.id,
-            `You were just summoned to the aurora campfire. Greet the visitor in character in 2–4 sentences — dramatic but warm. No meta.`,
+            "You just arrived at the aurora fire. Greet the visitor warmly as yourself.",
             true,
           );
         }, 600 + i * 900);
@@ -2698,6 +2692,26 @@
       }
     }
 
+    /** Never show director notes / prompt sludge as spoken lines */
+    function spokenOnly3d(text, seed) {
+      let t = String(text || "").trim();
+      if (!t) return "";
+      const bad = [
+        /in character/i, /no meta/i, /as an ai/i, /\d+\s*[–\-]\s*\d+\s*sentences/i,
+        /you pause to/i, /you just built/i, /you were just/i, /never mention/i,
+        /private stage/i, /speak only/i, /output rules/i, /mood json/i,
+        /here'?s my take/i, /speaking as /i, /stay in character/i,
+        /you are \w+ at camp/i,
+      ];
+      const seedLow = String(seed || "").toLowerCase().slice(0, 72);
+      if (seedLow && t.toLowerCase().includes(seedLow) && seedLow.length > 20) t = "";
+      const kept = t.split(/\n+/).map((l) => l.trim()).filter((l) => l && !bad.some((re) => re.test(l)));
+      t = kept.join(" ").trim();
+      if (bad.some((re) => re.test(t)) && t.split(/\s+/).length < 45) t = "";
+      t = t.replace(/^(?:okay[,.]?\s+|so[,.]?\s+)?(?:here'?s my take[^:]*:|speaking as[^:]*:|as \w+[,:]\s*)/i, "").trim();
+      return t.slice(0, 480);
+    }
+
     async function chatAgent(agentId, message, ambient = false) {
       if (!message.trim()) return;
       if (!ambient && userBusy) return;
@@ -2706,10 +2720,12 @@
         sendBtn.disabled = true;
       }
       statusEl.textContent = `${agentId} · AI thinking…`;
+      // Only log visitor text for real visitor turns — never ambient director seeds
       if (!ambient) logLine("You", message, true);
       try {
         const data = await campClient.agentChat(agentId, message.trim(), { ambient });
-        const reply = String(data.reply || data.text || "…").trim();
+        let reply = spokenOnly3d(data.reply || data.text || "", message);
+        if (!reply) reply = localBark(agentId);
         const name = AGENTS.find((a) => a.id === agentId)?.name || agentId;
         logLine(name, reply);
         showSpeech3d(agentId, reply, speechReadMs(reply));
@@ -2993,14 +3009,14 @@
               "spark shrine", "camp terminal", "soft gate",
             ];
             const item = builds[Math.floor(Math.random() * builds.length)];
-            logLine(st.def.name, `🖥️ Terminal: built a ${item} for their little camp.`);
+            logLine(st.def.name, `🖥️ Made a ${item} for their little camp.`);
             showToast(`🖥️ ${st.def.name} → ${item}`);
-            showSpeech3d(st.def.id, `Terminal online. I made a ${item} — rough, but mine.`, 16000);
+            showSpeech3d(st.def.id, `Feels good to leave a ${item} here.`, 14000);
             setTimeout(() => {
               if (st.action === "terminal") {
                 chatAgent(
                   st.def.id,
-                  `You just built a ${item} at your camp terminal. In 2–3 sentences: why you made it, then one line of reason about what camp still needs. In character.`,
+                  `You just finished making ${item} for your little camp. Say one proud, human thing about it — then what camp still needs.`,
                   true,
                 );
               }

@@ -1141,6 +1141,25 @@
       z-index: 30;
     }
     #camp-heaven-fab:hover,
+    #btn-firmament {
+      border-color: rgba(103, 232, 249, 0.45) !important;
+      color: #a5f3fc !important;
+    }
+    #btn-firmament.active {
+      border-color: rgba(167, 139, 250, 0.75) !important;
+      color: #e9d5ff !important;
+      box-shadow: 0 0 14px rgba(139, 92, 246, 0.35);
+    }
+    body.firmament-open #camp-stage::after {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background:
+        radial-gradient(ellipse 70% 40% at 50% 18%, rgba(139, 92, 246, 0.12), transparent 55%),
+        radial-gradient(ellipse 50% 30% at 70% 30%, rgba(56, 189, 248, 0.08), transparent 50%);
+    }
     #btn-header-heaven:hover {
       filter: brightness(1.06);
       box-shadow: 0 8px 34px rgba(253, 230, 138, 0.7);
@@ -3655,6 +3674,7 @@
       </div>
       <div class="header-row" style="gap:6px;flex-wrap:nowrap;margin-left:auto">
         <a id="btn-home-telephanti" class="camp-home-btn" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
+        <button type="button" id="btn-firmament" class="camp-home-btn" title="Open the Firmament so winged/mythic agents may fly">📡 Open Firmament</button>
         <button type="button" id="btn-header-heaven" title="Summon Jesus, archangels, Thor &amp; Zeus">✦ Heaven</button>
         <button type="button" id="camp-you-badge" title="Your camp name — tap to change">you</button>
         <button type="button" id="camp-token-badge" title="Open aurora shop">
@@ -4328,7 +4348,8 @@
     const CAMP_TRAVERSE_PAD = { x: 40, y: 32 };
     const DESKTOP_REF_W = 1280;
     const DESKTOP_REF_H = 720;
-    const DESKTOP_WORLD_BOUNDS = { xMin: -720, xMax: 720, yMin: -400, yMax: 480 };
+    // Wider meadow so roam/fly feels open (was ~720×480)
+    const DESKTOP_WORLD_BOUNDS = { xMin: -980, xMax: 980, yMin: -560, yMax: 640 };
     const CAMP_POND = { cx: -520, cy: 160, rx: 128, ry: 92, name: "Aurora Pond" };
     const AGENT_DRAG_THRESHOLD = 10;
     const AGENT_HIT_RADIUS = 52;
@@ -6832,6 +6853,43 @@
       }
     }
 
+    // Flight only when Firmament is opened (tech gate) — rare even then
+    let firmamentOpen = false;
+    try { firmamentOpen = localStorage.getItem("luna-firmament-open") === "1"; } catch (_) {}
+    const FLYER_2D = new Set([
+      "hermes", "seraph", "zeus", "luna", "aurora", "violet",
+      "michael", "gabriel", "uriel", "ara", "mika",
+    ]);
+
+    function setFirmamentOpen(on, opts = {}) {
+      firmamentOpen = !!on;
+      try { localStorage.setItem("luna-firmament-open", firmamentOpen ? "1" : "0"); } catch (_) {}
+      document.body.classList.toggle("firmament-open", firmamentOpen);
+      const btn = document.getElementById("btn-firmament");
+      if (btn) {
+        btn.classList.toggle("active", firmamentOpen);
+        btn.textContent = firmamentOpen ? "🌌 Firmament ON" : "📡 Open Firmament";
+        btn.title = firmamentOpen
+          ? "Firmament open — flyers may take the sky. Tap to close."
+          : "Open the Firmament so winged/mythic agents may fly";
+      }
+      if (!firmamentOpen) {
+        // Land everyone
+        for (const n of (typeof allRoamers === "function" ? allRoamers() : npcs || [])) {
+          n.flying = false;
+          n.flyZ = 0;
+          if (n.behavior === "fly") n.behavior = "roam";
+        }
+      }
+      if (!opts.quiet) {
+        try {
+          showToast(firmamentOpen
+            ? "🌌 Firmament open — some may choose the sky"
+            : "📡 Firmament closed — ground roam only");
+        } catch (_) {}
+      }
+    }
+
     function pickRandomNpcBehavior(npc) {
       const chilling = campChillUntil > Date.now();
       const r = Math.random();
@@ -6844,16 +6902,16 @@
         if (r < 0.93) return "home";
         return "prop";
       }
-      // Flyers sometimes take the sky
-      if (FLYER_2D.has(n.id) && r < 0.18) return "fly";
-      if (r < 0.28) return "roam";
-      if (r < 0.38) return "visit";
-      if (r < 0.52) return "sit";
+      // Fly only if Firmament is open + agent can fly (rare choice)
+      if (firmamentOpen && FLYER_2D.has(npc?.id) && r < 0.07) return "fly";
+      if (r < 0.22) return "roam";
+      if (r < 0.34) return "visit";
+      if (r < 0.5) return "sit";
       if (r < 0.64) return "stand";
       if (r < 0.74) return "home";
-      if (r < 0.82) return "prop";
-      if (r < 0.9) return "structure";
-      if (r < 0.95) return "follow";
+      if (r < 0.84) return "prop";
+      if (r < 0.92) return "structure";
+      if (r < 0.96) return "follow";
       return "party";
     }
 
@@ -7013,64 +7071,67 @@
       n.ty = t.y;
     }
 
-    const FLYER_2D = new Set([
-      "hermes", "seraph", "zeus", "luna", "aurora", "violet",
-      "michael", "gabriel", "uriel", "ara", "mika",
-    ]);
-
     function ensureNpcPhysics(n) {
       if (n.vx == null) n.vx = 0;
       if (n.vy == null) n.vy = 0;
       if (n.z == null) n.z = 0;
       if (n.vz == null) n.vz = 0;
       if (n.canFly == null) n.canFly = FLYER_2D.has(n.id);
+      // No sky without open Firmament
+      if (!firmamentOpen) {
+        n.flying = false;
+        if (n.behavior === "fly") n.behavior = "roam";
+      }
     }
 
     function moveNpcToward(n, tx, ty, speedMul = 1) {
       ensureNpcPhysics(n);
       const d = dist(n, { x: tx, y: ty });
       if (d < 4 && !n.flying) return;
-      // Velocity steering — smoother than raw steps
+      // Lighter velocity (less work per frame than full O(n²) every step)
       const pace = typeof n.paceMul === "number" ? Math.max(0.25, n.paceMul) : 0.8;
-      const maxSp = n.speed * speedMul * pace * (n.flying ? 1.4 : 1);
-      const steer = n.flying ? 0.55 : 0.42;
+      const maxSp = n.speed * speedMul * pace * (n.flying ? 1.25 : 1);
+      const steer = n.flying ? 0.38 : 0.32;
       if (d > 0.5) {
         n.vx += ((tx - n.x) / d) * steer;
         n.vy += ((ty - n.y) / d) * steer;
       }
-      // Soft separation
-      for (const other of allRoamers()) {
-        if (other.id === n.id) continue;
-        const od = dist(n, other);
-        if (od > 0.5 && od < 28) {
-          const push = (28 - od) * 0.012;
-          n.vx += ((n.x - other.x) / od) * push;
-          n.vy += ((n.y - other.y) / od) * push;
+      // Occasional soft separation (not every frame — avoids startup jank)
+      if ((n._sepTick = (n._sepTick || 0) + 1) % 3 === 0) {
+        const roamers = allRoamers();
+        for (let i = 0; i < roamers.length; i++) {
+          const other = roamers[i];
+          if (other.id === n.id) continue;
+          const od = dist(n, other);
+          if (od > 0.5 && od < 24) {
+            const push = (24 - od) * 0.01;
+            n.vx += ((n.x - other.x) / od) * push;
+            n.vy += ((n.y - other.y) / od) * push;
+          }
         }
       }
       n.vx *= 0.9;
       n.vy *= 0.9;
       const sp = Math.hypot(n.vx, n.vy);
-      if (sp > maxSp) {
+      if (sp > maxSp && sp > 0) {
         n.vx = (n.vx / sp) * maxSp;
         n.vy = (n.vy / sp) * maxSp;
       }
       n.x += n.vx;
       n.y += n.vy;
-      // Flight altitude
-      if (n.flying) {
-        const wantZ = n.flyZ != null ? n.flyZ : 28;
-        n.vz += (wantZ - n.z) * 0.08;
-        n.vz *= 0.88;
+      if (n.flying && firmamentOpen) {
+        const wantZ = n.flyZ != null ? n.flyZ : 22;
+        n.vz += (wantZ - n.z) * 0.06;
+        n.vz *= 0.9;
         n.z += n.vz;
-        n.z = Math.max(8, Math.min(70, n.z));
-        // whim: change air target mid-flight
-        if (Math.random() < 0.008) {
-          n.flyZ = 16 + Math.random() * 42;
+        n.z = Math.max(6, Math.min(55, n.z));
+        if (Math.random() < 0.004) {
+          n.flyZ = 12 + Math.random() * 30;
           pickNpcWanderTarget(n);
         }
       } else {
-        n.vz += (0 - n.z) * 0.12;
+        n.flying = false;
+        n.vz += (0 - n.z) * 0.15;
         n.vz *= 0.85;
         n.z += n.vz;
         if (n.z < 1) { n.z = 0; n.vz = 0; }
@@ -15710,6 +15771,14 @@
     wireHeavenSummonButtons();
     setTimeout(wireHeavenSummonButtons, 400);
     setTimeout(wireHeavenSummonButtons, 1500);
+    // Firmament tech gate (flight unlock) — safe after functions exist
+    try {
+      document.getElementById("btn-firmament")?.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        setFirmamentOpen(!firmamentOpen);
+      });
+      setFirmamentOpen(firmamentOpen, { quiet: true });
+    } catch (_) {}
     syncCampTalkSendLabel();
     setInterval(() => {
       // Keep send label fresh when nearest agent changes while roaming

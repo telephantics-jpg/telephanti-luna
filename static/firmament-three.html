@@ -296,6 +296,7 @@
       <a id="telephanti-site-btn" class="chip" href="https://telephanti.com/" title="Back to telephanti.com">telephanti.com</a>
     </div>
     <span id="album-now" hidden></span>
+    <button type="button" id="btn-firmament-3d" class="chip" title="Open Firmament so flyers may take the sky">📡 Firmament</button>
     <button type="button" id="btn-reset-cam" class="chip">Find me</button>
     <button type="button" id="btn-follow" class="chip" title="Camera follow">Follow</button>
     <button type="button" id="btn-banter-top" class="chip">💬</button>
@@ -494,10 +495,10 @@
     host.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    // Open field — light fog so far meadow stays visible
-    scene.fog = new THREE.FogExp2(0x0b1224, 0.0045);
+    // Wider open field — lighter fog so far meadow stays visible
+    scene.fog = new THREE.FogExp2(0x0b1224, 0.0028);
 
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 600);
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 900);
     // Follow player start pose (target set with OrbitControls below)
     camera.position.set(12.5, 9, 16);
 
@@ -515,9 +516,9 @@
     controls.zoomSpeed = 0.4;
     controls.panSpeed = 0.85;
     controls.minDistance = 8;
-    controls.maxDistance = 42;
-    controls.minPolarAngle = 0.2;
-    controls.maxPolarAngle = Math.PI * 0.46;
+    controls.maxDistance = 72;
+    controls.minPolarAngle = 0.15;
+    controls.maxPolarAngle = Math.PI * 0.48;
     // Start on the player
     controls.target.set(2.5, 1.15, 4);
     camera.position.set(2.5 + 10, 9, 4 + 12);
@@ -1414,7 +1415,12 @@
       let tz = st.mesh.position.z;
       let tries = 0;
       const maxR = 4 + st.persona.energy * 14;
-      const wantFly = !!(opts.fly || (st.canFly && opts.allowFly !== false && Math.random() < 0.55));
+      // Flight only when Firmament is open — still optional / not constant
+      const wantFly = !!(
+        firmamentOpen3d &&
+        st.canFly &&
+        (opts.fly || (opts.allowFly !== false && Math.random() < 0.22))
+      );
       do {
         const roll = Math.random();
         if (roll < 0.35 && roamPoints.length) {
@@ -1439,11 +1445,12 @@
         }
         tries++;
       } while (tries < 8 && Math.hypot(tx - st.mesh.position.x, tz - st.mesh.position.z) < 2.2);
-      // Clamp to meadow radius ~22
+      // Clamp to wider meadow
+      const meadowR = FIELD * 0.42;
       const dist0 = Math.hypot(tx, tz);
-      if (dist0 > 22) {
-        tx = (tx / dist0) * 22;
-        tz = (tz / dist0) * 22;
+      if (dist0 > meadowR) {
+        tx = (tx / dist0) * meadowR;
+        tz = (tz / dist0) * meadowR;
       }
       const ty = wantFly ? (1.1 + Math.random() * 2.4) : 0;
       st.target.set(tx, ty, tz);
@@ -1507,8 +1514,8 @@
       // Props are a big part of camp life — bias toward interacting
       const wProp = p.curiosity * 1.35 + 0.35 + (st.boredom > 0.4 ? 0.25 : 0);
       const wHouse = (p.rest * 0.4 + p.curiosity * 0.3) * (Math.random() > 0.5 ? 1 : 0.6);
-      const wFly = st.canFly
-        ? (p.energy * 1.25 + st.boredom * 0.55 + 0.45 + (p.mood === "happy" || p.mood === "flirt" ? 0.25 : 0))
+      const wFly = (firmamentOpen3d && st.canFly)
+        ? (p.energy * 0.55 + st.boredom * 0.25 + 0.12)
         : 0;
 
       // if already sitting and still comfy, often stay
@@ -1555,24 +1562,23 @@
         st.nextDecideAt = performance.now() + 10000 + p.rest * 14000 + Math.random() * 6000;
         return "idle";
       }
-      if (choice === "fly" && st.canFly) {
+      if (choice === "fly" && st.canFly && firmamentOpen3d) {
         pickRoamTarget(st, { fly: true });
-        st.nextDecideAt = performance.now() + 14000 + Math.random() * 12000;
+        st.nextDecideAt = performance.now() + 10000 + Math.random() * 10000;
         return "fly";
       }
       if (choice === "social" && agentState.length > 1) {
         const other = agentState.filter((s) => s !== st && s.posture !== "sit")[Math.floor(Math.random() * Math.max(1, agentState.length - 1))]
           || agentState.find((s) => s !== st);
         if (other) {
-          const air = st.canFly && Math.random() < 0.4;
           st.target.set(
             other.mesh.position.x + (Math.random() - 0.5) * 1.8,
-            air ? (1.2 + Math.random() * 1.6) : 0,
+            0,
             other.mesh.position.z + (Math.random() - 0.5) * 1.8,
           );
-          st.flying = air;
+          st.flying = false;
           st.moving = true;
-          st.action = air ? "fly" : "social";
+          st.action = "social";
           st.socialTarget = other.def.id;
           st.nextDecideAt = performance.now() + 14000 + Math.random() * 10000;
           return st.action;
@@ -1666,9 +1672,113 @@
     scene.add(groundMarker);
 
     // Ground plane for click-to-move (invisible, large)
-    const FIELD = 72; // open meadow half-size (meadow units → world already large)
+    const FIELD = 96; // wider meadow half-size
+    let firmamentOpen3d = false;
+    try { firmamentOpen3d = localStorage.getItem("luna-firmament-open") === "1"; } catch (_) {}
+
+    function setFirmamentOpen3d(on, opts = {}) {
+      firmamentOpen3d = !!on;
+      try { localStorage.setItem("luna-firmament-open", firmamentOpen3d ? "1" : "0"); } catch (_) {}
+      const btn = document.getElementById("btn-firmament-3d");
+      if (btn) {
+        btn.classList.toggle("playing", firmamentOpen3d);
+        btn.textContent = firmamentOpen3d ? "🌌 Firmament ON" : "📡 Firmament";
+        btn.title = firmamentOpen3d
+          ? "Firmament open — flyers may choose the sky. Tap to close."
+          : "Open the Firmament so winged/mythic agents may fly";
+      }
+      if (techBeacon) {
+        techBeacon.visible = true;
+        if (techBeacon.userData.beam) {
+          techBeacon.userData.beam.material.opacity = firmamentOpen3d ? 0.45 : 0.12;
+          techBeacon.userData.beam.material.emissiveIntensity = firmamentOpen3d ? 0.9 : 0.2;
+        }
+        if (techBeacon.userData.ring) {
+          techBeacon.userData.ring.material.opacity = firmamentOpen3d ? 0.55 : 0.18;
+        }
+      }
+      if (!firmamentOpen3d) {
+        for (const st of agentState) {
+          st.flying = false;
+          st.flyHeight = 0;
+          if (st.action === "fly") st.action = "wander";
+          if (st.target) st.target.y = 0;
+        }
+      }
+      if (!opts.quiet) {
+        showToast(firmamentOpen3d
+          ? "🌌 Firmament open — some may choose the sky"
+          : "📡 Firmament closed — ground roam");
+        logLine("Camp", firmamentOpen3d
+          ? "Firmament lattice unlocked — airspace free for those who will it."
+          : "Firmament lattice sealed — wings stay grounded.");
+      }
+    }
+
+    // Tech: Firmament beacon / lattice tower (opens the sky when activated)
+    let techBeacon = null;
+    {
+      const g = new THREE.Group();
+      const mast = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.22, 4.2, 10),
+        new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.75, roughness: 0.35, emissive: 0x0ea5e9, emissiveIntensity: 0.15 }),
+      );
+      mast.position.y = 2.1;
+      g.add(mast);
+      const dish = new THREE.Mesh(
+        new THREE.SphereGeometry(0.55, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
+        new THREE.MeshStandardMaterial({ color: 0x67e8f9, metalness: 0.5, roughness: 0.25, emissive: 0x22d3ee, emissiveIntensity: 0.25, side: THREE.DoubleSide }),
+      );
+      dish.position.y = 4.35;
+      dish.rotation.x = Math.PI;
+      g.add(dish);
+      const beam = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 1.4, 12, 12, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: 0xa78bfa,
+          emissive: 0x7c3aed,
+          emissiveIntensity: 0.2,
+          transparent: true,
+          opacity: 0.12,
+          side: THREE.DoubleSide,
+        }),
+      );
+      beam.position.y = 10.5;
+      g.add(beam);
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(2.2, 0.06, 8, 40),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.3, transparent: true, opacity: 0.18 }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.08;
+      g.add(ring);
+      // Console pad
+      const pad = new THREE.Mesh(
+        new THREE.BoxGeometry(1.4, 0.2, 1.0),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.4, emissive: 0x0ea5e9, emissiveIntensity: 0.1 }),
+      );
+      pad.position.set(1.4, 0.12, 0.8);
+      g.add(pad);
+      g.position.set(-14, 0, -11);
+      g.userData = { kind: "tech", id: "firmament-beacon" };
+      scene.add(g);
+      techBeacon = g;
+      techBeacon.userData.beam = beam;
+      techBeacon.userData.ring = ring;
+      // second tech node — relay
+      const relay = g.clone();
+      relay.position.set(16, 0, 12);
+      relay.scale.set(0.75, 0.85, 0.75);
+      scene.add(relay);
+    }
+
+    document.getElementById("btn-firmament-3d")?.addEventListener("click", () => {
+      setFirmamentOpen3d(!firmamentOpen3d);
+    });
+    setFirmamentOpen3d(firmamentOpen3d, { quiet: true });
+
     const walkPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(200, 200),
+      new THREE.PlaneGeometry(280, 280),
       new THREE.MeshBasicMaterial({ visible: false }),
     );
     walkPlane.rotation.x = -Math.PI / 2;
@@ -3072,17 +3182,18 @@
               pos.y += Math.sin(t * 2.4 + st.phase) * 0.012;
               pos.y = Math.max(0.35, Math.min(4.2, pos.y));
             }
-            // Meadow soft bounds
+            // Meadow soft bounds (wider field)
+            const meadowR = FIELD * 0.42;
             const rd = Math.hypot(pos.x, pos.z);
-            if (rd > 22) {
-              pos.x = (pos.x / rd) * 22;
-              pos.z = (pos.z / rd) * 22;
+            if (rd > meadowR) {
+              pos.x = (pos.x / rd) * meadowR;
+              pos.z = (pos.z / rd) * meadowR;
               st.vx *= -0.4;
               st.vz *= -0.4;
             }
             if (spH > 0.08) m.rotation.y = Math.atan2(st.vx, st.vz);
-            // Mid-flight whim: sometimes pick a new air target
-            if (st.canFly && st.flying && Math.random() < 0.003) {
+            // Mid-flight whim (rare) — only with Firmament open
+            if (firmamentOpen3d && st.canFly && st.flying && Math.random() < 0.0015) {
               pickRoamTarget(st, { fly: true });
             }
           } else if (groundDist <= 0.14 && Math.abs(dy) <= 0.1 && st.pendingSit) {

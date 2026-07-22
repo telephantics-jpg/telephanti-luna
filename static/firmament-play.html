@@ -5405,6 +5405,7 @@
       free: "own thing", roam: "roaming", follow: "following", stand: "still", sit: "sitting",
       party: "party", visit: "visiting", home: "going home", house: "house call",
       prop: "using camp gear", structure: "checking building", meditate: "meditating ✦",
+      fly: "flying free",
     };
     const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus", "jesus", "odin"]);
     // Throttle autonomous world interactions so camp stays lively but not spammy
@@ -6843,14 +6844,16 @@
         if (r < 0.93) return "home";
         return "prop";
       }
-      if (r < 0.12) return "roam";
-      if (r < 0.22) return "visit";
-      if (r < 0.42) return "sit";
-      if (r < 0.56) return "stand";
-      if (r < 0.68) return "home";
-      if (r < 0.78) return "prop";
-      if (r < 0.88) return "structure";
-      if (r < 0.94) return "follow";
+      // Flyers sometimes take the sky
+      if (FLYER_2D.has(n.id) && r < 0.18) return "fly";
+      if (r < 0.28) return "roam";
+      if (r < 0.38) return "visit";
+      if (r < 0.52) return "sit";
+      if (r < 0.64) return "stand";
+      if (r < 0.74) return "home";
+      if (r < 0.82) return "prop";
+      if (r < 0.9) return "structure";
+      if (r < 0.95) return "follow";
       return "party";
     }
 
@@ -6913,12 +6916,16 @@
       } else if (n.behavior === "structure") {
         startNpcStructure(n);
         n.paceMul = Math.max(n.paceMul, 0.5);
-      } else if (n.behavior === "roam" || n.behavior === "party") {
+      } else if (n.behavior === "roam" || n.behavior === "party" || n.behavior === "fly") {
         n.visitTarget = null;
         n.homeTarget = null;
         n.housePhase = null;
+        ensureNpcPhysics(n);
+        n.flying = n.behavior === "fly" && n.canFly;
+        n.flyZ = n.flying ? (18 + Math.random() * 40) : 0;
         pickNpcWanderTarget(n, n.behavior === "party" ? props[Math.floor(Math.random() * props.length)] : null);
         if (n.behavior === "party") n.paceMul = Math.min(1.05, n.paceMul + 0.2);
+        if (n.behavior === "fly") n.paceMul = Math.min(1.2, n.paceMul + 0.35);
         if (n.behavior === "roam" && Math.random() < 0.35) {
           n.idle = 40 + Math.floor(Math.random() * 120);
         }
@@ -6926,6 +6933,8 @@
         n.visitTarget = null;
         n.homeTarget = null;
         n.housePhase = null;
+        n.flying = false;
+        n.flyZ = 0;
         n.tx = n.x;
         n.ty = n.y;
         n.behaviorTimer = n.behavior === "sit"
@@ -6935,6 +6944,7 @@
         n.paceMul = 0.2;
       } else {
         n.visitTarget = null;
+        n.flying = false;
       }
       if (changed && npcMode === "free") renderMoodPanel();
     }
@@ -7003,14 +7013,68 @@
       n.ty = t.y;
     }
 
+    const FLYER_2D = new Set([
+      "hermes", "seraph", "zeus", "luna", "aurora", "violet",
+      "michael", "gabriel", "uriel", "ara", "mika",
+    ]);
+
+    function ensureNpcPhysics(n) {
+      if (n.vx == null) n.vx = 0;
+      if (n.vy == null) n.vy = 0;
+      if (n.z == null) n.z = 0;
+      if (n.vz == null) n.vz = 0;
+      if (n.canFly == null) n.canFly = FLYER_2D.has(n.id);
+    }
+
     function moveNpcToward(n, tx, ty, speedMul = 1) {
+      ensureNpcPhysics(n);
       const d = dist(n, { x: tx, y: ty });
-      if (d < 4) return;
-      // Personal paceMul (set by free-will) keeps everyone from sprinting
+      if (d < 4 && !n.flying) return;
+      // Velocity steering — smoother than raw steps
       const pace = typeof n.paceMul === "number" ? Math.max(0.25, n.paceMul) : 0.8;
-      const step = n.speed * speedMul * pace;
-      n.x += ((tx - n.x) / d) * step;
-      n.y += ((ty - n.y) / d) * step;
+      const maxSp = n.speed * speedMul * pace * (n.flying ? 1.4 : 1);
+      const steer = n.flying ? 0.55 : 0.42;
+      if (d > 0.5) {
+        n.vx += ((tx - n.x) / d) * steer;
+        n.vy += ((ty - n.y) / d) * steer;
+      }
+      // Soft separation
+      for (const other of allRoamers()) {
+        if (other.id === n.id) continue;
+        const od = dist(n, other);
+        if (od > 0.5 && od < 28) {
+          const push = (28 - od) * 0.012;
+          n.vx += ((n.x - other.x) / od) * push;
+          n.vy += ((n.y - other.y) / od) * push;
+        }
+      }
+      n.vx *= 0.9;
+      n.vy *= 0.9;
+      const sp = Math.hypot(n.vx, n.vy);
+      if (sp > maxSp) {
+        n.vx = (n.vx / sp) * maxSp;
+        n.vy = (n.vy / sp) * maxSp;
+      }
+      n.x += n.vx;
+      n.y += n.vy;
+      // Flight altitude
+      if (n.flying) {
+        const wantZ = n.flyZ != null ? n.flyZ : 28;
+        n.vz += (wantZ - n.z) * 0.08;
+        n.vz *= 0.88;
+        n.z += n.vz;
+        n.z = Math.max(8, Math.min(70, n.z));
+        // whim: change air target mid-flight
+        if (Math.random() < 0.008) {
+          n.flyZ = 16 + Math.random() * 42;
+          pickNpcWanderTarget(n);
+        }
+      } else {
+        n.vz += (0 - n.z) * 0.12;
+        n.vz *= 0.85;
+        n.z += n.vz;
+        if (n.z < 1) { n.z = 0; n.vz = 0; }
+      }
       clampNpc(n);
     }
 
@@ -11956,11 +12020,22 @@
       const t = Date.now() / 1000;
       const sitting = !med && (n.behavior === "sit" || (n.behavior === "stand" && n.idle > 18));
       const speaking = speakingAgentId === n.id || (n.speakAnimUntil && Date.now() < n.speakAnimUntil);
-      // Bounce / hop when talking
+      // Bounce / hop when talking; flight lifts sprite
       const talkBob = speaking ? Math.sin(t * 10 + (n.id?.charCodeAt?.(0) || 0)) * 5 * u : 0;
       const talkScale = speaking ? 1 + Math.sin(t * 8) * 0.04 : 1;
-      const floatY = (med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) * u : 0) + talkBob;
+      const flightLift = (n.z || 0) * 0.85 * u;
+      const floatY =
+        (med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) * u : 0) +
+        talkBob -
+        flightLift;
       const s = worldToScreen(wx, wy);
+      // Shadow stays on ground when flying
+      if ((n.z || 0) > 4) {
+        ctx.fillStyle = `${n.color || "#67e8f9"}22`;
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y + 12 * u, (10 + (n.z || 0) * 0.08) * u, 5 * u, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       const cy = s.y + floatY + (sitting ? 9 * u : 0);
       if (med) {
         const cs = worldToScreen(wx + (med.circleOx || 0), wy + (med.circleOy || 62));
@@ -14121,16 +14196,22 @@
       }
     }
 
-    function drawPerson(wx, wy, color, label, sub, mood, isVisitor = false) {
+    function drawPerson(wx, wy, color, label, sub, mood, isVisitor = false, flightZ = 0) {
       const s = worldToScreen(wx, wy);
+      // flightZ lifts the sprite on screen (iso feel)
+      const lift = Math.min(55, (flightZ || 0) * 0.85);
+      const sx = s.x;
+      const sy = s.y - lift;
       const r = isVisitor ? 11 : 17;
-      ctx.fillStyle = color + "44";
+      // Ground shadow grows when airborne
+      const shadowScale = 1 + lift * 0.012;
+      ctx.fillStyle = color + (lift > 4 ? "28" : "44");
       ctx.beginPath();
-      ctx.ellipse(s.x, s.y + 14, r + 2, 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(s.x, s.y + 14, (r + 2) * shadowScale, 6 * shadowScale, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
       ctx.fill();
       if (mood) {
         const m = mood.slice(0, 12);
@@ -14138,30 +14219,30 @@
         const mw = ctx.measureText(m).width;
         ctx.fillStyle = "rgba(8, 14, 24, 0.92)";
         ctx.beginPath();
-        ctx.roundRect(s.x - mw / 2 - 6, s.y - 46, mw + 12, 16, 6);
+        ctx.roundRect(sx - mw / 2 - 6, sy - 46, mw + 12, 16, 6);
         ctx.fill();
         ctx.fillStyle = "#a7f3d0";
-        ctx.fillText(m, s.x, s.y - 35);
+        ctx.fillText(m, sx, sy - 35);
       }
       const npcRef = !isVisitor ? allRoamers().find((x) => x.name === label) : null;
       if (npcRef) {
-        const tag = npcBehaviorLabel(npcRef);
+        const tag = npcBehaviorLabel(npcRef) + (npcRef.flying ? " ✈" : "");
         ctx.font = "9px Segoe UI";
         ctx.fillStyle = "#94a3b8";
-        ctx.fillText(tag, s.x, s.y - (mood ? 52 : 38));
+        ctx.fillText(tag, sx, sy - (mood ? 52 : 38));
       }
       ctx.fillStyle = "#fff";
       ctx.font = isVisitor ? "bold 11px Segoe UI" : "bold 14px Segoe UI";
       ctx.textAlign = "center";
       ctx.fillStyle = "#fff";
-      ctx.fillText(label, s.x, s.y - 26);
+      ctx.fillText(label, sx, sy - 26);
       if (speakingAgentId && !isVisitor) {
         const ref = allRoamers().find((x) => x.name === label);
         if (ref && ref.id === speakingAgentId) {
           ctx.strokeStyle = color;
           ctx.lineWidth = 3;
           ctx.beginPath();
-          ctx.arc(s.x, s.y, r + 6, 0, Math.PI * 2);
+          ctx.arc(sx, sy, r + 6, 0, Math.PI * 2);
           ctx.stroke();
         }
       }

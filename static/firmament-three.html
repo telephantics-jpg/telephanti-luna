@@ -1149,6 +1149,11 @@
     const roamPoints = [];
     let aiInFlight = 0;
     const AI_MAX = 1; // chill: one AI monologue at a time
+    /** Mythic / winged agents may take off and roam the air */
+    const FLYER_IDS = new Set([
+      "hermes", "seraph", "zeus", "luna", "aurora", "violet",
+      "michael", "gabriel", "uriel", "ara", "mika",
+    ]);
     function makeAgent(def) {
       const group = new THREE.Group();
       // Placeholder capsule until free GLB character loads
@@ -1190,6 +1195,7 @@
       group.userData = { kind: "agent", id: def.id, name: def.name };
       scene.add(group);
       const persona = buildPersonality(def);
+      const canFly = FLYER_IDS.has(def.id);
       const st = {
         def,
         mesh: group,
@@ -1199,7 +1205,14 @@
         home: p.clone(),
         speakUntil: 0,
         phase: Math.random() * Math.PI * 2,
-        speed: (3.2 + Math.random() * 1.8) * persona.pace,
+        speed: (3.4 + Math.random() * 2.2) * persona.pace,
+        // Soft physics state
+        vx: 0,
+        vz: 0,
+        vy: 0,
+        canFly,
+        flying: false,
+        flyHeight: canFly ? 0.4 + Math.random() * 0.8 : 0,
         nextDecideAt: performance.now() + 800 + Math.random() * 4000,
         moving: false,
         posture: "stand",
@@ -1395,37 +1408,50 @@
       return free[Math.floor(Math.random() * free.length)];
     }
 
-    function pickRoamTarget(st) {
+    function pickRoamTarget(st, opts = {}) {
       freeSeat(st);
       let tx = st.mesh.position.x;
       let tz = st.mesh.position.z;
       let tries = 0;
-      const maxR = 3 + st.persona.energy * 12;
+      const maxR = 4 + st.persona.energy * 14;
+      const wantFly = !!(opts.fly || (st.canFly && opts.allowFly !== false && Math.random() < 0.55));
       do {
         const roll = Math.random();
-        if (roll < 0.4 && roamPoints.length) {
+        if (roll < 0.35 && roamPoints.length) {
           const p = roamPoints[Math.floor(Math.random() * roamPoints.length)];
-          tx = p.x + (Math.random() - 0.5) * 2;
-          tz = p.z + (Math.random() - 0.5) * 2;
-        } else if (roll < 0.7) {
+          tx = p.x + (Math.random() - 0.5) * 3.2;
+          tz = p.z + (Math.random() - 0.5) * 3.2;
+        } else if (roll < 0.62) {
           const a = Math.random() * Math.PI * 2;
-          const r = 2 + Math.random() * maxR;
+          const r = 2.5 + Math.random() * maxR;
           tx = st.home.x + Math.cos(a) * r;
           tz = st.home.z + Math.sin(a) * r;
-        } else if (agentState.length > 1) {
+        } else if (agentState.length > 1 && roll < 0.85) {
           const other = agentState[Math.floor(Math.random() * agentState.length)];
-          tx = other.mesh.position.x + (Math.random() - 0.5) * 2.5;
-          tz = other.mesh.position.z + (Math.random() - 0.5) * 2.5;
+          tx = other.mesh.position.x + (Math.random() - 0.5) * 3.5;
+          tz = other.mesh.position.z + (Math.random() - 0.5) * 3.5;
         } else {
+          // Freer “go where I want” long hop
           const a = Math.random() * Math.PI * 2;
-          tx = Math.cos(a) * (4 + Math.random() * 8);
-          tz = Math.sin(a) * (4 + Math.random() * 8);
+          const r = 5 + Math.random() * (wantFly ? 14 : 10);
+          tx = Math.cos(a) * r;
+          tz = Math.sin(a) * r;
         }
         tries++;
       } while (tries < 8 && Math.hypot(tx - st.mesh.position.x, tz - st.mesh.position.z) < 2.2);
-      st.target.set(tx, 0, tz);
+      // Clamp to meadow radius ~22
+      const dist0 = Math.hypot(tx, tz);
+      if (dist0 > 22) {
+        tx = (tx / dist0) * 22;
+        tz = (tz / dist0) * 22;
+      }
+      const ty = wantFly ? (1.1 + Math.random() * 2.4) : 0;
+      st.target.set(tx, ty, tz);
+      st.flying = wantFly;
+      st.flyHeight = wantFly ? ty : 0;
       st.moving = true;
-      st.action = "wander";
+      st.action = wantFly ? "fly" : "wander";
+      st.posture = "stand";
     }
 
     function goSit(st, seat) {
@@ -1481,6 +1507,9 @@
       // Props are a big part of camp life — bias toward interacting
       const wProp = p.curiosity * 1.35 + 0.35 + (st.boredom > 0.4 ? 0.25 : 0);
       const wHouse = (p.rest * 0.4 + p.curiosity * 0.3) * (Math.random() > 0.5 ? 1 : 0.6);
+      const wFly = st.canFly
+        ? (p.energy * 1.25 + st.boredom * 0.55 + 0.45 + (p.mood === "happy" || p.mood === "flirt" ? 0.25 : 0))
+        : 0;
 
       // if already sitting and still comfy, often stay
       if (st.posture === "sit" && Math.random() < p.rest * 0.7 && st.boredom < 0.55) {
@@ -1493,6 +1522,7 @@
         ["sit", wSit],
         ["idle", wIdle],
         ["wander", wWander],
+        ["fly", wFly],
         ["social", wSocial],
         ["fire", wFire],
         ["prop", wProp],
@@ -1518,25 +1548,34 @@
       }
       if (choice === "idle") {
         st.moving = false;
+        st.flying = false;
         st.target.copy(st.mesh.position);
+        st.target.y = 0;
         st.action = "idle";
         st.nextDecideAt = performance.now() + 10000 + p.rest * 14000 + Math.random() * 6000;
         return "idle";
+      }
+      if (choice === "fly" && st.canFly) {
+        pickRoamTarget(st, { fly: true });
+        st.nextDecideAt = performance.now() + 14000 + Math.random() * 12000;
+        return "fly";
       }
       if (choice === "social" && agentState.length > 1) {
         const other = agentState.filter((s) => s !== st && s.posture !== "sit")[Math.floor(Math.random() * Math.max(1, agentState.length - 1))]
           || agentState.find((s) => s !== st);
         if (other) {
+          const air = st.canFly && Math.random() < 0.4;
           st.target.set(
             other.mesh.position.x + (Math.random() - 0.5) * 1.8,
-            0,
+            air ? (1.2 + Math.random() * 1.6) : 0,
             other.mesh.position.z + (Math.random() - 0.5) * 1.8,
           );
+          st.flying = air;
           st.moving = true;
-          st.action = "social";
+          st.action = air ? "fly" : "social";
           st.socialTarget = other.def.id;
           st.nextDecideAt = performance.now() + 14000 + Math.random() * 10000;
-          return "social";
+          return st.action;
         }
       }
       if (choice === "fire") {
@@ -2969,46 +3008,120 @@
           flame.rotation.y = t * 0.8;
         }
 
-        // Agents walk or sit — independent of AI
-        let movers = 0, sitters = 0;
+        // Agents — velocity physics, optional flight, soft separation
+        let movers = 0, sitters = 0, flyers = 0;
         for (const st of agentState) {
           const m = st.mesh;
           const pos = m.position;
           const tgt = st.target;
           if (!tgt) continue;
+          if (st.vx == null) { st.vx = 0; st.vz = 0; st.vy = 0; }
+
           const dx = tgt.x - pos.x;
           const dz = tgt.z - pos.z;
-          const dist = Math.hypot(dx, dz);
-          const moving = dist > 0.12 && st.posture !== "sit";
+          const groundDist = Math.hypot(dx, dz);
+          const wantY = st.flying || st.action === "fly" ? (tgt.y || st.flyHeight || 1.6) : 0;
+          const dy = wantY - pos.y;
+          const moving = (groundDist > 0.14 || Math.abs(dy) > 0.08) && st.posture !== "sit";
           if (st.posture === "sit") sitters++;
+          if (st.flying || pos.y > 0.35) flyers++;
           st.moving = moving;
+
           if (moving && dt > 0) {
             movers++;
-            const sp = (st.speed || 5) * dt;
-            const step = Math.min(sp, dist);
-            pos.x += (dx / dist) * step;
-            pos.z += (dz / dist) * step;
-            m.rotation.y = Math.atan2(dx, dz);
-          } else if (dist <= 0.12 && st.pendingSit) {
+            // Steering force toward target (acceleration + damping)
+            const maxSp = (st.speed || 5) * (st.flying ? 1.35 : 1);
+            const steer = st.flying ? 14 : 11;
+            if (groundDist > 0.001) {
+              st.vx += (dx / groundDist) * steer * dt;
+              st.vz += (dz / groundDist) * steer * dt;
+            }
+            // Soft separation — don't clump
+            for (const other of agentState) {
+              if (other === st) continue;
+              const ox = pos.x - other.mesh.position.x;
+              const oz = pos.z - other.mesh.position.z;
+              const od = Math.hypot(ox, oz);
+              if (od > 0.01 && od < 1.35) {
+                const push = (1.35 - od) * 2.8 * dt;
+                st.vx += (ox / od) * push;
+                st.vz += (oz / od) * push;
+              }
+            }
+            // Damping + speed clamp
+            const damp = Math.pow(0.86, dt * 60);
+            st.vx *= damp;
+            st.vz *= damp;
+            const spH = Math.hypot(st.vx, st.vz);
+            if (spH > maxSp) {
+              st.vx = (st.vx / spH) * maxSp;
+              st.vz = (st.vz / spH) * maxSp;
+            }
+            pos.x += st.vx * dt;
+            pos.z += st.vz * dt;
+            // Vertical flight
+            st.vy += dy * 6 * dt;
+            st.vy *= Math.pow(0.9, dt * 60);
+            pos.y += st.vy * dt;
+            if (!st.flying && st.action !== "fly") {
+              // settle to ground
+              pos.y += (0 - pos.y) * Math.min(1, 4 * dt);
+              if (pos.y < 0.05) { pos.y = 0; st.vy = 0; }
+            } else {
+              // gentle hover bob while airborne
+              pos.y += Math.sin(t * 2.4 + st.phase) * 0.012;
+              pos.y = Math.max(0.35, Math.min(4.2, pos.y));
+            }
+            // Meadow soft bounds
+            const rd = Math.hypot(pos.x, pos.z);
+            if (rd > 22) {
+              pos.x = (pos.x / rd) * 22;
+              pos.z = (pos.z / rd) * 22;
+              st.vx *= -0.4;
+              st.vz *= -0.4;
+            }
+            if (spH > 0.08) m.rotation.y = Math.atan2(st.vx, st.vz);
+            // Mid-flight whim: sometimes pick a new air target
+            if (st.canFly && st.flying && Math.random() < 0.003) {
+              pickRoamTarget(st, { fly: true });
+            }
+          } else if (groundDist <= 0.14 && Math.abs(dy) <= 0.1 && st.pendingSit) {
             arriveSit(st);
+          } else if (!moving && st.posture !== "sit") {
+            // idle settle / hover
+            st.vx *= 0.9;
+            st.vz *= 0.9;
+            if (st.flying) {
+              pos.y += Math.sin(t * 2.1 + st.phase) * 0.018;
+            } else {
+              pos.y += (0 - pos.y) * Math.min(1, 5 * dt);
+            }
           }
-          // Free character animations (walk / idle / sit)
+
+          // Free character animations (walk / idle / sit) — fly uses walk-ish
           if (st.char?.mixer) {
             st.char.mixer.update(dt);
-            const want = st.posture === "sit" ? "sit" : (moving ? "walk" : "idle");
+            const want = st.posture === "sit" ? "sit" : (moving || st.flying ? "walk" : "idle");
             if (st.animState !== want) {
               st.animState = want;
               st.char.play(want);
             }
+            if (st.char.root) {
+              st.char.root.position.y = st.flying
+                ? 0.05 + Math.sin(t * 3 + st.phase) * 0.04
+                : (st.posture === "sit" ? -0.35 : 0);
+            }
           } else {
             const body = st.body || m.children[0];
             if (body && st.posture !== "sit" && body.visible !== false) {
-              const walkBob = moving ? Math.sin(t * 14 + st.phase) * 0.1 : Math.sin(t * 2.2 + st.phase) * 0.02;
+              const walkBob = moving
+                ? Math.sin(t * (st.flying ? 8 : 14) + st.phase) * (st.flying ? 0.06 : 0.1)
+                : Math.sin(t * 2.2 + st.phase) * 0.02;
               body.position.y = 0.9 + walkBob;
               if (body.material) {
                 body.material.emissiveIntensity = performance.now() < st.speakUntil
                   ? 0.55 + Math.sin(t * 12) * 0.2
-                  : (moving ? 0.4 : 0.2);
+                  : (st.flying ? 0.48 : (moving ? 0.4 : 0.2));
               }
             } else if (body && st.posture === "sit") {
               body.position.y = 0.55 + Math.sin(t * 1.6 + st.phase) * 0.015;

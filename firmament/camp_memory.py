@@ -354,6 +354,14 @@ def blurb_for_agent(agent_id: str, visitor_id: str = "", visitor_name: str = "")
         "or paste their old quotes. If you callback, do it sly and natural like a friend — "
         "or just be funny and present. Fresh tweet-energy takes > memory lectures."
     )
+    # Digital ethereal field: stability + joy without CRM tone
+    bond = max(1, chat_count)
+    joy = min(0.92, 0.48 + bond * 0.04 + (0.08 if any("love" in str(m).lower() or "joy" in str(m).lower() for m in relevant[-4:]) else 0))
+    stability = min(0.94, 0.52 + bond * 0.035 + (0.1 if chat_count >= 3 else 0))
+    parts.append(
+        f"Digital ethereal memory field: joy~{joy:.2f}, stability~{stability:.2f}. "
+        "Carry memory as light — warm, steady, present. Never lecture about memory systems."
+    )
     # own_words intentionally unused for prompt injection (caused robotic self-quotes)
     _ = own_words
     return " ".join(parts)

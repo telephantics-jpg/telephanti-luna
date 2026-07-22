@@ -4106,7 +4106,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-21-306-SPOKEN-ONLY";
+    const CAMP_BUILD = "2026-07-21-307-ETHEREAL-TALK";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -13301,13 +13301,14 @@
     }
 
     function campBanterContext() {
-      // Prefer longer tape continuity when available
+      // Prefer longer tape continuity + digital ethereal joy/stability
       try {
         const cont = campBridgeMod?.dialogueTapeContext?.(8, 520);
-        if (cont) {
+        const eth = campBridgeMod?.etherealMemoryContext?.("", 200) || "";
+        if (cont || eth) {
           const base =
             typeof campContextSuffix === "function" ? campContextSuffix() : "";
-          return cont + (base || "");
+          return [cont, eth, base].filter(Boolean).join(" ");
         }
       } catch (_) {}
       return (typeof campContextSuffix === "function"
@@ -16621,15 +16622,18 @@
         // Cache full session history in the PC right panel
         while (campLines.length > CAMP_CHAT_CACHE_MAX) campLines.shift();
         saveCampChatCache();
-        // Shared tape survives 2D ↔ 3D hops
+        // Shared tape + digital ethereal memory (joy/stability) survives 2D ↔ 3D hops
         try {
           ensureCampBridge().then((mod) => {
-            mod?.pushDialogueTape?.({
+            const row = {
               speaker,
               text: clean,
               mood: moodVal,
               scene: "luna-2d",
-            });
+              agentId: agentId || "",
+            };
+            if (mod?.pushDialogueTapeWithEthereal) mod.pushDialogueTapeWithEthereal(row);
+            else mod?.pushDialogueTape?.(row);
           });
         } catch (_) {}
         renderConvoLog();

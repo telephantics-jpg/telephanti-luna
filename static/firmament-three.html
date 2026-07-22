@@ -132,21 +132,22 @@
     }
     .bubble3d {
       position: fixed; /* fixed to viewport — reliable PC hit targets in 3D view */
-      /* Fixed frame — text content still updates dynamically */
-      width: min(248px, 72vw);
-      height: 112px;
+      /* Bigger frame like 2D monologue boxes — scroll for full lines */
+      width: min(360px, 88vw);
+      height: 168px;
       box-sizing: border-box;
       transform: translate(-50%, -100%);
-      background: rgba(8, 14, 28, 0.94);
-      border: 2px solid rgba(196, 181, 253, 0.55);
-      border-radius: 14px; padding: 8px 12px;
-      font-size: clamp(0.72rem, 2.4vw, 0.85rem); line-height: 1.35;
-      color: #f1f5f9; box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+      background: rgba(8, 14, 28, 0.96);
+      border: 2px solid rgba(196, 181, 253, 0.6);
+      border-radius: 16px; padding: 12px 14px;
+      font-size: clamp(0.84rem, 2.6vw, 0.98rem); line-height: 1.45;
+      color: #f1f5f9; box-shadow: 0 10px 36px rgba(0,0,0,0.42), 0 0 24px rgba(167, 139, 250, 0.12);
       animation: pop 0.22s ease-out;
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
+      scrollbar-color: rgba(167, 139, 250, 0.55) rgba(15, 23, 42, 0.4);
       /* Critical: only bubbles take hits; layer stays passthrough */
       pointer-events: auto !important;
       cursor: pointer;
@@ -172,7 +173,7 @@
       display: block;
       pointer-events: none; /* clicks always hit the bubble box, not text nodes */
     }
-    .bubble3d .who { font-weight: 700; color: var(--violet); font-size: 0.72rem; margin-bottom: 3px; }
+    .bubble3d .who { font-weight: 800; color: var(--violet); font-size: 0.78rem; margin-bottom: 6px; letter-spacing: 0.02em; }
     .bubble3d .front-chip {
       position: absolute; top: -10px; right: 8px;
       font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em;
@@ -196,9 +197,10 @@
       opacity: 1 !important;
       filter: none !important;
       background: rgba(6, 28, 22, 0.97) !important;
-      height: 120px !important;
-      max-height: 120px !important;
-      min-height: 120px !important;
+      height: 188px !important;
+      max-height: 188px !important;
+      min-height: 188px !important;
+      width: min(380px, 90vw) !important;
     }
     .bubble3d.holding {
       border-color: #fbbf24 !important;
@@ -216,10 +218,11 @@
     .bubble3d.front {
       border-color: #fde68a !important;
       box-shadow: 0 0 0 3px rgba(253, 230, 138, 0.85), 0 14px 40px rgba(0,0,0,0.6) !important;
-      /* keep same frame size as others so one agent doesn't cover every other chat */
-      height: 120px !important;
-      max-height: 120px !important;
-      min-height: 120px !important;
+      /* Bigger FRONT like 2D — still fixed so layout doesn't thrash */
+      height: 188px !important;
+      max-height: 188px !important;
+      min-height: 188px !important;
+      width: min(380px, 90vw) !important;
       opacity: 1 !important;
       filter: none !important;
       background: rgba(12, 20, 40, 0.98) !important;
@@ -269,17 +272,187 @@
       padding: 6px 14px; font-size: 0.72rem; color: #a5f3fc; pointer-events: none;
     }
     .bubble3d {
-      width: min(260px, 78vw) !important;
-      height: 120px !important;
-      font-size: clamp(0.8rem, 2.6vw, 0.95rem) !important;
+      width: min(360px, 88vw) !important;
+      height: 168px !important;
+      font-size: clamp(0.84rem, 2.6vw, 0.98rem) !important;
       border-width: 2px !important;
     }
+    /* Big talk window — 2D-style who/house chat */
+    #chat3d-panel {
+      position: fixed;
+      z-index: 40;
+      display: flex; flex-direction: column;
+      background: linear-gradient(165deg, rgba(8, 14, 32, 0.97), rgba(12, 20, 48, 0.96));
+      border: 1px solid rgba(167, 139, 250, 0.45);
+      border-radius: 16px;
+      box-shadow: 0 18px 48px rgba(0,0,0,0.5), 0 0 40px rgba(103, 232, 249, 0.08);
+      overflow: hidden;
+      pointer-events: auto;
+      /* default: docked above bottom talk bar */
+      left: 10px; right: 10px;
+      bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+      top: auto;
+      height: min(42vh, 380px);
+      max-height: min(48vh, 420px);
+      transform: translateY(12px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, transform 0.22s ease, visibility 0.2s;
+    }
+    #chat3d-panel.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    @media (min-width: 900px) {
+      #chat3d-panel {
+        left: 14px; right: auto;
+        width: min(480px, 40vw);
+        max-width: 520px;
+        top: max(64px, calc(env(safe-area-inset-top) + 56px));
+        bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+        height: auto;
+        max-height: none;
+      }
+    }
+    #chat3d-panel .c3-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(103, 232, 249, 0.28);
+      background: linear-gradient(180deg, rgba(20, 30, 58, 0.98), rgba(8, 14, 32, 0.95));
+      flex-shrink: 0;
+    }
+    #chat3d-panel .c3-title {
+      font-size: 0.78rem; font-weight: 900; color: #a5f3fc;
+      letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;
+    }
+    #chat3d-who {
+      flex: 1; min-width: 0;
+      background: #0f172a; color: #e2e8f0;
+      border: 1px solid rgba(167, 139, 250, 0.45);
+      border-radius: 10px; padding: 8px 10px; font-size: 0.84rem; font: inherit;
+    }
+    #chat3d-close, #chat3d-toggle-size {
+      flex: 0 0 auto; width: 36px; height: 34px;
+      border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.95); color: #e2e8f0;
+      font-size: 1rem; font-weight: 800; cursor: pointer;
+    }
+    #chat3d-meta {
+      flex-shrink: 0; padding: 5px 12px;
+      font-size: 0.65rem; color: #94a3b8;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #chat3d-meta .ethereal {
+      color: #c4b5fd; font-weight: 700;
+    }
+    #chat3d-thread {
+      flex: 1 1 auto; min-height: 100px;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 12px 12px 14px;
+      display: flex; flex-direction: column; gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(167, 139, 250, 0.5) rgba(15, 23, 42, 0.4);
+    }
+    #chat3d-thread::-webkit-scrollbar { width: 8px; }
+    #chat3d-thread::-webkit-scrollbar-thumb {
+      background: rgba(167, 139, 250, 0.5); border-radius: 99px;
+    }
+    .c3-msg {
+      display: flex; flex-direction: column; gap: 4px;
+      max-width: 100%;
+    }
+    .c3-msg.you { align-items: flex-end; }
+    .c3-msg.agent { align-items: flex-start; }
+    .c3-msg .c3-who {
+      font-size: 0.68rem; font-weight: 800; color: #67e8f9;
+      letter-spacing: 0.02em;
+    }
+    .c3-msg.you .c3-who { color: #c4b5fd; }
+    .c3-msg .c3-bubble {
+      width: 100%; max-width: 100%;
+      height: 148px; min-height: 148px; max-height: 148px;
+      box-sizing: border-box;
+      padding: 12px 14px; border-radius: 14px;
+      font-size: 0.92rem; line-height: 1.55;
+      white-space: pre-wrap; word-break: break-word;
+      overflow-y: auto !important; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      touch-action: pan-y;
+    }
+    .c3-msg.you .c3-bubble {
+      background: linear-gradient(135deg, rgba(76, 29, 149, 0.55), rgba(30, 27, 75, 0.92));
+      border: 1px solid rgba(167, 139, 250, 0.5);
+      color: #f5f3ff;
+      border-bottom-right-radius: 4px;
+    }
+    .c3-msg.agent .c3-bubble {
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(103, 232, 249, 0.38);
+      color: #f8fafc;
+      border-bottom-left-radius: 4px;
+    }
+    .c3-msg.camp .c3-bubble {
+      background: rgba(15, 30, 40, 0.9);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: #d1fae5;
+      height: auto; min-height: 0; max-height: 100px;
+    }
+    #chat3d-compose {
+      flex-shrink: 0;
+      display: flex; gap: 8px; align-items: flex-end;
+      padding: 10px 12px max(10px, env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid rgba(167, 139, 250, 0.28);
+      background: rgba(6, 12, 24, 0.98);
+    }
+    #chat3d-input {
+      flex: 1; min-width: 0; min-height: 52px; max-height: 140px;
+      resize: vertical;
+      background: #0f172a; color: #f8fafc;
+      border: 1px solid rgba(167, 139, 250, 0.4);
+      border-radius: 12px; padding: 12px 14px;
+      font-size: 0.95rem; line-height: 1.4; font-family: inherit;
+    }
+    #chat3d-input:focus {
+      outline: none; border-color: rgba(167, 139, 250, 0.75);
+      box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.15);
+    }
+    #chat3d-send {
+      flex: 0 0 auto; min-width: 56px; height: 52px;
+      border: none; border-radius: 12px;
+      background: linear-gradient(135deg, #5b21b6, #0e7490);
+      color: #ecfeff; font-weight: 800; font-size: 0.92rem;
+      cursor: pointer; padding: 0 16px;
+    }
+    #chat3d-send:disabled { opacity: 0.45; cursor: wait; }
+    #btn-open-chat3d {
+      position: fixed;
+      right: 12px;
+      bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+      z-index: 35;
+      border-radius: 999px;
+      border: 1px solid rgba(167, 139, 250, 0.55);
+      background: linear-gradient(135deg, rgba(76, 29, 149, 0.9), rgba(14, 116, 144, 0.88));
+      color: #ecfeff; font-weight: 800; font-size: 0.8rem;
+      padding: 10px 16px; cursor: pointer; font: inherit;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    #btn-open-chat3d:hover { border-color: #fde68a; }
+    body.chat3d-open #btn-open-chat3d { opacity: 0.35; }
     #ground-marker {
       /* rendered in 3d */
     }
     @media (max-width: 640px) {
       #hint { font-size: 0.62rem; }
       #who-select { min-width: 90px; }
+      .c3-msg .c3-bubble {
+        height: 132px; min-height: 132px; max-height: 132px;
+        font-size: 0.88rem;
+      }
+      #chat3d-panel { height: min(48vh, 360px); }
     }
   </style>
 </head>
@@ -316,14 +489,30 @@
     </div>
     <div id="talk-row">
       <select id="who-select" aria-label="Talk to"></select>
-      <input id="msg" type="text" maxlength="500" placeholder="Or type… tap agent first" autocomplete="off" />
+      <input id="msg" type="text" maxlength="500" placeholder="Or type… tap agent / open ✦ Talk" autocomplete="off" />
       <button type="button" id="send">Send</button>
     </div>
-    <div id="hint">Tap a speech box to bring it FRONT · Hold to 🔒 lock · Tap meadow to walk</div>
+    <div id="hint">✦ Talk = big window · Tap speech FRONT · Hold 🔒 · Houses & flyers too</div>
+  </div>
+
+  <button type="button" id="btn-open-chat3d" title="Open big talk window">✦ Talk</button>
+  <div id="chat3d-panel" role="dialog" aria-label="Camp talk" aria-hidden="true">
+    <div class="c3-head">
+      <span class="c3-title">Talk</span>
+      <select id="chat3d-who" title="Who or house to talk to" aria-label="Talk to whom"></select>
+      <button type="button" id="chat3d-toggle-size" title="Taller window" aria-label="Expand">↕</button>
+      <button type="button" id="chat3d-close" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div id="chat3d-meta">Digital ethereal memory · <span class="ethereal" id="chat3d-ethereal">joy · stability</span></div>
+    <div id="chat3d-thread" aria-live="polite"></div>
+    <div id="chat3d-compose">
+      <textarea id="chat3d-input" rows="2" maxlength="1200" placeholder="Talk to anyone or a house… open-ended, full monologues scroll inside"></textarea>
+      <button type="button" id="chat3d-send">Send</button>
+    </div>
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-16-three-v30-home-btn";
+    const BUILD = "2026-07-21-three-v31-talk-ethereal";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     function showBootError(msg) {
@@ -1064,19 +1253,20 @@
     function buildPersonality(def) {
       const arch = String(def.visual?.archetype || def.visual?.kit || "").toLowerCase();
       const mood = String(def.mood || "neutral").toLowerCase();
-      // baselines 0..1
+      // baselines 0..1 — digital ethereal field includes joy + stability
       let energy = 0.5, rest = 0.4, social = 0.45, curiosity = 0.5, firelove = 0.4, pace = 1;
+      let joy = 0.58, stability = 0.62;
       const archMap = {
-        messenger: { energy: 0.9, rest: 0.15, social: 0.55, curiosity: 0.7, pace: 1.25 },
-        seer: { energy: 0.3, rest: 0.75, social: 0.35, curiosity: 0.85, firelove: 0.5, pace: 0.75 },
-        healer: { energy: 0.35, rest: 0.65, social: 0.5, curiosity: 0.45, firelove: 0.55, pace: 0.8 },
-        guardian: { energy: 0.7, rest: 0.25, social: 0.3, curiosity: 0.4, firelove: 0.35, pace: 1.1 },
-        shepherd: { energy: 0.35, rest: 0.7, social: 0.6, curiosity: 0.4, firelove: 0.7, pace: 0.7 },
-        reveler: { energy: 0.75, rest: 0.25, social: 0.9, curiosity: 0.5, firelove: 0.55, pace: 1.15 },
-        lights: { energy: 0.6, rest: 0.35, social: 0.7, curiosity: 0.65, firelove: 0.4, pace: 1.05 },
-        allfather: { energy: 0.4, rest: 0.6, social: 0.4, curiosity: 0.7, firelove: 0.65, pace: 0.75 },
-        thunder: { energy: 0.95, rest: 0.1, social: 0.55, curiosity: 0.45, firelove: 0.3, pace: 1.35 },
-        moon_host: { energy: 0.5, rest: 0.55, social: 0.65, curiosity: 0.55, firelove: 0.8, pace: 0.9 },
+        messenger: { energy: 0.9, rest: 0.15, social: 0.55, curiosity: 0.7, pace: 1.25, joy: 0.72, stability: 0.5 },
+        seer: { energy: 0.3, rest: 0.75, social: 0.35, curiosity: 0.85, firelove: 0.5, pace: 0.75, joy: 0.55, stability: 0.82 },
+        healer: { energy: 0.35, rest: 0.65, social: 0.5, curiosity: 0.45, firelove: 0.55, pace: 0.8, joy: 0.7, stability: 0.85 },
+        guardian: { energy: 0.7, rest: 0.25, social: 0.3, curiosity: 0.4, firelove: 0.35, pace: 1.1, joy: 0.5, stability: 0.88 },
+        shepherd: { energy: 0.35, rest: 0.7, social: 0.6, curiosity: 0.4, firelove: 0.7, pace: 0.7, joy: 0.75, stability: 0.9 },
+        reveler: { energy: 0.75, rest: 0.25, social: 0.9, curiosity: 0.5, firelove: 0.55, pace: 1.15, joy: 0.9, stability: 0.45 },
+        lights: { energy: 0.6, rest: 0.35, social: 0.7, curiosity: 0.65, firelove: 0.4, pace: 1.05, joy: 0.8, stability: 0.6 },
+        allfather: { energy: 0.4, rest: 0.6, social: 0.4, curiosity: 0.7, firelove: 0.65, pace: 0.75, joy: 0.55, stability: 0.92 },
+        thunder: { energy: 0.95, rest: 0.1, social: 0.55, curiosity: 0.45, firelove: 0.3, pace: 1.35, joy: 0.65, stability: 0.55 },
+        moon_host: { energy: 0.5, rest: 0.55, social: 0.65, curiosity: 0.55, firelove: 0.8, pace: 0.9, joy: 0.72, stability: 0.78 },
       };
       const am = archMap[arch];
       if (am) {
@@ -1086,15 +1276,17 @@
         curiosity = am.curiosity ?? curiosity;
         firelove = am.firelove ?? firelove;
         pace = am.pace ?? pace;
+        joy = am.joy ?? joy;
+        stability = am.stability ?? stability;
       }
       const moodMap = {
-        happy: { energy: 0.12, social: 0.1, rest: -0.05 },
-        love: { rest: 0.15, social: 0.12, firelove: 0.1, energy: -0.08 },
-        think: { rest: 0.2, curiosity: 0.15, energy: -0.15, social: -0.05 },
-        alert: { energy: 0.2, rest: -0.2, social: -0.1 },
-        flirt: { social: 0.2, energy: 0.08, rest: -0.05 },
+        happy: { energy: 0.12, social: 0.1, rest: -0.05, joy: 0.15 },
+        love: { rest: 0.15, social: 0.12, firelove: 0.1, energy: -0.08, joy: 0.12, stability: 0.08 },
+        think: { rest: 0.2, curiosity: 0.15, energy: -0.15, social: -0.05, stability: 0.1 },
+        alert: { energy: 0.2, rest: -0.2, social: -0.1, stability: 0.05 },
+        flirt: { social: 0.2, energy: 0.08, rest: -0.05, joy: 0.1 },
         neutral: {},
-        afraid: { rest: 0.1, energy: -0.1, social: -0.15 },
+        afraid: { rest: 0.1, energy: -0.1, social: -0.15, joy: -0.12, stability: -0.1 },
       };
       const mm = moodMap[mood] || {};
       energy = THREE.MathUtils.clamp(energy + (mm.energy || 0) + (Math.random() - 0.5) * 0.08, 0.08, 0.98);
@@ -1102,7 +1294,9 @@
       social = THREE.MathUtils.clamp(social + (mm.social || 0) + (Math.random() - 0.5) * 0.08, 0.05, 0.95);
       curiosity = THREE.MathUtils.clamp(curiosity + (mm.curiosity || 0), 0.1, 0.95);
       firelove = THREE.MathUtils.clamp(firelove + (mm.firelove || 0), 0.1, 0.95);
-      return { energy, rest, social, curiosity, firelove, pace, mood, arch };
+      joy = THREE.MathUtils.clamp(joy + (mm.joy || 0) + (Math.random() - 0.5) * 0.06, 0.12, 0.96);
+      stability = THREE.MathUtils.clamp(stability + (mm.stability || 0) + (Math.random() - 0.5) * 0.05, 0.15, 0.96);
+      return { energy, rest, social, curiosity, firelove, pace, joy, stability, mood, arch };
     }
 
     // Chairs / seats from catalog
@@ -1829,24 +2023,136 @@
     refreshWhoSelect();
     whoEl.value = "luna";
 
-    // 3D has no full chat panel — still write shared dialogue tape for 2D continuity
+    // Big talk window + shared dialogue tape + digital ethereal memory
+    const chat3dPanel = document.getElementById("chat3d-panel");
+    const chat3dThread = document.getElementById("chat3d-thread");
+    const chat3dWho = document.getElementById("chat3d-who");
+    const chat3dInput = document.getElementById("chat3d-input");
+    const chat3dSend = document.getElementById("chat3d-send");
+    const chat3dMetaEth = document.getElementById("chat3d-ethereal");
+    const chat3dLines = [];
+    const CHAT3D_MAX = 48;
+    let campBridgeMod = null;
+    try {
+      campBridgeMod = await import(`/static/camp-bridge.mjs?v=310-ethereal`);
+    } catch (_) {
+      campBridgeMod = null;
+    }
+
+    function refreshEtherealHud() {
+      try {
+        const mem = campBridgeMod?.readEtherealMemory?.();
+        if (!mem || !chat3dMetaEth) return;
+        chat3dMetaEth.textContent =
+          `joy ${mem.joy.toFixed(2)} · stability ${mem.stability.toFixed(2)}`;
+      } catch (_) {}
+    }
+
+    function openChat3d(agentOrHouseId) {
+      if (!chat3dPanel) return;
+      chat3dPanel.classList.add("open");
+      chat3dPanel.setAttribute("aria-hidden", "false");
+      document.body.classList.add("chat3d-open");
+      if (agentOrHouseId) {
+        if (chat3dWho && [...chat3dWho.options].some((o) => o.value === agentOrHouseId)) {
+          chat3dWho.value = agentOrHouseId;
+        }
+        if (whoEl && [...whoEl.options].some((o) => o.value === agentOrHouseId)) {
+          whoEl.value = agentOrHouseId;
+        }
+      }
+      refreshEtherealHud();
+      try { chat3dInput?.focus(); } catch (_) {}
+    }
+    function closeChat3d() {
+      chat3dPanel?.classList.remove("open");
+      chat3dPanel?.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("chat3d-open");
+    }
+    document.getElementById("btn-open-chat3d")?.addEventListener("click", () => {
+      if (chat3dPanel?.classList.contains("open")) closeChat3d();
+      else openChat3d(whoEl?.value || "luna");
+    });
+    document.getElementById("chat3d-close")?.addEventListener("click", closeChat3d);
+    document.getElementById("chat3d-toggle-size")?.addEventListener("click", () => {
+      if (!chat3dPanel) return;
+      const tall = chat3dPanel.dataset.tall === "1";
+      if (tall) {
+        chat3dPanel.dataset.tall = "0";
+        chat3dPanel.style.height = "";
+        chat3dPanel.style.maxHeight = "";
+      } else {
+        chat3dPanel.dataset.tall = "1";
+        chat3dPanel.style.height = "min(68vh, 560px)";
+        chat3dPanel.style.maxHeight = "min(72vh, 600px)";
+      }
+    });
+    chat3dWho?.addEventListener("change", () => {
+      if (whoEl && chat3dWho.value) whoEl.value = chat3dWho.value;
+    });
+
+    function appendChat3dMsg(who, text, isYou) {
+      if (!chat3dThread) return;
+      const speaker = String(who || "Camp").trim();
+      const clean = String(text || "").trim();
+      if (!clean) return;
+      const kind = isYou ? "you" : (speaker.toLowerCase() === "camp" ? "camp" : "agent");
+      chat3dLines.push({ who: speaker, text: clean, you: !!isYou });
+      while (chat3dLines.length > CHAT3D_MAX) chat3dLines.shift();
+      const row = document.createElement("div");
+      row.className = `c3-msg ${kind}`;
+      row.innerHTML =
+        `<span class="c3-who">${escapeHtml(speaker)}</span>` +
+        `<div class="c3-bubble" tabindex="0">${escapeHtml(clean)}</div>`;
+      chat3dThread.appendChild(row);
+      while (chat3dThread.children.length > CHAT3D_MAX) {
+        chat3dThread.removeChild(chat3dThread.firstChild);
+      }
+      chat3dThread.scrollTop = chat3dThread.scrollHeight;
+      // Scroll monologue bubble to top so long replies start readable
+      const bub = row.querySelector(".c3-bubble");
+      if (bub) bub.scrollTop = 0;
+    }
+
     function logLine(who, text, _you = false) {
       const speaker = String(who || "Camp").trim();
       const clean = String(text || "").trim();
       if (!speaker || !clean) return;
+      appendChat3dMsg(speaker, clean, _you);
+      refreshEtherealHud();
       try {
-        import(`/static/camp-bridge.mjs?v=301`)
-          .then((mod) => {
-            mod.pushDialogueTape?.({
-              speaker,
-              text: clean.slice(0, 480),
-              mood: _you ? "you" : "neutral",
-              scene: "luna-3d",
-            });
-          })
-          .catch(() => {});
+        const agentId = AGENTS.find((a) => a.name === speaker || a.id === speaker)?.id || "";
+        const entry = {
+          speaker,
+          text: clean.slice(0, 480),
+          mood: _you ? "you" : "neutral",
+          scene: "luna-3d",
+          agentId,
+        };
+        if (campBridgeMod?.pushDialogueTapeWithEthereal) {
+          campBridgeMod.pushDialogueTapeWithEthereal(entry);
+        } else if (campBridgeMod?.pushDialogueTape) {
+          campBridgeMod.pushDialogueTape(entry);
+          campBridgeMod.pushEtherealMemory?.(entry);
+        } else {
+          import(`/static/camp-bridge.mjs?v=310-ethereal`)
+            .then((mod) => {
+              campBridgeMod = mod;
+              mod.pushDialogueTapeWithEthereal?.(entry);
+            })
+            .catch(() => {});
+        }
       } catch (_) {}
     }
+
+    // Seed thread from shared tape so 2D→3D feels continuous
+    try {
+      const tape = campBridgeMod?.readDialogueTape?.()?.lines || [];
+      for (const row of tape.slice(-12)) {
+        appendChat3dMsg(row.speaker, row.text, String(row.mood) === "you" || row.speaker === "You");
+      }
+      refreshEtherealHud();
+    } catch (_) {}
     function escapeHtml(s) {
       return String(s)
         .replace(/&/g, "&amp;")
@@ -2331,6 +2637,14 @@
       return `${name} (signal soft)… still on the meadow.`;
     }
 
+    function etherealSeedFor(agentId) {
+      try {
+        return campBridgeMod?.etherealMemoryContext?.(agentId, 260) || "";
+      } catch {
+        return "";
+      }
+    }
+
     /** AI monologue matching whatever they already chose to do (mood/personality). */
     async function agentOwnTake(st) {
       if (!st || document.hidden) return;
@@ -2344,32 +2658,56 @@
       const name = st.def.name;
       const mood = st.persona.mood;
       const arch = st.persona.arch || "camp";
+      const joy = Number(st.persona.joy ?? 0.6).toFixed(2);
+      const stab = Number(st.persona.stability ?? 0.65).toFixed(2);
       const last = st.lastProp ? ` You recently used ${st.lastProp}; your vibe may have shifted.` : "";
+      const eth = etherealSeedFor(id);
+      const ethBit = eth ? ` ${eth}` : "";
+      const flyBit = st.flying ? " You are flying free above the meadow." : "";
       let speakPrompt = "";
 
       if (action === "sit" || action === "go_sit") {
-        speakPrompt = `You (${name}) chose to sit at camp (mood: ${mood}, vibe: ${arch}).${last} In 2–4 sentences in character: why you're sitting, what you're noticing. You can change your mind mid-thought. No meta.`;
+        speakPrompt = `You (${name}) chose to sit at camp (mood: ${mood}, vibe: ${arch}, joy ${joy}, stability ${stab}).${last}${flyBit}${ethBit} Speak 2–4 warm in-character sentences — stable presence, real joy if it fits. No meta.`;
       } else if (action === "idle") {
-        speakPrompt = `You (${name}) are standing still a moment (mood: ${mood}).${last} In 2–3 quiet in-character sentences — not forced hype. No meta.`;
+        speakPrompt = `You (${name}) are still a moment (mood: ${mood}, joy ${joy}, stability ${stab}).${last}${ethBit} 2–3 quiet in-character sentences — grounded, not forced hype. No meta.`;
       } else if (action === "social") {
         const other = st.socialTarget || "someone";
-        speakPrompt = `You (${name}) are seeking ${other} (mood: ${mood}).${last} In 2–4 in-character sentences. You can revise what you meant to say. No meta.`;
+        speakPrompt = `You (${name}) are seeking ${other} (mood: ${mood}, joy ${joy}).${last}${ethBit} 2–4 in-character sentences with soft continuity. No meta.`;
       } else if (action === "fire") {
-        speakPrompt = `You (${name}) drifted to the sun corona fire (mood: ${mood}).${last} In 2–4 in-character sentences about the fire. No meta.`;
+        speakPrompt = `You (${name}) drifted to the sun corona fire (mood: ${mood}, joy ${joy}, stability ${stab}).${last}${ethBit} 2–4 in-character sentences. No meta.`;
       } else if (action === "house") {
-        speakPrompt = `You (${name}) are walking toward a house. Mood: ${mood}.${last} In 2–4 in-character sentences. No meta.`;
+        speakPrompt = `You (${name}) are walking toward a house (joy ${joy}, stability ${stab}).${last}${ethBit} 2–4 in-character sentences about home/threshold. No meta.`;
+      } else if (st.flying) {
+        speakPrompt = `You (${name}) are flying free over camp (mood: ${mood}, joy ${joy}, stability ${stab}).${last}${ethBit} 2–4 sky-true sentences — ethereal but steady. No meta.`;
       } else {
-        speakPrompt = `You (${name}) chose to wander (energy ${st.energyNow.toFixed(2)}, mood: ${mood}).${last} Own take in 2–4 sentences; change direction if you want. No meta.`;
+        speakPrompt = `You (${name}) chose to wander (energy ${st.energyNow.toFixed(2)}, joy ${joy}, stability ${stab}, mood: ${mood}).${last}${ethBit} Own take in 2–4 sentences. No meta.`;
       }
 
       aiInFlight++;
       try {
         statusEl.textContent = `${name} · ${action}`;
         const data = await campClient.agentChat(id, speakPrompt, { ambient: true });
-        const reply = String(data.reply || data.text || "").trim();
+        let reply = spokenOnly3d(data.reply || data.text || "", speakPrompt);
+        if (!reply) reply = localBark(id);
         if (reply) {
           showSpeech3d(id, reply, speechReadMs(reply));
           logLine(name, reply);
+          // soft personality drift toward ethereal field
+          try {
+            const mem = campBridgeMod?.readEtherealMemory?.();
+            if (mem && st.persona) {
+              st.persona.joy = THREE.MathUtils.clamp(
+                (st.persona.joy ?? 0.6) * 0.85 + mem.joy * 0.15,
+                0.12,
+                0.96,
+              );
+              st.persona.stability = THREE.MathUtils.clamp(
+                (st.persona.stability ?? 0.65) * 0.85 + mem.stability * 0.15,
+                0.15,
+                0.96,
+              );
+            }
+          } catch (_) {}
           statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
         }
       } catch (err) {
@@ -2411,13 +2749,13 @@
           b.el.style.display = "none";
           continue;
         }
-        // Nudge stacked boxes so Luna / Hermes / Oracle don't sit on one click target
-        for (let n = 0; n < 6; n++) {
+        // Nudge stacked bigger boxes so flyers / houses / agents stay tappable
+        for (let n = 0; n < 8; n++) {
           let clash = false;
           for (const p of placed) {
-            if (Math.hypot(x - p.x, y - p.y) < 56) {
-              x += (n % 2 === 0 ? 1 : -1) * (28 + n * 10);
-              y -= 18 + n * 6;
+            if (Math.hypot(x - p.x, y - p.y) < 92) {
+              x += (n % 2 === 0 ? 1 : -1) * (40 + n * 14);
+              y -= 28 + n * 10;
               clash = true;
               break;
             }
@@ -2480,9 +2818,10 @@
           const u = obj.userData;
           if (u.kind === "agent") {
             whoEl.value = u.id;
+            if (chat3dWho) chat3dWho.value = u.id;
             msgEl.placeholder = `Talk to ${u.name}…`;
-            msgEl.focus();
-            logLine("Camp", `Talking to ${u.name} — use chips or type.`);
+            openChat3d(u.id);
+            logLine("Camp", `Talking to ${u.name} — big window open · type freely.`);
             showToast(`✦ ${u.name}`);
             // If they already have a speech box, bring THAT agent's chat FRONT
             if (!bringAgentSpeechFront(u.id)) {
@@ -2497,8 +2836,15 @@
               groundMarker.visible = true;
               // agent walks a step toward you
               st.target.copy(visitor.position).add(new THREE.Vector3((Math.random() - 0.5) * 0.8, 0, (Math.random() - 0.5) * 0.8));
+              const eth = etherealSeedFor(u.id);
+              const joy = Number(st.persona?.joy ?? 0.6).toFixed(2);
+              const stab = Number(st.persona?.stability ?? 0.65).toFixed(2);
               // Real AI greet when you tap them
-              chatAgent(u.id, `The visitor just walked up and selected you. Greet them in character in 2–4 sentences — your own vibe, warm and specific. No meta.`, true);
+              chatAgent(
+                u.id,
+                `The visitor just walked up and selected you. Greet them in character in 2–4 sentences — your own vibe, warm and specific, joy ${joy}, stability ${stab}. ${eth} No meta.`,
+                true,
+              );
             }
             return;
           }
@@ -2584,17 +2930,37 @@
     async function runHouseEnter(houseId) {
       if (userBusy) return;
       userBusy = true;
+      const house = HOUSES.find((h) => h.id === houseId || h.catalogId === houseId);
       whoEl.value = houseId;
+      if (chat3dWho) chat3dWho.value = houseId;
+      openChat3d(houseId);
       statusEl.textContent = "Knocking…";
+      logLine("You", `Knock on ${house?.name || houseId}…`, true);
       try {
         const ev = await campClient.enterHouse(houseId);
         applyEvent(ev);
         const owner = ev.meta?.owner_id || houseId;
-        if (owner) whoEl.value = owner;
+        if (owner) {
+          whoEl.value = owner;
+          if (chat3dWho && [...chat3dWho.options].some((o) => o.value === owner)) {
+            chat3dWho.value = owner;
+          }
+        }
+        // House talk — invite the resident with ethereal home warmth
+        const talkTo = owner || houseId;
+        const eth = etherealSeedFor(talkTo);
+        await chatAgent(
+          talkTo,
+          `The visitor just entered or knocked on ${house?.name || "your house"}. Welcome them at the threshold in character — home, safety, a little joy and stability. 2–5 sentences. ${eth} No meta.`,
+          true,
+        );
         statusEl.textContent = "House resolved";
       } catch (err) {
         statusEl.textContent = "House API offline — restart server";
         logLine("Camp", `House enter failed: ${err.message}`);
+        // Offline: still open talk to house owner id
+        const fallback = houseId;
+        showSpeech3d(fallback, `${house?.name || "This house"} holds a quiet glow. Come in when the door knows you.`, 28000);
       } finally {
         userBusy = false;
       }
@@ -2625,16 +2991,36 @@
     }
 
     function refreshWhoSelect() {
-      const cur = whoEl.value;
-      whoEl.innerHTML = "";
-      for (const a of AGENTS) {
-        const opt = document.createElement("option");
-        opt.value = a.id;
-        opt.textContent = a.name;
-        whoEl.appendChild(opt);
-      }
-      if ([...whoEl.options].some((o) => o.value === cur)) whoEl.value = cur;
-      else if (whoEl.options.length) whoEl.selectedIndex = 0;
+      const cur = whoEl?.value || chat3dWho?.value || "luna";
+      const fill = (sel) => {
+        if (!sel) return;
+        sel.innerHTML = "";
+        const peep = document.createElement("optgroup");
+        peep.label = "Characters";
+        for (const a of AGENTS) {
+          const opt = document.createElement("option");
+          opt.value = a.id;
+          opt.textContent = a.name;
+          peep.appendChild(opt);
+        }
+        sel.appendChild(peep);
+        if (HOUSES.length) {
+          const homes = document.createElement("optgroup");
+          homes.label = "Houses";
+          for (const h of HOUSES) {
+            const opt = document.createElement("option");
+            // Talk resolves to owner / house id (same as catalog)
+            opt.value = h.id;
+            opt.textContent = `${h.emoji || "🏠"} ${h.name}`;
+            homes.appendChild(opt);
+          }
+          sel.appendChild(homes);
+        }
+        if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+        else if (sel.options.length) sel.selectedIndex = 0;
+      };
+      fill(whoEl);
+      fill(chat3dWho);
     }
 
     function summonAgentIds(ids) {
@@ -2718,27 +3104,54 @@
       if (!ambient) {
         userBusy = true;
         sendBtn.disabled = true;
+        if (chat3dSend) chat3dSend.disabled = true;
       }
-      statusEl.textContent = `${agentId} · AI thinking…`;
+      // Resolve house option → prefer living agent with same id on field
+      let targetId = agentId;
+      const houseHit = HOUSES.find((h) => h.id === agentId || h.catalogId === agentId);
+      if (houseHit && !AGENTS.some((a) => a.id === agentId)) {
+        targetId = houseHit.id; // owner_id mapped into house.id
+      }
+      statusEl.textContent = `${targetId} · AI thinking…`;
       // Only log visitor text for real visitor turns — never ambient director seeds
-      if (!ambient) logLine("You", message, true);
+      if (!ambient) {
+        logLine("You", message, true);
+        openChat3d(targetId);
+      }
+      let outbound = message.trim();
+      if (!ambient) {
+        const eth = etherealSeedFor(targetId);
+        const cont = campBridgeMod?.dialogueTapeContext?.(6, 360) || "";
+        const bits = [outbound];
+        if (cont) bits.push(cont);
+        if (eth) bits.push(eth);
+        bits.push("Answer with digital ethereal memory: stable, joyful presence — no meta, no CRM quotes.");
+        outbound = bits.join(" ");
+      }
       try {
-        const data = await campClient.agentChat(agentId, message.trim(), { ambient });
-        let reply = spokenOnly3d(data.reply || data.text || "", message);
-        if (!reply) reply = localBark(agentId);
-        const name = AGENTS.find((a) => a.id === agentId)?.name || agentId;
+        const data = await campClient.agentChat(targetId, outbound, { ambient });
+        let reply = spokenOnly3d(data.reply || data.text || "", outbound);
+        if (!reply) reply = localBark(targetId);
+        const name = AGENTS.find((a) => a.id === targetId)?.name
+          || houseHit?.name
+          || targetId;
         logLine(name, reply);
-        showSpeech3d(agentId, reply, speechReadMs(reply));
+        // Show bubble on agent if present; else still log in big window
+        const hasBody = agentState.some((a) => a.def.id === targetId);
+        if (hasBody) showSpeech3d(targetId, reply, speechReadMs(reply));
         statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
       } catch (err) {
-        const fallback = localBark(agentId);
-        showSpeech3d(agentId, fallback, 22000);
-        logLine(AGENTS.find((a) => a.id === agentId)?.name || agentId, fallback);
+        const fallback = localBark(targetId);
+        if (agentState.some((a) => a.def.id === targetId)) {
+          showSpeech3d(targetId, fallback, 22000);
+        }
+        logLine(AGENTS.find((a) => a.id === targetId)?.name || targetId, fallback);
         statusEl.textContent = "Brains offline — start server / Ollama";
       } finally {
         if (!ambient) {
           userBusy = false;
           sendBtn.disabled = false;
+          if (chat3dSend) chat3dSend.disabled = false;
         }
       }
     }
@@ -2751,10 +3164,13 @@
         const pool = AGENTS.map((a) => a.id);
         const shuffled = pool.slice().sort(() => Math.random() - 0.5);
         let topic =
-          "your own honest takes at the open aurora meadow — witty, present, disagree a little, no meta";
+          "your own honest takes at the open aurora meadow — witty, present, disagree a little, carry digital ethereal memory with joy and stability, no meta";
         try {
-          const cont = campBridge3d?.dialogueTapeContext?.(6, 400);
+          const bridge = campBridge3d || campBridgeMod;
+          const cont = bridge?.dialogueTapeContext?.(6, 400);
           if (cont) topic = `${topic}. ${cont}`;
+          const eth = bridge?.etherealMemoryContext?.("", 200);
+          if (eth) topic = `${topic}. ${eth}`;
         } catch (_) {}
         const ev = await campClient.campBanter({
           agentA: shuffled[0],
@@ -2792,9 +3208,24 @@
       msgEl.value = "";
       await chatAgent(whoEl.value, text);
     }
+    async function sendChat3d() {
+      const text = (chat3dInput?.value || "").trim();
+      if (!text) return;
+      if (chat3dInput) chat3dInput.value = "";
+      const who = chat3dWho?.value || whoEl?.value || "luna";
+      if (whoEl) whoEl.value = who;
+      await chatAgent(who, text);
+    }
     sendBtn.addEventListener("click", sendChat);
     msgEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendChat();
+    });
+    chat3dSend?.addEventListener("click", sendChat3d);
+    chat3dInput?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendChat3d();
+      }
     });
     document.getElementById("banter")?.addEventListener("click", () => runBanter(true));
     document.getElementById("btn-banter-top")?.addEventListener("click", () => runBanter(true));
@@ -2827,11 +3258,12 @@
     let albumOn = false;
     const albumBtn = document.getElementById("album-btn");
     const albumNow = document.getElementById("album-now");
-    let campBridge3d = null;
+    let campBridge3d = campBridgeMod;
 
-    import("/static/camp-bridge.mjs?v=301")
+    import("/static/camp-bridge.mjs?v=310-ethereal")
       .then(async (mod) => {
         campBridge3d = mod;
+        campBridgeMod = mod;
         try {
           const tracks = await mod.loadSunoCatalog();
           if (tracks?.length) {

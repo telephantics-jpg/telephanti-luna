@@ -58,6 +58,136 @@ export function dialogueTapeContext(maxLines = 8, maxChars = 520) {
   return `Recent camp dialogue (keep continuity, don't repeat verbatim): ${s}`;
 }
 
+/* ── Digital ethereal memory: joy · stability · soft continuity ───────────
+ * Browser-local "aether" field for camp agents. Survives 2D↔3D hops.
+ * Never a CRM dump — vibe + tone only for seeds.
+ */
+const ETHEREAL_KEY = "telephantix-ethereal-memory-v1";
+const ETHEREAL_MAX_MOMENTS = 36;
+
+/**
+ * @returns {{
+ *   joy: number, stability: number,
+ *   agents: Record<string, { joy: number, stability: number, moments: string[], lastAt?: number }>,
+ *   moments: Array<{ speaker: string, text: string, t: number }>,
+ *   updated?: number
+ * }}
+ */
+export function readEtherealMemory() {
+  try {
+    const raw = localStorage.getItem(ETHEREAL_KEY);
+    if (!raw) {
+      return { joy: 0.62, stability: 0.68, agents: {}, moments: [] };
+    }
+    const data = JSON.parse(raw);
+    return {
+      joy: clamp01(data?.joy, 0.62),
+      stability: clamp01(data?.stability, 0.68),
+      agents: data?.agents && typeof data.agents === "object" ? data.agents : {},
+      moments: Array.isArray(data?.moments) ? data.moments : [],
+      updated: data?.updated,
+    };
+  } catch {
+    return { joy: 0.62, stability: 0.68, agents: {}, moments: [] };
+  }
+}
+
+function clamp01(n, fallback = 0.5) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return fallback;
+  return Math.max(0.05, Math.min(0.98, x));
+}
+
+function saveEthereal(data) {
+  try {
+    localStorage.setItem(
+      ETHEREAL_KEY,
+      JSON.stringify({ ...data, updated: Date.now() })
+    );
+  } catch (_) {}
+}
+
+/**
+ * Ingest a spoken line into digital ethereal memory.
+ * Joy rises on warmth/humor; stability rises on presence/continuity.
+ */
+export function pushEtherealMemory(entry) {
+  const speaker = String(entry?.speaker || "").trim();
+  const text = String(entry?.text || "").trim().slice(0, 280);
+  if (!speaker || !text) return readEtherealMemory();
+
+  const mem = readEtherealMemory();
+  const low = text.toLowerCase();
+  const you = String(entry?.mood || "") === "you" || speaker.toLowerCase() === "you";
+
+  let dJoy = 0.008;
+  let dStab = 0.006;
+  if (/\b(joy|happy|love|warm|laugh|smile|glow|aurora|together|friend|peace|bless|thanks|grateful)\b/.test(low)) {
+    dJoy += 0.035;
+    dStab += 0.012;
+  }
+  if (/\b(steady|still|here|stay|home|safe|calm|rooted|stable|remember|always|fire|meadow)\b/.test(low)) {
+    dStab += 0.03;
+    dJoy += 0.01;
+  }
+  if (/\b(fear|angry|hate|leave|broken|void|alone|cold)\b/.test(low)) {
+    dJoy -= 0.02;
+    dStab -= 0.012;
+  }
+  if (you) {
+    dJoy += 0.01;
+    dStab += 0.015; // visitor presence stabilizes the field
+  }
+
+  mem.joy = clamp01(mem.joy + dJoy);
+  mem.stability = clamp01(mem.stability + dStab);
+
+  const agentKey = String(entry?.agentId || speaker).toLowerCase().replace(/\s+/g, "-");
+  if (!you && speaker.toLowerCase() !== "camp" && speaker.toLowerCase() !== "telephantix") {
+    const a = mem.agents[agentKey] || { joy: 0.55, stability: 0.6, moments: [] };
+    a.joy = clamp01(a.joy + dJoy * 1.2);
+    a.stability = clamp01(a.stability + dStab * 1.1);
+    a.moments = Array.isArray(a.moments) ? a.moments : [];
+    const snip = text.slice(0, 90);
+    if (!a.moments.includes(snip)) a.moments.push(snip);
+    while (a.moments.length > 6) a.moments.shift();
+    a.lastAt = Date.now();
+    mem.agents[agentKey] = a;
+  }
+
+  mem.moments.push({ speaker, text: text.slice(0, 140), t: Date.now() });
+  while (mem.moments.length > ETHEREAL_MAX_MOMENTS) mem.moments.shift();
+  saveEthereal(mem);
+  return mem;
+}
+
+/** Soft prompt blurb — ethereal digital field, not quote dump. */
+export function etherealMemoryContext(agentId = "", maxChars = 280) {
+  const mem = readEtherealMemory();
+  const aid = String(agentId || "").toLowerCase();
+  const a = aid ? mem.agents[aid] : null;
+  const joy = a ? a.joy : mem.joy;
+  const stab = a ? a.stability : mem.stability;
+  const joyWord =
+    joy > 0.78 ? "bright joy" : joy > 0.55 ? "warm joy" : joy > 0.35 ? "quiet gladness" : "soft longing";
+  const stabWord =
+    stab > 0.78 ? "deep stability" : stab > 0.55 ? "steady ground" : stab > 0.35 ? "finding footing" : "gentle drift";
+  let s =
+    `Your digital ethereal field: ${joyWord} (${joy.toFixed(2)}) and ${stabWord} (${stab.toFixed(2)}). ` +
+    `Carry memory as light — stable, kind, present. Never lecture about "memory systems". Speak as someone who remembers with joy.`;
+  if (a?.moments?.length) {
+    s += ` Soft echoes (feel, don't quote): ${a.moments.slice(-2).join(" · ")}`;
+  }
+  if (s.length > maxChars) s = s.slice(0, maxChars - 1) + "…";
+  return s;
+}
+
+/** Hook dialogue tape pushes into ethereal field (optional agentId). */
+export function pushDialogueTapeWithEthereal(entry) {
+  pushDialogueTape(entry);
+  pushEtherealMemory(entry);
+}
+
 export function mergeTapeIntoArray(targetArr, { max = 80 } = {}) {
   if (!Array.isArray(targetArr)) return 0;
   const tape = readDialogueTape().lines;

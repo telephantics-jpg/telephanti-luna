@@ -30,6 +30,27 @@
           });
         }
       } catch (e) {}
+      // Surface module crashes so a blank page never looks "mysteriously stuck"
+      window.addEventListener("error", function (ev) {
+        try {
+          var el = document.getElementById("boot-step");
+          var ov = document.getElementById("boot-overlay");
+          if (ov) { ov.classList.add("fail"); ov.classList.remove("done"); }
+          if (el && ev && ev.message) {
+            el.textContent = "JS error: " + ev.message;
+          }
+        } catch (_) {}
+      });
+      window.addEventListener("unhandledrejection", function (ev) {
+        try {
+          var el = document.getElementById("boot-step");
+          var ov = document.getElementById("boot-overlay");
+          if (ov) { ov.classList.add("fail"); ov.classList.remove("done"); }
+          var r = ev && ev.reason;
+          var msg = (r && r.message) ? r.message : String(r || "promise failed");
+          if (el) el.textContent = "Load failed: " + msg;
+        } catch (_) {}
+      });
     })();
   </script>
   <style>
@@ -54,6 +75,38 @@
     }
     #canvas-host { position: fixed; inset: 0; z-index: 1; }
     #canvas-host canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    /* Always-visible boot card — blank meadow used to look "stuck" with #status hidden */
+    #boot-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at 50% 30%, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.96));
+      pointer-events: none;
+      transition: opacity 0.35s ease, visibility 0.35s;
+    }
+    #boot-overlay.done {
+      opacity: 0; visibility: hidden;
+    }
+    #boot-overlay .boot-card {
+      max-width: min(420px, 90vw);
+      padding: 22px 24px;
+      border-radius: 16px;
+      border: 1px solid rgba(103, 232, 249, 0.4);
+      background: rgba(8, 14, 28, 0.95);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.45);
+      text-align: center;
+    }
+    #boot-overlay .boot-title {
+      font-size: 1.05rem; font-weight: 800; color: #a5f3fc; margin-bottom: 8px;
+    }
+    #boot-overlay .boot-step {
+      font-size: 0.88rem; color: #e2e8f0; line-height: 1.45; min-height: 2.6em;
+    }
+    #boot-overlay .boot-hint {
+      margin-top: 12px; font-size: 0.72rem; color: #94a3b8; line-height: 1.4;
+    }
+    #boot-overlay.fail { pointer-events: auto; }
+    #boot-overlay.fail .boot-card { border-color: #f87171; }
+    #boot-overlay.fail .boot-title { color: #fecaca; }
     #album-btn {
       border-color: #7dd3fc !important;
       background: linear-gradient(135deg, rgba(12, 74, 110, 0.95), rgba(2, 132, 199, 0.9)) !important;
@@ -458,6 +511,13 @@
 </head>
 <body>
   <div id="canvas-host"></div>
+  <div id="boot-overlay" aria-live="polite">
+    <div class="boot-card">
+      <div class="boot-title">✦ Luna Camp 3D</div>
+      <div class="boot-step" id="boot-step">Starting free local meadow…</div>
+      <div class="boot-hint" id="boot-hint">Free brains = this PC (Ollama). telephanti.com cloud can bill xAI — use 127.0.0.1:8767 when broke.</div>
+    </div>
+  </div>
   <div id="speech-layer"></div>
   <div id="prop-toast"></div>
   <div id="mode-pill">👆 Tap speech = FRONT · Hold = 🔒 lock · Left: ✦ menu</div>
@@ -474,7 +534,7 @@
     <button type="button" id="btn-follow" class="chip" title="Camera follow">Follow</button>
     <button type="button" id="btn-banter-top" class="chip">💬</button>
     <button type="button" id="btn-roam" class="chip">🏃</button>
-    <span id="status" hidden>Loading…</span>
+    <span id="status">Loading…</span>
     <span id="stamp">✦ 3D</span>
   </header>
   <div id="boot-error" hidden style="position:fixed;inset:auto 12px 120px 12px;z-index:40;background:rgba(80,10,20,0.95);border:1px solid #f87171;border-radius:12px;padding:14px 16px;color:#fecaca;font-size:0.85rem;line-height:1.45;max-width:560px;margin:0 auto;left:12px;right:12px;"></div>
@@ -512,19 +572,64 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-21-three-v31-talk-ethereal";
+    const BUILD = "2026-07-22-three-v32-bootfix";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
+    const bootOverlay = document.getElementById("boot-overlay");
+    const bootStepEl = document.getElementById("boot-step");
+    function setBootStep(msg) {
+      const t = String(msg || "");
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = t;
+      }
+      if (bootStepEl) bootStepEl.textContent = t;
+      console.info("[camp3d]", t);
+    }
+    function finishBoot(ok = true) {
+      if (bootOverlay) {
+        bootOverlay.classList.add("done");
+        if (!ok) {
+          bootOverlay.classList.remove("done");
+          bootOverlay.classList.add("fail");
+        }
+      }
+      if (ok && statusEl) {
+        // Keep a quiet free-brain stamp in the bar for a few seconds
+        statusEl.hidden = false;
+        statusEl.textContent = "Free Ollama meadow";
+        setTimeout(() => {
+          if (statusEl && /Free Ollama|Meadow ready/i.test(statusEl.textContent || "")) {
+            statusEl.hidden = true;
+          }
+        }, 5000);
+      }
+    }
     function showBootError(msg) {
       console.error(msg);
-      if (statusEl) statusEl.textContent = "3D failed to load — see red box";
+      const text = String(msg && msg.message ? msg.message : msg);
+      setBootStep("3D failed — see message");
+      if (bootOverlay) {
+        bootOverlay.classList.add("fail");
+        bootOverlay.classList.remove("done");
+        if (bootStepEl) {
+          bootStepEl.innerHTML =
+            `<b>Camp didn't start</b><br>${text.replace(/</g, "&lt;")}` +
+            `<br><br>1) Keep Luna server window open<br>2) Open <code>http://127.0.0.1:8767/firmament/3d</code>` +
+            `<br>3) Ctrl+Shift+R hard refresh<br>4) Don't use telephanti.com if you want free Ollama`;
+        }
+      }
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = "3D failed to load — see center card";
+      }
       if (bootErr) {
         bootErr.hidden = false;
         bootErr.innerHTML =
-          `<b>Three.js camp failed to start</b><br>${msg}` +
-          `<br><br>Try: <b>Ctrl+Shift+R</b> hard refresh · open only via ` +
-          `<code>http://127.0.0.1:8767/firmament/3d</code> (server must be running).` +
-          `<br>If still stuck: DevTools → Application → clear site data, then reload.`;
+          `<b>Three.js camp failed to start</b><br>${text.replace(/</g, "&lt;")}` +
+          `<br><br>Try: <b>Ctrl+Shift+R</b> · only ` +
+          `<code>http://127.0.0.1:8767/firmament/3d</code> with server running.` +
+          `<br>Clear site data if still stuck. Free brains = local Ollama, not xAI.`;
       }
     }
 
@@ -534,10 +639,11 @@
 
     let THREE, OrbitControls, campWorld, campClient, campFeatures, charSystem;
     try {
-      statusEl.textContent = "Loading Three.js…";
+      setBootStep("Loading Three.js (free, offline vendor)…");
       const head = await fetch(THREE_URL, { cache: "no-store" });
-      if (!head.ok) throw new Error(`three.module.js HTTP ${head.status}`);
+      if (!head.ok) throw new Error(`three.module.js HTTP ${head.status} — is the Luna server running on :8767?`);
       THREE = await import(THREE_URL);
+      setBootStep("Loading camera controls…");
       ({ OrbitControls } = await import(ORBIT_URL));
       const { GLTFLoader } = await import("/static/vendor/three/examples/jsm/loaders/GLTFLoader.js");
       let SkeletonUtils = null;
@@ -546,15 +652,16 @@
       } catch (_) {
         SkeletonUtils = null;
       }
+      setBootStep("Loading camp modules…");
       campWorld = await import(`/static/camp/camp-world.mjs?v=${BUILD}`);
       campClient = await import(`/static/camp/camp-client.mjs?v=${BUILD}`);
       campFeatures = await import(`/static/camp/camp-features.mjs?v=${BUILD}`);
       const campChars = await import(`/static/camp/camp-characters.mjs?v=${BUILD}`);
       charSystem = campChars.createCharacterSystem(THREE, GLTFLoader, SkeletonUtils);
       if (!THREE || !THREE.WebGLRenderer) throw new Error("Three.js loaded but WebGLRenderer missing");
-      statusEl.textContent = "Loading world catalog…";
+      setBootStep("Loading world catalog…");
     } catch (err) {
-      showBootError(String(err && err.message ? err.message : err));
+      showBootError(err);
       throw err;
     }
 
@@ -645,7 +752,7 @@
       return new THREE.Vector3(x * SCALE, 0, y * SCALE);
     }
 
-    statusEl.textContent = "Building meadow…";
+    setBootStep("Building meadow…");
 
     // Mood/prop look tables MUST exist before makeAgent → applyLook (const TDZ bug froze boot)
     const MOOD_TINT = {
@@ -672,16 +779,32 @@
 
     // ── Scene ──
     const host = document.getElementById("canvas-host");
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    let renderer;
+    try {
+      setBootStep("Starting WebGL meadow…");
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance",
+        alpha: false,
+        failIfMajorPerformanceCaveat: false,
+      });
+    } catch (err) {
+      showBootError(
+        "WebGL failed to start (GPU/driver). Try Chrome, update graphics drivers, or disable hardware acceleration only if needed. " +
+          String(err && err.message ? err.message : err),
+      );
+      throw err;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x0a1628, 1);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.08;
     host.appendChild(renderer.domElement);
+    setBootStep("Meadow canvas ready — placing camp…");
 
     const scene = new THREE.Scene();
     // Wider open field — lighter fog so far meadow stays visible
@@ -3593,25 +3716,29 @@
     }
 
     logLine("Camp", `Meadow ready · ${propMeshes.length} objects · ${agentState.length} agents.`);
-    // Hide running status tally — it was UI clutter on 3D
-    if (statusEl) {
-      statusEl.hidden = true;
-      statusEl.textContent = "";
-    }
+    setBootStep(`Meadow ready · ${agentState.length} agents · free Ollama`);
+    // Drop overlay after first painted frames so it never looks "stuck loading"
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => finishBoot(true));
+    });
 
-    // Upgrade to free GLB characters after camp is playable (staggered — won't freeze boot)
+    // Upgrade to free GLB characters after camp is playable (slow stagger — weak GPUs)
     if (charSystem) {
       let i = 0;
       const upgradeNext = () => {
+        if (document.hidden) {
+          setTimeout(upgradeNext, 800);
+          return;
+        }
         if (i >= agentState.length) {
           showToast("🎭 Characters upgraded");
           return;
         }
         const st = agentState[i++];
         const p = st._upgradeChar ? st._upgradeChar() : Promise.resolve();
-        Promise.resolve(p).finally(() => setTimeout(upgradeNext, 120));
+        Promise.resolve(p).finally(() => setTimeout(upgradeNext, 280));
       };
-      setTimeout(upgradeNext, 400);
+      setTimeout(upgradeNext, 1200);
     }
 
     // Animate — CRITICAL: getDelta BEFORE getElapsedTime (else dt≈0 and nobody walks)

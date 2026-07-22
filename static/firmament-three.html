@@ -572,11 +572,12 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-22-three-v32-bootfix";
+    const BUILD = "2026-07-22-three-v33-tdz-fix";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     const bootOverlay = document.getElementById("boot-overlay");
     const bootStepEl = document.getElementById("boot-step");
+    let bootFinished = false;
     function setBootStep(msg) {
       const t = String(msg || "");
       if (statusEl) {
@@ -587,15 +588,24 @@
       console.info("[camp3d]", t);
     }
     function finishBoot(ok = true) {
+      if (bootFinished && ok) return;
+      bootFinished = true;
       if (bootOverlay) {
-        bootOverlay.classList.add("done");
-        if (!ok) {
+        if (ok) {
+          bootOverlay.classList.add("done");
+          bootOverlay.classList.remove("fail");
+          // Force hide even if CSS transition glitches
+          bootOverlay.style.opacity = "0";
+          bootOverlay.style.visibility = "hidden";
+          bootOverlay.style.pointerEvents = "none";
+        } else {
           bootOverlay.classList.remove("done");
           bootOverlay.classList.add("fail");
+          bootOverlay.style.opacity = "";
+          bootOverlay.style.visibility = "";
         }
       }
       if (ok && statusEl) {
-        // Keep a quiet free-brain stamp in the bar for a few seconds
         statusEl.hidden = false;
         statusEl.textContent = "Free Ollama meadow";
         setTimeout(() => {
@@ -605,6 +615,17 @@
         }, 5000);
       }
     }
+    // Never leave user staring at "✦ Luna Camp 3D" forever
+    setTimeout(() => {
+      if (bootFinished) return;
+      const hasCanvas = !!document.querySelector("#canvas-host canvas");
+      if (hasCanvas) {
+        setBootStep("Meadow is up — clearing boot card…");
+        finishBoot(true);
+      } else {
+        setBootStep("Still loading… if stuck, Ctrl+Shift+R or run OPEN_FREE_3D_CAMP.bat");
+      }
+    }, 8000);
     function showBootError(msg) {
       console.error(msg);
       const text = String(msg && msg.message ? msg.message : msg);
@@ -1365,10 +1386,18 @@
     }
     for (const prop of PROPS) spawnProp(prop);
     console.info("[camp3d] spawned props", propMeshes.length, PROPS.map((p) => p.id).join(","));
-    // Big toast so you know objects loaded (not empty catalog)
+    // Friendly success chip — old text "15 camp objects · api" read like an error
     setTimeout(() => {
       try {
-        showToast?.(`📦 ${propMeshes.length} camp objects · ${catalogSource}`);
+        const src =
+          catalogSource === "api" || catalogSource === "loaded"
+            ? "meadow ready"
+            : catalogSource === "static"
+              ? "offline catalog"
+              : catalogSource === "embedded"
+                ? "built-in props"
+                : String(catalogSource || "ready");
+        showToast?.(`✦ Camp up · ${propMeshes.length} props · ${src}`);
       } catch (_) {}
     }, 900);
 
@@ -2143,10 +2172,7 @@
 
     const keys = { w: false, a: false, s: false, d: false };
 
-    refreshWhoSelect();
-    whoEl.value = "luna";
-
-    // Big talk window + shared dialogue tape + digital ethereal memory
+    // Big talk window refs MUST exist before refreshWhoSelect (const TDZ froze boot card)
     const chat3dPanel = document.getElementById("chat3d-panel");
     const chat3dThread = document.getElementById("chat3d-thread");
     const chat3dWho = document.getElementById("chat3d-who");
@@ -2161,6 +2187,10 @@
     } catch (_) {
       campBridgeMod = null;
     }
+
+    refreshWhoSelect();
+    if (whoEl) whoEl.value = "luna";
+    if (chat3dWho && [...chat3dWho.options].some((o) => o.value === "luna")) chat3dWho.value = "luna";
 
     function refreshEtherealHud() {
       try {
@@ -3114,7 +3144,10 @@
     }
 
     function refreshWhoSelect() {
-      const cur = whoEl?.value || chat3dWho?.value || "luna";
+      // Always resolve DOM live — never touch unbound consts mid-boot
+      const whoSel = whoEl || document.getElementById("who-select");
+      const chatSel = document.getElementById("chat3d-who");
+      const cur = whoSel?.value || chatSel?.value || "luna";
       const fill = (sel) => {
         if (!sel) return;
         sel.innerHTML = "";
@@ -3132,7 +3165,6 @@
           homes.label = "Houses";
           for (const h of HOUSES) {
             const opt = document.createElement("option");
-            // Talk resolves to owner / house id (same as catalog)
             opt.value = h.id;
             opt.textContent = `${h.emoji || "🏠"} ${h.name}`;
             homes.appendChild(opt);
@@ -3142,8 +3174,8 @@
         if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
         else if (sel.options.length) sel.selectedIndex = 0;
       };
-      fill(whoEl);
-      fill(chat3dWho);
+      fill(whoSel);
+      fill(chatSel);
     }
 
     function summonAgentIds(ids) {

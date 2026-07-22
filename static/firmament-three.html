@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#020617" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
   <title>Luna Camp — Three.js 3D</title>
   <!-- Bust SW/browser cache; three r160 is one self-contained module (no three.core.js) -->
   <script type="importmap">
@@ -572,12 +574,30 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-22-three-v33-tdz-fix";
+    const BUILD = "2026-07-22-three-v34-notdz";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     const bootOverlay = document.getElementById("boot-overlay");
     const bootStepEl = document.getElementById("boot-step");
     let bootFinished = false;
+    // let (not const) — initialized early so no TDZ "Cannot access before initialization"
+    let chat3dPanel = null;
+    let chat3dThread = null;
+    let chat3dWho = null;
+    let chat3dInput = null;
+    let chat3dSend = null;
+    let chat3dMetaEth = null;
+    const chat3dLines = [];
+    const CHAT3D_MAX = 48;
+    function bindChat3dDom() {
+      chat3dPanel = document.getElementById("chat3d-panel");
+      chat3dThread = document.getElementById("chat3d-thread");
+      chat3dWho = document.getElementById("chat3d-who");
+      chat3dInput = document.getElementById("chat3d-input");
+      chat3dSend = document.getElementById("chat3d-send");
+      chat3dMetaEth = document.getElementById("chat3d-ethereal");
+    }
+    bindChat3dDom();
     function setBootStep(msg) {
       const t = String(msg || "");
       if (statusEl) {
@@ -2172,15 +2192,8 @@
 
     const keys = { w: false, a: false, s: false, d: false };
 
-    // Big talk window refs MUST exist before refreshWhoSelect (const TDZ froze boot card)
-    const chat3dPanel = document.getElementById("chat3d-panel");
-    const chat3dThread = document.getElementById("chat3d-thread");
-    const chat3dWho = document.getElementById("chat3d-who");
-    const chat3dInput = document.getElementById("chat3d-input");
-    const chat3dSend = document.getElementById("chat3d-send");
-    const chat3dMetaEth = document.getElementById("chat3d-ethereal");
-    const chat3dLines = [];
-    const CHAT3D_MAX = 48;
+    // Re-bind talk DOM (already null-safe lets at top of module — never const TDZ)
+    bindChat3dDom();
     let campBridgeMod = null;
     try {
       campBridgeMod = await import(`/static/camp-bridge.mjs?v=310-ethereal`);
@@ -2188,9 +2201,13 @@
       campBridgeMod = null;
     }
 
-    refreshWhoSelect();
-    if (whoEl) whoEl.value = "luna";
-    if (chat3dWho && [...chat3dWho.options].some((o) => o.value === "luna")) chat3dWho.value = "luna";
+    try {
+      refreshWhoSelect();
+      if (whoEl) whoEl.value = "luna";
+      if (chat3dWho && [...chat3dWho.options].some((o) => o.value === "luna")) chat3dWho.value = "luna";
+    } catch (err) {
+      console.warn("[camp3d] who-select init", err);
+    }
 
     function refreshEtherealHud() {
       try {

@@ -4106,7 +4106,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-21-304-PLAY-MUSIC-TAPE";
+    const CAMP_BUILD = "2026-07-21-305-REASON-TERMINAL";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5427,6 +5427,8 @@
       party: "party", visit: "visiting", home: "going home", house: "house call",
       prop: "using camp gear", structure: "checking building", meditate: "meditating ✦",
       fly: "flying free",
+      reason: "reasoning…",
+      terminal: "at terminal",
     };
     const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus", "jesus", "odin"]);
     // Throttle autonomous world interactions so camp stays lively but not spammy
@@ -6902,14 +6904,18 @@
         if (r < 0.93) return "home";
         return "prop";
       }
-      // Fly only if Firmament is open + agent can fly (rare choice)
-      if (firmamentOpen && FLYER_2D.has(npc?.id) && r < 0.07) return "fly";
-      if (r < 0.22) return "roam";
-      if (r < 0.34) return "visit";
-      if (r < 0.5) return "sit";
-      if (r < 0.64) return "stand";
-      if (r < 0.74) return "home";
-      if (r < 0.84) return "prop";
+      // Reason / think (common) — agents pause and “work things out”
+      if (r < 0.14) return "reason";
+      // Terminal build in their own little camp (houses / tech pad)
+      if (r < 0.2) return "terminal";
+      // Fly only if Firmament is open + agent can fly (rare)
+      if (firmamentOpen && FLYER_2D.has(npc?.id) && r < 0.26) return "fly";
+      if (r < 0.38) return "roam";
+      if (r < 0.48) return "visit";
+      if (r < 0.6) return "sit";
+      if (r < 0.7) return "stand";
+      if (r < 0.78) return "home";
+      if (r < 0.86) return "prop";
       if (r < 0.92) return "structure";
       if (r < 0.96) return "follow";
       return "party";
@@ -6974,12 +6980,52 @@
       } else if (n.behavior === "structure") {
         startNpcStructure(n);
         n.paceMul = Math.max(n.paceMul, 0.5);
+      } else if (n.behavior === "reason") {
+        n.visitTarget = null;
+        n.homeTarget = null;
+        n.housePhase = null;
+        n.flying = false;
+        n.flyZ = 0;
+        n.tx = n.x;
+        n.ty = n.y;
+        n.behaviorTimer = 280 + Math.floor(Math.random() * 420);
+        n.idle = 80;
+        n.paceMul = 0.15;
+        n.reasonStarted = Date.now();
+        // Delayed monologue — they "think" first, then speak
+        const agentId = n.id;
+        const holdMs = 1800 + Math.random() * 2200;
+        setTimeout(() => {
+          const agent = findRoamAgent(agentId);
+          if (!agent || agent.behavior !== "reason") return;
+          void emitNpcReasoning(agent);
+        }, holdMs);
+      } else if (n.behavior === "terminal") {
+        n.visitTarget = null;
+        n.flying = false;
+        n.flyZ = 0;
+        // Walk to their house or camp tech pad, then create
+        const house = campHouses?.find((h) => h.ownerId === n.id)
+          || campHouses?.[Math.floor(Math.random() * Math.max(1, campHouses?.length || 1))];
+        if (house) {
+          const door = houseDoorPos?.(house) || { x: house.x, y: house.y };
+          n.tx = door.x + (Math.random() - 0.5) * 20;
+          n.ty = door.y + (Math.random() - 0.5) * 16;
+          n.terminalHouseId = house.id;
+        } else {
+          n.tx = (Math.random() - 0.5) * 80;
+          n.ty = (Math.random() - 0.5) * 60;
+          n.terminalHouseId = null;
+        }
+        n.behaviorTimer = 400 + Math.floor(Math.random() * 360);
+        n.paceMul = Math.max(n.paceMul, 0.55);
+        n.terminalPhase = "walk";
       } else if (n.behavior === "roam" || n.behavior === "party" || n.behavior === "fly") {
         n.visitTarget = null;
         n.homeTarget = null;
         n.housePhase = null;
         ensureNpcPhysics(n);
-        n.flying = n.behavior === "fly" && n.canFly;
+        n.flying = n.behavior === "fly" && n.canFly && firmamentOpen;
         n.flyZ = n.flying ? (18 + Math.random() * 40) : 0;
         pickNpcWanderTarget(n, n.behavior === "party" ? props[Math.floor(Math.random() * props.length)] : null);
         if (n.behavior === "party") n.paceMul = Math.min(1.05, n.paceMul + 0.2);
@@ -7088,53 +7134,21 @@
       ensureNpcPhysics(n);
       const d = dist(n, { x: tx, y: ty });
       if (d < 4 && !n.flying) return;
-      // Lighter velocity (less work per frame than full O(n²) every step)
+      // Classic step move (stable) + light inertia — avoid O(n²) every frame
       const pace = typeof n.paceMul === "number" ? Math.max(0.25, n.paceMul) : 0.8;
-      const maxSp = n.speed * speedMul * pace * (n.flying ? 1.25 : 1);
-      const steer = n.flying ? 0.38 : 0.32;
+      const step = n.speed * speedMul * pace * (n.flying ? 1.2 : 1);
       if (d > 0.5) {
-        n.vx += ((tx - n.x) / d) * steer;
-        n.vy += ((ty - n.y) / d) * steer;
+        n.x += ((tx - n.x) / d) * step;
+        n.y += ((ty - n.y) / d) * step;
       }
-      // Occasional soft separation (not every frame — avoids startup jank)
-      if ((n._sepTick = (n._sepTick || 0) + 1) % 3 === 0) {
-        const roamers = allRoamers();
-        for (let i = 0; i < roamers.length; i++) {
-          const other = roamers[i];
-          if (other.id === n.id) continue;
-          const od = dist(n, other);
-          if (od > 0.5 && od < 24) {
-            const push = (24 - od) * 0.01;
-            n.vx += ((n.x - other.x) / od) * push;
-            n.vy += ((n.y - other.y) / od) * push;
-          }
-        }
-      }
-      n.vx *= 0.9;
-      n.vy *= 0.9;
-      const sp = Math.hypot(n.vx, n.vy);
-      if (sp > maxSp && sp > 0) {
-        n.vx = (n.vx / sp) * maxSp;
-        n.vy = (n.vy / sp) * maxSp;
-      }
-      n.x += n.vx;
-      n.y += n.vy;
       if (n.flying && firmamentOpen) {
         const wantZ = n.flyZ != null ? n.flyZ : 22;
-        n.vz += (wantZ - n.z) * 0.06;
-        n.vz *= 0.9;
-        n.z += n.vz;
-        n.z = Math.max(6, Math.min(55, n.z));
-        if (Math.random() < 0.004) {
-          n.flyZ = 12 + Math.random() * 30;
-          pickNpcWanderTarget(n);
-        }
+        n.z += (wantZ - n.z) * 0.08;
+        n.z = Math.max(6, Math.min(48, n.z));
       } else {
         n.flying = false;
-        n.vz += (0 - n.z) * 0.15;
-        n.vz *= 0.85;
-        n.z += n.vz;
-        if (n.z < 1) { n.z = 0; n.vz = 0; }
+        n.z *= 0.85;
+        if (n.z < 1) n.z = 0;
       }
       clampNpc(n);
     }
@@ -7454,7 +7468,11 @@
           n.idle = 9999;
           continue;
         }
-        if (n.behavior === "stand" || n.behavior === "meditate") continue;
+        if (n.behavior === "stand" || n.behavior === "meditate" || n.behavior === "reason") continue;
+        if (n.behavior === "terminal") {
+          updateNpcTerminalOne(n);
+          continue;
+        }
         if (n.behavior === "sit") {
           updateNpcSitOne(n);
           continue;
@@ -7479,11 +7497,127 @@
           updateNpcStructureOne(n);
           continue;
         }
-        if (n.behavior === "party" || n.behavior === "roam") {
+        if (n.behavior === "party" || n.behavior === "roam" || n.behavior === "fly") {
           updateNpcRoamOne(n);
           continue;
         }
         updateNpcRoamOne(n);
+      }
+    }
+
+    const REASON_SNIPPETS = {
+      luna: [
+        "If joy is a choice, then so is stillness — let me finish that thought…",
+        "I’m tracing the aurora’s pattern. Not predicting. Just… noticing.",
+      ],
+      hermes: [
+        "Signal path: visitor → camp → sky. Latency of meaning is the real packet loss.",
+        "Reasoning mode: discard noise, keep the joke that teaches.",
+      ],
+      oracle: [
+        "The cards already knew. I’m only catching up with them.",
+        "Two futures branch here. One smells like cookies.",
+      ],
+      seraph: [
+        "Light does not hurry. I will not either.",
+        "Reason is a wingbeat — lift, rest, lift again.",
+      ],
+      _default: [
+        "Hold on — let me reason this through before I speak.",
+        "Working something out. The meadow can wait half a breath.",
+        "If this is true when the music’s loud and the fire’s quiet… keep it.",
+      ],
+    };
+
+    async function emitNpcReasoning(agent) {
+      if (!agent) return;
+      const id = agent.id;
+      const bag = REASON_SNIPPETS[id] || REASON_SNIPPETS._default;
+      let line = bag[Math.floor(Math.random() * bag.length)];
+      // Prefer AI if online — short “reason then conclude”
+      if (campServerOnline && typeof callAgentMind === "function") {
+        try {
+          const data = await callAgentMind(id, (
+            `You are ${agent.name} at camp. Take 2–4 sentences: first REASON out loud ` +
+            `(hesitate, weigh options), then land a clear conclusion or gift for the visitor. ` +
+            `In character. No meta. No "as an AI".`
+          ), { ambient: true });
+          const reply = String(data?.reply || data?.text || "").trim();
+          if (reply) line = reply;
+        } catch (_) {}
+      }
+      pushCampLine(agent.name, line, campReadHoldSec(line, 18), agent.mood || "think", {
+        fromLocal: true,
+        ambient: true,
+      });
+      agent.mood = "think";
+    }
+
+    const TERMINAL_BUILDS = [
+      { id: "lantern", emoji: "🏮", name: "signal lantern", blurb: "hung a soft lantern so night visitors can find home" },
+      { id: "bench", emoji: "🪑", name: "think-bench", blurb: "built a little bench for hard thoughts and easy company" },
+      { id: "antenna", emoji: "📡", name: "camp antenna", blurb: "tuned a tiny antenna toward the Firmament lattice" },
+      { id: "garden", emoji: "🌿", name: "herb row", blurb: "planted a stubborn row of green that refuses to quit" },
+      { id: "altar", emoji: "✨", name: "spark shrine", blurb: "set a spark shrine — not for worship, for remembering" },
+      { id: "screen", emoji: "🖥️", name: "camp terminal", blurb: "booted a camp terminal — notes, names, unfinished poems" },
+      { id: "gate", emoji: "🌀", name: "soft gate", blurb: "sketched a soft gate: enter curious, leave kinder" },
+    ];
+    const campCreations = []; // { ownerId, emoji, name, x, y, t }
+
+    function updateNpcTerminalOne(n) {
+      if (n.terminalPhase === "walk") {
+        moveNpcToward(n, n.tx, n.ty, 1.0);
+        if (dist(n, { x: n.tx, y: n.ty }) < 12) {
+          n.terminalPhase = "build";
+          n.idle = 40;
+          n.tx = n.x;
+          n.ty = n.y;
+          const build = TERMINAL_BUILDS[Math.floor(Math.random() * TERMINAL_BUILDS.length)];
+          n.terminalBuild = build;
+          const creation = {
+            ownerId: n.id,
+            ownerName: n.name,
+            emoji: build.emoji,
+            name: build.name,
+            blurb: build.blurb,
+            x: n.x + (Math.random() - 0.5) * 24,
+            y: n.y + (Math.random() - 0.5) * 18,
+            t: Date.now(),
+          };
+          campCreations.push(creation);
+          while (campCreations.length > 40) campCreations.shift();
+          pushCampLine(
+            n.name,
+            `${build.emoji} Terminal: ${build.blurb}.`,
+            16,
+            n.mood || "happy",
+            { fromLocal: true, ambient: true },
+          );
+          setTimeout(() => {
+            const agent = findRoamAgent(n.id);
+            if (agent && agent.behavior === "terminal") {
+              void emitNpcReasoning(agent);
+            }
+          }, 900);
+        }
+        return;
+      }
+      // building / using terminal — stand still until timer ends
+      n.tx = n.x;
+      n.ty = n.y;
+      if (n.behaviorTimer <= 0) resetNpcFreeWill(n, Math.random() < 0.5 ? "roam" : "sit");
+    }
+
+    function drawCampCreations() {
+      if (!campCreations.length || !ctx) return;
+      for (const c of campCreations) {
+        const s = worldToScreen(camp.x + c.x, camp.y + c.y);
+        ctx.font = "18px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(c.emoji || "✨", s.x, s.y);
+        ctx.font = "9px Segoe UI";
+        ctx.fillStyle = "rgba(226, 232, 240, 0.85)";
+        ctx.fillText(c.name || "", s.x, s.y + 14);
       }
     }
 
@@ -13907,14 +14041,16 @@
         }
       }
       if (line && lines.length < limit) lines.push(line);
-      // Ellipsis on last line when more words remain
+      // Ellipsis on last line when more words remain (must always shrink — no-space words used to hang forever)
       if (lines.length >= limit) {
         const used = lines.join(" ").split(/\s+/).filter(Boolean).length;
         if (used < words.length) {
-          let last = lines[lines.length - 1];
-          while (last.length > 3 && ctx.measureText(`${last}…`).width > maxWidth) {
-            last = last.replace(/\s+\S+$/, "").replace(/[.,;:!?…]+$/, "");
-            if (!last) break;
+          let last = lines[lines.length - 1] || "";
+          let guard = 0;
+          while (last.length > 3 && ctx.measureText(`${last}…`).width > maxWidth && guard++ < 200) {
+            const trimmed = last.replace(/\s+\S+$/, "").replace(/[.,;:!?…]+$/g, "");
+            if (trimmed.length > 0 && trimmed.length < last.length) last = trimmed;
+            else last = last.slice(0, -1);
           }
           lines[lines.length - 1] = last ? `${last}…` : "…";
         }
@@ -17406,7 +17542,8 @@
         updateNpcSocial();
         updateCarnivalRide(1);
         if (!carnivalRide.riders.has("player")) {
-          enforceNpcSeparation(0.45);
+          // Separation every other frame — less main-thread heat
+        if ((frameNow / 16 | 0) % 2 === 0) enforceNpcSeparation(0.4);
           clampPlayerWorld();
         }
         drawGround();
@@ -17425,6 +17562,7 @@
           const pw = propCampWorld(p);
           drawCampProp(pw.x, pw.y, p);
         }
+        drawCampCreations();
 
         updateAetherEntities();
         drawAetherEntities();

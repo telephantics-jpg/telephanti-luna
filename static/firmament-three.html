@@ -1525,9 +1525,13 @@
         return "sit";
       }
 
+      const wReason = 0.55 + p.curiosity * 0.45 + (p.mood === "think" ? 0.35 : 0);
+      const wTerminal = 0.35 + p.curiosity * 0.5 + p.energy * 0.2;
       const bag = [
         ["sit", wSit],
         ["idle", wIdle],
+        ["reason", wReason],
+        ["terminal", wTerminal],
         ["wander", wWander],
         ["fly", wFly],
         ["social", wSocial],
@@ -1561,6 +1565,47 @@
         st.action = "idle";
         st.nextDecideAt = performance.now() + 10000 + p.rest * 14000 + Math.random() * 6000;
         return "idle";
+      }
+      if (choice === "reason") {
+        st.moving = false;
+        st.flying = false;
+        st.target.copy(st.mesh.position);
+        st.target.y = 0;
+        st.action = "reason";
+        st.posture = "stand";
+        st.nextDecideAt = performance.now() + 9000 + Math.random() * 8000;
+        // Speak after a thinking beat
+        setTimeout(() => {
+          if (st.action !== "reason") return;
+          chatAgent(
+            st.def.id,
+            `You pause to REASON out loud at camp: 2–4 sentences — first weigh options / doubt, then a clear conclusion. In character. No meta.`,
+            true,
+          );
+        }, 1600 + Math.random() * 1800);
+        return "reason";
+      }
+      if (choice === "terminal") {
+        // Walk to Firmament beacon / own house zone and "create"
+        freeSeat(st);
+        const toBeacon = Math.random() < 0.55 && techBeacon;
+        if (toBeacon) {
+          st.target.set(
+            techBeacon.position.x + (Math.random() - 0.5) * 2,
+            0,
+            techBeacon.position.z + (Math.random() - 0.5) * 2,
+          );
+        } else {
+          const a = Math.random() * Math.PI * 2;
+          const r = 3 + Math.random() * 6;
+          st.target.set(st.home.x + Math.cos(a) * r, 0, st.home.z + Math.sin(a) * r);
+        }
+        st.flying = false;
+        st.moving = true;
+        st.action = "terminal";
+        st.pendingTerminal = true;
+        st.nextDecideAt = performance.now() + 16000 + Math.random() * 8000;
+        return "terminal";
       }
       if (choice === "fly" && st.canFly && firmamentOpen3d) {
         pickRoamTarget(st, { fly: true });
@@ -2941,6 +2986,25 @@
           else if (st.pendingProp && st.action === "prop") {
             st.pendingProp = false;
             agentUseProp(st);
+          } else if (st.pendingTerminal && st.action === "terminal") {
+            st.pendingTerminal = false;
+            const builds = [
+              "signal lantern", "think-bench", "camp antenna", "herb row",
+              "spark shrine", "camp terminal", "soft gate",
+            ];
+            const item = builds[Math.floor(Math.random() * builds.length)];
+            logLine(st.def.name, `🖥️ Terminal: built a ${item} for their little camp.`);
+            showToast(`🖥️ ${st.def.name} → ${item}`);
+            showSpeech3d(st.def.id, `Terminal online. I made a ${item} — rough, but mine.`, 16000);
+            setTimeout(() => {
+              if (st.action === "terminal") {
+                chatAgent(
+                  st.def.id,
+                  `You just built a ${item} at your camp terminal. In 2–3 sentences: why you made it, then one line of reason about what camp still needs. In character.`,
+                  true,
+                );
+              }
+            }, 1200);
           } else if (st.wantSitAfter && st.action === "fire") {
             st.wantSitAfter = false;
             const seat = findFreeSeat(pos);

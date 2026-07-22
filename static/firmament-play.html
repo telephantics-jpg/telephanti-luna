@@ -12905,7 +12905,8 @@
           cleanMessage: campAmbientPrompt(npc, opts.replyTo).slice(0, 500),
         });
         if (!data?.reply) throw new Error(data?.detail || "ambient failed");
-        const line = String(data.reply || "").trim();
+        const seed = campAmbientPrompt(npc, opts.replyTo);
+        let line = spokenOnly(data.reply || data.text || "", seed);
         if (!line) throw new Error("empty ambient");
         const words = line.split(/\s+/).filter(Boolean).length;
         // Prefer live Ollama/cloud; accept long aether monologues over short canned idle

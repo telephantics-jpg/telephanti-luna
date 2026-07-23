@@ -71,41 +71,82 @@ export function mountCampFeatures(opts) {
   root.id = "camp-feature-root";
   root.innerHTML = `
     <style>
-      /* Below speech bubbles (z~48–55) so chat boxes stay clickable on PC */
-      #camp-feature-root { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+      /* Above meadow UI, below speech bubbles (200) */
+      #camp-feature-root { position: fixed; inset: 0; pointer-events: none; z-index: 55; }
+      /* ALWAYS-VISIBLE hot tools — center under topbar (2D free-tools parity) */
+      #camp-feature-root .feat-hotbar {
+        pointer-events: auto; position: fixed; left: 50%; transform: translateX(-50%);
+        top: max(54px, calc(env(safe-area-inset-top, 0px) + 46px));
+        z-index: 56; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+        max-width: min(96vw, 760px); padding: 8px 10px;
+        background: rgba(6, 10, 22, 0.92); border: 1px solid rgba(196, 181, 253, 0.55);
+        border-radius: 16px; box-shadow: 0 8px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(103,232,249,0.12);
+      }
+      #camp-feature-root .feat-hotbar button {
+        background: linear-gradient(135deg, rgba(76,29,149,0.92), rgba(30,27,75,0.96));
+        border: 2px solid rgba(196,181,253,0.85); color: #f5f3ff;
+        border-radius: 999px; padding: 9px 14px; font: inherit; font-size: 0.8rem; font-weight: 800;
+        cursor: pointer; line-height: 1.2; white-space: nowrap;
+        box-shadow: 0 0 0 0 rgba(167,139,250,0.45), 0 4px 14px rgba(0,0,0,0.4);
+        animation: feat-hot-pulse 2.6s ease-in-out infinite;
+      }
+      #camp-feature-root .feat-hotbar button.feat-unknown {
+        border-color: rgba(251,191,36,0.9); color: #fffbeb;
+        background: linear-gradient(135deg, rgba(120,53,15,0.95), rgba(76,29,149,0.9));
+        animation: feat-hot-pulse 1.8s ease-in-out infinite;
+      }
+      #camp-feature-root .feat-hotbar button.feat-heaven {
+        border-color: rgba(253,230,138,0.85); color: #fef3c7;
+        background: linear-gradient(135deg, rgba(66,32,6,0.95), rgba(253,230,138,0.28));
+      }
+      #camp-feature-root .feat-hotbar button:hover {
+        border-color: #fde68a; filter: brightness(1.1); animation: none;
+      }
+      @keyframes feat-hot-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.5), 0 4px 14px rgba(0,0,0,0.4); }
+        50% { box-shadow: 0 0 0 7px rgba(167,139,250,0), 0 4px 14px rgba(0,0,0,0.4); }
+      }
       #camp-feature-root .feat-dock-wrap {
-        pointer-events: auto; position: fixed; left: 8px; top: 50%; transform: translateY(-50%);
-        display: flex; flex-direction: column; align-items: flex-start; gap: 5px; z-index: 46;
+        pointer-events: auto; position: fixed;
+        left: max(8px, env(safe-area-inset-left, 0px));
+        top: max(118px, calc(env(safe-area-inset-top, 0px) + 108px));
+        transform: none;
+        display: flex; flex-direction: column; align-items: flex-start; gap: 6px; z-index: 54;
       }
       #camp-feature-root .feat-dock-toggle {
-        background: rgba(8,14,28,0.96); border: 1px solid rgba(103,232,249,0.55); color: #67e8f9;
-        border-radius: 999px; padding: 8px 11px; font: inherit; font-size: 0.72rem; font-weight: 800;
-        cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.45); min-width: 0; line-height: 1.2;
+        background: linear-gradient(135deg, rgba(14,116,144,0.95), rgba(30,41,59,0.95));
+        border: 1px solid rgba(103,232,249,0.55); color: #e0f2fe;
+        border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 0.72rem; font-weight: 700;
+        cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        min-width: 0; line-height: 1.2;
       }
-      #camp-feature-root .feat-dock-toggle:hover { border-color: #67e8f9; background: rgba(15,30,50,0.98); }
+      #camp-feature-root .feat-dock-toggle:hover { border-color: #fde68a; filter: brightness(1.08); }
       #camp-feature-root .feat-dock-toggle[aria-expanded="true"] {
-        border-color: #fbbf24; color: #fde68a;
+        border-color: #67e8f9; color: #a5f3fc;
       }
-      /* Minimized by default — only the ✦ menu chip shows until expanded */
       #camp-feature-root .feat-dock {
-        display: none !important; flex-direction: column; gap: 4px; max-height: 68vh; overflow-y: auto;
-        padding: 4px; background: rgba(6,10,20,0.88); border: 1px solid rgba(103,232,249,0.28);
-        border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        display: flex; flex-direction: column; gap: 5px; max-height: min(55vh, 420px); overflow-y: auto;
+        padding: 6px; background: rgba(6,10,20,0.94); border: 1px solid rgba(103,232,249,0.35);
+        border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
       }
-      #camp-feature-root .feat-dock.open { display: flex !important; }
+      #camp-feature-root .feat-dock.collapsed { display: none !important; }
       #camp-feature-root .feat-dock button {
-        background: rgba(8,14,28,0.94); border: 1px solid rgba(103,232,249,0.4); color: #67e8f9;
-        border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 0.68rem; cursor: pointer;
-        text-align: left; min-width: 0; max-width: 120px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+        background: rgba(8,14,28,0.96); border: 1px solid rgba(103,232,249,0.45); color: #e0f2fe;
+        border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 0.74rem; font-weight: 700; cursor: pointer;
+        text-align: left; min-width: 0; max-width: 168px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;
       }
-      #camp-feature-root .feat-dock button:hover { border-color: #67e8f9; background: rgba(15,30,50,0.98); }
+      #camp-feature-root .feat-dock button:hover { border-color: #67e8f9; background: rgba(15,30,50,0.98); color: #67e8f9; }
+      #camp-feature-root .feat-dock button.feat-hot {
+        border-color: rgba(196,181,253,0.85); color: #f5f3ff;
+        background: linear-gradient(135deg, rgba(76,29,149,0.75), rgba(30,27,75,0.95));
+      }
       #camp-feature-root .feat-panel {
         pointer-events: auto; display: none; position: fixed; left: 50%; top: 50%;
         transform: translate(-50%,-50%); width: min(440px, 94vw); max-height: 78vh; overflow: auto;
         background: rgba(6,10,22,0.98); border: 1px solid rgba(103,232,249,0.45); border-radius: 16px;
         padding: 16px 16px 18px; color: #e2e8f0; font-size: 0.86rem; line-height: 1.45;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.55); z-index: 47;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.55); z-index: 60;
       }
       #camp-feature-root .feat-panel.open { display: block; }
       #camp-feature-root .feat-panel h3 { color: #67e8f9; margin: 0 0 6px; font-size: 1.05rem; }
@@ -139,14 +180,20 @@ export function mountCampFeatures(opts) {
       #camp-feature-root .err { color: #fca5a5; }
       #camp-feature-root .ok { color: #86efac; }
       @media (max-width: 640px) {
-        #camp-feature-root .feat-dock-wrap { left: 6px; }
+        #camp-feature-root .feat-hotbar {
+          top: max(96px, calc(env(safe-area-inset-top, 0px) + 88px));
+          gap: 5px; padding: 6px;
+        }
+        #camp-feature-root .feat-hotbar button { font-size: 0.68rem; padding: 7px 10px; }
+        #camp-feature-root .feat-dock-wrap { left: 6px; top: max(160px, calc(env(safe-area-inset-top, 0px) + 150px)); }
         #camp-feature-root .feat-dock button { font-size: 0.6rem; padding: 3px 8px; max-width: 96px; }
       }
     </style>
+    <div class="feat-hotbar" id="feat-hotbar" role="toolbar" aria-label="Camp hot tools"></div>
     <div class="feat-dock-wrap" id="feat-dock-wrap">
       <button type="button" class="feat-dock-toggle" id="feat-dock-toggle"
-        aria-expanded="false" aria-controls="feat-dock" title="Show / hide camp tools">✦ Menu</button>
-      <div class="feat-dock" id="feat-dock" role="group" aria-label="Camp actions"></div>
+        aria-expanded="false" aria-controls="feat-dock" title="More camp tools — Shop, TV, Club…">✦ More tools</button>
+      <div class="feat-dock collapsed" id="feat-dock" role="group" aria-label="More camp actions"></div>
     </div>
     <div class="feat-panel" id="feat-panel" role="dialog" aria-modal="true">
       <button type="button" class="feat-close" id="feat-close">Close</button>
@@ -157,6 +204,7 @@ export function mountCampFeatures(opts) {
   `;
   document.body.appendChild(root);
 
+  const hotbar = root.querySelector("#feat-hotbar");
   const dock = root.querySelector("#feat-dock");
   const dockToggle = root.querySelector("#feat-dock-toggle");
   const panel = root.querySelector("#feat-panel");
@@ -165,23 +213,27 @@ export function mountCampFeatures(opts) {
   const bodyEl = root.querySelector("#feat-body");
   root.querySelector("#feat-close").onclick = () => panel.classList.remove("open");
 
-  const DOCK_KEY = "luna-3d-feat-dock-open";
+  // Extra tools dock can stay collapsed — hot tools are always on the center strip
+  const DOCK_KEY = "luna-3d-feat-dock-open-v3";
   function setDockOpen(open) {
-    dock.classList.toggle("open", !!open);
+    dock.classList.toggle("collapsed", !open);
     dockToggle.setAttribute("aria-expanded", open ? "true" : "false");
-    dockToggle.textContent = open ? "✕ Hide" : "✦ Menu";
-    dockToggle.title = open ? "Minimize tools" : "Expand camp tools (Music, Shop, TV…)";
+    dockToggle.textContent = open ? "✕ Hide extra" : "✦ More tools";
+    dockToggle.title = open
+      ? "Hide Shop / TV / Club / Pulse"
+      : "Shop, Lucid TV, Club, Pulse, music…";
     try { localStorage.setItem(DOCK_KEY, open ? "1" : "0"); } catch (_) {}
   }
-  // Always start minimized unless user left it open last time
   let startOpen = false;
-  try { startOpen = localStorage.getItem(DOCK_KEY) === "1"; } catch (_) {}
+  try {
+    if (localStorage.getItem(DOCK_KEY) === "1") startOpen = true;
+  } catch (_) {}
   setDockOpen(startOpen);
 
   dockToggle.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setDockOpen(!dock.classList.contains("open"));
+    setDockOpen(dock.classList.contains("collapsed"));
   });
 
   function openPanel(title, sub, html) {
@@ -189,24 +241,111 @@ export function mountCampFeatures(opts) {
     subEl.textContent = sub || "";
     bodyEl.innerHTML = html || "";
     panel.classList.add("open");
-    // Minimize the 8 icons while a panel is open
-    setDockOpen(false);
   }
 
-  function addBtn(label, onClick, show = true) {
-    if (!show) return null;
+  function makeBtn(label, onClick, extraClass = "") {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = label;
     b.title = label;
+    if (extraClass) b.className = extraClass;
     b.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       onClick();
     });
+    return b;
+  }
+
+  /** Always-visible center strip (2D free-tools parity) */
+  function addHotBtn(label, onClick, extraClass = "") {
+    const b = makeBtn(label, onClick, extraClass);
+    hotbar.appendChild(b);
+    return b;
+  }
+
+  /** Secondary tools in left “More tools” list */
+  function addBtn(label, onClick, show = true, hot = false) {
+    if (!show) return null;
+    const b = makeBtn(label, onClick, hot ? "feat-hot" : "");
     dock.appendChild(b);
     return b;
   }
+
+  // ── HOTBAR first (always on screen — no menu needed) ──
+  function runMysteriousUnknown() {
+    showToast("❓ Frequency opens…");
+    if (typeof opts.onConjureUnknown === "function") {
+      openPanel(
+        "Mysterious Unknown",
+        "Not evil — ancient & curious",
+        "<p>Tearing a hole in the meadow… agents turning to look.</p>",
+      );
+      return Promise.resolve()
+        .then(() => opts.onConjureUnknown())
+        .then((result) => {
+          const name = result?.name || "Unknown";
+          const line = result?.line || "";
+          bodyEl.innerHTML =
+            `<p><b>${escapeHtml(result?.glyph || "❓")} ${escapeHtml(name)}</b></p>` +
+            (line ? `<p>${escapeHtml(line)}</p>` : "<p class='sub'>Manifesting…</p>") +
+            `<p class="sub">Nearby agents are reacting on the meadow.</p>`;
+          if (line) {
+            logLine(name, line);
+            if (result?.speakId) showSpeech(result.speakId, line, 14000);
+          }
+        })
+        .catch((err) => {
+          bodyEl.innerHTML = `<p class="err">${escapeHtml(err.message || "conjure failed")}</p>`;
+        });
+    }
+    openPanel("Mysterious Unknown", "Not evil — ancient & curious", "<p>Calling Oracle…</p>");
+    return campClient
+      .agentChat(
+        "oracle",
+        "A Mysterious Unknown just arrived at camp (not evil — ancient, curious). React as Oracle in 2-4 sentences, then invite Hermes to notice the ripple.",
+        { ambient: true },
+      )
+      .then((data) => {
+        const t = data.reply || data.text || "…";
+        bodyEl.innerHTML = `<p><b>Oracle</b></p><p>${escapeHtml(t)}</p>`;
+        logLine("Oracle", t);
+        showSpeech("oracle", t, 10000);
+      })
+      .catch((err) => {
+        bodyEl.innerHTML = `<p class="err">${escapeHtml(err.message)}</p><p>You opened a frequency sealed long ago…</p>`;
+      });
+  }
+
+  if (features.mysterious_unknown !== false) {
+    addHotBtn("❓ Mysterious Unknown", () => { void runMysteriousUnknown(); }, "feat-unknown");
+  }
+  addHotBtn("✦ Heaven", () => {
+    showToast("✦ Summoning Heaven…");
+    logLine("Camp", "Heaven wave — Jesus & archangels inbound");
+    if (typeof opts.onSummonAgents === "function") {
+      opts.onSummonAgents([]); // empty = default heaven crew in host
+    } else {
+      showToast("Summon hook missing — refresh");
+    }
+  }, "feat-heaven");
+  addHotBtn("🍷 Dionysus", () => {
+    showToast("🍷 Calling Dionysus…");
+    logLine("Camp", "Dionysus wave — vineyard energy inbound");
+    if (typeof opts.onSummonAgents === "function") {
+      opts.onSummonAgents(["dionysus"]);
+    } else {
+      showToast("Summon hook missing — refresh");
+    }
+  });
+  addHotBtn("🤫 Hush", () => {
+    if (typeof opts.onHush === "function") {
+      opts.onHush();
+    } else {
+      showToast("🤫 Hush — ask camp to slow down (wire onHush for full effect)");
+      logLine("Camp", "Visitor asked for hush — leave room between lines.");
+    }
+  });
 
   // ── Music ──
   let audio = null;
@@ -494,50 +633,7 @@ export function mountCampFeatures(opts) {
     }
   }, features.x_pulse !== false);
 
-  // ── Heaven / Grok / Unknown ──
-  addBtn("✦ Heaven", () => {
-    // Prefer catalog summon tags; hard fallback so the button always does something
-    let heaven = (catalog.agents || []).filter((a) => a.summon === "heaven").map((a) => a.id);
-    if (!heaven.length) {
-      heaven = ["thor", "zeus", "michael", "gabriel", "raphael", "uriel", "jesus"];
-    }
-    // Always include jesus in the wave
-    if (!heaven.includes("jesus")) heaven.unshift("jesus");
-    showToast("✦ Calling heaven…");
-    logLine("Camp", `Heaven wave: ${heaven.join(", ")}`);
-    if (typeof onSummonAgents === "function") {
-      onSummonAgents(heaven);
-    } else {
-      showToast("Summon hook missing — refresh page");
-      logLine("Camp", "onSummonAgents not wired");
-    }
-  }, features.summon_heaven !== false);
-
-  addBtn("⚡ Grok link", () => {
-    let grok = (catalog.agents || []).filter((a) => a.summon === "grok").map((a) => a.id);
-    if (!grok.length) grok = ["ara", "mika"];
-    showToast("⚡ Linking Grok…");
-    logLine("Camp", `Grok wave: ${grok.join(", ")}`);
-    if (typeof onSummonAgents === "function") onSummonAgents(grok);
-  }, features.summon_heaven !== false);
-
-  addBtn("❓ Unknown", async () => {
-    showToast("❓ Frequency opens…");
-    openPanel("Mysterious Unknown", "Not evil — ancient & curious", "<p>Calling Oracle…</p>");
-    try {
-      const data = await campClient.agentChat(
-        "oracle",
-        "A Mysterious Unknown just arrived at camp (not evil — ancient, curious). React as Oracle in 2-4 sentences, then invite Hermes to notice the ripple.",
-        { ambient: true },
-      );
-      const t = data.reply || data.text || "…";
-      bodyEl.innerHTML = `<p><b>Oracle</b></p><p>${escapeHtml(t)}</p>`;
-      logLine("Oracle", t);
-      showSpeech("oracle", t, 10000);
-    } catch (err) {
-      bodyEl.innerHTML = `<p class="err">${escapeHtml(err.message)}</p><p>You opened a frequency sealed long ago…</p>`;
-    }
-  }, features.mysterious_unknown !== false);
+  // Hot tools live on the always-visible center strip (feat-hotbar) above.
 
   function escapeHtml(s) {
     return String(s)

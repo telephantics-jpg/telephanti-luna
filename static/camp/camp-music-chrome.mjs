@@ -21,9 +21,12 @@
 const STYLE_ID = "camp-music-chrome-css";
 
 function injectStyles() {
-  if (document.getElementById(STYLE_ID)) return;
-  const s = document.createElement("style");
-  s.id = STYLE_ID;
+  let s = document.getElementById(STYLE_ID);
+  if (!s) {
+    s = document.createElement("style");
+    s.id = STYLE_ID;
+    document.head.appendChild(s);
+  }
   s.textContent = `
   .cmc-root { position: fixed; inset: 0; pointer-events: none; z-index: 48; }
   .cmc-fab {
@@ -151,8 +154,22 @@ function injectStyles() {
     .cmc-fab { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); font-size: 0.82rem; }
     .cmc-panel { bottom: calc(156px + env(safe-area-inset-bottom, 0px)); }
   }
+  /* 3D: sit higher so it clears the bottom dock / Talk / quick-bar */
+  .cmc-root[data-scene="luna-3d"] .cmc-fab {
+    bottom: calc(188px + env(safe-area-inset-bottom, 0px));
+  }
+  .cmc-root[data-scene="luna-3d"] .cmc-panel {
+    bottom: calc(248px + env(safe-area-inset-bottom, 0px));
+  }
+  @media (max-width: 640px) {
+    .cmc-root[data-scene="luna-3d"] .cmc-fab {
+      bottom: calc(200px + env(safe-area-inset-bottom, 0px));
+    }
+    .cmc-root[data-scene="luna-3d"] .cmc-panel {
+      bottom: calc(258px + env(safe-area-inset-bottom, 0px));
+    }
+  }
   `;
-  document.head.appendChild(s);
 }
 
 function esc(s) {
@@ -177,6 +194,7 @@ export function mountCampMusicChrome(api = {}) {
   const root = document.createElement("div");
   root.id = "camp-music-chrome";
   root.className = "cmc-root";
+  root.dataset.scene = scene;
   root.innerHTML = `
     <button type="button" class="cmc-fab" id="cmc-fab" aria-expanded="false" title="Play Telephantix music">
       <span id="cmc-fab-label">♪ Play music</span>

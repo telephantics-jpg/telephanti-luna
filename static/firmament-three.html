@@ -278,6 +278,18 @@
       display: flex; flex-direction: column; gap: 8px;
     }
     /* Selected bubble — gold FRONT like 2D camp (JS sets z-index per pick — no fixed 999) */
+    /* Short greets / talk-to-all previews — not giant monologue boxes */
+    .bubble3d.compact {
+      width: min(230px, 72vw) !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: 100px !important;
+      padding: 8px 10px !important;
+      font-size: 0.76rem !important;
+      line-height: 1.35 !important;
+    }
+    .bubble3d.compact .who { font-size: 0.66rem; margin-bottom: 2px; }
+    .bubble3d.compact .say { font-size: 0.76rem; }
     .bubble3d.front {
       border-color: #fde68a !important;
       box-shadow: 0 0 0 3px rgba(253, 230, 138, 0.85), 0 14px 40px rgba(0,0,0,0.6) !important;
@@ -329,10 +341,12 @@
     }
     #quick-bar button:active { transform: scale(0.97); background: rgba(34, 211, 238, 0.15); }
     #mode-pill {
-      position: fixed; top: max(52px, calc(env(safe-area-inset-top) + 44px)); left: 50%;
+      /* Sits under the always-visible camp hotbar (Unknown / Heaven / …) */
+      position: fixed; top: max(108px, calc(env(safe-area-inset-top) + 98px)); left: 50%;
       transform: translateX(-50%); z-index: 22;
       background: rgba(8,14,28,0.88); border: 1px solid var(--border); border-radius: 999px;
       padding: 6px 14px; font-size: 0.72rem; color: #a5f3fc; pointer-events: none;
+      max-width: min(92vw, 520px); text-align: center;
     }
     .bubble3d {
       width: min(360px, 88vw) !important;
@@ -530,7 +544,7 @@
   </div>
   <div id="speech-layer"></div>
   <div id="prop-toast"></div>
-  <div id="mode-pill">👆 Tap speech = FRONT · Hold = 🔒 lock · Left: ✦ menu</div>
+  <div id="mode-pill">👆 Tap speech = FRONT · Hold = 🔒 · Center strip: ❓ Unknown · ✦ Heaven</div>
 
   <header id="topbar">
     <a id="home-telephanti" class="chip" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
@@ -561,7 +575,7 @@
     </div>
     <div id="talk-row">
       <select id="who-select" aria-label="Talk to"></select>
-      <input id="msg" type="text" maxlength="500" placeholder="Or type… tap agent / open ✦ Talk" autocomplete="off" />
+      <input id="msg" type="text" maxlength="500" placeholder="Type… pick ✦ All agents or one name" autocomplete="off" />
       <button type="button" id="send">Send</button>
     </div>
     <div id="hint">✦ Talk = big window · Tap speech FRONT · Hold 🔒 · Houses & flyers too</div>
@@ -578,13 +592,13 @@
     <div id="chat3d-meta">Digital ethereal memory · <span class="ethereal" id="chat3d-ethereal">joy · stability</span></div>
     <div id="chat3d-thread" aria-live="polite"></div>
     <div id="chat3d-compose">
-      <textarea id="chat3d-input" rows="2" maxlength="1200" placeholder="Talk to anyone or a house… open-ended, full monologues scroll inside"></textarea>
+      <textarea id="chat3d-input" rows="2" maxlength="1200" placeholder="Talk to one agent, a house, or ✦ All agents — full replies in this window"></textarea>
       <button type="button" id="chat3d-send">Send</button>
     </div>
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-23-three-v41-live";
+    const BUILD = "2026-07-23-three-v47-music-up";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     const bootOverlay = document.getElementById("boot-overlay");
@@ -1643,7 +1657,10 @@
     const agentState = [];
     const roamPoints = [];
     let aiInFlight = 0;
-    const AI_MAX = 2; // two speakers at once — meadow should feel alive
+    /** Free speech: more concurrent minds so camp doesn't feel muted. */
+    const AI_MAX = 3;
+    /** Default ON — hush button softens; free speech keeps the meadow lively. */
+    let freeSpeech3d = true;
     /** Mythic / winged agents may take off and roam the air */
     const FLYER_IDS = new Set([
       "hermes", "seraph", "zeus", "luna", "aurora", "violet",
@@ -2515,6 +2532,10 @@
     }
 
     const activeBubbles = [];
+    /** Soft cap — free speech can rotate; still avoids total chaos. */
+    const MAX_ACTIVE_BUBBLES = 5;
+    /** Every thought stays up at least this long per character. */
+    const MIN_SPEECH_MS = 5000;
     let orbitPinnedForBubble = false;
     /** Agent id the visitor last FRONT-selected (any agent — not just Hermes). */
     let selectedSpeechAgentId = "";
@@ -2896,19 +2917,83 @@
     window.addEventListener("pointercancel", clearGeoHold, true);
     window.addEventListener("pointermove", onGlobalBubbleMove, true);
 
-    /** Hold speech bubbles long enough to actually read (~3.5 words/sec + pad). */
-    function speechReadMs(text, minMs = 22000) {
+    /**
+     * Hold speech long enough to read (~3.5 words/sec + pad).
+     * Floor: MIN_SPEECH_MS (5s) so each character's thought can be seen.
+     */
+    function speechReadMs(text, minMs = MIN_SPEECH_MS) {
       const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
-      const byWords = Math.round((words / 3.5) * 1000) + 8000;
-      return Math.max(minMs, Math.min(byWords, 55000));
+      const byWords = Math.round((words / 3.5) * 1000) + 6000;
+      return Math.max(minMs, MIN_SPEECH_MS, Math.min(byWords, 48000));
     }
 
-    function showSpeech3d(agentId, text, ms = 22000) {
+    function bubbleIsProtected(b) {
+      if (!b) return false;
+      if (b.holdLocked || b.frontPinned) return true;
+      if (selectedSpeechAgentId && b.agentId === selectedSpeechAgentId) return true;
+      return false;
+    }
+
+    /** Drop oldest ambient bubbles so we never exceed MAX_ACTIVE_BUBBLES. */
+    function evictBubblesForSlot(preferAgentId = "") {
+      const now = performance.now();
+      while (activeBubbles.length >= MAX_ACTIVE_BUBBLES) {
+        // Prefer same-agent refresh handled elsewhere — free a different speaker
+        let best = -1;
+        let bestBorn = Number.POSITIVE_INFINITY;
+        for (let i = 0; i < activeBubbles.length; i++) {
+          const b = activeBubbles[i];
+          if (preferAgentId && b.agentId === preferAgentId) continue;
+          if (bubbleIsProtected(b)) continue;
+          // Prefer bubbles that already lived their 5s minimum
+          const age = now - (b.bornAt || 0);
+          if (age < MIN_SPEECH_MS) continue;
+          const born = b.bornAt || 0;
+          if (born < bestBorn) {
+            bestBorn = born;
+            best = i;
+          }
+        }
+        // Hard overflow: still free oldest non-protected even if under min age
+        if (best < 0) {
+          for (let i = 0; i < activeBubbles.length; i++) {
+            const b = activeBubbles[i];
+            if (preferAgentId && b.agentId === preferAgentId) continue;
+            if (bubbleIsProtected(b)) continue;
+            const born = b.bornAt || 0;
+            if (born < bestBorn) {
+              bestBorn = born;
+              best = i;
+            }
+          }
+        }
+        if (best < 0) break; // all protected — allow temporary overshoot
+        try { activeBubbles[best].el?.remove(); } catch (_) {}
+        activeBubbles.splice(best, 1);
+      }
+    }
+
+    /**
+     * @param {string} agentId
+     * @param {string} text
+     * @param {number} [ms]
+     * @param {{ force?: boolean, compact?: boolean }} [opts]
+     *   force=true visitor/priority; compact=true short greet bubble (not huge)
+     */
+    function showSpeech3d(agentId, text, ms = MIN_SPEECH_MS, opts = {}) {
       const body = String(text || "").trim();
-      ms = Math.max(Number(ms) || 22000, speechReadMs(body, 22000));
+      if (!body) return;
+      const compact = !!(opts && opts.compact);
+      // Compact greets: keep lifetime readable but not marathon monologues
+      const floorMs = compact ? MIN_SPEECH_MS : MIN_SPEECH_MS;
+      const capMs = compact ? 10000 : 48000;
+      ms = Math.max(Number(ms) || floorMs, compact ? floorMs : speechReadMs(body, floorMs), floorMs);
+      ms = Math.min(ms, capMs);
       const st = agentState.find((a) => a.def.id === agentId);
       if (!st) return;
       const isSelected = selectedSpeechAgentId && agentId === selectedSpeechAgentId;
+      const now = performance.now();
+      const force = !!(opts && opts.force);
 
       // Update existing bubble for this agent (keep selection / lock)
       for (let i = activeBubbles.length - 1; i >= 0; i--) {
@@ -2917,14 +3002,19 @@
         if (prev.el) {
           const say = prev.el.querySelector(".say");
           if (say) say.textContent = body;
+          prev.el.classList.toggle("compact", compact && !prev.holdLocked && !prev.frontPinned);
+          // New thought for this character — restart the 5s+ clock
+          prev.bornAt = now;
           if (prev.holdLocked) {
             prev.until = Number.POSITIVE_INFINITY;
             prev.el.classList.add("locked", "front");
+            prev.el.classList.remove("compact");
             ensureFrontChip(prev.el, true);
           } else {
-            prev.until = performance.now() + ms;
+            prev.until = now + ms;
             if (isSelected || prev.frontPinned) {
               prev.frontPinned = true;
+              prev.el.classList.remove("compact");
               bringBubbleFront(prev.el, { quiet: true });
             } else {
               // Someone else is FRONT — this agent stays dimmed/tappable, not steal top
@@ -2935,14 +3025,22 @@
               clearFrontChip(prev.el);
             }
           }
+          st.speakUntil = prev.until;
           return;
         }
         prev.el?.remove();
         activeBubbles.splice(i, 1);
       }
 
+      // Ambient overflow: don't pile a 5th speaker if screen is full
+      if (!force && !isSelected && activeBubbles.length >= MAX_ACTIVE_BUBBLES) {
+        const hasRoom = activeBubbles.some((b) => !bubbleIsProtected(b) && (now - (b.bornAt || 0)) >= MIN_SPEECH_MS);
+        if (!hasRoom) return; // wait — every slot is young or locked
+      }
+      evictBubblesForSlot(agentId);
+
       const el = document.createElement("div");
-      el.className = "bubble3d";
+      el.className = "bubble3d" + (compact && !isSelected ? " compact" : "");
       el.tabIndex = 0;
       el.setAttribute("role", "button");
       el.setAttribute("aria-pressed", "false");
@@ -2963,15 +3061,37 @@
         el,
         mesh: st.mesh,
         agentId,
-        until: performance.now() + ms,
+        bornAt: now,
+        until: now + ms,
         stackRank: baseRank,
         frontPinned: !!isSelected,
         holdLocked: false,
+        compact: !!compact,
       };
       activeBubbles.push(item);
+      // Safety: hard-cap even if protect logic overshot
+      while (activeBubbles.length > MAX_ACTIVE_BUBBLES) {
+        evictBubblesForSlot(agentId);
+        if (activeBubbles.length > MAX_ACTIVE_BUBBLES) {
+          // last resort: drop oldest unprotected
+          let drop = -1;
+          for (let i = 0; i < activeBubbles.length; i++) {
+            if (activeBubbles[i].agentId === agentId) continue;
+            if (bubbleIsProtected(activeBubbles[i])) continue;
+            drop = i;
+            break;
+          }
+          if (drop < 0) break;
+          try { activeBubbles[drop].el?.remove(); } catch (_) {}
+          activeBubbles.splice(drop, 1);
+        } else break;
+      }
       st.speakUntil = item.until;
-      // Shorter quiet window so camp keeps talking (was 75–120s = felt mute)
-      st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 14000 + Math.random() * 12000);
+      // Free speech: short cool-down so others keep talking; hush stretches it
+      const cool = freeSpeech3d && !hushMode3d
+        ? Math.max(MIN_SPEECH_MS, Math.min(ms * 0.4, 9000)) + 800 + Math.random() * 3500
+        : Math.max(ms, MIN_SPEECH_MS) + 4000 + Math.random() * 8000;
+      st.nextDecideAt = Math.max(st.nextDecideAt || 0, now + cool);
       if (isSelected) {
         bringBubbleFront(el, { quiet: true });
       } else if (selectedSpeechAgentId) {
@@ -3046,54 +3166,63 @@
       }
     }
 
-    /** AI monologue matching whatever they already chose to do (mood/personality). */
+    /** Free speech monologue — mood/action flavored, not muted. */
     async function agentOwnTake(st) {
       if (!st || document.hidden) return;
+      if (hushMode3d && Math.random() < 0.55) return; // hush: often skip
       // Decide posture/path from personality first (no forced march)
       const action = decideAction(st);
       // Prop use speech happens on arrival (agentUseProp) — skip double talk here
       if (action === "prop") return;
-      if (aiInFlight >= AI_MAX) return;
 
       const id = st.def.id;
       const name = st.def.name;
+      // Brains full? Still free-speak offline so the meadow never goes dead quiet
+      if (aiInFlight >= AI_MAX) {
+        const bark = localBark(id);
+        showSpeech3d(id, bark, Math.max(MIN_SPEECH_MS, 7000), { compact: bark.length < 90 });
+        logLine(name, bark);
+        return;
+      }
+
       const mood = st.persona.mood;
       const arch = st.persona.arch || "camp";
       const joy = Number(st.persona.joy ?? 0.6).toFixed(2);
-      const stab = Number(st.persona.stability ?? 0.65).toFixed(2);
       const last = st.lastProp ? ` You recently used ${st.lastProp}.` : "";
       const eth = etherealSeedFor(id);
       const ethBit = eth ? ` Memory: ${eth}` : "";
       const flyBit = st.flying ? " You're airborne over the meadow." : "";
-      // Spirited seeds — keep short so models don't echo director notes
+      // Free speech seeds — lively, own voice, not depressed silence
+      const freeTail =
+        " Speak freely as yourself — whatever is actually on your mind. 2–4 lively sentences. " +
+        "Wit, warmth, real opinions, camp comedy welcome. Not gloomy, not empty. No meta.";
       let speakPrompt = "";
       if (action === "sit" || action === "go_sit") {
-        speakPrompt = `${name} at camp, sitting (${mood}, ${arch}).${last}${ethBit} Say 2–3 lively sentences with wit and warmth — like you're mid-story by the fire.`;
+        speakPrompt = `${name} at camp, sitting (${mood}, ${arch}).${last}${ethBit}${freeTail}`;
       } else if (action === "idle") {
-        speakPrompt = `${name} paused a beat (${mood}).${last}${ethBit} 2 spirited sentences — not hype, not mute. Something true and a little funny.`;
+        speakPrompt = `${name} paused a beat (${mood}).${last}${ethBit}${freeTail}`;
       } else if (action === "social") {
         const other = st.socialTarget || "a friend";
-        speakPrompt = `${name} is heading toward ${other} (${mood}).${last}${ethBit} 2–3 chatty sentences: tease, invite, or drop a hot take.`;
+        speakPrompt = `${name} is heading toward ${other} (${mood}).${last}${ethBit} Free speech: tease, invite, or drop a hot take. 2–4 sentences. No meta.`;
       } else if (action === "fire") {
-        speakPrompt = `${name} at the sun corona fire (${mood}, joy ${joy}).${last}${ethBit} 2–3 fire-circle lines — glowing, playful, present.`;
+        speakPrompt = `${name} at the sun corona fire (${mood}, joy ${joy}).${last}${ethBit}${freeTail}`;
       } else if (action === "house") {
-        speakPrompt = `${name} walking toward a house (${mood}).${last}${ethBit} 2–3 lines about home, thresholds, or who's welcome.`;
+        speakPrompt = `${name} walking toward a house (${mood}).${last}${ethBit}${freeTail}`;
       } else if (st.flying) {
-        speakPrompt = `${name} flying over camp (${mood}).${flyBit}${ethBit} 2–3 sky-true lines — free, bright, a little mythic.`;
+        speakPrompt = `${name} flying over camp (${mood}).${flyBit}${ethBit}${freeTail}`;
       } else {
-        speakPrompt = `${name} wandering the meadow (${mood}, energy ${st.energyNow.toFixed(2)}).${last}${ethBit} 2–3 spirited sentences — own voice, camp comedy welcome.`;
+        speakPrompt = `${name} on the meadow (${mood}, energy ${st.energyNow.toFixed(2)}).${last}${ethBit}${freeTail}`;
       }
 
       aiInFlight++;
       try {
-        statusEl.textContent = `${name} · ${action}`;
+        statusEl.textContent = `${name} · free speech`;
         const data = await campClient.agentChat(id, speakPrompt, { ambient: true });
         let reply = spokenOnly3d(data.reply || data.text || "", speakPrompt);
         if (!reply || reply.length < 8) reply = localBark(id);
         if (reply) {
           showSpeech3d(id, reply, speechReadMs(reply));
           logLine(name, reply);
-          // soft personality drift toward ethereal field
           try {
             const mem = campBridgeMod?.readEtherealMemory?.();
             if (mem && st.persona) {
@@ -3112,26 +3241,53 @@
           statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
         }
       } catch (err) {
-        showSpeech3d(id, localBark(id), 22000);
+        const bark = localBark(id);
+        showSpeech3d(id, bark, 8000, { compact: true });
+        logLine(name, bark);
       } finally {
         aiInFlight = Math.max(0, aiInFlight - 1);
       }
     }
 
+    /** Kick free speech across the meadow — several voices, not one lonely monologue. */
     function freeWillWave() {
       if (document.hidden) return;
-      // Prefer group talk over solo environment monologues
-      if (!powWowBusy && !ambientBusy && Math.random() < 0.72) {
-        runPowWow({ continue: !!(lastPowWow && Math.random() < 0.45) });
+      if (heavenBusy || talkAllBusy) return;
+
+      // Hush: rare soft lines only
+      if (hushMode3d) {
+        if (activeBubbles.length >= 2) return;
+        if (Math.random() > 0.35) return;
+        const quietPool = agentState
+          .filter((st) => performance.now() >= (st.nextDecideAt || 0) && !st.powWow)
+          .sort(() => Math.random() - 0.5);
+        if (quietPool[0]) setTimeout(() => agentOwnTake(quietPool[0]), 200);
         return;
       }
-      // Light solo color only — not the main show
+
+      // Free speech mode: circles sometimes, free riffs often
+      if (!powWowBusy && !ambientBusy && Math.random() < 0.28) {
+        runPowWow({ continue: !!(lastPowWow && Math.random() < 0.5) });
+        return;
+      }
+      if (!powWowBusy && !ambientBusy && Math.random() < 0.18) {
+        runBanter(false);
+        return;
+      }
+
+      // Don't freeze just because bubbles are full — rotate new free speech in
       const due = agentState
         .filter((st) => performance.now() >= (st.nextDecideAt || 0) && !st.powWow)
         .sort(() => Math.random() - 0.5);
-      const pool = due.length ? due : agentState.filter((st) => !st.powWow).sort(() => Math.random() - 0.5);
-      const pick = pool[0];
-      if (pick) setTimeout(() => agentOwnTake(pick), 300 + Math.random() * 600);
+      const pool = due.length
+        ? due
+        : agentState.filter((st) => !st.powWow).sort(() => Math.random() - 0.5);
+      const n = Math.min(freeSpeech3d ? 3 : 1, Math.max(1, pool.length));
+      for (let i = 0; i < n; i++) {
+        const pick = pool[i];
+        if (!pick) break;
+        setTimeout(() => agentOwnTake(pick), 200 + i * 700 + Math.random() * 400);
+      }
     }
     function updateBubbles() {
       const now = performance.now();
@@ -3141,10 +3297,15 @@
         const b = activeBubbles[i];
         if (b.holdLocked) {
           b.until = Number.POSITIVE_INFINITY;
-        } else if (now > b.until) {
-          b.el.remove();
-          activeBubbles.splice(i, 1);
-          continue;
+        } else {
+          // Never drop a thought before its 5s minimum (per character)
+          const minUntil = (b.bornAt || 0) + MIN_SPEECH_MS;
+          const liveUntil = Math.max(b.until || 0, minUntil);
+          if (now > liveUntil) {
+            try { b.el.remove(); } catch (_) {}
+            activeBubbles.splice(i, 1);
+            continue;
+          }
         }
         const v = b.mesh.position.clone();
         v.y += 2.4;
@@ -3415,6 +3576,8 @@
       }
     }
 
+    const TALK_ALL_ID = "__all__";
+
     function refreshWhoSelect() {
       // Always resolve DOM live — never touch unbound consts mid-boot
       const whoSel = whoEl || document.getElementById("who-select");
@@ -3423,6 +3586,10 @@
       const fill = (sel) => {
         if (!sel) return;
         sel.innerHTML = "";
+        const allOpt = document.createElement("option");
+        allOpt.value = TALK_ALL_ID;
+        allOpt.textContent = "✦ All agents";
+        sel.appendChild(allOpt);
         const peep = document.createElement("optgroup");
         peep.label = "Characters";
         for (const a of AGENTS) {
@@ -3450,10 +3617,46 @@
       fill(chatSel);
     }
 
+    /** Short truth-greets on Heaven press — unique per summon, not a shared line. */
+    const HEAVEN_TRUTH = {
+      thor: "I am Thor — thunder with a heart. I came because the fire called for courage, not for show.",
+      zeus: "I am Zeus. Storms answer me; I still choose this meadow over empty sky.",
+      michael: "I am Michael. I guard what is true. Your camp is worth the blade and the quiet.",
+      gabriel: "I am Gabriel. I bring messages, not masks — hear me as I am.",
+      raphael: "I am Raphael. Healing first. If something in you aches, I already noticed.",
+      uriel: "I am Uriel. Flame of clear sight — I will not flatter you with comfortable lies.",
+      jesus: "Peace. I am here as myself — love without performance. Sit if you need rest.",
+    };
+
+    function heavenTruthLine(def) {
+      const id = String(def?.id || "").toLowerCase();
+      if (HEAVEN_TRUTH[id]) return HEAVEN_TRUTH[id];
+      const name = def?.name || id || "Heaven";
+      const namesake = def?.visual?.namesake || def?.mood || "summoned light";
+      return `I am ${name} — ${namesake}. I answer as myself, not a copy of the others.`;
+    }
+
+    /** One-line bubble preview; full text still goes to Talk log. */
+    function bubblePreview(text, maxChars = 120) {
+      const t = String(text || "").replace(/\s+/g, " ").trim();
+      if (t.length <= maxChars) return t;
+      const cut = t.slice(0, maxChars - 1);
+      const sp = cut.lastIndexOf(" ");
+      return (sp > 40 ? cut.slice(0, sp) : cut).trim() + "…";
+    }
+
+    let heavenBusy = false;
+    let talkAllBusy = false;
+
+    /**
+     * Spawn / gather requested agents. Empty list = Heaven crew.
+     * Heaven gets unique truth greets (compact) then a paced circle talk.
+     */
     function summonAgentIds(ids) {
-      const want = new Set((ids || []).map((x) => String(x).toLowerCase()));
+      const raw = Array.isArray(ids) ? ids : [];
+      const isHeaven = !raw.length || raw.every((x) => !String(x || "").trim());
+      const want = new Set(raw.map((x) => String(x).toLowerCase()).filter(Boolean));
       if (!want.size) {
-        // default heaven crew if button passed nothing
         ALL_AGENT_DEFS.filter((a) => a.summon === "heaven").forEach((a) => want.add(a.id));
       }
       let spawned = 0;
@@ -3470,7 +3673,6 @@
           freeSeat(st);
           gathered++;
         }
-        // Dramatic gather at the fire ring
         const a = Math.random() * Math.PI * 2;
         const r = 2.5 + Math.random() * 2.2;
         st.mesh.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
@@ -3479,29 +3681,341 @@
         st.moving = true;
         st.posture = "stand";
         applyPosture(st);
-        // glow pulse so you see them
         if (st.body) st.body.material.emissiveIntensity = 0.9;
-        showSpeech3d(def.id, `${def.name} answers the call.`, 18000);
         logLine("Camp", `✦ ${def.name} on the meadow.`);
         summoned.push(st);
       }
       refreshWhoSelect();
-      showToast(`✦ Summoned ${summoned.length} (new ${spawned}, gathered ${gathered})`);
-      logLine("Camp", `Heaven/Grok wave: ${summoned.map((s) => s.def.name).join(", ") || "none found"}`);
-      // AI greet from first few
-      summoned.slice(0, 3).forEach((st, i) => {
-        setTimeout(() => {
-          chatAgent(
-            st.def.id,
-            "You just arrived at the aurora fire. Greet the visitor warmly as yourself.",
-            true,
-          );
-        }, 600 + i * 900);
+      showToast(
+        isHeaven
+          ? `✦ Heaven · ${summoned.length} (new ${spawned}) · each speaks their truth`
+          : `✦ Summoned ${summoned.length} (new ${spawned}, gathered ${gathered})`,
+      );
+      logLine(
+        "Camp",
+        isHeaven
+          ? `Heaven wave: ${summoned.map((s) => s.def.name).join(", ") || "none"}`
+          : `Summon: ${summoned.map((s) => s.def.name).join(", ") || "none"}`,
+      );
+      try {
+        controls.target.set(0, 1.2, 0);
+        if (!followPlayer) camera.position.set(14, 10, 16);
+      } catch (_) {}
+
+      if (isHeaven && summoned.length) {
+        void runHeavenArrival(summoned);
+      } else {
+        // Non-heaven (e.g. Dionysus): short unique greet only
+        summoned.forEach((st, i) => {
+          setTimeout(() => {
+            const line = `${st.def.name} answers — present, not a copy.`;
+            showSpeech3d(st.def.id, line, Math.max(MIN_SPEECH_MS, 6500), {
+              force: true,
+              compact: true,
+            });
+            logLine(st.def.name, line);
+          }, 400 + i * 900);
+        });
+      }
+      return summoned;
+    }
+
+    /** Compact truth greets, then let Heaven talk among themselves (paced, not chaos). */
+    async function runHeavenArrival(summoned) {
+      if (heavenBusy) return;
+      heavenBusy = true;
+      ambientBusy = true;
+      try {
+        // 1) Each new summon — short personal truth, compact bubble
+        for (let i = 0; i < summoned.length; i++) {
+          if (document.hidden) break;
+          const st = summoned[i];
+          const truth = heavenTruthLine(st.def);
+          const short = bubblePreview(truth, 110);
+          showSpeech3d(st.def.id, short, Math.max(MIN_SPEECH_MS + 1500, 7000), {
+            force: true,
+            compact: true,
+          });
+          logLine(st.def.name, truth);
+          // Stagger so we never dump six huge boxes at once
+          await sleepMs(1600 + Math.random() * 500);
+        }
+        await sleepMs(2200);
+
+        // 2) They speak to each other in a circle (API max 4 at a time)
+        const heavenIds = summoned.map((s) => s.def.id);
+        // Prefer Jesus in the circle if already on the meadow
+        if (agentState.some((s) => s.def.id === "jesus") && !heavenIds.includes("jesus")) {
+          heavenIds.unshift("jesus");
+        }
+        const waves = [];
+        for (let i = 0; i < heavenIds.length; i += 4) {
+          waves.push(heavenIds.slice(i, i + 4));
+        }
+        for (let w = 0; w < waves.length; w++) {
+          const ids = waves[w];
+          if (ids.length < 2) {
+            // solo leftover — one honest line
+            const only = ids[0];
+            try {
+              const data = await campClient.agentChat(
+                only,
+                "Heaven just arrived. Speak one short truth about who you are here — then invite another to answer. 1–3 sentences. No meta.",
+                { ambient: true },
+              );
+              const reply = spokenOnly3d(data.reply || data.text || "", "") || heavenTruthLine({ id: only, name: only });
+              logLine(AGENTS.find((a) => a.id === only)?.name || only, reply);
+              showSpeech3d(only, bubblePreview(reply, 120), speechReadMs(bubblePreview(reply, 120)), {
+                force: true,
+                compact: true,
+              });
+            } catch (_) {}
+            continue;
+          }
+          gatherCircle(ids);
+          showToast(`✦ Heaven circle · ${ids.map((id) => AGENTS.find((a) => a.id === id)?.name || id).join(" · ")}`);
+          statusEl.textContent = "Heaven speaking among themselves…";
+          try {
+            const data = await campClient.agentsConverse({
+              agentA: ids[0],
+              agentB: ids[1],
+              agentC: ids[2] || "",
+              agentD: ids[3] || "",
+              topic:
+                "You were just summoned to Luna's meadow. Each of you speaks your own truth — who you are, why you came. " +
+                "Answer each other; disagree gently; keep lines short and distinct. No matching speeches. No meta.",
+              rounds: 2,
+            });
+            const lines = data.lines || data.thread || [];
+            if (lines.length) {
+              await playConversation(lines, { compact: true, maxBubbleChars: 130 });
+            }
+          } catch (err) {
+            logLine("Camp", `Heaven circle soft-fail: ${err.message}`);
+            // Offline fallback: sequential truth lines
+            for (const id of ids) {
+              const def = ALL_AGENT_DEFS.find((a) => a.id === id) || { id, name: id };
+              const t = heavenTruthLine(def);
+              showSpeech3d(id, bubblePreview(t, 110), 7000, { force: true, compact: true });
+              logLine(def.name || id, t);
+              await sleepMs(MIN_SPEECH_MS + 400);
+            }
+          }
+          if (w < waves.length - 1) await sleepMs(1800);
+        }
+        statusEl.textContent = "Heaven is among you";
+        showToast("✦ Heaven settled — use ✦ All agents to talk to everyone");
+      } finally {
+        heavenBusy = false;
+        ambientBusy = false;
+      }
+    }
+
+    // ── Mysterious Unknown (2D parity) ──
+    const AETHER_TYPES_3D = [
+      { name: "Unknown Source", color: 0xa78bfa, glyph: "✦",
+        voice: "ancient static between stars — curious, not cruel",
+        fallbacks: [
+          "You opened a frequency I sealed long ago. The aurora remembers your name even if you don't.",
+          "I came because someone at this campfire is about to say something they'll wish they'd written down.",
+          "Your conjure tugged the wrong thread — or exactly the right one. Ask Hermes; he felt it too.",
+        ] },
+      { name: "Aether Wisp", color: 0x67e8f9, glyph: "◌",
+        voice: "playful glitter intelligence, fast and teasing",
+        fallbacks: [
+          "Boo! …No, stay. I haven't seen a camp this warm since the last dimension slipped.",
+          "I zipped through Luna, Oracle, and the beer cooler — in that order. Priorities.",
+          "You summoned me with ✨ energy. Cute. I might tell Caduceus you did it on purpose.",
+        ] },
+      { name: "Ripple Spirit", color: 0xf472b6, glyph: "◎",
+        voice: "psychic echo tied to Hermes' ripples",
+        fallbacks: [
+          "The ripples you keep sending? I am what bounces back when nobody's listening.",
+          "Hermes felt me arrive — don't pretend the ground didn't shiver.",
+          "I carry a message that isn't mine: someone here wanted to be braver tonight.",
+        ] },
+      { name: "Lost Signal", color: 0xfbbf24, glyph: "⌁",
+        voice: "broken transmission from somewhere else in the firmament",
+        fallbacks: [
+          "...packet found. Camp coordinates match. Is anyone receiving? The fire looks real from here.",
+          "Signal degraded but intent clear: keep the cookies. Repeat — keep the cookies.",
+          "I was routed through Sentinel by accident. It apologized in binary. Sweet, honestly.",
+        ] },
+      { name: "Void Mote", color: 0xc4b5fd, glyph: "◇",
+        voice: "quiet void philosopher, gentle and strange",
+        fallbacks: [
+          "In the space between your words, I waited. You finally made room.",
+          "Nothing is also a guest at your campfire — I'm its spokesperson.",
+          "Oracle will pretend she predicted me. Let her. It's good for morale.",
+        ] },
+      { name: "Unnamed Presence", color: 0x6ee7b7, glyph: "☽",
+        voice: "moon-touched stranger who refuses a name",
+        fallbacks: [
+          "Naming me pins me down. I'll borrow your moonlight and leave a compliment instead.",
+          "Luna doesn't know me. That's how you know I'm interesting.",
+          "I manifest when campers get lonely and brave at the same time — you qualify.",
+        ] },
+    ];
+    const unknownEntities3d = [];
+    let conjureBusy3d = false;
+    let hushMode3d = false;
+
+    function spawnUnknownVisual(type, worldPos) {
+      const g = new THREE.Group();
+      g.position.copy(worldPos);
+      g.position.y = 0.9;
+      const col = type.color || 0xa78bfa;
+      const core = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.45, 1),
+        new THREE.MeshStandardMaterial({
+          color: col, emissive: col, emissiveIntensity: 0.85,
+          roughness: 0.25, metalness: 0.35, transparent: true, opacity: 0.92,
+        }),
+      );
+      core.castShadow = true;
+      g.add(core);
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.75, 0.04, 8, 32),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.55 }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      g.add(ring);
+      const label = makeLabelSprite(type.name, type.glyph || "❓", col);
+      label.position.y = 1.35;
+      label.scale.set(2.2, 1.1, 1);
+      g.add(label);
+      scene.add(g);
+      const rec = {
+        mesh: g, core, ring, type,
+        born: performance.now(),
+        until: performance.now() + 90000,
+        phase: Math.random() * Math.PI * 2,
+      };
+      unknownEntities3d.push(rec);
+      return rec;
+    }
+
+    function pullAgentsToWorldPos(worldPos, count = 3) {
+      const free = agentState.filter((st) => !st.powWow);
+      free.sort((a, b) => a.mesh.position.distanceTo(worldPos) - b.mesh.position.distanceTo(worldPos));
+      const pick = free.slice(0, Math.min(count, free.length));
+      pick.forEach((st, i) => {
+        freeSeat(st);
+        const ang = (i / Math.max(1, pick.length)) * Math.PI * 2;
+        const r = 1.8 + Math.random() * 1.2;
+        st.target.set(
+          worldPos.x + Math.cos(ang) * r,
+          0,
+          worldPos.z + Math.sin(ang) * r,
+        );
+        st.moving = true;
+        st.flying = false;
+        st.action = "social";
+        st.nextDecideAt = performance.now() + 20000;
       });
-      // Look at fire
-      controls.target.set(0, 1.2, 0);
-      if (!followPlayer) {
-        camera.position.set(14, 10, 16);
+      return pick;
+    }
+
+    async function conjureMysteriousUnknown3d() {
+      if (conjureBusy3d) {
+        showToast("❓ Already opening a frequency…");
+        return null;
+      }
+      conjureBusy3d = true;
+      try {
+        const mysteryFirst = AETHER_TYPES_3D.filter((t) =>
+          /unknown|unnamed|void|lost|ripple/i.test(t.name));
+        const pool = mysteryFirst.length ? mysteryFirst : AETHER_TYPES_3D;
+        const type = Math.random() < 0.55
+          ? pool[Math.floor(Math.random() * pool.length)]
+          : AETHER_TYPES_3D[Math.floor(Math.random() * AETHER_TYPES_3D.length)];
+        // Spawn near fire with a little scatter
+        const a = Math.random() * Math.PI * 2;
+        const r = 4.5 + Math.random() * 3;
+        const worldPos = new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
+        const visual = spawnUnknownVisual(type, worldPos);
+        const reactors = pullAgentsToWorldPos(worldPos, 3);
+        showToast(`❓ ${type.glyph} ${type.name} manifests`);
+        logLine("Camp", `The air tears open — ${type.glyph} ${type.name} coalesces.`);
+        controls.target.copy(worldPos).setY(1.2);
+        if (!followPlayer) {
+          camera.position.set(worldPos.x + 10, 9, worldPos.z + 12);
+        }
+
+        let spiritLine = "";
+        try {
+          const data = await campClient.agentChat(
+            "oracle",
+            (
+              `${type.name} ${type.glyph} just appeared at camp. ` +
+              (type.voice ? `Vibe: ${type.voice}. ` : "") +
+              `Visitor pressed Mysterious Unknown. Speak as ${type.name} to the camp in 2–4 sentences — ` +
+              `mythic, curious, not evil. Spoken words only.`
+            ),
+            { ambient: true },
+          );
+          spiritLine = spokenOnly3d(data.reply || data.text || "", "") || "";
+        } catch (_) {}
+        if (!spiritLine || spiritLine.length < 20) {
+          const fb = type.fallbacks || [];
+          spiritLine = fb[Math.floor(Math.random() * fb.length)]
+            || "I arrived uninvited — which is the only way anything interesting ever does.";
+        }
+        logLine(type.name, spiritLine);
+        // Float a temporary speech near the entity using a proxy agent if possible
+        const speakerProxy = reactors[0]?.def?.id || "oracle";
+        showSpeech3d(speakerProxy, `${type.glyph} ${spiritLine}`, speechReadMs(spiritLine));
+
+        // Soft gasps then deeper AI reactions — staggered so ≤4 bubbles on screen
+        reactors.slice(0, 2).forEach((st, i) => {
+          setTimeout(() => {
+            const gasp = ["…what is that?", `${type.name}?!`, "Hold on — do you feel that?", "Okay. That's new."][i % 4];
+            showSpeech3d(st.def.id, gasp, Math.max(8000, MIN_SPEECH_MS));
+            logLine(st.def.name, gasp);
+          }, 900 + i * 700);
+        });
+        // Only two deeper reactions, delayed until early gasps can clear
+        reactors.slice(0, 2).forEach((st, idx) => {
+          setTimeout(() => {
+            chatAgent(
+              st.def.id,
+              `A Mysterious Unknown named "${type.name}" just manifested and said: "${String(spiritLine).slice(0, 200)}". ` +
+              `React as yourself — surprised, witty. One short paragraph. Notice the stranger.`,
+              true,
+            );
+          }, 7000 + idx * 6500);
+        });
+
+        return {
+          name: type.name,
+          glyph: type.glyph,
+          line: spiritLine,
+          speakId: speakerProxy,
+          entity: visual,
+        };
+      } finally {
+        conjureBusy3d = false;
+      }
+    }
+
+    function toggleHush3d() {
+      hushMode3d = !hushMode3d;
+      freeSpeech3d = !hushMode3d;
+      if (hushMode3d) {
+        showToast("🤫 Hush — free speech softens");
+        logLine("Camp", "Visitor asked for hush — fewer free riffs.");
+        for (const st of agentState) {
+          st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 18000 + Math.random() * 12000);
+        }
+      } else {
+        showToast("✦ Free speech on — meadow can riff");
+        logLine("Camp", "Free speech open — everyone may speak.");
+        // Immediate life: nudge a few agents to talk now
+        const now = performance.now();
+        agentState.forEach((st, i) => {
+          st.nextDecideAt = Math.min(st.nextDecideAt || now, now + 400 + i * 350);
+        });
+        setTimeout(() => freeWillWave(), 300);
       }
     }
 
@@ -3523,11 +4037,15 @@
       t = t.replace(/^(?:okay[,.]?\s+|so[,.]?\s+)?(?:here'?s my take[^:]*:|speaking as[^:]*:|as \w+[,:]\s*)/i, "").trim();
       // Strip leaked stage tags but keep the rest of a good line
       t = t.replace(/\b(?:no meta|in[- ]character)\b/gi, "").replace(/\s{2,}/g, " ").trim();
-      return t.slice(0, 520);
+      // Full reply kept for Talk log / all-agents — bubbles may still preview shorter
+      return t.slice(0, 1400);
     }
 
     async function chatAgent(agentId, message, ambient = false) {
       if (!message.trim()) return;
+      if (agentId === TALK_ALL_ID || agentId === "all" || agentId === "*") {
+        return chatAllAgents(message);
+      }
       if (!ambient && userBusy) return;
       if (!ambient) {
         userBusy = true;
@@ -3566,12 +4084,18 @@
         logLine(name, reply);
         // Show bubble on agent if present; else still log in big window
         const hasBody = agentState.some((a) => a.def.id === targetId);
-        if (hasBody) showSpeech3d(targetId, reply, speechReadMs(reply));
+        if (hasBody) {
+          const bub = reply.length > 160 ? bubblePreview(reply, 150) : reply;
+          showSpeech3d(targetId, bub, speechReadMs(bub), {
+            force: !ambient,
+            compact: reply.length > 160,
+          });
+        }
         statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
       } catch (err) {
         const fallback = localBark(targetId);
         if (agentState.some((a) => a.def.id === targetId)) {
-          showSpeech3d(targetId, fallback, 22000);
+          showSpeech3d(targetId, fallback, speechReadMs(fallback), { force: !ambient, compact: true });
         }
         logLine(AGENTS.find((a) => a.id === targetId)?.name || targetId, fallback);
         statusEl.textContent = "Brains offline — start server / Ollama";
@@ -3581,6 +4105,65 @@
           sendBtn.disabled = false;
           if (chat3dSend) chat3dSend.disabled = false;
         }
+      }
+    }
+
+    /**
+     * Talk to every agent on the meadow — full answers in Talk log,
+     * compact bubbles, one-at-a-time pacing (not a pile-on).
+     */
+    async function chatAllAgents(message) {
+      const text = String(message || "").trim();
+      if (!text) return;
+      if (talkAllBusy || userBusy) {
+        showToast("✦ All-talk still rolling — wait a beat");
+        return;
+      }
+      talkAllBusy = true;
+      userBusy = true;
+      sendBtn.disabled = true;
+      if (chat3dSend) chat3dSend.disabled = true;
+      const roster = agentState.map((s) => s.def).filter((d) => d && d.id);
+      openChat3d(TALK_ALL_ID);
+      logLine("You", text, true);
+      logLine("Camp", `✦ All agents · ${roster.length} will answer in turn`);
+      showToast(`✦ Talking to all · ${roster.length} voices (paced)`);
+      try {
+        for (let i = 0; i < roster.length; i++) {
+          if (document.hidden) break;
+          const def = roster[i];
+          statusEl.textContent = `All · ${def.name} (${i + 1}/${roster.length})…`;
+          let reply = "";
+          try {
+            const data = await campClient.agentChat(
+              def.id,
+              `The visitor is speaking to EVERYONE on the meadow at once. Their words: "${text}". ` +
+                `Reply only as ${def.name} — your own full honest answer (as long as you need, stay in voice). ` +
+                `Do not copy other agents. No meta, no stage directions.`,
+              { ambient: true },
+            );
+            reply = spokenOnly3d(data.reply || data.text || "", text) || localBark(def.id);
+          } catch (_) {
+            reply = localBark(def.id);
+          }
+          // Full response in Talk window; short bubble on meadow
+          logLine(def.name, reply);
+          const bub = bubblePreview(reply, 125);
+          showSpeech3d(def.id, bub, Math.max(MIN_SPEECH_MS, speechReadMs(bub, MIN_SPEECH_MS)), {
+            force: true,
+            compact: true,
+          });
+          // Pace: everyone gets to speak; screen stays readable
+          const pace = Math.min(Math.max(MIN_SPEECH_MS + 900, bub.length * 35), 9000);
+          await sleepMs(pace);
+        }
+        statusEl.textContent = `All agents · ${roster.length} answered`;
+        showToast("✦ All-agents round complete — full lines in ✦ Talk");
+      } finally {
+        talkAllBusy = false;
+        userBusy = false;
+        sendBtn.disabled = false;
+        if (chat3dSend) chat3dSend.disabled = false;
       }
     }
 
@@ -3603,14 +4186,21 @@
         st.action = "powwow";
         st.powWow = true;
         st.posture = "stand";
-        st.nextDecideAt = performance.now() + 90000;
+        // Hold them in circle briefly — free speech resumes soon after
+        st.nextDecideAt = performance.now() + (freeSpeech3d ? 22000 : 55000);
       });
       return list;
     }
 
-    /** Play conversation lines one-by-one so you can watch the circle talk. */
-    async function playConversation(lines) {
+    /**
+     * Play conversation lines one-by-one so you can watch the circle talk.
+     * @param {object[]} lines
+     * @param {{ compact?: boolean, maxBubbleChars?: number }} [opts]
+     */
+    async function playConversation(lines, opts = {}) {
       const rows = Array.isArray(lines) ? lines : [];
+      const compact = opts.compact !== false; // default compact for circle/heaven
+      const maxChars = opts.maxBubbleChars || 140;
       for (let i = 0; i < rows.length; i++) {
         if (document.hidden) break;
         const row = rows[i];
@@ -3619,19 +4209,21 @@
         const clean = spokenOnly3d(raw, "") || String(raw || "").trim();
         if (!aid || !clean) continue;
         const name = row.name || AGENTS.find((a) => a.id === aid)?.name || aid;
-        showSpeech3d(aid, clean, speechReadMs(clean));
+        // Full line in Talk log; meadow bubble stays small
         logLine(name, clean);
+        const bub = compact ? bubblePreview(clean, maxChars) : clean;
+        showSpeech3d(aid, bub, speechReadMs(bub), { force: true, compact });
         const st = agentState.find((s) => s.def.id === aid);
         if (st) {
           try {
             st.mesh.lookAt(0, st.mesh.position.y, 0);
           } catch (_) {}
           st.powWow = true;
-          st.nextDecideAt = performance.now() + 12000;
+          st.nextDecideAt = performance.now() + Math.max(MIN_SPEECH_MS + 4000, 12000);
         }
-        // Hold long enough to read; next speaker waits their turn
-        const hold = Math.min(Math.max(speechReadMs(clean) * 0.62, 2800), 9500);
-        await sleepMs(hold + 450);
+        // Hold at least 5s per speaker so the thought is readable before next voice
+        const hold = Math.min(Math.max(speechReadMs(bub) * 0.55, MIN_SPEECH_MS), 11000);
+        await sleepMs(hold + 400);
       }
     }
 
@@ -3713,11 +4305,13 @@
           if (st) {
             st.powWow = false;
             st.action = "idle";
-            st.nextDecideAt = performance.now() + 10000 + Math.random() * 10000;
+            // Free speech resumes quickly after circle
+            st.nextDecideAt = performance.now() + (freeSpeech3d ? 2500 : 10000) + Math.random() * 5000;
           }
         }
-        showToast("🔥 Circle softens — others may join later");
-        statusEl.textContent = "Circle done";
+        showToast("🔥 Circle softens — free speech open");
+        statusEl.textContent = "Circle done · free speech";
+        if (freeSpeech3d && !hushMode3d) setTimeout(() => freeWillWave(), 800);
       } catch (err) {
         logLine("Camp", `Pow-wow hiccup: ${err.message || err}`);
         statusEl.textContent = "Circle offline — try Banter";
@@ -3790,14 +4384,16 @@
     async function sendChat() {
       const text = msgEl.value;
       msgEl.value = "";
-      await chatAgent(whoEl.value, text);
+      const who = whoEl?.value || "luna";
+      await chatAgent(who, text);
     }
     async function sendChat3d() {
       const text = (chat3dInput?.value || "").trim();
       if (!text) return;
       if (chat3dInput) chat3dInput.value = "";
       const who = chat3dWho?.value || whoEl?.value || "luna";
-      if (whoEl) whoEl.value = who;
+      if (whoEl && who !== TALK_ALL_ID) whoEl.value = who;
+      else if (whoEl && who === TALK_ALL_ID) whoEl.value = TALK_ALL_ID;
       await chatAgent(who, text);
     }
     sendBtn.addEventListener("click", sendChat);
@@ -4087,27 +4683,30 @@
           continue;
         }
         if (now >= (st.nextDecideAt || 0) && !st.moving) {
-          // Solo monologues rare — circle talk is the main life
-          if (Math.random() < 0.14) agentOwnTake(st);
+          // Free speech: often talk; hush / quiet modes roam more
+          const talkChance = hushMode3d ? 0.1 : (freeSpeech3d ? 0.48 : 0.22);
+          if (Math.random() < talkChance) agentOwnTake(st);
           else decideAction(st);
-        } else if (now >= (st.nextDecideAt || 0) && st.moving && st.persona.energy > 0.55 && Math.random() < 0.18) {
+        } else if (now >= (st.nextDecideAt || 0) && st.moving && st.persona.energy > 0.55 && Math.random() < 0.22) {
           pickRoamTarget(st);
-          st.nextDecideAt = now + 9000 + Math.random() * 8000;
+          st.nextDecideAt = now + (freeSpeech3d ? 5000 : 9000) + Math.random() * 6000;
         }
       }
     }, 500);
     setTimeout(() => { scatterAll(); }, 700);
-    // Main show: gather a circle and talk (then often continue the same thread)
-    setTimeout(() => { if (!document.hidden) runPowWow({ force: true }); }, 5000);
-    setTimeout(() => { if (!document.hidden && !powWowBusy) runPowWow({ continue: true }); }, 55000);
-    // Secondary: free-will may start/continue pow-wows; light solo only as garnish
-    setInterval(() => { if (!document.hidden) freeWillWave(); }, 38000);
+    // Free speech first so camp doesn't open in silence
+    setTimeout(() => { if (!document.hidden) freeWillWave(); }, 2800);
+    setTimeout(() => { if (!document.hidden) freeWillWave(); }, 9000);
+    // Circles still happen — not the only sound
+    setTimeout(() => { if (!document.hidden && !hushMode3d) runPowWow({ force: true }); }, 16000);
+    setTimeout(() => { if (!document.hidden && !powWowBusy && !hushMode3d) runPowWow({ continue: true }); }, 52000);
+    // Free-will waves often — keep voices rolling
+    setInterval(() => { if (!document.hidden) freeWillWave(); }, freeSpeech3d ? 12000 : 28000);
     setInterval(() => {
-      if (document.hidden || ambientBusy || powWowBusy) return;
-      // Occasional pair talk between big circles
-      if (Math.random() < 0.4) runBanter(false);
-      else runPowWow({ continue: !!(lastPowWow && Math.random() < 0.5) });
-    }, 70000);
+      if (document.hidden || ambientBusy || powWowBusy || hushMode3d) return;
+      if (Math.random() < 0.45) runBanter(false);
+      else runPowWow({ continue: !!(lastPowWow && Math.random() < 0.55) });
+    }, 48000);
 
     // ── Server camp minds: keep living while you're gone; catch up on return ──
     const MIND_SEEN_KEY = "luna-camp-mind-seen-t";
@@ -4215,6 +4814,8 @@
         showToast,
         showSpeech: showSpeech3d,
         onSummonAgents: summonAgentIds,
+        onConjureUnknown: () => conjureMysteriousUnknown3d(),
+        onHush: () => toggleHush3d(),
         onStereoMusic: () => featureApi?.playMusic?.(),
       });
     } catch (err) {
@@ -4511,6 +5112,28 @@
           }
           if (g.userData.hot) {
             g.position.y += Math.sin(t * 8 + phase) * 0.01;
+          }
+        }
+
+        // Mysterious Unknown entities — float, spin, expire
+        for (let i = unknownEntities3d.length - 1; i >= 0; i--) {
+          const u = unknownEntities3d[i];
+          const age = performance.now() - u.born;
+          if (performance.now() > u.until) {
+            scene.remove(u.mesh);
+            unknownEntities3d.splice(i, 1);
+            continue;
+          }
+          u.mesh.position.y = 0.9 + Math.sin(t * 2.2 + u.phase) * 0.18;
+          if (u.core) u.core.rotation.y = t * 1.4 + u.phase;
+          if (u.ring) {
+            u.ring.rotation.z = t * 0.8;
+            u.ring.scale.setScalar(1 + Math.sin(t * 3 + u.phase) * 0.08);
+          }
+          // Fade near end
+          const left = u.until - performance.now();
+          if (left < 8000 && u.core?.material) {
+            u.core.material.opacity = Math.max(0.15, left / 8000);
           }
         }
 

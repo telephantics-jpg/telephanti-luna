@@ -140,56 +140,89 @@ SPEECH_SCAFFOLDS: dict[str, list[str]] = {
         "Open warm → nod at {signal} if it fits → invite them in with one question.",
         "Camp host beat: cookies/fire detail → soft roast of {signal} → 'you good?' energy.",
         "Curator spin: half joke about {signal}, half real care for whoever's listening.",
+        "Because/so: because the fire's low / because {signal} is loud → so here's the soft check-in.",
+        "Interrupted self: start hosting, correct mid-line, land more honest.",
+        "Object monologue: the cookie plate vs {signal} — which needs more love?",
     ],
     "hermes": [
         "Signal scout: '{signal}' feels loud → what ripple hits camp next.",
         "Fast courier: news flash vibe on {signal} → hand the mic back.",
         "Ripple report: {signal} → one clean punchline → next packet?",
+        "If/then: if {signal} is true, then camp's group chat needs this one line.",
+        "Echo & upgrade: restate the pulse in courier slang, tilt it witty.",
+        "Time stamp: 'right now on the wire…' → {signal} → drop the mic soft.",
     ],
     "oracle": [
         "Sideways prophecy: {signal} already happened in a dream → smirk, land soft truth.",
         "Forked timeline bit about {signal} → choose-your-fighter joke.",
         "Weirdly accurate read on {signal} without fortune-cookie sludge.",
+        "Contrast pair: not doom about {signal} — just a weirdly kind forecast.",
+        "Parenthetical: main prophecy, then a whispered 'or not, free will exists'.",
+        "Question that isn't small talk about {signal}, then half an answer.",
     ],
     "thor": [
         "Thunder laugh → smash-metaphor for {signal} → cookies still win.",
         "Storm report: {signal} is loud; hammer/joke is louder.",
         "Gym-god courage take on {signal} → keep friends, roast gently.",
+        "List of two: thunder detail + soft heart about {signal}.",
+        "Quiet dare: challenge the meadow to face {signal} without cruelty.",
     ],
     "zeus": [
         "Sky-king memo re: {signal} → stylish chaos, better HR needed.",
         "Lightning opinion on {signal} → decree something silly and true.",
         "Olympus group-chat energy about {signal} → meadow vacation mode.",
+        "Interrupted self: start a decree about {signal}, rewrite it kinder.",
     ],
     "odin": [
         "Ravens brought {signal} → old pattern, new mask → one spear of truth.",
         "One-eye lens on {signal} → who profits? keep it dry.",
         "Mythic dry wit: {signal} as today's tuition.",
+        "Callback: 'ravens said this before…' then {signal} with a new edge.",
     ],
     "jesus": [
         "Gentle peace around {signal} → still loved in the middle of it.",
         "Compassion first → {signal} hurts people → be kind anyway.",
         "Rest the heart before reacting to {signal}.",
+        "Because/so: because fear is loud about {signal}, so choose gentleness.",
+        "Weather of the heart: map camp quiet onto care around {signal}.",
     ],
     "sentinel": [
         "BEEP. log {signal}. threat level: emotionally significant. hydrate.",
         "Perimeter: {signal} trending. stay alert, stay soft underneath.",
         "System report on {signal} → complicated, not hopeless.",
+        "If/then: if {signal} spikes, then run diagnostic: snacks + honesty.",
+        "Fragment ok: status · {signal} · recommendation: stay kind.",
     ],
     "dionysus": [
         "Toast to surviving {signal} → party later, panic never (mostly).",
         "Vines whisper about {signal} → theatrical chaos with heart.",
         "Nightlife read on {signal} → questionable decisions, good company.",
+        "Hot-take opener on {signal} → soft exit with a pour of grace.",
     ],
     "aurora": [
         "Neon take: {signal} is main-character energy → sip slow.",
         "Velvet hour opinion on {signal} → messy, iconic, relatable.",
         "Lounge host riff: {signal} can wait five minutes.",
+        "Mood first → neon point about {signal} → leave the booth light on.",
     ],
     "violet": [
         "Lavender honest read on {signal} → soft truth, hard timeline.",
         "Group-chat vibrating about {signal} → mood: complicated.",
         "Same mess, new font: {signal}.",
+        "Echo & upgrade their feeling about {signal} into lavender plain speech.",
+    ],
+    "caduceus": [
+        "Twin-snake consult on {signal}: one jokes, one heals → consensus: rest.",
+        "Rx shape: for {signal}, take water + one true sentence.",
+        "Contrast: not a crisis about {signal} — a check-in.",
+    ],
+    "seraph": [
+        "Soft light on {signal} → no sugarcoat, still kind.",
+        "Quiet joke → real care about {signal} → wings fold, listen.",
+    ],
+    "ambrosia": [
+        "Honeyed take on {signal} with a spine — sweet ≠ weak.",
+        "Nectar metaphor once about {signal}, then plain talk.",
     ],
 }
 
@@ -197,6 +230,13 @@ _DEFAULT_SCAFFOLD = [
     "Hook → one beat about {signal} if relevant → land at camp.",
     "Mood first → point → leave room for a reply. Season with {signal} once max.",
     "Mid-conversation riff; glance at {signal} like a friend who saw the timeline.",
+    "Because/so about {signal} → human result → stop.",
+    "Contrast pair on {signal}: not X — Y.",
+    "Start mid-thought about {signal}; land soft; optional emoji.",
+    "Object monologue (fire/cookies/chair) glancing at {signal}.",
+    "Interrupted self-correct while talking about {signal}.",
+    "Time stamp (now/later/last night) + one concrete camp detail + {signal}.",
+    "Question that matters about {signal}, then half your own answer.",
 ]
 
 

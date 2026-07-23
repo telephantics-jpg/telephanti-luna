@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "301-CAMP-BRIDGE"
+LUNA_BUILD = "310-3D-LIVE"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -3056,8 +3056,9 @@ class FirmamentAgentsConverseBody(BaseModel):
     agent_a: str = "luna"
     agent_b: str = "oracle"
     agent_c: str = ""
+    agent_d: str = ""
     topic: str = ""
-    rounds: int = 2
+    rounds: int = 3
     visitor_id: str = ""
     visitor_name: str = ""
 
@@ -3202,6 +3203,7 @@ async def firmament_agents_converse_api(request: Request):
             topic=body.topic,
             rounds=body.rounds,
             agent_c=body.agent_c,
+            agent_d=getattr(body, "agent_d", "") or "",
             pack_name=str(hub.pack.get("name") or hub.pack_id),
             visitor_id=body.visitor_id,
             visitor_name=body.visitor_name,
@@ -3553,10 +3555,16 @@ async def health():
             ollama_ok = resp.status_code == 200
     except Exception:
         ollama_ok = False
-    free_live = ollama_ok or configured or bool(
-        (os.getenv("GROQ_API_KEY") or "").strip() not in ("", "your_api_key_here")
-        or (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
-        not in ("", "your_api_key_here")
+    groq_ok = (os.getenv("GROQ_API_KEY") or "").strip() not in ("", "your_api_key_here")
+    gemini_ok = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip() not in (
+        "",
+        "your_api_key_here",
+    )
+    openrouter_ok = (os.getenv("OPENROUTER_API_KEY") or "").strip() not in ("", "your_api_key_here")
+    # Free minds = Ollama or free cloud keys — XAI/Grok does NOT count as free
+    free_live = ollama_ok or groq_ok or gemini_ok or openrouter_ok
+    grok_allowed = os.getenv("LUNA_ALLOW_GROK", "").strip().lower() in ("1", "true", "yes", "on") and (
+        os.getenv("LUNA_DISABLE_GROK", "1").strip().lower() not in ("1", "true", "yes", "on")
     )
     return {
         "ok": True,
@@ -3565,6 +3573,8 @@ async def health():
         "ollama_ok": ollama_ok,
         "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
         "free_minds": free_live,
+        "grok_allowed": bool(grok_allowed and configured),
+        "free_cloud": {"groq": groq_ok, "gemini": gemini_ok, "openrouter": openrouter_ok},
         "tts": "edge-tts (free)",
         "lipsync": lipsync,
         "build": LUNA_BUILD,

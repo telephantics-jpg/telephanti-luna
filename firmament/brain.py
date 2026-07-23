@@ -1,4 +1,4 @@
-"""NPC brains — free Ollama + free cloud comedy APIs, Grok for @a/@m links."""
+"""NPC brains — free Ollama + free cloud (Groq/Gemini/OpenRouter). Grok is opt-in only."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from firmament.paths import data_file
 
 MEMORY_PATH = data_file("firmament_agent_memory.json")
 MAX_MEMORY_TURNS = 12
+# Was Grok-only (@a/@m); now free chain like everyone unless LUNA_ALLOW_GROK=1
 GROK_LINK_AGENTS = frozenset({"ara", "mika"})
 
 # Character / comedy free models (Ollama tags + optional free cloud ids)
@@ -45,25 +46,48 @@ DEFAULT_FREE_MODELS: dict[str, dict[str, str]] = {
 
 
 def llm_backend() -> str:
-    """Default global preference (legacy). Per-agent uses free chain unless Grok-linked."""
+    """Default global preference — free first; never auto-select Grok just because a key exists."""
     explicit = os.getenv("LUNA_LLM_BACKEND", "").strip().lower()
     if explicit in ("ollama", "grok", "local", "free", "groq", "gemini"):
-        return "ollama" if explicit == "local" else explicit
-    if os.getenv("OLLAMA_HOST", "").strip() or os.getenv("LUNA_USE_OLLAMA", "").strip().lower() in ("1", "true", "yes"):
+        if explicit == "local":
+            return "ollama"
+        if explicit == "grok" and not _grok_allowed():
+            return "free"
+        return explicit
+    if _ollama_available():
         return "ollama"
-    key = os.getenv("XAI_API_KEY", "").strip()
-    if key and key != "your_api_key_here":
+    if _groq_ok():
+        return "groq"
+    if _gemini_ok():
+        return "gemini"
+    if _openrouter_ok():
+        return "openrouter"
+    if _grok_allowed():
         return "grok"
-    return "ollama"
+    return "free"
 
 
 def _truthy(name: str, default: str = "") -> bool:
     return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
 
 
-def _grok_ok() -> bool:
+def _grok_key_present() -> bool:
     key = os.getenv("XAI_API_KEY", "").strip()
     return bool(key and key != "your_api_key_here")
+
+
+def _grok_allowed() -> bool:
+    """Paid xAI/Grok is OFF by default. Opt in with LUNA_ALLOW_GROK=1."""
+    if _truthy("LUNA_DISABLE_GROK", "1"):
+        return False
+    if not _truthy("LUNA_ALLOW_GROK"):
+        return False
+    return _grok_key_present()
+
+
+def _grok_ok() -> bool:
+    """True only when Grok is both allowed and keyed (never silent paid fallback)."""
+    return _grok_allowed()
 
 
 def _groq_ok() -> bool:
@@ -1065,7 +1089,16 @@ def _complete_messages(
         return _complete_gemini(messages, model or "gemini-2.0-flash", max_tokens)
     if be == "openrouter":
         return _complete_openrouter(messages, model or "", max_tokens)
-    return _complete_grok(messages, model or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning"), max_tokens)
+    if be == "grok" and _grok_ok():
+        return _complete_grok(messages, model or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning"), max_tokens)
+    # Default free path — never silent Grok bill
+    if _ollama_available():
+        return _complete_ollama(messages, model or os.getenv("OLLAMA_MODEL", "llama3.2"), max_tokens)
+    if _groq_ok():
+        return _complete_groq(messages, model or "llama-3.1-8b-instant", max_tokens)
+    if _gemini_ok():
+        return _complete_gemini(messages, model or "gemini-2.0-flash", max_tokens)
+    raise RuntimeError("No free LLM available (Ollama / Groq / Gemini). Grok is disabled.")
 
 
 def build_backend_chain(
@@ -1074,24 +1107,20 @@ def build_backend_chain(
     *,
     force_grok: bool = False,
 ) -> list[tuple[str, str]]:
-    """Ordered (backend, model) tries — free character/comedy first for camp chat."""
+    """Ordered (backend, model) tries — free only unless LUNA_ALLOW_GROK=1."""
     aid = (agent_id or "").strip().lower()
     pack = free_model_pack(aid, profile)
     pref = str(profile.get("model") or "free").strip().lower()
     chain: list[tuple[str, str]] = []
 
-    # Grok-only link agents
-    if force_grok or aid in GROK_LINK_AGENTS:
-        if _grok_ok():
-            chain.append(("grok", profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")))
+    # Explicit Grok-only (rare): needs LUNA_ALLOW_GROK=1 + key. @a/@m no longer force paid.
+    if force_grok and _grok_ok():
+        chain.append(
+            ("grok", profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning"))
+        )
         return chain
 
-    # Explicit global force
-    global_pref = llm_backend()
-    if not free_brains_preferred() and global_pref == "grok" and _grok_ok():
-        chain.append(("grok", profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")))
-
-    # Free character comedy chain (default for Odin + everyone)
+    # Free character comedy chain (default for everyone, including Ara/Mika)
     ollama_up = _ollama_available()
     if free_brains_preferred() or pref in ("free", "ollama", "local", "auto", "groq", "gemini", ""):
         # Local Ollama first ONLY when it's actually up (Render has no Ollama)
@@ -1113,20 +1142,15 @@ def build_backend_chain(
                 or os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"),
             ))
 
-    # Grok: preferred when Ollama is down (live camp on Render), else after free fails
+    # Grok only when explicitly allowed AND fallback flag on (never because Ollama is down)
     want_grok = _grok_ok() and (
-        pref in ("grok", "any", "auto", "free")
-        or (free_brains_preferred() and _truthy("LUNA_GROK_FALLBACK", "1"))
-        or not ollama_up  # cloud deploy: go live with Grok, not aether templates
+        pref == "grok"
+        or _truthy("LUNA_GROK_FALLBACK")  # default off — must set =1 to even try
     )
     if want_grok:
         gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
         if ("grok", gmodel) not in chain:
-            # If no free cloud keys and Ollama dead, put Grok first so chat is instant
-            if not ollama_up and not _groq_ok() and not _gemini_ok() and not _openrouter_ok():
-                chain.insert(0, ("grok", gmodel))
-            else:
-                chain.append(("grok", gmodel))
+            chain.append(("grok", gmodel))
 
     # De-dupe preserving order
     seen: set[tuple[str, str]] = set()
@@ -1157,6 +1181,8 @@ def free_backends_status() -> dict[str, Any]:
     ollama_up = _ollama_available()
     return {
         "free_brains": free_brains_preferred(),
+        "grok_allowed": _grok_allowed(),
+        "grok_key_present": _grok_key_present(),
         "ollama": ollama_up,
         "ollama_ok": ollama_up,
         "ollama_host": os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434"),
@@ -1165,7 +1191,8 @@ def free_backends_status() -> dict[str, Any]:
         "gemini": _gemini_ok(),
         "openrouter": _openrouter_ok(),
         "grok": _grok_ok(),
-        "live_cloud": _grok_ok() or _groq_ok() or _gemini_ok() or _openrouter_ok(),
+        "live_free_cloud": _groq_ok() or _gemini_ok() or _openrouter_ok(),
+        "live_cloud": _groq_ok() or _gemini_ok() or _openrouter_ok() or _grok_ok(),
         "character_models": {
             aid: free_model_pack(aid)["ollama"] for aid in sorted(DEFAULT_FREE_MODELS)
         },
@@ -1231,8 +1258,9 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene: ambient camp talk — notice something real and speak a full lively beat of dialogue "
-            "(not a one-liner, not a chapter)."
+            "\nScene: ambient camp talk — you are alive at the fire circle. Notice something real "
+            "(a friend, the corona, a snack, the sky) and speak 2–4 lively spoken sentences with spirit, "
+            "wit, and warmth. Sound like you, not a caption. No stage directions, no 'as an AI'."
         )
     if from_agent:
         other = load_agent_profile(from_agent)
@@ -1268,9 +1296,11 @@ async def agent_chat(
     import asyncio
 
     chain = build_backend_chain(agent_id, profile, force_grok=force_grok)
-    if force_grok or agent_id in GROK_LINK_AGENTS:
-        if not chain:
-            raise RuntimeError("Grok link needs XAI_API_KEY — set it in .env for @a / @m")
+    if force_grok and not chain:
+        raise RuntimeError(
+            "Grok requested but disabled — set LUNA_ALLOW_GROK=1 + XAI_API_KEY, "
+            "or use free Ollama / GROQ_API_KEY / GEMINI_API_KEY"
+        )
 
     # Headroom for short lifelike beats
     if ambient:
@@ -1292,7 +1322,10 @@ async def agent_chat(
     SOFT_MAX_WORDS = 55 if (ambient or converse_mode) else 65
 
     if not chain:
-        errors.append("no LLM backends configured (set XAI_API_KEY / GROQ / GEMINI or run Ollama)")
+        errors.append(
+            "no free LLM backends — run Ollama locally, or set GROQ_API_KEY / GEMINI_API_KEY "
+            "(Grok/xAI is off unless LUNA_ALLOW_GROK=1)"
+        )
 
     for backend, model in chain:
         try:
@@ -1464,14 +1497,15 @@ async def agents_converse(
     agent_a: str,
     agent_b: str,
     topic: str = "",
-    rounds: int = 2,
+    rounds: int = 3,
     *,
     agent_c: str = "",
+    agent_d: str = "",
     pack_name: str = "",
     visitor_id: str = "",
     visitor_name: str = "",
 ) -> dict[str, Any]:
-    """Threaded 2–3 agent meadow banter (Unreal, observer, or camp play)."""
+    """Threaded 2–4 agent pow-wow / meadow conversation (watchable back-and-forth)."""
     from firmament.camp_converse import (
         aether_group_converse,
         converse_thread_prompt,
@@ -1482,7 +1516,7 @@ async def agents_converse(
     rounds = max(2, min(5, int(rounds)))
     ordered: list[str] = []
     seen: set[str] = set()
-    for aid in (agent_a, agent_c, agent_b):
+    for aid in (agent_a, agent_b, agent_c, agent_d):
         a = (aid or "").strip().lower()
         if a and a not in seen:
             seen.add(a)

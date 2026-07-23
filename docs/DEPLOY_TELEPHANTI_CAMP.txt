@@ -1,0 +1,55 @@
+TELEPHANTI.COM = LUNA CAMP (cloud)
+==================================
+
+Live paths (correct strings)
+----------------------------
+  2D camp:  https://telephanti.com/firmament/play
+  3D camp:  https://telephanti.com/firmament/3d
+  alias:    https://telephanti.com/firmament/three
+  Health:   https://telephanti.com/api/health
+
+  Hub (different site): https://telephantim.com/
+  Never use relative /firmament/3d from telephantim.com — that hits the wrong host.
+  world-nav.js always resolves Luna tabs to https://telephanti.com when not local.
+
+What deploys
+------------
+  Repo:  telephantics-jpg/telephanti-luna
+  Host:  Render service telephanti-luna → custom domain telephanti.com
+
+
+DEPLOY STEPS
+------------
+1. git push origin main   (from luna-avatar/)
+2. Render auto-builds Docker (or Manual Deploy → latest)
+3. Wait until health build matches (e.g. 310-3D-LIVE)
+4. Verify:
+     https://telephanti.com/api/health
+     https://telephanti.com/firmament/3d
+     https://telephanti.com/firmament/play
+
+
+RENDER ENV (free brains — no Grok bills)
+----------------------------------------
+  LUNA_CLOUD=1
+  LUNA_PUBLIC_URL=https://telephanti.com
+  LUNA_FREE_BRAINS=1
+  LUNA_ALLOW_GROK=0
+  LUNA_DISABLE_GROK=1
+  LUNA_GROK_FALLBACK=0
+  LUNA_FORCE_OLLAMA=0
+  LUNA_LLM_BACKEND=free
+
+  Free live talk (pick at least one):
+    GROQ_API_KEY=...
+    GEMINI_API_KEY=...
+
+  Do NOT set LUNA_ALLOW_GROK=1 unless you want paid xAI again.
+  Ollama does not run on Render — only free cloud keys above.
+
+
+LOCAL PC
+--------
+  OPEN_FREE_3D_CAMP.bat
+  → http://127.0.0.1:8767/firmament/3d
+  Free Ollama on your machine.

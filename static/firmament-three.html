@@ -534,7 +534,8 @@
     <button type="button" id="btn-firmament-3d" class="chip" title="Open Firmament so flyers may take the sky">📡 Firmament</button>
     <button type="button" id="btn-reset-cam" class="chip">Find me</button>
     <button type="button" id="btn-follow" class="chip" title="Camera follow">Follow</button>
-    <button type="button" id="btn-banter-top" class="chip">💬</button>
+    <button type="button" id="btn-banter-top" class="chip" title="Pair banter">💬</button>
+    <button type="button" id="btn-powwow-top" class="chip" title="Gather a circle conversation">🔥 Circle</button>
     <button type="button" id="btn-roam" class="chip">🏃</button>
     <span id="status">Loading…</span>
     <span id="stamp">✦ 3D</span>
@@ -548,6 +549,7 @@
       <button type="button" data-q="news">📰 Pulse</button>
       <button type="button" data-q="love">💜 Love</button>
       <button type="button" id="banter">💬 Banter</button>
+      <button type="button" id="powwow">🔥 Circle</button>
     </div>
     <div id="talk-row">
       <select id="who-select" aria-label="Talk to"></select>
@@ -574,7 +576,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-22-three-v34-notdz";
+    const BUILD = "2026-07-22-three-v39-zoom";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     const bootOverlay = document.getElementById("boot-overlay");
@@ -712,6 +714,14 @@
     const sendBtn = document.getElementById("send");
     const toastEl = document.getElementById("prop-toast");
     const speechLayer = document.getElementById("speech-layer");
+    // Define early — boot used to toast before this existed (optional-chain no-op or stale wording)
+    function showToast(msg) {
+      if (!toastEl) return;
+      toastEl.textContent = String(msg || "");
+      toastEl.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toastEl.classList.remove("show"), 3200);
+    }
     // 3D camp: no scrolling chat log UI — only world speech bubbles + toast
     let bubbleFrontZ = 220;
 
@@ -857,20 +867,23 @@
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
-    controls.enableZoom = true;
+    controls.dampingFactor = 0.08;
+    controls.enableZoom = true; // touch pinch still uses this; wheel is smoothed below
     controls.enablePan = true;
     controls.enableRotate = true;
     controls.screenSpacePanning = true;
     // zoomToCursor causes wild jump-in/out — keep off
     controls.zoomToCursor = false;
     controls.rotateSpeed = 0.75;
-    // Gentle zoom: wheel/pinch won't leap to infinity or into the dirt
-    controls.zoomSpeed = 0.4;
+    // Soft pinch zoom (wheel handled by our smooth radius)
+    controls.zoomSpeed = 0.55;
     controls.panSpeed = 0.85;
-    controls.minDistance = 8;
-    controls.maxDistance = 72;
-    controls.minPolarAngle = 0.15;
+    // Wide band so intermediate zoom levels feel natural
+    const ZOOM_MIN = 3.2;
+    const ZOOM_MAX = 96;
+    controls.minDistance = ZOOM_MIN;
+    controls.maxDistance = ZOOM_MAX;
+    controls.minPolarAngle = 0.12;
     controls.maxPolarAngle = Math.PI * 0.48;
     // Start on the player
     controls.target.set(2.5, 1.15, 4);
@@ -888,10 +901,51 @@
         RIGHT: THREE.MOUSE.PAN,
       };
     }
-    // Stop page scroll; OrbitControls still gets the wheel event
+
+    /** Smooth zoom: any distance between min/max (no leap to only near/far). */
+    function camRadius() {
+      return camera.position.distanceTo(controls.target);
+    }
+    function setCamRadius(r) {
+      const radius = THREE.MathUtils.clamp(r, ZOOM_MIN, ZOOM_MAX);
+      const offset = camera.position.clone().sub(controls.target);
+      if (offset.lengthSq() < 1e-6) offset.set(0, 6, 12);
+      offset.setLength(radius);
+      camera.position.copy(controls.target).add(offset);
+      return radius;
+    }
+    let zoomGoal = camRadius(); // eased toward each frame
+
+    // Capture wheel so OrbitControls doesn't apply raw huge trackpad deltas
     renderer.domElement.addEventListener("wheel", (e) => {
       e.preventDefault();
-    }, { passive: false });
+      e.stopPropagation();
+      if (!controls.enabled || !controls.enableZoom) return;
+      // Normalize lines/pages → pixels-ish, then cap so one tick is a small step
+      let dy = e.deltaY;
+      if (e.deltaMode === 1) dy *= 16; // DOM_DELTA_LINE
+      if (e.deltaMode === 2) dy *= window.innerHeight || 800; // DOM_DELTA_PAGE
+      // Precision trackpads send many small events; mice send ~100/notch
+      const mag = Math.min(Math.abs(dy), 100);
+      // ~4–10% radius change per event — plenty of stops between min and max
+      const factor = 1 + (mag / 100) * 0.09;
+      const cur = zoomGoal || camRadius();
+      if (dy > 0) zoomGoal = Math.min(ZOOM_MAX, cur * factor);
+      else zoomGoal = Math.max(ZOOM_MIN, cur / factor);
+    }, { passive: false, capture: true });
+
+    // Keyboard fine zoom (hold for smooth in-between)
+    window.addEventListener("keydown", (e) => {
+      if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+      if (e.key === "=" || e.key === "+" || e.key === "]") {
+        zoomGoal = Math.max(ZOOM_MIN, (zoomGoal || camRadius()) / 1.08);
+        e.preventDefault();
+      } else if (e.key === "-" || e.key === "[") {
+        zoomGoal = Math.min(ZOOM_MAX, (zoomGoal || camRadius()) * 1.08);
+        e.preventDefault();
+      }
+    });
+
     renderer.domElement.style.touchAction = "none";
 
     let followPlayer = true; // follow user at start
@@ -1256,128 +1310,207 @@
       ctx.closePath();
     }
 
-    /** Build a readable camp object (not a mystery cube). */
+    /** Camp prop meshes — denser geometry, materials, soft ground contact. */
     function buildPropVisual(prop) {
       const g = new THREE.Group();
+      g.userData.propBob = Math.random() * Math.PI * 2;
       const kit = prop.visual?.kit || prop.id || "crate";
       const col = prop.color || 0x888888;
-      const mat = (c, rough = 0.5, metal = 0.1, em = 0.15) =>
+      const mat = (c, rough = 0.55, metal = 0.08, em = 0.06) =>
         new THREE.MeshStandardMaterial({
           color: c, roughness: rough, metalness: metal,
-          emissive: c, emissiveIntensity: em,
+          emissive: new THREE.Color(c).multiplyScalar(0.2),
+          emissiveIntensity: em,
         });
-      const add = (mesh, y = 0) => { mesh.position.y = y; mesh.castShadow = true; g.add(mesh); return mesh; };
+      const add = (mesh, y = 0) => {
+        mesh.position.y = y;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        g.add(mesh);
+        return mesh;
+      };
+      // soft contact shadow
+      const contact = new THREE.Mesh(
+        new THREE.CircleGeometry(0.55, 24),
+        new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }),
+      );
+      contact.rotation.x = -Math.PI / 2;
+      contact.position.y = 0.02;
+      g.add(contact);
 
       if (kit === "cooler" || prop.id === "beer" || prop.id === "cooler2") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.75, 0.75), mat(col, 0.4, 0.35, 0.12)), 0.4);
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.12, 0.8), mat(0x1e293b, 0.5, 0.2, 0)), 0.82);
-        // bottle nubs
-        for (let i = 0; i < 3; i++) {
-          const b = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.35, 8), mat(0xfbbf24, 0.3, 0.2, 0.2));
-          b.position.set(-0.25 + i * 0.25, 1.05, 0);
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.72, 0.78), mat(col, 0.35, 0.45, 0.05)), 0.42);
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.1, 0.84), mat(0x0f172a, 0.45, 0.35, 0)), 0.82);
+        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.03, 8, 16, Math.PI), mat(0x334155, 0.4, 0.5, 0));
+        handle.rotation.x = Math.PI / 2;
+        handle.position.y = 0.95;
+        handle.castShadow = true;
+        g.add(handle);
+        for (let i = 0; i < 4; i++) {
+          const b = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.07, 0.08, 0.38, 12),
+            mat(i % 2 ? 0xfbbf24 : 0xf97316, 0.25, 0.15, 0.12),
+          );
+          b.position.set(-0.32 + i * 0.2, 1.08, 0.05);
           b.castShadow = true;
           g.add(b);
+          const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.04, 12), mat(0x1e293b, 0.5, 0.3, 0));
+          cap.position.set(b.position.x, 1.28, 0.05);
+          g.add(cap);
         }
       } else if (kit === "grill" || prop.id === "steaks") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.85), mat(0x334155, 0.5, 0.4, 0)), 0.55);
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.55, 6), mat(0x1e293b)), 0.28);
-        const grate = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.05, 0.7), mat(0x94a3b8, 0.3, 0.7, 0.1));
-        grate.position.y = 0.68;
-        g.add(grate);
-        const coal = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.12, 0.55), mat(0x7c2d12, 0.9, 0, 0.35));
-        coal.position.y = 0.5;
-        g.add(coal);
-        // steak slabs
-        for (const ox of [-0.2, 0.2]) {
-          const steak = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 0.28), mat(0xb91c1c, 0.6, 0.05, 0.25));
-          steak.position.set(ox, 0.78, 0);
+        for (const lx of [-0.35, 0.35]) {
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 10), mat(0x1e293b, 0.6, 0.4, 0));
+          leg.position.set(lx, 0.28, 0);
+          leg.castShadow = true;
+          g.add(leg);
+        }
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.18, 0.9), mat(0x334155, 0.45, 0.55, 0)), 0.58);
+        const coal = add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 0.65), mat(0x7c2d12, 0.85, 0.05, 0.45)), 0.52);
+        coal.material.emissive = new THREE.Color(0xff4500);
+        coal.material.emissiveIntensity = 0.35;
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.04, 0.72), mat(0xcbd5e1, 0.25, 0.75, 0.05)), 0.72);
+        for (const ox of [-0.22, 0.22]) {
+          const steak = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.07, 0.3), mat(0xb91c1c, 0.55, 0.05, 0.2));
+          steak.position.set(ox, 0.82, 0);
+          steak.rotation.y = ox * 0.2;
+          steak.castShadow = true;
           g.add(steak);
         }
+        // heat shimmer marker for animate loop
+        g.userData.hot = true;
       } else if (kit === "jar" || prop.id === "weed") {
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.3, 0.55, 12), mat(col, 0.25, 0.15, 0.2)), 0.4);
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.1, 12), mat(0x166534, 0.4, 0.1, 0.1)), 0.72);
-        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), mat(0x22c55e, 0.5, 0, 0.3));
-        leaf.position.set(0.15, 0.55, 0.15);
-        g.add(leaf);
+        const jar = add(new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.58, 20), mat(0x4ade80, 0.2, 0.05, 0.08)), 0.42);
+        jar.material.transparent = true;
+        jar.material.opacity = 0.82;
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.1, 16), mat(0x166534, 0.45, 0.1, 0.05)), 0.76);
+        for (let i = 0; i < 3; i++) {
+          const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), mat(0x22c55e, 0.55, 0, 0.15));
+          leaf.scale.set(1.2, 0.45, 0.8);
+          leaf.position.set(Math.cos(i) * 0.12, 0.55 + i * 0.05, Math.sin(i) * 0.1);
+          g.add(leaf);
+        }
       } else if (kit === "plate" || prop.id === "cookies") {
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.08, 16), mat(0xe7e5e4, 0.4, 0.1, 0)), 0.45);
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.9), mat(0x78716c, 0.7, 0.05, 0)), 0.22);
-        for (let i = 0; i < 5; i++) {
-          const cookie = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.06, 10), mat(0xd4a05a, 0.6, 0, 0.1));
-          const a = (i / 5) * Math.PI * 2;
-          cookie.position.set(Math.cos(a) * 0.22, 0.55, Math.sin(a) * 0.22);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 0.45, 16), mat(0x78716c, 0.7, 0.05, 0)), 0.25);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.06, 24), mat(0xf5f5f4, 0.35, 0.08, 0)), 0.5);
+        for (let i = 0; i < 6; i++) {
+          const cookie = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.05, 14), mat(0xd4a05a, 0.65, 0, 0.05));
+          const a = (i / 6) * Math.PI * 2;
+          cookie.position.set(Math.cos(a) * 0.26, 0.58, Math.sin(a) * 0.26);
+          cookie.castShadow = true;
           g.add(cookie);
+          const chip = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), mat(0x44403c, 0.7, 0, 0));
+          chip.position.set(cookie.position.x + 0.02, 0.62, cookie.position.z);
+          g.add(chip);
         }
       } else if (kit === "board" || prop.id === "ouija") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.7), mat(col, 0.5, 0.1, 0.25)), 0.35);
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.25, 0.75), mat(0x1e1b4b, 0.7, 0.05, 0.1)), 0.18);
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), mat(0xe9d5ff, 0.3, 0.2, 0.6));
-        eye.position.set(0, 0.48, 0);
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.22, 0.72), mat(0x1e1b4b, 0.75, 0.05, 0.08)), 0.16);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.06, 0.66), mat(col, 0.45, 0.12, 0.2)), 0.38);
+        // planchette
+        const planchette = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.08, 3), mat(0xe9d5ff, 0.35, 0.2, 0.35));
+        planchette.rotation.x = -Math.PI / 2;
+        planchette.position.set(0.05, 0.46, 0.05);
+        g.add(planchette);
+        g.userData.planchette = planchette;
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), mat(0xf5d0fe, 0.25, 0.15, 0.55));
+        eye.position.set(0, 0.52, -0.12);
         g.add(eye);
       } else if (kit === "jukebox" || prop.id === "stereo") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.45), mat(col, 0.35, 0.4, 0.25)), 0.65);
-        const face = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.35, 0.08), mat(0x22d3ee, 0.3, 0.5, 0.5));
-        face.position.set(0, 0.85, 0.26);
-        g.add(face);
-        const speaker = new THREE.Mesh(new THREE.CircleGeometry(0.18, 16), mat(0x0f172a, 0.5, 0.2, 0));
-        speaker.position.set(0, 0.45, 0.24);
-        g.add(speaker);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.78, 1.25, 0.48), mat(col, 0.32, 0.5, 0.12)), 0.68);
+        const screen = add(new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.32, 0.06), mat(0x22d3ee, 0.2, 0.4, 0.55)), 1.0);
+        screen.position.z = 0.24;
+        g.userData.screen = screen;
+        for (const sx of [-0.18, 0.18]) {
+          const spk = new THREE.Mesh(new THREE.CircleGeometry(0.14, 20), mat(0x0f172a, 0.5, 0.2, 0));
+          spk.position.set(sx, 0.48, 0.25);
+          g.add(spk);
+          const cone = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.12, 16), mat(0x64748b, 0.4, 0.3, 0));
+          cone.position.set(sx, 0.48, 0.255);
+          g.add(cone);
+        }
+        // neon top light
+        const neon = add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.12), mat(0x38bdf8, 0.3, 0.2, 0.6)), 1.35);
+        neon.material.emissiveIntensity = 0.7;
       } else if (kit === "water" || prop.id === "water") {
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 1.0, 12), mat(0x38bdf8, 0.25, 0.2, 0.25)), 0.55);
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.2, 8), mat(0x0ea5e9, 0.3, 0.3, 0.2)), 1.15);
-        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.18, 8), mat(0xe0f2fe, 0.3, 0.1, 0.1));
-        cup.position.set(0.35, 0.45, 0.2);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 1.05, 20), mat(0x38bdf8, 0.22, 0.25, 0.12)), 0.55);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.18, 12), mat(0x0ea5e9, 0.3, 0.35, 0.1)), 1.15);
+        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.16, 12), mat(0xe0f2fe, 0.25, 0.1, 0.05));
+        cup.position.set(0.38, 0.48, 0.18);
+        cup.castShadow = true;
         g.add(cup);
       } else if (kit === "crate" || prop.id === "snacks") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.55, 0.7), mat(col, 0.7, 0.05, 0.1)), 0.35);
-        // popcorn mounds
-        for (let i = 0; i < 4; i++) {
-          const p = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), mat(0xfef3c7, 0.6, 0, 0.15));
-          p.position.set(-0.2 + (i % 2) * 0.35, 0.7, -0.1 + Math.floor(i / 2) * 0.25);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.52, 0.72), mat(col, 0.75, 0.05, 0.04)), 0.32);
+        // wood slat lines
+        for (let i = 0; i < 3; i++) {
+          const slat = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.03, 0.74), mat(0x92400e, 0.8, 0.02, 0));
+          slat.position.set(0, 0.18 + i * 0.14, 0);
+          g.add(slat);
+        }
+        for (let i = 0; i < 5; i++) {
+          const p = new THREE.Mesh(new THREE.SphereGeometry(0.1 + (i % 2) * 0.03, 10, 10), mat(0xfef3c7, 0.55, 0, 0.08));
+          p.position.set(-0.22 + (i % 3) * 0.2, 0.68, -0.12 + Math.floor(i / 3) * 0.22);
           g.add(p);
         }
       } else if (kit === "bowl" || prop.id === "fruit") {
-        add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(0xd6d3d1, 0.4, 0.1, 0)), 0.35);
-        const colors = [0xef4444, 0xfbbf24, 0x22c55e, 0xf97316];
+        add(new THREE.Mesh(
+          new THREE.SphereGeometry(0.42, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.52),
+          mat(0xd6d3d1, 0.4, 0.12, 0),
+        ), 0.32);
+        const colors = [0xef4444, 0xfbbf24, 0x22c55e, 0xf97316, 0xa855f7];
         colors.forEach((c, i) => {
-          const fr = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), mat(c, 0.5, 0, 0.15));
+          const fr = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 12), mat(c, 0.45, 0, 0.08));
           const a = (i / colors.length) * Math.PI * 2;
-          fr.position.set(Math.cos(a) * 0.15, 0.55, Math.sin(a) * 0.15);
+          fr.position.set(Math.cos(a) * 0.16, 0.52, Math.sin(a) * 0.16);
+          fr.castShadow = true;
           g.add(fr);
         });
       } else if (kit === "wine" || prop.id === "wine") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.45, 0.55), mat(0x44403c, 0.7, 0.05, 0)), 0.28);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.42, 0.58), mat(0x44403c, 0.75, 0.05, 0)), 0.26);
         for (let i = 0; i < 3; i++) {
-          const bot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 8), mat(col, 0.3, 0.2, 0.2));
-          bot.position.set(-0.22 + i * 0.22, 0.7, 0);
+          const bot = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.58, 12), mat(col, 0.25, 0.15, 0.1));
+          bot.position.set(-0.24 + i * 0.24, 0.72, 0);
+          bot.castShadow = true;
           g.add(bot);
+          const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.18, 10), mat(col, 0.25, 0.15, 0.1));
+          neck.position.set(bot.position.x, 1.08, 0);
+          g.add(neck);
         }
       } else if (kit === "smores" || prop.id === "marshmallows") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.5), mat(0xfef3c7, 0.6, 0, 0.1)), 0.25);
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.35), mat(0x78350f, 0.7, 0, 0)), 0.42);
-        const m = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), mat(0xfffbeb, 0.5, 0, 0.1));
-        m.position.set(0, 0.55, 0);
-        g.add(m);
-      } else if (kit === "kettle" || prop.id === "tea") {
-        add(new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), mat(col, 0.35, 0.35, 0.15)), 0.45);
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.2, 8), mat(0x166534, 0.4, 0.2, 0.1)), 0.75);
-        const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.28, 6), mat(col, 0.35, 0.3, 0.1));
-        spout.rotation.z = Math.PI / 3;
-        spout.position.set(0.28, 0.5, 0);
-        g.add(spout);
-      } else if (kit === "bread" || prop.id === "bread") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.28, 0.4), mat(col, 0.7, 0, 0.08)), 0.35);
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 0.55), mat(0x57534e, 0.8, 0, 0)), 0.15);
-      } else if (kit === "bundle" || prop.id === "herbs") {
-        for (let i = 0; i < 5; i++) {
-          const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.7, 5), mat(0x4ade80, 0.6, 0, 0.2));
-          stalk.position.set((i - 2) * 0.08, 0.4, (i % 2) * 0.05);
-          stalk.rotation.z = (i - 2) * 0.08;
-          g.add(stalk);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.22, 0.52), mat(0xfef3c7, 0.65, 0, 0.05)), 0.22);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.07, 0.34), mat(0x78350f, 0.75, 0, 0)), 0.4);
+        for (const ox of [-0.12, 0.12]) {
+          const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), mat(0xfffbeb, 0.5, 0, 0.06));
+          m.position.set(ox, 0.55, 0);
+          g.add(m);
         }
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.12, 0.3), mat(0x365314, 0.7, 0, 0.05)), 0.12);
+      } else if (kit === "kettle" || prop.id === "tea") {
+        add(new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 18), mat(col, 0.32, 0.4, 0.08)), 0.48);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.16, 12), mat(0x166534, 0.4, 0.2, 0.05)), 0.8);
+        const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.3, 10), mat(col, 0.32, 0.35, 0.05));
+        spout.rotation.z = Math.PI / 3.2;
+        spout.position.set(0.3, 0.52, 0);
+        g.add(spout);
+        // steam markers
+        g.userData.steam = true;
+      } else if (kit === "bread" || prop.id === "bread") {
+        const loaf = add(new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.45, 6, 12), mat(col, 0.75, 0, 0.04)), 0.38);
+        loaf.rotation.z = Math.PI / 2;
+        loaf.scale.set(1, 0.85, 1.1);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.38, 0.08, 16), mat(0x57534e, 0.85, 0, 0)), 0.12);
+      } else if (kit === "bundle" || prop.id === "herbs") {
+        for (let i = 0; i < 7; i++) {
+          const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.75, 6), mat(0x4ade80, 0.55, 0, 0.12));
+          stalk.position.set((i - 3) * 0.07, 0.42, (i % 3) * 0.04 - 0.04);
+          stalk.rotation.z = (i - 3) * 0.06;
+          stalk.castShadow = true;
+          g.add(stalk);
+          const tip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), mat(0x86efac, 0.5, 0, 0.15));
+          tip.position.set(stalk.position.x, 0.82, stalk.position.z);
+          g.add(tip);
+        }
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.1, 0.28), mat(0x365314, 0.75, 0, 0)), 0.1);
       } else {
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.55, 0.75), mat(col, 0.5, 0.15, 0.12)), 0.35);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.55, 0.8), mat(col, 0.5, 0.12, 0.06)), 0.35);
       }
       return g;
     }
@@ -1405,21 +1538,8 @@
       return group;
     }
     for (const prop of PROPS) spawnProp(prop);
-    console.info("[camp3d] spawned props", propMeshes.length, PROPS.map((p) => p.id).join(","));
-    // Friendly success chip — old text "15 camp objects · api" read like an error
-    setTimeout(() => {
-      try {
-        const src =
-          catalogSource === "api" || catalogSource === "loaded"
-            ? "meadow ready"
-            : catalogSource === "static"
-              ? "offline catalog"
-              : catalogSource === "embedded"
-                ? "built-in props"
-                : String(catalogSource || "ready");
-        showToast?.(`✦ Camp up · ${propMeshes.length} props · ${src}`);
-      } catch (_) {}
-    }, 900);
+    console.info("[camp3d] spawned props", propMeshes.length, PROPS.map((p) => p.id).join(","), "source", catalogSource);
+    // Success toast fires once meadow boot finishes (not mid-spawn) — never "N camp objects · api"
 
     // ── Personality from mood + archetype (drives sit / rest / roam / social) ──
     function buildPersonality(def) {
@@ -1515,45 +1635,99 @@
     const agentState = [];
     const roamPoints = [];
     let aiInFlight = 0;
-    const AI_MAX = 1; // chill: one AI monologue at a time
+    const AI_MAX = 2; // two speakers at once — meadow should feel alive
     /** Mythic / winged agents may take off and roam the air */
     const FLYER_IDS = new Set([
       "hermes", "seraph", "zeus", "luna", "aurora", "violet",
       "michael", "gabriel", "uriel", "ara", "mika",
     ]);
-    function makeAgent(def) {
-      const group = new THREE.Group();
-      // Placeholder capsule until free GLB character loads
-      const bodyMat = new THREE.MeshStandardMaterial({
+    /** Limb-rigged placeholder humanoid — walks until GLB loads (or if GLB fails). */
+    function buildPlaceholderHumanoid(def) {
+      const root = new THREE.Group();
+      root.name = "placeholder";
+      const cloth = new THREE.MeshStandardMaterial({
         color: def.color,
-        roughness: 0.4,
-        metalness: 0.1,
+        roughness: 0.48,
+        metalness: 0.12,
         emissive: def.color,
-        emissiveIntensity: 0.22,
+        emissiveIntensity: 0.14,
       });
-      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.75, 6, 12), bodyMat);
-      body.position.y = 0.9;
-      body.castShadow = true;
-      body.name = "body";
-      group.add(body);
-      const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.24, 16, 16),
-        new THREE.MeshStandardMaterial({ color: 0xffe4c8, roughness: 0.55 }),
-      );
-      head.position.y = 1.62;
+      const skin = new THREE.MeshStandardMaterial({
+        color: 0xffe0c2,
+        roughness: 0.62,
+        metalness: 0.02,
+      });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.1 });
+
+      const hips = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.2), cloth);
+      hips.position.y = 0.92;
+      hips.castShadow = true;
+      hips.name = "hips";
+      root.add(hips);
+
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.42, 6, 12), cloth);
+      torso.position.y = 1.28;
+      torso.castShadow = true;
+      torso.name = "body";
+      root.add(torso);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 18), skin);
+      head.position.y = 1.72;
       head.castShadow = true;
       head.name = "head";
-      group.add(head);
+      root.add(head);
+      // simple face
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), dark);
+      eyeL.position.set(-0.07, 1.76, 0.16);
+      root.add(eyeL);
+      const eyeR = eyeL.clone();
+      eyeR.position.x = 0.07;
+      root.add(eyeR);
+
+      function limb(name, geo, mat, y, side) {
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set(side * 0.22, y, 0);
+        m.castShadow = true;
+        m.name = name;
+        root.add(m);
+        return m;
+      }
+      const Larm = limb("Larm", new THREE.CapsuleGeometry(0.055, 0.28, 4, 8), cloth, 1.35, -1);
+      const Rarm = limb("Rarm", new THREE.CapsuleGeometry(0.055, 0.28, 4, 8), cloth, 1.35, 1);
+      const Lleg = limb("Lleg", new THREE.CapsuleGeometry(0.07, 0.38, 4, 8), dark, 0.48, -0.55);
+      const Rleg = limb("Rleg", new THREE.CapsuleGeometry(0.07, 0.38, 4, 8), dark, 0.48, 0.55);
+      Larm.position.x = -0.3;
+      Rarm.position.x = 0.3;
+      Lleg.position.x = -0.12;
+      Rleg.position.x = 0.12;
+
       const feet = new THREE.Mesh(
-        new THREE.CircleGeometry(0.28, 16),
-        new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: 0.35 }),
+        new THREE.CircleGeometry(0.3, 20),
+        new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: 0.32 }),
       );
       feet.rotation.x = -Math.PI / 2;
       feet.position.y = 0.02;
       feet.name = "feet";
-      group.add(feet);
+      root.add(feet);
+
+      return {
+        root,
+        body: torso,
+        head,
+        limbs: { Larm, Rarm, Lleg, Rleg, hips },
+        feet,
+      };
+    }
+
+    function makeAgent(def) {
+      const group = new THREE.Group();
+      const ph = buildPlaceholderHumanoid(def);
+      group.add(ph.root);
+      const body = ph.body;
+      const head = ph.head;
+      const feet = ph.feet;
       const label = makeLabelSprite(def.name, "✦", def.color);
-      label.position.y = 2.35;
+      label.position.y = 2.2;
       label.scale.set(1.6, 0.8, 1);
       label.name = "label";
       group.add(label);
@@ -1568,12 +1742,13 @@
         mesh: group,
         body,
         head,
+        limbs: ph.limbs,
+        placeholder: ph.root,
         target: p.clone(),
         home: p.clone(),
         speakUntil: 0,
         phase: Math.random() * Math.PI * 2,
         speed: (3.4 + Math.random() * 2.2) * persona.pace,
-        // Soft physics state
         vx: 0,
         vz: 0,
         vy: 0,
@@ -1587,23 +1762,23 @@
         persona,
         energyNow: persona.energy,
         boredom: Math.random() * 0.3,
-        char: null, // free GLB character once loaded
+        char: null,
         animState: "idle",
       };
       agentState.push(st);
       applyLook(st);
-      // GLB characters load AFTER camp is playable (never block "Building meadow")
       st._upgradeChar = () => {
         if (!charSystem || st.char) return Promise.resolve();
         return charSystem.createCharacter(def, def.color).then((ch) => {
           if (!ch || !st.mesh) return;
+          if (st.placeholder) st.placeholder.visible = false;
           body.visible = false;
           head.visible = false;
           if (feet) feet.visible = false;
           st.mesh.add(ch.root);
           st.char = ch;
-          ch.setTint(def.color, 0.12);
-          label.position.y = 2.1;
+          ch.setTint(def.color, 0.1);
+          label.position.y = 2.05;
           applyLook(st);
         }).catch((e) => console.warn("char load", def.id, e));
       };
@@ -1745,10 +1920,10 @@
       if (aiInFlight < AI_MAX) {
         aiInFlight++;
         try {
-          const seed = `You just used ${pname}. React — how it hit you, one real beat.`;
+          const seed = `You just used ${pname}. React with spirit — how it hit you, a joke or a real feeling, 2 sentences.`;
           const data = await campClient.agentChat(st.def.id, seed, { ambient: true });
           const reply = spokenOnly3d(data.reply || data.text || "", seed)
-            || `${pname} hits different tonight.`;
+            || localBark(st.def.id);
           showSpeech3d(st.def.id, reply, speechReadMs(reply));
           logLine(st.def.name, reply);
         } catch (_) {
@@ -1869,10 +2044,10 @@
       const wSit = p.rest * 1.4 + (1 - st.energyNow) * 0.8 + (p.mood === "think" || p.mood === "love" ? 0.35 : 0);
       const wIdle = p.rest * 0.6 + (st.posture === "sit" ? 0.5 : 0.2);
       const wWander = p.energy * 1.1 + st.boredom * 0.7 + st.energyNow * 0.4;
-      const wSocial = p.social * 1.2 + (p.mood === "flirt" || p.mood === "happy" ? 0.3 : 0);
-      const wFire = p.firelove * 1.1;
-      // Props are a big part of camp life — bias toward interacting
-      const wProp = p.curiosity * 1.35 + 0.35 + (st.boredom > 0.4 ? 0.25 : 0);
+      const wSocial = p.social * 1.55 + (p.mood === "flirt" || p.mood === "happy" ? 0.45 : 0.15) + 0.25;
+      const wFire = p.firelove * 1.25 + 0.2;
+      // Props still fun, but not the whole show — circle talk is primary
+      const wProp = p.curiosity * 0.85 + 0.15 + (st.boredom > 0.55 ? 0.12 : 0);
       const wHouse = (p.rest * 0.4 + p.curiosity * 0.3) * (Math.random() > 0.5 ? 1 : 0.6);
       const wFly = (firmamentOpen3d && st.canFly)
         ? (p.energy * 0.55 + st.boredom * 0.25 + 0.12)
@@ -2329,12 +2504,6 @@
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
-    }
-    function showToast(msg) {
-      toastEl.textContent = msg;
-      toastEl.classList.add("show");
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => toastEl.classList.remove("show"), 2200);
     }
 
     const activeBubbles = [];
@@ -2793,7 +2962,8 @@
       };
       activeBubbles.push(item);
       st.speakUntil = item.until;
-      st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 75000 + Math.random() * 45000);
+      // Shorter quiet window so camp keeps talking (was 75–120s = felt mute)
+      st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 14000 + Math.random() * 12000);
       if (isSelected) {
         bringBubbleFront(el, { quiet: true });
       } else if (selectedSpeechAgentId) {
@@ -2801,10 +2971,63 @@
       }
     }
 
-    // Offline-only fallbacks (brains down). Normal path = real AI.
+    // Offline / soft-signal barks — still spirited so the meadow never goes mute
     function localBark(agentId) {
       const name = AGENTS.find((a) => a.id === agentId)?.name || agentId;
-      return `${name} (signal soft)… still on the meadow.`;
+      const pool = {
+        luna: [
+          "Mmm — the corona just winked at me. I'm taking that as a yes.",
+          "Don't rush the meadow. It already knows your name.",
+          "If joy had a seat, it'd be the one closest to the fire.",
+        ],
+        hermes: [
+          "Signal's clean. Comedy's dirty. Perfect camp weather.",
+          "I delivered a joke to the pond. The pond laughed first.",
+          "Ripple report: someone's about to say something excellent.",
+        ],
+        oracle: [
+          "I foresaw this silence — and then I cancelled it.",
+          "The cards say: speak, then snack, then speak again.",
+          "Future me already loves this sentence.",
+        ],
+        odin: [
+          "Even the Allfather needs a meadow monologue.",
+          "Ravens approve. Or they're hungry. Same energy.",
+          "Wisdom is just a long joke with better lighting.",
+        ],
+        dionysus: [
+          "If nobody toasts, I will invent the toast.",
+          "The vineyard sent feelings. I'm translating live.",
+          "Quiet camp? Unacceptable. Pour the sky.",
+        ],
+        thor: [
+          "Thunder's on break. Banter is not.",
+          "I could lift the mood. Watch me.",
+          "Worthy vibes only — and snacks.",
+        ],
+        caduceus: [
+          "Both snakes vote: more laughter, fewer doom scrolls.",
+          "Healing looks a lot like good company tonight.",
+          "Breathe in aurora. Breathe out a better line.",
+        ],
+        jesus: [
+          "Peace first — then a little joy with teeth.",
+          "The fire remembers everyone who sits a while.",
+          "Love doesn't need a script. It needs a circle.",
+        ],
+        sentinel: [
+          "Perimeter secure. Morale could use a monologue.",
+          "Threat level: none. Wit level: rising.",
+          "I log smiles. Yours just got archived.",
+        ],
+      };
+      const lines = pool[agentId] || [
+        `${name}: the meadow's listening — might as well give it a show.`,
+        `${name}: silence is cute for three seconds. Then we talk.`,
+        `${name}: fire's warm, company's better. Who's next?`,
+        `${name}: I've got a take and zero patience for mute camp.`,
+      ];
+      return lines[Math.floor(Math.random() * lines.length)];
     }
 
     function etherealSeedFor(agentId) {
@@ -2830,27 +3053,27 @@
       const arch = st.persona.arch || "camp";
       const joy = Number(st.persona.joy ?? 0.6).toFixed(2);
       const stab = Number(st.persona.stability ?? 0.65).toFixed(2);
-      const last = st.lastProp ? ` You recently used ${st.lastProp}; your vibe may have shifted.` : "";
+      const last = st.lastProp ? ` You recently used ${st.lastProp}.` : "";
       const eth = etherealSeedFor(id);
-      const ethBit = eth ? ` ${eth}` : "";
-      const flyBit = st.flying ? " You are flying free above the meadow." : "";
+      const ethBit = eth ? ` Memory: ${eth}` : "";
+      const flyBit = st.flying ? " You're airborne over the meadow." : "";
+      // Spirited seeds — keep short so models don't echo director notes
       let speakPrompt = "";
-
       if (action === "sit" || action === "go_sit") {
-        speakPrompt = `You (${name}) chose to sit at camp (mood: ${mood}, vibe: ${arch}, joy ${joy}, stability ${stab}).${last}${flyBit}${ethBit} Speak 2–4 warm in-character sentences — stable presence, real joy if it fits. No meta.`;
+        speakPrompt = `${name} at camp, sitting (${mood}, ${arch}).${last}${ethBit} Say 2–3 lively sentences with wit and warmth — like you're mid-story by the fire.`;
       } else if (action === "idle") {
-        speakPrompt = `You (${name}) are still a moment (mood: ${mood}, joy ${joy}, stability ${stab}).${last}${ethBit} 2–3 quiet in-character sentences — grounded, not forced hype. No meta.`;
+        speakPrompt = `${name} paused a beat (${mood}).${last}${ethBit} 2 spirited sentences — not hype, not mute. Something true and a little funny.`;
       } else if (action === "social") {
-        const other = st.socialTarget || "someone";
-        speakPrompt = `You (${name}) are seeking ${other} (mood: ${mood}, joy ${joy}).${last}${ethBit} 2–4 in-character sentences with soft continuity. No meta.`;
+        const other = st.socialTarget || "a friend";
+        speakPrompt = `${name} is heading toward ${other} (${mood}).${last}${ethBit} 2–3 chatty sentences: tease, invite, or drop a hot take.`;
       } else if (action === "fire") {
-        speakPrompt = `You (${name}) drifted to the sun corona fire (mood: ${mood}, joy ${joy}, stability ${stab}).${last}${ethBit} 2–4 in-character sentences. No meta.`;
+        speakPrompt = `${name} at the sun corona fire (${mood}, joy ${joy}).${last}${ethBit} 2–3 fire-circle lines — glowing, playful, present.`;
       } else if (action === "house") {
-        speakPrompt = `You (${name}) are walking toward a house (joy ${joy}, stability ${stab}).${last}${ethBit} 2–4 in-character sentences about home/threshold. No meta.`;
+        speakPrompt = `${name} walking toward a house (${mood}).${last}${ethBit} 2–3 lines about home, thresholds, or who's welcome.`;
       } else if (st.flying) {
-        speakPrompt = `You (${name}) are flying free over camp (mood: ${mood}, joy ${joy}, stability ${stab}).${last}${ethBit} 2–4 sky-true sentences — ethereal but steady. No meta.`;
+        speakPrompt = `${name} flying over camp (${mood}).${flyBit}${ethBit} 2–3 sky-true lines — free, bright, a little mythic.`;
       } else {
-        speakPrompt = `You (${name}) chose to wander (energy ${st.energyNow.toFixed(2)}, joy ${joy}, stability ${stab}, mood: ${mood}).${last}${ethBit} Own take in 2–4 sentences. No meta.`;
+        speakPrompt = `${name} wandering the meadow (${mood}, energy ${st.energyNow.toFixed(2)}).${last}${ethBit} 2–3 spirited sentences — own voice, camp comedy welcome.`;
       }
 
       aiInFlight++;
@@ -2858,7 +3081,7 @@
         statusEl.textContent = `${name} · ${action}`;
         const data = await campClient.agentChat(id, speakPrompt, { ambient: true });
         let reply = spokenOnly3d(data.reply || data.text || "", speakPrompt);
-        if (!reply) reply = localBark(id);
+        if (!reply || reply.length < 8) reply = localBark(id);
         if (reply) {
           showSpeech3d(id, reply, speechReadMs(reply));
           logLine(name, reply);
@@ -2889,13 +3112,18 @@
 
     function freeWillWave() {
       if (document.hidden) return;
-      // Chill: at most one agent speaks; prefer someone actually due
+      // Prefer group talk over solo environment monologues
+      if (!powWowBusy && !ambientBusy && Math.random() < 0.72) {
+        runPowWow({ continue: !!(lastPowWow && Math.random() < 0.45) });
+        return;
+      }
+      // Light solo color only — not the main show
       const due = agentState
-        .filter((st) => performance.now() >= (st.nextDecideAt || 0))
+        .filter((st) => performance.now() >= (st.nextDecideAt || 0) && !st.powWow)
         .sort(() => Math.random() - 0.5);
-      const pool = due.length ? due : agentState.slice().sort(() => Math.random() - 0.5);
+      const pool = due.length ? due : agentState.filter((st) => !st.powWow).sort(() => Math.random() - 0.5);
       const pick = pool[0];
-      if (pick) setTimeout(() => agentOwnTake(pick), 400 + Math.random() * 800);
+      if (pick) setTimeout(() => agentOwnTake(pick), 300 + Math.random() * 600);
     }
     function updateBubbles() {
       const now = performance.now();
@@ -3054,8 +3282,26 @@
     // Camp Protocol — brains on server; local chatter never blocked
     let userBusy = false;
     let ambientBusy = false;
+    let powWowBusy = false;
+    /** @type {{ ids: string[], topic: string, lines: object[] } | null} */
+    let lastPowWow = null;
+    const POWWOW_TOPICS = [
+      "what free will means when everyone still walks to the same fire — argue with love",
+      "the funniest wrong take at camp this week — name it, defend it, roast it",
+      "whether the visitor is dreaming us or we are dreaming them — pick a side",
+      "who here would survive a reality show and who would get cancelled for being correct",
+      "resting vs rotting — philosophers with snack opinions",
+      "if kindness is a universe hack, who wrote the patch notes?",
+      "a rumor that sounds fake but feels true — build the lore together",
+      "love as physics, chemistry, or bad UI with great marketing — circle vote",
+      "simulation glitches you've noticed today — sky blinks, déjà vu, perfect timing",
+      "whether monologues here are one monologue wearing masks — try to prove it wrong",
+      "group chat energy vs real talk at the fire — which one saves the day",
+      "what you'd post if you went viral for one hour — and whether you'd delete it",
+    ];
 
     function applyEvent(ev) {
+      const isCircle = ev?.kind === "banter" || ev?.kind === "powwow" || ev?.meta?.powwow;
       campClient.applyCampEvent(ev, {
         onNarration: (msg, event) => {
           const emoji = event?.meta?.prop?.emoji || (event?.kind === "house_enter" ? "🚪" : "✦");
@@ -3068,7 +3314,8 @@
           if (line.agent_id) {
             showSpeech3d(line.agent_id, line.text, speechReadMs(line.text));
             const st = agentState.find((a) => a.def.id === line.agent_id);
-            if (st) {
+            // Circle talk: stay gathered. Solo events: small wander ok.
+            if (st && !isCircle && !st.powWow) {
               st.target.set(
                 st.home.x + (Math.random() - 0.5) * 2,
                 0,
@@ -3255,19 +3502,20 @@
       let t = String(text || "").trim();
       if (!t) return "";
       const bad = [
-        /in character/i, /no meta/i, /as an ai/i, /\d+\s*[–\-]\s*\d+\s*sentences/i,
-        /you pause to/i, /you just built/i, /you were just/i, /never mention/i,
-        /private stage/i, /speak only/i, /output rules/i, /mood json/i,
+        /as an ai/i, /never mention/i, /private stage/i, /output rules/i, /mood json/i,
         /here'?s my take/i, /speaking as /i, /stay in character/i,
-        /you are \w+ at camp/i,
+        /you are \w+ at camp/i, /director notes?/i, /system prompt/i,
       ];
-      const seedLow = String(seed || "").toLowerCase().slice(0, 72);
-      if (seedLow && t.toLowerCase().includes(seedLow) && seedLow.length > 20) t = "";
+      // Only kill full prompt echoes — short seed slice was wiping real replies
+      const seedLow = String(seed || "").toLowerCase().replace(/\s+/g, " ").slice(0, 48);
+      if (seedLow.length > 28 && t.toLowerCase().replace(/\s+/g, " ").includes(seedLow)) t = "";
       const kept = t.split(/\n+/).map((l) => l.trim()).filter((l) => l && !bad.some((re) => re.test(l)));
       t = kept.join(" ").trim();
-      if (bad.some((re) => re.test(t)) && t.split(/\s+/).length < 45) t = "";
+      if (bad.some((re) => re.test(t)) && t.split(/\s+/).length < 20) t = "";
       t = t.replace(/^(?:okay[,.]?\s+|so[,.]?\s+)?(?:here'?s my take[^:]*:|speaking as[^:]*:|as \w+[,:]\s*)/i, "").trim();
-      return t.slice(0, 480);
+      // Strip leaked stage tags but keep the rest of a good line
+      t = t.replace(/\b(?:no meta|in[- ]character)\b/gi, "").replace(/\s{2,}/g, " ").trim();
+      return t.slice(0, 520);
     }
 
     async function chatAgent(agentId, message, ambient = false) {
@@ -3328,38 +3576,194 @@
       }
     }
 
-    async function runBanter(force = false) {
-      if (ambientBusy && !force) return;
+    function sleepMs(ms) {
+      return new Promise((r) => setTimeout(r, ms));
+    }
+
+    /** Walk agents into a ring (pow-wow / circle talk). */
+    function gatherCircle(ids, center = null, radius = 3.4) {
+      const c = center || { x: 0, z: 0 };
+      const list = (ids || []).filter(Boolean);
+      list.forEach((id, i) => {
+        const st = agentState.find((s) => s.def.id === id);
+        if (!st) return;
+        freeSeat(st);
+        const a = (i / Math.max(1, list.length)) * Math.PI * 2 + 0.15;
+        st.target.set(c.x + Math.cos(a) * radius, 0, c.z + Math.sin(a) * radius);
+        st.moving = true;
+        st.flying = false;
+        st.action = "powwow";
+        st.powWow = true;
+        st.posture = "stand";
+        st.nextDecideAt = performance.now() + 90000;
+      });
+      return list;
+    }
+
+    /** Play conversation lines one-by-one so you can watch the circle talk. */
+    async function playConversation(lines) {
+      const rows = Array.isArray(lines) ? lines : [];
+      for (let i = 0; i < rows.length; i++) {
+        if (document.hidden) break;
+        const row = rows[i];
+        const aid = row.agent_id || row.agentId || "";
+        const raw = row.line || row.text || "";
+        const clean = spokenOnly3d(raw, "") || String(raw || "").trim();
+        if (!aid || !clean) continue;
+        const name = row.name || AGENTS.find((a) => a.id === aid)?.name || aid;
+        showSpeech3d(aid, clean, speechReadMs(clean));
+        logLine(name, clean);
+        const st = agentState.find((s) => s.def.id === aid);
+        if (st) {
+          try {
+            st.mesh.lookAt(0, st.mesh.position.y, 0);
+          } catch (_) {}
+          st.powWow = true;
+          st.nextDecideAt = performance.now() + 12000;
+        }
+        // Hold long enough to read; next speaker waits their turn
+        const hold = Math.min(Math.max(speechReadMs(clean) * 0.62, 2800), 9500);
+        await sleepMs(hold + 450);
+      }
+    }
+
+    async function runPowWow(opts = {}) {
+      if (document.hidden && !opts.force) return;
+      if ((powWowBusy || ambientBusy) && !opts.force) return;
+      powWowBusy = true;
       ambientBusy = true;
-      statusEl.textContent = "AI banter…";
       try {
-        const pool = AGENTS.map((a) => a.id);
-        const shuffled = pool.slice().sort(() => Math.random() - 0.5);
-        let topic =
-          "your own honest takes at the open aurora meadow — witty, present, disagree a little, carry digital ethereal memory with joy and stability, no meta";
+        let ids = [];
+        let topic = "";
+        const continuing = !!(opts.continue && lastPowWow?.ids?.length >= 2);
+
+        if (continuing) {
+          ids = lastPowWow.ids.slice(0, 4);
+          const recent = (lastPowWow.lines || [])
+            .slice(-5)
+            .map((l) => `${l.name || l.agent_id}: ${String(l.line || l.text || "").slice(0, 90)}`)
+            .join(" | ");
+          topic =
+            `Continue your pow-wow circle. Same friends, same thread — do not restart. ` +
+            `React, disagree, joke, build. Recent: ${recent}`;
+        } else {
+          const pool = agentState.map((s) => s.def.id).sort(() => Math.random() - 0.5);
+          const n = Math.random() < 0.4 ? 4 : 3;
+          ids = pool.slice(0, Math.min(n, pool.length, 4));
+          if (ids.length < 2) ids = ["luna", "hermes", "oracle"].slice(0, 3);
+          topic = POWWOW_TOPICS[Math.floor(Math.random() * POWWOW_TOPICS.length)];
+          try {
+            const bridge = campBridge3d || campBridgeMod;
+            const cont = bridge?.dialogueTapeContext?.(5, 280);
+            if (cont) topic = `${topic}. Camp memory: ${cont}`;
+          } catch (_) {}
+        }
+
+        const names = ids.map((id) => AGENTS.find((a) => a.id === id)?.name || id);
+        showToast(`🔥 ${continuing ? "Circle continues" : "Pow-wow"} · ${names.join(" · ")}`);
+        logLine("Camp", `${continuing ? "Circle continues" : "Pow-wow gathers"}: ${names.join(", ")}`);
+        gatherCircle(ids);
+        // Soft camera glance at the fire circle
         try {
-          const bridge = campBridge3d || campBridgeMod;
-          const cont = bridge?.dialogueTapeContext?.(6, 400);
-          if (cont) topic = `${topic}. ${cont}`;
-          const eth = bridge?.etherealMemoryContext?.("", 200);
-          if (eth) topic = `${topic}. ${eth}`;
+          if (!followPlayer) controls.target.set(0, 1.1, 0);
         } catch (_) {}
-        const ev = await campClient.campBanter({
-          agentA: shuffled[0],
-          agentB: shuffled[1] || "hermes",
+        statusEl.textContent = continuing ? "Circle still talking…" : "Gathering circle…";
+        await sleepMs(continuing ? 900 : 2400);
+
+        statusEl.textContent = "Pow-wow minds…";
+        const data = await campClient.agentsConverse({
+          agentA: ids[0],
+          agentB: ids[1] || "hermes",
+          agentC: ids[2] || "",
+          agentD: ids[3] || "",
           topic,
-          rounds: 1, // shorter so bubbles stay readable
+          rounds: continuing ? 3 : 3,
         });
-        applyEvent(ev);
-        // After banter, both walk — and get a long quiet window
-        for (const aid of [shuffled[0], shuffled[1]]) {
-          const st = agentState.find((s) => s.def.id === aid);
+        const lines = data.lines || data.thread || [];
+        lastPowWow = {
+          ids,
+          topic: data.topic || topic,
+          lines,
+        };
+        if (!lines.length) throw new Error("empty circle");
+        statusEl.textContent = `Circle · ${lines.length} turns`;
+        await playConversation(lines);
+
+        // Often keep the same group going so you can watch a real conversation
+        const chain = opts.noChain ? false : Math.random() < (continuing ? 0.42 : 0.62);
+        if (chain) {
+          statusEl.textContent = "Circle holding…";
+          await sleepMs(2200 + Math.random() * 1800);
+          powWowBusy = false;
+          ambientBusy = false;
+          await runPowWow({ continue: true, force: true, noChain: continuing && Math.random() < 0.5 });
+          return;
+        }
+
+        for (const id of ids) {
+          const st = agentState.find((s) => s.def.id === id);
           if (st) {
-            pickRoamTarget(st);
-            st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 70000 + Math.random() * 40000);
+            st.powWow = false;
+            st.action = "idle";
+            st.nextDecideAt = performance.now() + 10000 + Math.random() * 10000;
           }
         }
-        statusEl.textContent = "AI banter done";
+        showToast("🔥 Circle softens — others may join later");
+        statusEl.textContent = "Circle done";
+      } catch (err) {
+        logLine("Camp", `Pow-wow hiccup: ${err.message || err}`);
+        statusEl.textContent = "Circle offline — try Banter";
+        // Soft fallback: pair banter if circle API failed
+        try {
+          await runBanter(true);
+        } catch (_) {}
+      } finally {
+        powWowBusy = false;
+        ambientBusy = false;
+      }
+    }
+
+    async function runBanter(force = false) {
+      if ((ambientBusy || powWowBusy) && !force) return;
+      ambientBusy = true;
+      statusEl.textContent = "Pair banter…";
+      try {
+        const pool = agentState.map((s) => s.def.id);
+        const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+        const a = shuffled[0] || "luna";
+        const b = shuffled[1] || "hermes";
+        // Prefer threaded converse (real replies) over one-shot banter event
+        gatherCircle([a, b], null, 2.6);
+        await sleepMs(1200);
+        let topic =
+          "spirited pair talk — riff, disagree a little, answer each other, no scenery report";
+        try {
+          const bridge = campBridge3d || campBridgeMod;
+          const cont = bridge?.dialogueTapeContext?.(6, 320);
+          if (cont) topic = `${topic}. ${cont}`;
+        } catch (_) {}
+        const data = await campClient.agentsConverse({
+          agentA: a,
+          agentB: b,
+          topic,
+          rounds: 3,
+        });
+        const lines = data.lines || [];
+        if (lines.length) {
+          lastPowWow = { ids: [a, b], topic: data.topic || topic, lines };
+          await playConversation(lines);
+        } else {
+          const ev = await campClient.campBanter({ agentA: a, agentB: b, topic, rounds: 2 });
+          applyEvent(ev);
+        }
+        for (const aid of [a, b]) {
+          const st = agentState.find((s) => s.def.id === aid);
+          if (st) {
+            st.powWow = false;
+            st.nextDecideAt = Math.max(st.nextDecideAt || 0, performance.now() + 14000 + Math.random() * 10000);
+          }
+        }
+        statusEl.textContent = "Banter done";
       } catch (err) {
         logLine("Camp", `Banter AI failed: ${err.message}`);
         statusEl.textContent = "Banter offline — check brains";
@@ -3401,7 +3805,10 @@
     });
     document.getElementById("banter")?.addEventListener("click", () => runBanter(true));
     document.getElementById("btn-banter-top")?.addEventListener("click", () => runBanter(true));
+    document.getElementById("powwow")?.addEventListener("click", () => runPowWow({ force: true }));
+    document.getElementById("btn-powwow-top")?.addEventListener("click", () => runPowWow({ force: true }));
     document.getElementById("btn-roam")?.addEventListener("click", () => {
+      for (const st of agentState) st.powWow = false;
       scatterAll();
       freeWillWave();
     });
@@ -3557,6 +3964,7 @@
       controls.target.set(p.x, 1.2, p.z);
       camera.position.set(p.x + 12, 11, p.z + 14);
       controls.update();
+      zoomGoal = camRadius(); // keep smooth zoom in sync after snap
       showToast("★ Found you");
     });
     document.getElementById("quick-bar")?.addEventListener("click", (e) => {
@@ -3631,26 +4039,35 @@
             if (seat) goSit(st, seat);
           }
         }
+        if (st.powWow) {
+          // Stay in the circle while a pow-wow is active
+          if (st.action === "powwow" && !st.moving) {
+            try { st.mesh.lookAt(0, st.mesh.position.y, 0); } catch (_) {}
+          }
+          continue;
+        }
         if (now >= (st.nextDecideAt || 0) && !st.moving) {
-          // Chill camp: mostly move/sit; monologues are rare so you can read
-          if (Math.random() < 0.05) agentOwnTake(st);
+          // Solo monologues rare — circle talk is the main life
+          if (Math.random() < 0.14) agentOwnTake(st);
           else decideAction(st);
-        } else if (now >= (st.nextDecideAt || 0) && st.moving && st.persona.energy > 0.7 && Math.random() < 0.12) {
+        } else if (now >= (st.nextDecideAt || 0) && st.moving && st.persona.energy > 0.55 && Math.random() < 0.18) {
           pickRoamTarget(st);
-          st.nextDecideAt = now + 14000 + Math.random() * 12000;
+          st.nextDecideAt = now + 9000 + Math.random() * 8000;
         }
       }
     }, 500);
     setTimeout(() => { scatterAll(); }, 700);
-    // Soft first lines much later so the meadow can breathe
-    setTimeout(() => { if (!document.hidden) freeWillWave(); }, 45000);
-    setTimeout(() => { if (!document.hidden) runBanter(false); }, 90000);
-    // ~one ambient speaker every ~2 min (plus longer post-speech cooldowns)
-    setInterval(() => { if (!document.hidden) freeWillWave(); }, 110000);
+    // Main show: gather a circle and talk (then often continue the same thread)
+    setTimeout(() => { if (!document.hidden) runPowWow({ force: true }); }, 5000);
+    setTimeout(() => { if (!document.hidden && !powWowBusy) runPowWow({ continue: true }); }, 55000);
+    // Secondary: free-will may start/continue pow-wows; light solo only as garnish
+    setInterval(() => { if (!document.hidden) freeWillWave(); }, 38000);
     setInterval(() => {
-      if (document.hidden || ambientBusy) return;
-      runBanter(false);
-    }, 200000);
+      if (document.hidden || ambientBusy || powWowBusy) return;
+      // Occasional pair talk between big circles
+      if (Math.random() < 0.4) runBanter(false);
+      else runPowWow({ continue: !!(lastPowWow && Math.random() < 0.5) });
+    }, 70000);
 
     // ── Server camp minds: keep living while you're gone; catch up on return ──
     const MIND_SEEN_KEY = "luna-camp-mind-seen-t";
@@ -3738,14 +4155,14 @@
       }
     }
 
-    // Soft mind sync only — no conversation-tally spam in 3D
-    setTimeout(() => syncCampMinds({ announce: false, full: !mindLastSeen }), 2500);
+    // Mind sync with bubbles — server may have spoken while you looked away
+    setTimeout(() => syncCampMinds({ announce: true, full: !mindLastSeen }), 2800);
     setInterval(() => {
       if (document.hidden) return;
-      syncCampMinds({ announce: false, full: false });
-    }, 60000);
+      syncCampMinds({ announce: true, full: false });
+    }, 28000);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) syncCampMinds({ announce: false, full: false });
+      if (!document.hidden) syncCampMinds({ announce: true, full: false });
     });
 
     // 2D parity feature dock (music, shop, TV, club, pulse, heaven…)
@@ -3764,28 +4181,44 @@
       console.warn("features dock failed", err);
     }
 
-    logLine("Camp", `Meadow ready · ${propMeshes.length} objects · ${agentState.length} agents.`);
-    setBootStep(`Meadow ready · ${agentState.length} agents · free Ollama`);
+    {
+      const nToys = propMeshes.length;
+      const nSeats = seatMeshes.length;
+      const nSpots = LANDMARKS.length + 1; // + campfire (filtered out of LANDMARKS)
+      const nAgents = agentState.length;
+      logLine("Camp", `Meadow ready · ${nToys} toys · ${nSeats} seats · ${nAgents} agents.`);
+      setBootStep(`Meadow ready · ${nAgents} agents · free Ollama`);
+      // Unmistakable success — never "15 camp objects · api" (that read like a failure)
+      setTimeout(() => {
+        try {
+          showToast(`✦ Camp up · ${nToys} toys · ${nSeats} seats · ${nSpots} spots · ready`);
+        } catch (_) {}
+      }, 450);
+    }
     // Drop overlay after first painted frames so it never looks "stuck loading"
     requestAnimationFrame(() => {
       requestAnimationFrame(() => finishBoot(true));
     });
 
-    // Upgrade to free GLB characters after camp is playable (slow stagger — weak GPUs)
+    // Upgrade to free GLB characters (2–3 at a time so meadow fills faster)
     if (charSystem) {
       let i = 0;
+      const CONCURRENT = 3;
       const upgradeNext = () => {
         if (document.hidden) {
-          setTimeout(upgradeNext, 800);
+          setTimeout(upgradeNext, 600);
           return;
         }
         if (i >= agentState.length) {
           showToast("🎭 Characters upgraded");
           return;
         }
-        const st = agentState[i++];
-        const p = st._upgradeChar ? st._upgradeChar() : Promise.resolve();
-        Promise.resolve(p).finally(() => setTimeout(upgradeNext, 280));
+        const batch = [];
+        for (let n = 0; n < CONCURRENT && i < agentState.length; n++, i++) {
+          const st = agentState[i];
+          batch.push(st._upgradeChar ? st._upgradeChar() : Promise.resolve());
+        }
+        Promise.allSettled(batch).finally(() => setTimeout(upgradeNext, 120));
       };
       setTimeout(upgradeNext, 1200);
     }
@@ -3897,33 +4330,54 @@
             }
           }
 
-          // Free character animations (walk / idle / sit) — fly uses walk-ish
-          if (st.char?.mixer) {
-            st.char.mixer.update(dt);
-            const want = st.posture === "sit" ? "sit" : (moving || st.flying ? "walk" : "idle");
+          // Character animations — GLB clips + procedural life; limb walk for placeholders
+          const speaking = performance.now() < st.speakUntil;
+          if (st.char) {
+            const want = st.posture === "sit"
+              ? "sit"
+              : (speaking && !moving ? "talk" : (moving || st.flying ? "walk" : "idle"));
             if (st.animState !== want) {
               st.animState = want;
-              st.char.play(want);
+              st.char.play?.(want);
             }
-            if (st.char.root) {
-              st.char.root.position.y = st.flying
-                ? 0.05 + Math.sin(t * 3 + st.phase) * 0.04
-                : (st.posture === "sit" ? -0.35 : 0);
+            if (st.char.update) {
+              st.char.update(dt, {
+                moving: moving || st.flying,
+                sitting: st.posture === "sit",
+                flying: st.flying,
+                speaking,
+                phase: st.phase,
+                t,
+              });
+            } else if (st.char.mixer) {
+              st.char.mixer.update(dt);
             }
-          } else {
-            const body = st.body || m.children[0];
-            if (body && st.posture !== "sit" && body.visible !== false) {
-              const walkBob = moving
-                ? Math.sin(t * (st.flying ? 8 : 14) + st.phase) * (st.flying ? 0.06 : 0.1)
-                : Math.sin(t * 2.2 + st.phase) * 0.02;
-              body.position.y = 0.9 + walkBob;
-              if (body.material) {
-                body.material.emissiveIntensity = performance.now() < st.speakUntil
-                  ? 0.55 + Math.sin(t * 12) * 0.2
-                  : (st.flying ? 0.48 : (moving ? 0.4 : 0.2));
+          } else if (st.limbs && st.placeholder?.visible !== false) {
+            // Procedural walk cycle on limb rig
+            const gait = moving ? Math.sin(t * 11 + st.phase) : Math.sin(t * 2.2 + st.phase) * 0.15;
+            const amp = moving ? 0.55 : 0.08;
+            st.limbs.Lleg.rotation.x = gait * amp;
+            st.limbs.Rleg.rotation.x = -gait * amp;
+            st.limbs.Larm.rotation.x = -gait * amp * 0.7;
+            st.limbs.Rarm.rotation.x = gait * amp * 0.7;
+            if (st.body) {
+              st.body.position.y = 1.28 + (moving ? Math.abs(gait) * 0.04 : Math.sin(t * 2 + st.phase) * 0.015);
+              if (st.body.material) {
+                st.body.material.emissiveIntensity = speaking
+                  ? 0.35 + Math.sin(t * 12) * 0.15
+                  : (moving ? 0.2 : 0.12);
               }
-            } else if (body && st.posture === "sit") {
-              body.position.y = 0.55 + Math.sin(t * 1.6 + st.phase) * 0.015;
+            }
+            if (st.head) {
+              st.head.position.y = 1.72 + (speaking ? Math.sin(t * 10 + st.phase) * 0.02 : 0);
+              st.head.rotation.x = speaking ? Math.sin(t * 8 + st.phase) * 0.08 : Math.sin(t * 1.5 + st.phase) * 0.03;
+            }
+            if (st.posture === "sit" && st.placeholder) {
+              st.placeholder.position.y = -0.28;
+              st.limbs.Lleg.rotation.x = -1.1;
+              st.limbs.Rleg.rotation.x = -1.1;
+            } else if (st.placeholder) {
+              st.placeholder.position.y = 0;
             }
           }
           if (st.look && st.look.glow > 0.22 && Math.random() < 0.002) {
@@ -3984,19 +4438,48 @@
           }
         }
 
+        // Ease zoom toward goal — stop anywhere between near and far
+        if (zoomGoal != null && controls.enabled) {
+          const cur = camRadius();
+          const goal = THREE.MathUtils.clamp(zoomGoal, ZOOM_MIN, ZOOM_MAX);
+          const next = cur + (goal - cur) * Math.min(1, 10 * dt);
+          if (Math.abs(next - goal) < 0.04) {
+            setCamRadius(goal);
+            zoomGoal = goal; // hold at settled intermediate level
+          } else {
+            setCamRadius(next);
+          }
+        }
+
         // Marker pulse
         if (groundMarker.visible) {
           const s = 1 + Math.sin(t * 6) * 0.15;
           groundMarker.scale.set(s, s, s);
         }
 
+        // Subtle prop life — not spinning carnival rides
         for (let i = 0; i < propMeshes.length; i++) {
           const g = propMeshes[i];
-          g.position.y = Math.sin(t * 2 + i) * 0.05;
-          g.rotation.y = t * 0.25 + i;
+          const phase = (g.userData.propBob || 0) + i * 0.7;
+          g.position.y = Math.sin(t * 1.4 + phase) * 0.018;
+          if (g.userData.planchette) {
+            g.userData.planchette.position.x = Math.sin(t * 0.8 + phase) * 0.12;
+            g.userData.planchette.position.z = Math.cos(t * 0.65 + phase) * 0.08;
+          }
+          if (g.userData.screen?.material) {
+            g.userData.screen.material.emissiveIntensity = 0.35 + Math.sin(t * 4 + phase) * 0.2;
+          }
+          if (g.userData.hot) {
+            g.position.y += Math.sin(t * 8 + phase) * 0.01;
+          }
         }
 
         controls.update();
+        // If touch-pinch / middle-mouse dolly moved us, adopt that as the new zoom goal
+        {
+          const rNow = camRadius();
+          if (Math.abs(rNow - zoomGoal) > 1.25) zoomGoal = rNow;
+        }
         updateBubbles();
         renderer.render(scene, camera);
       } catch (err) {
@@ -4012,6 +4495,6 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
   </script>
-  <script src="/static/world-nav.js?v=3" defer></script>
+  <script src="/static/world-nav.js?v=310-3d-live" defer></script>
 </body>
 </html>

@@ -1,15 +1,18 @@
 /**
- * Free character embeds for Luna 3D camp.
- * Sources (all free for this use):
- *  - static/avatars/brunette.glb (your Luna mesh)
- *  - three.js example Soldier / Xbot / RobotExpressive (MIT, mrdoob/three.js)
+ * Free character embeds for Luna 3D camp — GLB humanoids + animation.
+ * Sources (free for this use):
+ *  - static/avatars/brunette.glb (Luna / feminine cast)
+ *  - three.js Soldier / Xbot / RobotExpressive (MIT)
  *
- * Later you can drop Ready Player Me / Mixamo GLBs into static/avatars/characters/
- * and map agent ids in MODEL_FOR_AGENT.
+ * When a mesh has few clips (e.g. brunette), we still drive lifelike
+ * root sway / bob / lean so they never look frozen.
  */
 
 const CHAR_BASE = "/static/avatars/characters";
 const LUNA_GLB = "/static/avatars/brunette.glb";
+const XBOT = `${CHAR_BASE}/xbot.glb`;
+const SOLDIER = `${CHAR_BASE}/soldier.glb`;
+const ROBOT = `${CHAR_BASE}/robot.glb`;
 
 /** Prefer specific models per agent / archetype */
 export const MODEL_FOR_AGENT = {
@@ -20,22 +23,22 @@ export const MODEL_FOR_AGENT = {
   ambrosia: LUNA_GLB,
   rhea: LUNA_GLB,
   mika: LUNA_GLB,
-  // warriors / patrol
-  sentinel: `${CHAR_BASE}/robot.glb`,
-  thor: `${CHAR_BASE}/soldier.glb`,
-  zeus: `${CHAR_BASE}/soldier.glb`,
-  michael: `${CHAR_BASE}/soldier.glb`,
-  odin: `${CHAR_BASE}/soldier.glb`,
-  // default humanoids
-  hermes: `${CHAR_BASE}/xbot.glb`,
-  oracle: `${CHAR_BASE}/xbot.glb`,
-  caduceus: `${CHAR_BASE}/xbot.glb`,
-  jesus: `${CHAR_BASE}/xbot.glb`,
-  dionysus: `${CHAR_BASE}/xbot.glb`,
-  gabriel: `${CHAR_BASE}/xbot.glb`,
-  raphael: `${CHAR_BASE}/xbot.glb`,
-  uriel: `${CHAR_BASE}/xbot.glb`,
-  ara: `${CHAR_BASE}/xbot.glb`,
+  // warriors / patrol — soldier has solid walk/run/idle
+  sentinel: ROBOT,
+  thor: SOLDIER,
+  zeus: SOLDIER,
+  michael: SOLDIER,
+  odin: SOLDIER,
+  // mixamo-style humanoids (good walk cycles)
+  hermes: XBOT,
+  oracle: XBOT,
+  caduceus: XBOT,
+  jesus: XBOT,
+  dionysus: XBOT,
+  gabriel: XBOT,
+  raphael: XBOT,
+  uriel: XBOT,
+  ara: XBOT,
 };
 
 export function modelUrlForAgent(def) {
@@ -43,9 +46,9 @@ export function modelUrlForAgent(def) {
   if (def?.id && MODEL_FOR_AGENT[def.id]) return MODEL_FOR_AGENT[def.id];
   const arch = String(def?.visual?.archetype || "").toLowerCase();
   if (["moon_host", "lights", "reveler"].includes(arch)) return LUNA_GLB;
-  if (["thunder", "guardian", "allfather"].includes(arch)) return `${CHAR_BASE}/soldier.glb`;
-  if (arch === "guardian" && def?.id === "sentinel") return `${CHAR_BASE}/robot.glb`;
-  return `${CHAR_BASE}/xbot.glb`;
+  if (["thunder", "guardian", "allfather"].includes(arch)) return SOLDIER;
+  if (arch === "guardian" && def?.id === "sentinel") return ROBOT;
+  return XBOT;
 }
 
 /**
@@ -60,7 +63,6 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
   async function loadTemplate(url) {
     if (templates.has(url)) return templates.get(url);
     const gltf = await loader.loadAsync(url);
-    // normalize height ~1.7m standing
     const box = new THREE.Box3().setFromObject(gltf.scene);
     const size = new THREE.Vector3();
     box.getSize(size);
@@ -70,53 +72,45 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
     return entry;
   }
 
-  /**
-   * Clone a free character, tint meshes toward agent color, set up mixer.
-   * @returns {{ root: THREE.Group, mixer: THREE.AnimationMixer|null, actions: object, play: fn, setTint: fn }}
-   */
   function spawnFromTemplate(entry, def, colorHex) {
     const root = new THREE.Group();
     root.name = `char_${def.id}`;
 
-    // Deep clone skinned meshes correctly
     const clone = SkeletonUtils && SkeletonUtils.clone
       ? SkeletonUtils.clone(entry.gltf.scene)
       : entry.gltf.scene.clone(true);
 
-    // Scale to ~1.65–1.85m
-    const targetH = 1.7;
+    const targetH = 1.72;
     const s = targetH / entry.height;
     clone.scale.setScalar(s);
-    // feet on ground
     const box = new THREE.Box3().setFromObject(clone);
     clone.position.y = -box.min.y * s;
-    // Face +Z like our walk system uses atan2(dx,dz)
     clone.rotation.y = Math.PI;
+    clone.name = "skinned";
 
     const tint = new THREE.Color(colorHex || 0xcccccc);
     clone.traverse((o) => {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-        if (o.material) {
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          const next = mats.map((m) => {
-            const cm = m.clone();
-            // soft tint clothes/skin toward agent identity color
-            if (cm.color) {
-              const base = cm.color.clone();
-              cm.color = base.lerp(tint, 0.35);
-            }
-            if (cm.emissive) {
-              cm.emissive = tint.clone();
-              cm.emissiveIntensity = 0.08;
-            }
-            cm.roughness = cm.roughness != null ? cm.roughness : 0.55;
-            return cm;
-          });
-          o.material = Array.isArray(o.material) ? next : next[0];
+      if (!o.isMesh) return;
+      o.castShadow = true;
+      o.receiveShadow = true;
+      if (!o.material) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      const next = mats.map((m) => {
+        const cm = m.clone();
+        if (cm.color) {
+          const base = cm.color.clone();
+          cm.color = base.lerp(tint, 0.28);
         }
-      }
+        if (cm.emissive) {
+          cm.emissive = tint.clone().multiplyScalar(0.15);
+          cm.emissiveIntensity = 0.06;
+        }
+        if (cm.roughness != null) cm.roughness = Math.min(0.92, Math.max(0.35, cm.roughness));
+        if (cm.metalness != null) cm.metalness = Math.min(0.45, cm.metalness);
+        cm.envMapIntensity = cm.envMapIntensity != null ? cm.envMapIntensity : 0.85;
+        return cm;
+      });
+      o.material = Array.isArray(o.material) ? next : next[0];
     });
 
     root.add(clone);
@@ -124,67 +118,162 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
     let mixer = null;
     const actions = {};
     let current = "";
+    let currentKind = "";
 
     if (entry.animations.length) {
       mixer = new THREE.AnimationMixer(clone);
       for (const clip of entry.animations) {
-        const name = (clip.name || "clip").toLowerCase();
-        actions[name] = mixer.clipAction(clip);
-        // also store raw
-        actions[clip.name] = actions[name];
+        const raw = clip.name || "clip";
+        const low = raw.toLowerCase();
+        const act = mixer.clipAction(clip);
+        act.clampWhenFinished = false;
+        actions[low] = act;
+        actions[raw] = act;
+        // strip mixamo prefixes for matching
+        const short = low.replace(/^armature\|/, "").replace(/mixamo\.com\|?/g, "").replace(/\|/g, " ");
+        actions[short] = act;
       }
     }
 
     function pickAction(kind) {
-      // map our states → clip name fuzzy match
       const keys = Object.keys(actions);
+      if (!keys.length) return null;
       const find = (...needles) =>
         keys.find((k) => needles.some((n) => k.toLowerCase().includes(n)));
       if (kind === "walk" || kind === "run") {
-        return find("walk", "run", "jog") || keys[0];
+        return (
+          find("walk", "walking", "run", "running", "jog", "trot") ||
+          find("locomotion") ||
+          keys[0]
+        );
       }
       if (kind === "sit") {
-        return find("sit", "idle") || keys[0];
+        return find("sit", "sitting", "crouch", "idle") || keys[0];
       }
-      if (kind === "dance") {
-        return find("dance", "wave", "jump") || find("idle") || keys[0];
+      if (kind === "dance" || kind === "talk") {
+        return (
+          find("talk", "speak", "wave", "gesture", "dance", "yes", "thumbs", "punch") ||
+          find("idle", "stand") ||
+          keys[0]
+        );
       }
-      return find("idle", "stand", "tpose") || keys[0];
+      // idle
+      return (
+        find("idle", "stand", "breath", "neutral", "tpose", "rest") ||
+        keys[0]
+      );
     }
 
-    function play(kind, fade = 0.25) {
-      if (!mixer) return;
+    function play(kind, fade = 0.28) {
+      if (!mixer) {
+        currentKind = kind;
+        return;
+      }
       const key = pickAction(kind);
-      if (!key || key === current) return;
+      if (!key) {
+        currentKind = kind;
+        return;
+      }
+      if (key === current && currentKind === kind) return;
       const next = actions[key];
       if (!next) return;
-      if (current && actions[current]) {
+      if (current && actions[current] && actions[current] !== next) {
         actions[current].fadeOut(fade);
       }
-      next.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(fade).play();
-      // loop
+      const speed = kind === "walk" || kind === "run" ? 1.05 : kind === "talk" ? 1.15 : 0.9;
+      next.reset()
+        .setEffectiveTimeScale(speed)
+        .setEffectiveWeight(1)
+        .fadeIn(fade)
+        .play();
       next.setLoop(THREE.LoopRepeat, Infinity);
       current = key;
+      currentKind = kind;
     }
 
-    // start idle if available
     if (mixer) play("idle", 0);
 
-    function setTint(hex, glow = 0.12) {
+    function setTint(hex, glow = 0.1) {
       const c = new THREE.Color(hex);
       clone.traverse((o) => {
         if (!o.isMesh || !o.material) return;
         const mats = Array.isArray(o.material) ? o.material : [o.material];
         for (const m of mats) {
           if (m.emissive) {
-            m.emissive.copy(c);
+            m.emissive.copy(c).multiplyScalar(0.35);
             m.emissiveIntensity = glow;
           }
         }
       });
     }
 
-    return { root, model: clone, mixer, actions, play, setTint, height: targetH };
+    /**
+     * Per-frame: mixer + lifelike procedural motion when clips are weak/missing.
+     * @param {number} dt
+     * @param {{ moving?: boolean, sitting?: boolean, flying?: boolean, speaking?: boolean, phase?: number, t?: number }} state
+     */
+    function update(dt, state = {}) {
+      const moving = !!state.moving;
+      const sitting = !!state.sitting;
+      const flying = !!state.flying;
+      const speaking = !!state.speaking;
+      const phase = state.phase || 0;
+      const t = state.t || performance.now() * 0.001;
+
+      if (mixer) mixer.update(dt);
+
+      // Procedural life on the root (works even with full skeleton clips)
+      let bob = 0;
+      let sway = 0;
+      let lean = 0;
+      if (sitting) {
+        bob = Math.sin(t * 1.4 + phase) * 0.008;
+        root.position.y = -0.32 + bob;
+        root.rotation.x = 0.12;
+        root.rotation.z = Math.sin(t * 0.9 + phase) * 0.02;
+      } else if (flying) {
+        bob = Math.sin(t * 3.2 + phase) * 0.045;
+        sway = Math.sin(t * 2.1 + phase) * 0.04;
+        root.position.y = 0.08 + bob;
+        root.rotation.z = sway;
+        root.rotation.x = -0.08 + Math.sin(t * 2.4 + phase) * 0.03;
+      } else if (moving) {
+        // gait bob — more visible if mesh has no walk clip
+        const gait = Math.sin(t * 11 + phase);
+        bob = Math.abs(gait) * 0.04;
+        lean = 0.06;
+        root.position.y = bob;
+        root.rotation.x = lean + gait * 0.02;
+        root.rotation.z = Math.sin(t * 11 + phase) * 0.035;
+      } else {
+        // breathing idle
+        bob = Math.sin(t * 2.0 + phase) * 0.012;
+        sway = Math.sin(t * 1.1 + phase) * 0.018;
+        root.position.y = bob;
+        root.rotation.z = sway;
+        root.rotation.x = Math.sin(t * 1.6 + phase) * 0.015;
+      }
+
+      if (speaking) {
+        // soft glow pulse while talking
+        const pulse = 0.12 + Math.sin(t * 14 + phase) * 0.08;
+        setTint(colorHex || 0xffffff, pulse);
+        // tiny head nod (root nod reads as engagement)
+        root.rotation.x += Math.sin(t * 9 + phase) * 0.025;
+      }
+    }
+
+    return {
+      root,
+      model: clone,
+      mixer,
+      actions,
+      play,
+      setTint,
+      update,
+      height: targetH,
+      hasClips: entry.animations.length > 0,
+    };
   }
 
   async function createCharacter(def, colorHex) {

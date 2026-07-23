@@ -8,17 +8,34 @@
   "use strict";
 
   var HUB = "https://telephantim.com/";
+  // Always absolute Luna host — relative /firmament/* breaks on telephantim.com (wrong origin)
+  var LUNA = "https://telephanti.com";
+  function lunaPath(path) {
+    var p = path.charAt(0) === "/" ? path : "/" + path;
+    var host = (location.hostname || "").toLowerCase();
+    // Local workshop: stay on this host (127.0.0.1 / localhost)
+    if (host === "127.0.0.1" || host === "localhost" || host.indexOf("192.168.") === 0) {
+      return p;
+    }
+    // Already on telephanti.com (or Render service URL)
+    if (host.indexOf("telephanti.com") !== -1 || host.indexOf("onrender.com") !== -1) {
+      return p;
+    }
+    // Hub, other sites, iframes: full live path
+    return LUNA + p;
+  }
   var TABS = [
     { id: "telephantim", label: "Relics", title: "Telephantim — Mjolnir + Caduceus", href: HUB },
-    { id: "luna-2d", label: "2D", title: "Luna Camp 2D", href: "/firmament/play" },
-    { id: "luna-3d", label: "3D", title: "Luna Camp 3D", href: "/firmament/3d" },
+    { id: "luna-2d", label: "2D", title: "Luna Camp 2D", href: lunaPath("/firmament/play") },
+    { id: "luna-3d", label: "3D", title: "Luna Camp 3D", href: lunaPath("/firmament/3d") },
   ];
 
   function currentId() {
     var p = (location.pathname || "").toLowerCase();
-    if (p.indexOf("/firmament/3d") !== -1 || p.indexOf("firmament-three") !== -1) return "luna-3d";
+    var host = (location.hostname || "").toLowerCase();
+    if (p.indexOf("/firmament/3d") !== -1 || p.indexOf("/firmament/three") !== -1 || p.indexOf("firmament-three") !== -1) return "luna-3d";
     if (p.indexOf("/firmament/play") !== -1 || p.indexOf("firmament-play") !== -1) return "luna-2d";
-    if (location.hostname.indexOf("telephantim") !== -1) return "telephantim";
+    if (host.indexOf("telephantim") !== -1) return "telephantim";
     return "";
   }
 
@@ -69,7 +86,12 @@
       return;
     }
     if (id === currentId()) return;
-    location.href = href;
+    // Recompute live href at click time (tabs built once at load)
+    var live = href;
+    if (id === "luna-2d") live = lunaPath("/firmament/play");
+    if (id === "luna-3d") live = lunaPath("/firmament/3d");
+    if (id === "telephantim") live = HUB;
+    location.href = live;
   }
 
   function injectStyles() {

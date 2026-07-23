@@ -1,0 +1,54 @@
+Luna Camp — free brains only (Grok off by default)
+====================================================
+
+Priority chain (per agent)
+--------------------------
+1) Ollama (local, free) — primary on your PC
+     hermes3 / llama3.2
+2) Groq free tier       — GROQ_API_KEY
+3) Google Gemini free   — GEMINI_API_KEY or GOOGLE_API_KEY
+4) OpenRouter free      — OPENROUTER_API_KEY
+5) Aether templates     — offline last resort (no paid bill)
+
+Grok (xAI) is OFF unless you deliberately opt in:
+  LUNA_ALLOW_GROK=1
+  LUNA_DISABLE_GROK=0
+  LUNA_GROK_FALLBACK=1
+  XAI_API_KEY=...
+
+@a Ara / @m Mika use the same free chain (not Grok-only).
+
+Env (local PC)
+--------------
+LUNA_FREE_BRAINS=1
+LUNA_FORCE_OLLAMA=1
+LUNA_ALLOW_GROK=0
+LUNA_DISABLE_GROK=1
+LUNA_GROK_FALLBACK=0
+LUNA_LLM_BACKEND=ollama
+OLLAMA_HOST=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.2
+
+Env (Render / telephanti.com later)
+-----------------------------------
+Ollama is NOT on Render. For free live talk set one of:
+  GROQ_API_KEY=...
+  GEMINI_API_KEY=...
+Do NOT set LUNA_ALLOW_GROK / XAI unless you want paid Grok again.
+  LUNA_FORCE_OLLAMA=0
+  LUNA_ALLOW_GROK=0
+  LUNA_DISABLE_GROK=1
+  LUNA_GROK_FALLBACK=0
+  LUNA_FREE_BRAINS=1
+  LUNA_LLM_BACKEND=free
+
+Ollama setup
+------------
+  ollama serve
+  ollama pull hermes3
+  ollama pull llama3.2
+
+Status
+------
+  GET /api/health        → llm_backend, ollama_ok, free_minds, grok_allowed
+  GET /api/firmament/llm

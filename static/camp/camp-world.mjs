@@ -30,7 +30,7 @@ export async function fetchCampCatalog() {
 
   // 2) Static file — always available if /static is served
   try {
-    const res = await fetch("/static/camp/camp_catalog.json?v=4props", { cache: "no-store" });
+    const res = await fetch("/static/camp/camp_catalog.json?v=5toys", { cache: "no-store" });
     if (res.ok) {
       const cat = await res.json();
       if (cat && (cat.props || cat.agents)) {

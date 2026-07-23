@@ -120,6 +120,20 @@ export function campBanter(opts = {}) {
   });
 }
 
+/** Multi-agent threaded talk (2–4) — pow-wow / circle conversation */
+export function agentsConverse(opts = {}) {
+  return postJSON("/api/firmament/agents/converse", {
+    agent_a: opts.agentA || opts.agent_a || "luna",
+    agent_b: opts.agentB || opts.agent_b || "hermes",
+    agent_c: opts.agentC || opts.agent_c || "",
+    agent_d: opts.agentD || opts.agent_d || "",
+    topic: opts.topic || "",
+    rounds: opts.rounds ?? 3,
+    visitor_id: opts.visitorId ?? getVisitorId(),
+    visitor_name: opts.visitorName ?? getVisitorName(),
+  });
+}
+
 export function agentChat(agentId, message, opts = {}) {
   return postJSON("/api/firmament/agent/chat", {
     agent_id: agentId,
@@ -130,6 +144,17 @@ export function agentChat(agentId, message, opts = {}) {
     visitor_name: opts.visitorName ?? getVisitorName(),
     force_grok: !!opts.forceGrok,
   });
+}
+
+/** Server-side mind states — keep living while the browser/tab is closed. */
+export function fetchCampMinds(opts = {}) {
+  const since = opts.since != null ? Number(opts.since) : 0;
+  const limit = opts.limit != null ? Number(opts.limit) : 40;
+  const q = new URLSearchParams();
+  if (since > 0) q.set("since", String(since));
+  if (limit) q.set("limit", String(limit));
+  const qs = q.toString();
+  return getJSON(`/api/firmament/camp/minds${qs ? `?${qs}` : ""}`);
 }
 
 /**

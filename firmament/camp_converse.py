@@ -206,9 +206,10 @@ def converse_thread_prompt(
     if not thread:
         other = others[0] if others else "them"
         return (
-            f"At the fire with {', '.join(others) if others else 'camp'}.\n"
-            f"Topic: {topic}\n"
-            f"{other} is listening."
+            f"Pow-wow circle at camp with {', '.join(others) if others else 'friends'}.\n"
+            f"Topic to open: {topic}\n"
+            f"You ({me}) speak first to {other} — start a real conversation, not a weather report. "
+            f"2–4 spoken sentences: hot take, question, or joke that invites a reply."
         )
 
     prev = thread[-1]
@@ -217,7 +218,7 @@ def converse_thread_prompt(
     prev_idea = prev_line[:160] + ("…" if len(prev_line) > 160 else "")
 
     transcript_bits = []
-    for t in thread[-6:]:
+    for t in thread[-8:]:
         who = t.get("name", "?")
         line = re.sub(r"\s+", " ", str(t.get("line") or "")).strip()
         idea = line[:140] + ("…" if len(line) > 140 else "")
@@ -225,9 +226,11 @@ def converse_thread_prompt(
     transcript = "\n".join(transcript_bits)
 
     return (
-        f"At the fire with {', '.join(names)}. Topic: {topic}\n"
+        f"Pow-wow circle — {', '.join(names)} talking. Thread: {topic}\n"
         f"So far:\n{transcript}\n"
-        f"{prev_name}: {prev_idea}"
+        f"{prev_name} just said: {prev_idea}\n"
+        f"You ({me}): answer them — agree, push back, tease, or build. "
+        f"2–4 spoken sentences. Stay on THIS conversation; do not restart or describe the scenery."
     )
 
 
@@ -236,7 +239,8 @@ def total_converse_lines(agent_count: int, rounds: int) -> int:
     if agent_count < 2:
         return 2
     if agent_count == 2:
-        # e.g. rounds=2 → 5–7 turns, rounds=3 → up to 9
-        return max(5, min(9, rounds * 2 + 1))
-    # trio: a little more room for cross-talk
-    return max(6, min(11, rounds * agent_count))
+        return max(5, min(10, rounds * 2 + 2))
+    if agent_count == 3:
+        return max(6, min(12, rounds * agent_count))
+    # quartet pow-wow
+    return max(8, min(14, rounds * agent_count - 1))

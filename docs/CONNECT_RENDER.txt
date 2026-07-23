@@ -1,0 +1,80 @@
+CONNECT YOUR CAMP TO RENDER (cloud host)
+========================================
+
+Your always-on cloud server is on Render:
+
+  Service URL:  https://telephanti-luna.onrender.com
+  Public site:  https://telephanti.com
+  Health:       https://telephanti.com/api/health
+  Camp:         https://telephanti.com/firmament/play
+
+ONE CLICK
+---------
+  Double-click:
+
+    CONNECT_TO_RENDER.bat
+
+  That opens the Render-hosted camp (no local python needed).
+
+
+LOCAL PC vs RENDER
+------------------
+  LOCAL (127.0.0.1:8767)
+    - Needs START_CAMP_SERVER.bat running
+    - Free Ollama minds on your PC
+    - Dies if you close the server window
+
+  RENDER (telephanti.com / onrender.com)
+    - Always on cloud (may cold-start ~30-60s free tier)
+    - Uses keys set in Render dashboard (XAI / Groq / Gemini)
+    - Phone + friends can use the same URL
+
+
+ENV ON THIS PC (.env)
+---------------------
+  LUNA_PUBLIC_URL=https://telephanti.com
+  LUNA_RENDER_URL=https://telephanti-luna.onrender.com
+
+  Local runs still use Ollama when you start the PC server.
+  Cloud is separate — set API keys on Render dashboard.
+
+
+RENDER DASHBOARD KEYS
+---------------------
+  https://dashboard.render.com/  → service telephanti-luna / luna
+
+  Free live AI on cloud (recommended — no Grok bills):
+    GROQ_API_KEY=...         and/or
+    GEMINI_API_KEY=...
+
+  Paid Grok is OFF by default. Only if you really want it:
+    LUNA_ALLOW_GROK=1
+    LUNA_DISABLE_GROK=0
+    LUNA_GROK_FALLBACK=1
+    XAI_API_KEY=...
+
+  Also recommended:
+    LUNA_CLOUD=1
+    LUNA_PUBLIC_URL=https://telephanti.com
+    LUNA_LLM_BACKEND=free
+    LUNA_ALLOW_GROK=0
+    LUNA_DISABLE_GROK=1
+    LUNA_GROK_FALLBACK=0
+    LUNA_FREE_BRAINS=1
+    LUNA_FORCE_OLLAMA=0     (Ollama is not on Render)
+
+
+DEPLOY LATEST CODE TO RENDER
+----------------------------
+  git push origin main
+  → GitHub → Render auto-builds Docker
+  Wait until health build matches your commit.
+
+
+IF "SITE CAN'T BE REACHED"
+--------------------------
+  1) Prefer cloud:  CONNECT_TO_RENDER.bat
+  2) Or local:      START_CAMP_SERVER.bat then
+                    http://127.0.0.1:8767/firmament/play
+  3) Do NOT mix: if server window is closed, 127.0.0.1 fails.
+  4) telephanti.com cold start: wait 1 min, refresh.

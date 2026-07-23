@@ -9,6 +9,7 @@
     "shop": true,
     "lucid_tv": true,
     "club": true,
+    "carnival": true,
     "x_pulse": true,
     "summon_heaven": true,
     "mysterious_unknown": true,
@@ -31,7 +32,8 @@
     { "id": "visitor-shelter", "kind": "landmark", "type": "shelter", "name": "Visitor Shelter", "emoji": "⛺", "x": -620, "y": 620, "visual": { "kit": "shelter", "primary": "#94a3b8", "roof": "#64748b" }, "use": "You duck into the visitor shelter — safe, soft, shared." },
     { "id": "aurora-shop", "kind": "landmark", "type": "shop", "name": "Aurora Shop", "emoji": "🏪", "x": 680, "y": 580, "visual": { "kit": "shop_stall", "primary": "#fbbf24", "roof": "#f59e0b" }, "use": "Aurora Shop awning flickers — tokens welcome." },
     { "id": "lucid-tv", "kind": "landmark", "type": "tv", "name": "Lucid Mind TV", "emoji": "📺", "x": -400, "y": 480, "visual": { "kit": "lucid_tv", "primary": "#a78bfa" }, "use": "Lucid Mind TV static blooms into a thought-channel." },
-    { "id": "aurora-velvet", "kind": "landmark", "type": "club", "name": "Aurora Velvet", "emoji": "💃", "x": -720, "y": -180, "visual": { "kit": "club", "primary": "#f472b6", "roof": "#db2777" }, "use": "Aurora Velvet neon hums — dance optional, vibes mandatory." }
+    { "id": "aurora-velvet", "kind": "landmark", "type": "club", "name": "Aurora Velvet", "emoji": "💃", "x": -720, "y": -180, "visual": { "kit": "club", "primary": "#f472b6", "roof": "#db2777" }, "use": "Aurora Velvet neon hums — dance optional, vibes mandatory." },
+    { "id": "aurora-carnival", "kind": "landmark", "type": "carnival", "name": "Aurora Carnival", "emoji": "🎡", "x": 780, "y": -320, "visual": { "kit": "carnival", "primary": "#f97316", "roof": "#fdba74" }, "use": "Aurora Carnival calliope spins — board a gondola, hear the fairground." }
   ],
   "props": [
     { "id": "beer", "kind": "prop", "name": "Beer cooler", "emoji": "🍺", "x": 820, "y": -120, "visual": { "kit": "cooler", "primary": "#f59e0b", "symbol": "mug" }, "use": "You crack a cold camp beer — foam under the aurora." },

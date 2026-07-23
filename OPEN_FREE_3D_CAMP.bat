@@ -27,7 +27,7 @@ if errorlevel 1 (
 )
 
 echo  3) Opening FREE 3D meadow...
-start "" "http://127.0.0.1:8767/firmament/3d?v=v32-bootfix"
+start "" "http://127.0.0.1:8767/firmament/3d?v=v39-zoom"
 echo.
 echo  If blank: Ctrl+Shift+R
 echo  Health should say ollama_ok true — free minds.

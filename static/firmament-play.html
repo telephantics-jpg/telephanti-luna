@@ -923,6 +923,12 @@
       border-color: #67e8f9;
       box-shadow: 0 0 12px rgba(103, 232, 249, 0.35);
     }
+    .dock-compact .dock-icon.hush-btn.active {
+      border-color: #a78bfa;
+      color: #ede9fe;
+      background: linear-gradient(135deg, #312e81, #4c1d95);
+      box-shadow: 0 0 14px rgba(167, 139, 250, 0.4);
+    }
     /* Compact "live" strip — full history lives in #convo-lines */
     #now-speaking {
       display: none;
@@ -1373,12 +1379,20 @@
       border: 1px solid rgba(103, 232, 249, 0.22);
     }
     .dock-compact .dock-icon.dock-tpx {
-      background: linear-gradient(135deg, #0c4a6e, #0284c7 45%, #38bdf8);
-      border-color: #7dd3fc;
-      font-size: 0.58rem; font-weight: 900; letter-spacing: 0.01em;
-      color: #e0f2fe;
-      min-width: 36px; width: auto; padding: 0 7px;
+      background: linear-gradient(135deg, #5b21b6, #0e7490 45%, #0284c7);
+      border: 2px solid #c4b5fd;
+      font-size: 0.72rem; font-weight: 900; letter-spacing: 0.02em;
+      color: #f5f3ff;
+      min-width: 88px; width: auto; height: 44px; padding: 0 12px;
       white-space: nowrap;
+      box-shadow: 0 0 16px rgba(167, 139, 250, 0.35);
+    }
+    .dock-compact .dock-icon.dock-tpx:not(.active) {
+      animation: dock-tpx-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes dock-tpx-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(167,139,250,0); }
     }
     .dock-compact .dock-icon.dock-feature-sm {
       width: 40px; height: 40px; font-size: 1.05rem;
@@ -3736,7 +3750,7 @@
   <!-- camp-speech-pin removed — bubbles select/drag on canvas only -->
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
-  <button type="button" id="camp-tpx-fab" title="Play music · long-press opens X @Telephantix" aria-label="Play music">♪</button>
+  <button type="button" id="camp-tpx-fab" title="Play music" aria-label="Play music" hidden style="display:none !important">♪</button>
   <div id="camp-pick-agent-sheet" hidden aria-hidden="true" style="display:none !important">
     <div class="cpas-backdrop" id="camp-pick-agent-backdrop"></div>
     <div class="cpas-panel">
@@ -3870,7 +3884,7 @@
     </div>
     <div class="dock-compact">
       <div class="dock-music-group" aria-label="Camp music">
-        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Play music — full Telephantix queue · hold for X">♪ Music</button>
+        <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Play / show Telephantix radio (same menu as Relics)">♪ Play music</button>
         <a class="dock-icon dock-feature-sm dock-tpx-site" id="btn-telephanti-site" href="https://telephanti.com/" title="Back to telephanti.com home">🏠</a>
         <button type="button" class="dock-icon dock-music-off dock-feature-sm" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
       </div>
@@ -3885,6 +3899,7 @@
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
       <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Show meadow chatter log">💬</button>
+      <button type="button" class="dock-icon hush-btn" id="btn-camp-hush" title="Hush — soft chill: slower walks & fewer monologues (not mute)" aria-pressed="false">🤫 Hush</button>
       <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Focus talk bar — type to locked agent" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️</button>
       <button type="button" class="dock-icon talk" id="btn-talk-near" title="Lock to nearest agent">📍</button>
       <button type="button" class="dock-icon" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
@@ -4106,7 +4121,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-21-307-ETHEREAL-TALK";
+    const CAMP_BUILD = "2026-07-23-311-live";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -5357,6 +5372,86 @@
     let lastSpreadZoom = 0;
     let lastLayoutKey = "";
     let campChillUntil = 0;
+    /** Soft visitor hush — not mute: slower feet + sparser talk so you can follow */
+    let campHushMode = false;
+    let campHushNudgeAt = 0;
+    const HUSH_NUDGE_LINES = [
+      "Hey — you're all walking and talking too fast to follow. Soften the pace; leave room between thoughts.",
+      "Visitor signal: slow the meadow. Shorter legs, longer pauses. We want to hear you, not chase you.",
+      "Camp note: ease up. Wander less frantically, monologue less stacked. Let a line land.",
+      "Friendly hush: not silence — just chill. Walk so we can keep up; speak so we can read.",
+    ];
+    function isCampHush() {
+      return !!(campHushMode || campChillUntil > Date.now());
+    }
+    function campHushSpeedMul() {
+      if (campHushMode) return 0.48;
+      if (campChillUntil > Date.now()) return 0.72;
+      return 1;
+    }
+    function campHushTalkMul() {
+      // Multiplies delays (higher = less frequent talk)
+      if (campHushMode) return 2.15;
+      if (campChillUntil > Date.now()) return 1.45;
+      return 1;
+    }
+    function campHushSceneNote() {
+      if (!campHushMode) return "";
+      return "Visitor asked for hush: they can't keep up — walk slower, leave longer gaps between lines, no pile-on monologues.";
+    }
+    function setCampHush(on, opts = {}) {
+      const next = !!on;
+      const was = campHushMode;
+      campHushMode = next;
+      const btn = document.getElementById("btn-camp-hush");
+      if (btn) {
+        btn.classList.toggle("active", campHushMode);
+        btn.setAttribute("aria-pressed", campHushMode ? "true" : "false");
+        btn.title = campHushMode
+          ? "Hush on — soft chill (tap again for normal energy)"
+          : "Hush — soft chill: slower walks & fewer monologues (not mute)";
+      }
+      if (campHushMode) {
+        // Long chill window + soft pace on everyone already mid-roam
+        campChillUntil = Math.max(campChillUntil, Date.now() + 12 * 60 * 1000);
+        for (const n of allRoamers()) {
+          if (typeof n.paceMul === "number") n.paceMul = Math.min(n.paceMul, 0.42);
+          else n.paceMul = 0.4;
+          // Prefer lingering over dash-around
+          if (!n.socializing && !n.gathering && Math.random() < 0.55) {
+            n.behavior = Math.random() < 0.55 ? "sit" : "stand";
+            n.behaviorTimer = 160 + Math.floor(Math.random() * 200);
+            n.idle = 80 + Math.floor(Math.random() * 120);
+            n.tx = n.x;
+            n.ty = n.y;
+          }
+        }
+        setCampLifeStatus("🤫 Hush on — soft meadow, slower feet & sparser talk");
+        if (!opts.quiet) {
+          showToast("🤫 Hush — slow walks, leave room between lines");
+          // Soft ask once (not a command mute)
+          if (!was || opts.forceNudge) {
+            const line = HUSH_NUDGE_LINES[Math.floor(Math.random() * HUSH_NUDGE_LINES.length)];
+            pushCampLine("Camp", line, 18, "think", { quiet: true, fromLocal: true });
+            campHushNudgeAt = Date.now();
+          }
+        }
+        // Reschedule ambient on the slower clock
+        try { scheduleCampIdleChatter(); } catch (_) {}
+      } else {
+        if (!opts.quiet) {
+          setCampLifeStatus("Camp energy back — talk & roam free");
+          showToast("Hush off — meadow can riff again");
+          pushCampLine("Camp", "Energy's back — no rush required, but the floor is open.", 12, "happy", {
+            quiet: true, fromLocal: true,
+          });
+        }
+        try { scheduleCampIdleChatter(); } catch (_) {}
+      }
+    }
+    function toggleCampHush() {
+      setCampHush(!campHushMode);
+    }
     const campGuests = [];
     const NPC_ANCHORS = {
       luna: { x: -398, y: -112 },
@@ -5709,6 +5804,7 @@
             }
           } catch (_) {}
           updateCampMusicUi?.();
+          try { campMusicChrome?.refresh?.(); } catch (_) {}
         }
       } catch (e) {
         console.warn("hydrate camp music", e);
@@ -6441,9 +6537,15 @@
         const msg = `${prop.emoji || ""} ${line}`.trim();
         pushCampLine(n.name, msg, campReadHoldSec(msg, 28), n.mood || "happy", { fromLocal: true });
       }
-      // World side-effects agents can trigger
-      if (prop.id === "stereo" && Math.random() < 0.55 && !campMusicOn) {
-        try { toggleCampMusic?.(); } catch (_) {}
+      // Stereo: agents may *mention* the jukebox — never auto-start music (visitor-only)
+      if (prop.id === "stereo" && Math.random() < 0.35 && !campMusicOn) {
+        pushCampLine(
+          "Camp",
+          `${n.name} eyed the jukebox — tap ♪ Music if you want Telephantix.`,
+          10,
+          "happy",
+          { quiet: true, fromLocal: true },
+        );
       }
       if (prop.id === "weed" || prop.id === "herbs") {
         campChillUntil = Math.max(campChillUntil, Date.now() + 60000);
@@ -6893,7 +6995,7 @@
     }
 
     function pickRandomNpcBehavior(npc) {
-      const chilling = campChillUntil > Date.now();
+      const chilling = typeof isCampHush === "function" ? isCampHush() : campChillUntil > Date.now();
       const r = Math.random();
       // More sit/stand quiet time so chatter doesn't flood the meadow
       if (chilling) {
@@ -6964,11 +7066,14 @@
       n.behaviorTimer = 120 + Math.floor(Math.random() * 260);
       n.idle = 0;
       n.paceMul = 0.35 + Math.random() * 0.7;
+      if (typeof isCampHush === "function" && isCampHush()) {
+        n.paceMul = Math.min(n.paceMul, campHushMode ? 0.4 : 0.55);
+      }
       n.propTarget = null;
       n.structureTarget = null;
       if (n.behavior === "visit") {
         startNpcVisit(n);
-        n.paceMul = Math.max(n.paceMul, 0.55);
+        n.paceMul = Math.max(n.paceMul, campHushMode ? 0.38 : 0.55);
       } else if (n.behavior === "home" || n.behavior === "house") {
         // Guest visits others' houses often; owners still go home sometimes
         const asGuest = !HOUSE_OWNERS.has(n.id) || Math.random() < 0.58;
@@ -7135,8 +7240,10 @@
       const d = dist(n, { x: tx, y: ty });
       if (d < 4 && !n.flying) return;
       // Classic step move (stable) + light inertia — avoid O(n²) every frame
-      const pace = typeof n.paceMul === "number" ? Math.max(0.25, n.paceMul) : 0.8;
-      const step = n.speed * speedMul * pace * (n.flying ? 1.2 : 1);
+      // Hush: soften feet so visitors can follow (not freeze)
+      const hushMul = typeof campHushSpeedMul === "function" ? campHushSpeedMul() : 1;
+      const pace = typeof n.paceMul === "number" ? Math.max(0.22, n.paceMul) : 0.8;
+      const step = n.speed * speedMul * pace * hushMul * (n.flying ? 1.2 : 1);
       if (d > 0.5) {
         n.x += ((tx - n.x) / d) * step;
         n.y += ((ty - n.y) / d) * step;
@@ -7169,14 +7276,14 @@
       }
       const d = dist(n, { x: n.tx, y: n.ty });
       if (d < 6) {
-        const chilling = campChillUntil > Date.now();
+        const chilling = typeof isCampHush === "function" ? isCampHush() : campChillUntil > Date.now();
         // Arrive → often linger or fully park as sit/stand
-        if (!n.socializing && !n.gathering && Math.random() < (chilling ? 0.48 : 0.32)) {
+        if (!n.socializing && !n.gathering && Math.random() < (chilling ? 0.55 : 0.32)) {
           resetNpcFreeWill(n, Math.random() < 0.55 ? "stand" : "sit");
           return;
         }
         n.idle = chilling
-          ? 50 + Math.floor(Math.random() * 100)
+          ? 70 + Math.floor(Math.random() * 120)
           : 28 + Math.floor(Math.random() * 75);
         pickNpcWanderTarget(n);
         return;
@@ -7228,11 +7335,11 @@
           return;
         }
         n.idle = 140 + Math.floor(Math.random() * 200);
-        // Sit monologue — rare so bubbles stay readable
+        // Sit monologue — rare so bubbles stay readable; hush almost never
         if (!n.socializing && !n.gathering && !converseBusy && !chatterPaused
             && !ambientAiBusy && !speechFloorHasFocus() && !bubbleFrontPinned && !bubbleHoldLocked
             && canAgentTakeFloor(n.id, { max: 1 })
-            && Math.random() < 0.04) {
+            && Math.random() < (campHushMode ? 0.012 : 0.04)) {
           void emitNpcAiChatter(n, { allowAether: true });
         }
         return;
@@ -7243,7 +7350,7 @@
         return;
       }
       n.idle = 140 + Math.floor(Math.random() * 200);
-      if (!n.socializing && !n.gathering && Math.random() < 0.05
+      if (!n.socializing && !n.gathering && Math.random() < (campHushMode ? 0.015 : 0.05)
           && !converseBusy && !chatterPaused && !ambientAiBusy
           && !speechFloorHasFocus() && !bubbleFrontPinned && !bubbleHoldLocked
           && canAgentTakeFloor(n.id, { max: 1 })) {
@@ -8670,6 +8777,9 @@
       document.getElementById("btn-camp-chat")?.addEventListener("click", () => {
         openCampChatPanel(getTalkTarget());
       });
+      document.getElementById("btn-camp-hush")?.addEventListener("click", () => {
+        toggleCampHush();
+      });
       document.getElementById("camp-talk-open-panel")?.addEventListener("click", () => {
         openCampChatPanel(getTalkTarget());
       });
@@ -9835,8 +9945,16 @@
         pushCampLine("Camp", "Psychic ripples bloom brighter — Hermes felt that.", 14, "think");
       } else if (item.kind === "effect" && item.effect === "music_boost") {
         campMusicBoost = true;
-        openCampTelephantix({ quiet: true });
-        pushCampLine("Camp", "Bass bloom purchased — Telephantix goes full aurora rave.", 14, "happy");
+        // Boost only if visitor already started music — never auto-start the jukebox
+        if (campMusicOn) {
+          try {
+            const audio = campAudioElement();
+            if (audio) audio.volume = campMusicVolumeLevel();
+          } catch (_) {}
+          pushCampLine("Camp", "Bass bloom — Telephantix gets louder on the track already playing.", 14, "happy");
+        } else {
+          pushCampLine("Camp", "Bass bloom ready — tap ♪ Music when you want Telephantix.", 14, "happy");
+        }
       } else if (item.kind === "unlock" && item.unlock === "shelter") {
         if (!campWallet.unlocks) campWallet.unlocks = [];
         if (!campWallet.unlocks.includes("shelter")) campWallet.unlocks.push("shelter");
@@ -10628,8 +10746,11 @@
     function bindCampMusicGestureUnlock() {
       if (campMusicGestureBound) return;
       campMusicGestureBound = true;
+      // Only resume audio that the visitor already started (blocked by browser autoplay).
+      // Never turn music on from a random click if they left it off.
       const unlock = () => {
-        if (!campMusicOn) return;
+        if (!campMusicOn || campMusicUserStopped) return;
+        if (!campMusicAllowed()) return;
         if (campMusicPlayPending || campMusicMuted) resumeCampMusicPlayback({ quiet: true });
       };
       document.addEventListener("pointerdown", unlock, { passive: true });
@@ -10697,24 +10818,34 @@
       stopCampTelephantix({ keepPreference: opts.keepPreference });
       updateCampMusicUi();
       updateCampMusicPrompt();
+      try { campMusicChrome?.refresh?.(); } catch (_) {}
       if (!opts.quiet) showToast("🔇 Camp music off");
     }
 
     function openCampTelephantix(opts = {}) {
-      if (campMusicSource === "telephantix" && campMusicOn && !opts.force && !campMusicPlayPending) {
+      // Music is visitor-gated only (dock ♪ / music chrome). No silent auto-start paths.
+      if (opts.auto && !opts.forceUser) {
+        console.info("[camp-music] blocked auto-start");
+        return;
+      }
+      // Relics-style: open panel + play. Stop is explicit (🔇 / Stop in panel).
+      // If already playing and caller wants toggle-close sound, use forceStop.
+      if (opts.forceStop) {
         closeAllCampMusic(opts);
+        try { campMusicChrome?.refresh?.(); } catch (_) {}
         return;
       }
       campMusicSource = "telephantix";
       campMusicUserStopped = false;
       try { localStorage.removeItem("luna-camp-music-off"); } catch (_) {}
-      if (!campMusicOn) campMusicTrackIdx = pickRandomCampMusicTrack();
+      if (!campMusicOn && opts.random !== false) campMusicTrackIdx = pickRandomCampMusicTrack();
       campMusicOn = true;
       campMusicMuted = false;
       playCampMusicTrack(campMusicTrackIdx, { quiet: opts.quiet, unmuted: true });
       try { navigator.vibrate?.([14, 28, 14]); } catch (_) {}
       updateCampMusicUi();
       updateCampMusicPrompt();
+      try { campMusicChrome?.openPanel?.({ play: false }); campMusicChrome?.refresh?.(); } catch (_) {}
       if (!opts.quiet) {
         const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx];
         showToast(`Telephantix — ${track.title}`);
@@ -10765,6 +10896,7 @@
       }
       document.body.classList.toggle("camp-music-on", campMusicSource === "telephantix");
       updateCampMusicPrompt();
+      try { campMusicChrome?.refresh?.(); } catch (_) {}
     }
 
     function playCampMusicTrack(trackIdx = campMusicTrackIdx, opts = {}) {
@@ -10779,12 +10911,46 @@
       } catch (_) {}
       if (campMusicOn) openCampJukebox(opts);
       else updateCampMusicUi();
+      try { campMusicChrome?.refresh?.(); } catch (_) {}
+    }
+
+    /** Relics-style floating player (shared chrome) */
+    let campMusicChrome = null;
+    async function mountCampMusicChromeUi() {
+      try {
+        const mod = await import(`/static/camp/camp-music-chrome.mjs?v=${CAMP_BUILD}`);
+        campMusicChrome = mod.mountCampMusicChrome({
+          scene: "luna-2d",
+          getTracks: () => CAMP_MUSIC_TRACKS,
+          isPlaying: () => !!(campMusicOn && campMusicSource === "telephantix" && !campMusicMuted),
+          getIndex: () => campMusicTrackIdx % Math.max(1, CAMP_MUSIC_TRACKS.length),
+          playAt: (i) => {
+            campMusicTrackIdx = i % Math.max(1, CAMP_MUSIC_TRACKS.length);
+            openCampTelephantix({ forceUser: true, quiet: true, random: false });
+          },
+          stop: () => closeAllCampMusic({ quiet: false }),
+          next: () => {
+            campMusicTrackIdx = (campMusicTrackIdx + 1) % Math.max(1, CAMP_MUSIC_TRACKS.length);
+            if (campMusicOn) playCampMusicTrack(campMusicTrackIdx, { quiet: true });
+            else openCampTelephantix({ forceUser: true, quiet: true, random: false });
+          },
+          prev: () => {
+            const n = Math.max(1, CAMP_MUSIC_TRACKS.length);
+            campMusicTrackIdx = (campMusicTrackIdx - 1 + n) % n;
+            if (campMusicOn) playCampMusicTrack(campMusicTrackIdx, { quiet: true });
+            else openCampTelephantix({ forceUser: true, quiet: true, random: false });
+          },
+        });
+      } catch (e) {
+        console.warn("camp music chrome", e);
+      }
     }
 
     function setCampMusic(on, opts = {}) {
       if (on) {
-        openCampTelephantix(opts);
-        return true;
+        // Refuse programmatic auto-on; require explicit visitor intent
+        openCampTelephantix({ ...opts, forceUser: !!opts.forceUser || !opts.auto });
+        return campMusicOn;
       }
       if (campMusicSource === "telephantix") closeAllCampMusic({ keepPreference: !opts.auto });
       else stopCampTelephantix({ keepPreference: !opts.auto });
@@ -10796,7 +10962,7 @@
 
     function toggleCampMusic(opts = {}) {
       if (campMusicIsActive()) closeAllCampMusic(opts);
-      else openCampTelephantix(opts);
+      else openCampTelephantix({ ...opts, forceUser: true });
       return campMusicIsActive();
     }
 
@@ -12854,6 +13020,9 @@
         const h = String(it?.text || "").replace(/\s+/g, " ").trim().slice(0, 100);
         if (h) pulseBit = `\nWorld pulse (${it.source || "pulse"}): ${h}`;
       }
+      const hushBit = (typeof campHushSceneNote === "function" && campHushSceneNote())
+        ? `\n${campHushSceneNote()}`
+        : "";
       if (replyTo?.line) {
         const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 160);
         const who = replyTo.name || "them";
@@ -12861,14 +13030,16 @@
           `${who}: ${idea}\n` +
           `Place: ${ctx}.` +
           (whoNear ? ` Nearby: ${whoNear}.` : "") +
-          pulseBit
+          pulseBit +
+          hushBit
         );
       }
       return (
         `Quiet beat at camp. ${v} is around.\n` +
         `Place: ${ctx}.` +
         (whoNear ? ` Nearby: ${whoNear}.` : "") +
-        pulseBit
+        pulseBit +
+        hushBit
       );
     }
 
@@ -12882,7 +13053,8 @@
       if (!opts.priority && !canAgentTakeFloor(npc.id, { max: opts.replyTo ? 2 : 1, ambientOk: true })) return null;
       // Soft global throttle so sit/stand + idle don't stampede Ollama
       const now = Date.now();
-      if (!opts.replyTo && !opts._retried && now - lastAiChatterAt < 5000) return null;
+      const minGap = campHushMode ? 14000 : 5000;
+      if (!opts.replyTo && !opts._retried && now - lastAiChatterAt < minGap) return null;
       lastAiChatterAt = now;
       claimSpeechFloor(npc.id);
       // Offline / server down → longer offline monologue, not 1-liner slogans
@@ -12971,6 +13143,8 @@
       if (speechFloorHasFocus() || chatInflight.size > 0) return;
       // Front-pinned / hold-locked bubble: hush ambient until visitor releases
       if (bubbleFrontPinned || bubbleHoldLocked) return;
+      // Soft hush: still talk, just less often (skip most beats)
+      if (campHushMode && Math.random() < 0.55) return;
       const pool = allRoamers().filter((n) =>
         !n.leaving && !n.socializing && !n.gathering && !n.insideHouse
         && n.behavior !== "carnival" && !carnivalRide.riders.has(n.id)
@@ -12978,8 +13152,9 @@
       if (!pool.length) return;
       ambientAiBusy = true;
       try {
-        // Short pair chats only sometimes — sparse meadow talk for readability
-        const dialogue = campServerOnline && pool.length >= 2 && Math.random() < 0.42;
+        // Short pair chats only sometimes — hush almost never stacks dialogue
+        const pairChance = campHushMode ? 0.12 : 0.42;
+        const dialogue = campServerOnline && pool.length >= 2 && Math.random() < pairChance;
         if (dialogue) {
           const a = pickAmbientSpeaker(pool);
           let b = pickAmbientSpeaker(pool.filter((n) => n.id !== a.id)) || pool[(pool.indexOf(a) + 1) % pool.length];
@@ -13013,8 +13188,8 @@
 
     function scheduleCampIdleChatter() {
       if (idleChatterTimer) clearTimeout(idleChatterTimer);
-      // Always lean slow — reading time > chatter density
-      const slowMul = isSlowDevice() ? 1.55 : 1.35;
+      // Always lean slow — reading time > chatter density; hush stretches further
+      const slowMul = (isSlowDevice() ? 1.55 : 1.35) * (typeof campHushTalkMul === "function" ? campHushTalkMul() : 1);
       const delay = (CAMP_PACE.idleChatterMinMs + Math.random() * CAMP_PACE.idleChatterRandMs) * slowMul;
       idleChatterTimer = setTimeout(() => {
         tryCampIdleChatter();
@@ -15879,19 +16054,28 @@
     });
     document.getElementById("btn-talk-ara")?.addEventListener("click", () => { void focusGrokAgent("ara"); });
     document.getElementById("btn-talk-mika")?.addEventListener("click", () => { void focusGrokAgent("mika"); });
-    document.getElementById("btn-camp-tpx").onclick = () => openCampTelephantix();
+    document.getElementById("btn-camp-tpx").onclick = () => {
+      // Big dock control: open Relics-style panel + play (or show panel if already on)
+      if (campMusicIsActive()) {
+        try { campMusicChrome?.openPanel?.({ play: false }); } catch (_) {}
+        try { campMusicChrome?.refresh?.(); } catch (_) {}
+      } else {
+        openCampTelephantix({ forceUser: true });
+      }
+    };
     document.getElementById("camp-tpx-fab")?.addEventListener("click", (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      openCampTelephantix();
+      openCampTelephantix({ forceUser: true });
     });
     document.getElementById("chip-camp-tpx")?.addEventListener("click", (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      openCampTelephantix();
+      openCampTelephantix({ forceUser: true });
     });
     document.getElementById("btn-camp-music-off").onclick = () => closeAllCampMusic();
     updateCampMusicPrompt(); // strip any leftover TX tip node
+    void mountCampMusicChromeUi();
     document.getElementById("btn-lucid-tv").onclick = () => openLucidTv();
     document.getElementById("btn-camp-shop").onclick = () => openCampShop();
     document.getElementById("btn-camp-carnival")?.addEventListener("click", () => {
@@ -16779,28 +16963,34 @@
     }
 
     function tryProximityAgentChatter() {
-      const cool = CAMP_PACE.proximityMinMs || 12000;
+      const cool = (CAMP_PACE.proximityMinMs || 12000) * (campHushMode ? 2.4 : 1);
       if (Date.now() - lastProximityChatter < cool) return;
       if (chatterPaused || converseBusy || dialogueBackdrop.classList.contains("open") || houseInteriorOpen) return;
+      // Hush: rare meetups only — no pile-on trios
+      if (campHushMode && Math.random() < 0.7) return;
       const roamers = allRoamers().filter((n) => !n.leaving && !n.socializing && !n.gathering
         && n.behavior !== "meditate" && !n.insideHouse);
-      for (let i = 0; i < roamers.length; i++) {
-        for (let j = i + 1; j < roamers.length; j++) {
-          for (let k = j + 1; k < roamers.length; k++) {
-            const d1 = dist(roamers[i], roamers[j]);
-            const d2 = dist(roamers[j], roamers[k]);
-            const d3 = dist(roamers[i], roamers[k]);
-            if (d1 < 110 && d2 < 110 && d3 < 120 && Math.random() < 0.22) {
-              lastProximityChatter = Date.now();
-              runCampConverse([roamers[i].id, roamers[j].id, roamers[k].id]);
-              return;
+      const trioChance = campHushMode ? 0.06 : 0.22;
+      const pairChance = campHushMode ? 0.12 : 0.32;
+      if (!campHushMode) {
+        for (let i = 0; i < roamers.length; i++) {
+          for (let j = i + 1; j < roamers.length; j++) {
+            for (let k = j + 1; k < roamers.length; k++) {
+              const d1 = dist(roamers[i], roamers[j]);
+              const d2 = dist(roamers[j], roamers[k]);
+              const d3 = dist(roamers[i], roamers[k]);
+              if (d1 < 110 && d2 < 110 && d3 < 120 && Math.random() < trioChance) {
+                lastProximityChatter = Date.now();
+                runCampConverse([roamers[i].id, roamers[j].id, roamers[k].id]);
+                return;
+              }
             }
           }
         }
       }
       for (let i = 0; i < roamers.length; i++) {
         for (let j = i + 1; j < roamers.length; j++) {
-          if (dist(roamers[i], roamers[j]) < 95 && Math.random() < 0.32) {
+          if (dist(roamers[i], roamers[j]) < 95 && Math.random() < pairChance) {
             lastProximityChatter = Date.now();
             runCampConverse([roamers[i].id, roamers[j].id]);
             return;
@@ -16843,9 +17033,17 @@
         setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
         return;
       }
-      // Prefer pairs (2); trios more often for livelier cross-talk
+      // Hush: skip most spontaneous group chats (forced groups still run)
+      if (campHushMode && !forcedGroup && Math.random() < 0.72) {
+        setTimeout(
+          () => runCampConverse(),
+          (CAMP_PACE.nextConverseMinMs + Math.random() * CAMP_PACE.nextConverseRandMs) * campHushTalkMul(),
+        );
+        return;
+      }
+      // Prefer pairs (2); trios more often for livelier cross-talk — hush stays pairs
       let pool = campConversePairs();
-      if (Math.random() < 0.32 && campConverseTrios().length) {
+      if (!campHushMode && Math.random() < 0.32 && campConverseTrios().length) {
         pool = campConverseTrios();
       }
       pool = pool.map((g) => filterConverseGroup(g)).filter(Boolean);
@@ -16855,13 +17053,19 @@
       }
       let pick = forced || pool[Math.floor(Math.random() * pool.length)];
       if (pick && pick.length > 3) pick = pick.slice(0, 3);
-      const topic = pickLocalConverseTopic();
-      // Enough rounds for real back-and-forth (pair ~5–9 turns)
-      const rounds = pick.length >= 3 ? (Math.random() < 0.5 ? 2 : 3) : (Math.random() < 0.45 ? 3 : 2);
+      if (campHushMode && pick && pick.length > 2) pick = pick.slice(0, 2);
+      let topic = pickLocalConverseTopic();
+      if (campHushMode) {
+        topic = `${topic} — keep it soft: shorter lines, leave space, visitor said you're hard to follow when you rush.`;
+      }
+      // Enough rounds for real back-and-forth (pair ~5–9 turns); hush stays short
+      const rounds = campHushMode
+        ? 2
+        : (pick.length >= 3 ? (Math.random() < 0.5 ? 2 : 3) : (Math.random() < 0.45 ? 3 : 2));
       const label = converseGroupLabel(pick);
       converseBusy = true;
       setCampLifeStatus(`${label} are walking to chat…`);
-      showToast(`${label} meeting up…`);
+      if (!campHushMode) showToast(`${label} meeting up…`);
       markSocializingGroup(pick);
       try {
         await gatherForChatGroup(pick);
@@ -16886,9 +17090,15 @@
         }
         await playConverseLines(
           lines,
-          campChillUntil > Date.now() ? CAMP_PACE.converseGapChillMs : CAMP_PACE.converseGapMs,
+          (campHushMode || campChillUntil > Date.now())
+            ? CAMP_PACE.converseGapChillMs * (campHushMode ? 1.35 : 1)
+            : CAMP_PACE.converseGapMs,
         );
-        setCampLifeStatus("Camp is alive — real AI agents wandering & chatting");
+        setCampLifeStatus(
+          campHushMode
+            ? "🤫 Hush meadow — soft dialogue, slower feet"
+            : "Camp is alive — real AI agents wandering & chatting",
+        );
       } catch (err) {
         // Last resort only — try pairwise live agent/chat AI chain before static templates
         let rescued = false;
@@ -16941,10 +17151,10 @@
       }
       endSocializingGroup(pick);
       converseBusy = false;
-      setTimeout(
-        () => runCampConverse(),
-        CAMP_PACE.nextConverseMinMs + Math.random() * CAMP_PACE.nextConverseRandMs,
-      );
+      const nextGap =
+        (CAMP_PACE.nextConverseMinMs + Math.random() * CAMP_PACE.nextConverseRandMs)
+        * (typeof campHushTalkMul === "function" ? campHushTalkMul() : 1);
+      setTimeout(() => runCampConverse(), nextGap);
     }
 
     window.addEventListener("keydown", (e) => {

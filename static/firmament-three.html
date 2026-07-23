@@ -110,15 +110,23 @@
     #boot-overlay.fail .boot-card { border-color: #f87171; }
     #boot-overlay.fail .boot-title { color: #fecaca; }
     #album-btn {
-      border-color: #7dd3fc !important;
-      background: linear-gradient(135deg, rgba(12, 74, 110, 0.95), rgba(2, 132, 199, 0.9)) !important;
-      color: #e0f2fe !important;
-      font-weight: 800 !important;
+      border: 2px solid #c4b5fd !important;
+      background: linear-gradient(135deg, #5b21b6, #0e7490 50%, #0284c7) !important;
+      color: #f5f3ff !important;
+      font-weight: 900 !important;
       letter-spacing: 0.02em;
+      min-width: 7.5rem;
+      box-shadow: 0 0 14px rgba(167, 139, 250, 0.4);
+      animation: album-pulse 2.4s ease-in-out infinite;
     }
     #album-btn.playing {
-      border-color: #fbbf24 !important; color: #fde68a !important;
-      box-shadow: 0 0 16px rgba(251, 191, 36, 0.35);
+      animation: none;
+      border-color: #86efac !important; color: #ecfdf5 !important;
+      box-shadow: 0 0 18px rgba(52, 211, 153, 0.45);
+    }
+    @keyframes album-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(167,139,250,0); }
     }
     /* TX music + site link stacked (not center — sits in topbar next to TX) */
     .tx-cluster {
@@ -527,7 +535,7 @@
   <header id="topbar">
     <a id="home-telephanti" class="chip" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
     <div class="tx-cluster" title="Telephantix music + site">
-      <button type="button" id="album-btn" class="chip" title="Play music — full Telephantix queue">Play music</button>
+      <button type="button" id="album-btn" class="chip" title="Play / show Telephantix radio">♪ Play music</button>
       <a id="telephanti-site-btn" class="chip" href="https://telephanti.com/" title="Back to telephanti.com">telephanti.com</a>
     </div>
     <span id="album-now" hidden></span>
@@ -576,7 +584,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-22-three-v39-zoom";
+    const BUILD = "2026-07-23-three-v41-live";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     const bootOverlay = document.getElementById("boot-overlay");
@@ -3855,7 +3863,8 @@
             if (typeof st.trackIndex === "number" && st.trackIndex < ALBUM_TRACKS.length) {
               albumIndex = st.trackIndex;
             }
-            if (albumBtn) albumBtn.title = `Play music — ${ALBUM_TRACKS.length} songs`;
+            if (albumBtn) albumBtn.title = `♪ Play music — ${ALBUM_TRACKS.length} songs`;
+            try { musicChrome3d?.refresh?.(); } catch (_) {}
           }
           // Continuity toast: last dialogue from 2D
           const tape = mod.readDialogueTape?.()?.lines || [];
@@ -3892,7 +3901,7 @@
       return albumAudio;
     }
 
-    function playAlbumTrack(i) {
+    function playAlbumTrack(i, opts = {}) {
       if (!ALBUM_TRACKS.length) {
         showToast("No Telephantix tracks found");
         return;
@@ -3905,13 +3914,13 @@
         .then(() => {
           albumOn = true;
           albumBtn?.classList.add("playing");
-          if (albumBtn) albumBtn.textContent = "Hide music";
+          if (albumBtn) albumBtn.textContent = "♪ Music on";
           if (albumNow) {
             albumNow.hidden = false;
             albumNow.textContent = `♪ ${t.title}`;
             albumNow.title = t.title;
           }
-          showToast(`🎵 ${t.title}`);
+          if (!opts.quiet) showToast(`🎵 ${t.title}`);
           logLine("Telephantix", `Playing: ${t.title}`);
           statusEl.textContent = `♪ ${t.title}`;
           try {
@@ -3922,6 +3931,7 @@
               scene: "luna-3d",
             });
           } catch (_) {}
+          try { musicChrome3d?.refresh?.(); } catch (_) {}
         })
         .catch((err) => {
           showToast("Tap Play music again if blocked");
@@ -3929,17 +3939,20 @@
         });
     }
 
-    function stopAlbum() {
+    function stopAlbum(opts = {}) {
       albumOn = false;
       if (albumAudio) {
         albumAudio.pause();
-        // Keep position so Hide ≠ hard stop restart (matches hub minimize spirit)
+        try {
+          albumAudio.removeAttribute("src");
+          albumAudio.load?.();
+        } catch (_) {}
       }
       albumBtn?.classList.remove("playing");
-      if (albumBtn) albumBtn.textContent = "Play music";
+      if (albumBtn) albumBtn.textContent = "♪ Play music";
       if (albumNow) albumNow.hidden = true;
-      showToast("🎵 Music hidden — tap Play music to resume");
-      logLine("Telephantix", "Music minimized");
+      if (!opts.quiet) showToast("🔇 Music off");
+      logLine("Telephantix", "Music stopped");
       try {
         campBridge3d?.writeMusicState?.({
           trackIndex: albumIndex,
@@ -3947,13 +3960,40 @@
           scene: "luna-3d",
         });
       } catch (_) {}
+      try { musicChrome3d?.refresh?.(); } catch (_) {}
     }
 
+    let musicChrome3d = null;
+    import(`/static/camp/camp-music-chrome.mjs?v=${BUILD}`)
+      .then((mod) => {
+        musicChrome3d = mod.mountCampMusicChrome({
+          scene: "luna-3d",
+          getTracks: () => ALBUM_TRACKS,
+          isPlaying: () => !!(albumOn && albumAudio && !albumAudio.paused),
+          getIndex: () => albumIndex % Math.max(1, ALBUM_TRACKS.length),
+          playAt: (i) => playAlbumTrack(i, { quiet: true }),
+          stop: () => stopAlbum({ quiet: false }),
+          next: () => {
+            albumIndex = (albumIndex + 1) % Math.max(1, ALBUM_TRACKS.length);
+            playAlbumTrack(albumIndex, { quiet: true });
+          },
+          prev: () => {
+            const n = Math.max(1, ALBUM_TRACKS.length);
+            albumIndex = (albumIndex - 1 + n) % n;
+            playAlbumTrack(albumIndex, { quiet: true });
+          },
+        });
+      })
+      .catch((e) => console.warn("3d music chrome", e));
+
     albumBtn?.addEventListener("click", () => {
+      // Open Relics-style panel + play (or show panel if already playing)
       if (albumOn && albumAudio && !albumAudio.paused) {
-        stopAlbum();
+        try { musicChrome3d?.openPanel?.({ play: false }); } catch (_) {}
+        try { musicChrome3d?.refresh?.(); } catch (_) {}
       } else {
         playAlbumTrack(albumIndex);
+        try { musicChrome3d?.openPanel?.({ play: false }); } catch (_) {}
       }
     });
     // Also wire stereo prop to album if featureApi music used

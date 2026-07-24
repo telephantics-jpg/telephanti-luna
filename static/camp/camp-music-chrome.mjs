@@ -28,15 +28,14 @@ function injectStyles() {
     document.head.appendChild(s);
   }
   s.textContent = `
-  /* Above speech bubbles (200) + dock so Play music stays on top when open */
-  .cmc-root { position: fixed; inset: 0; pointer-events: none; z-index: 260; }
+  .cmc-root { position: fixed; inset: 0; pointer-events: none; z-index: 48; }
   .cmc-fab {
     pointer-events: auto;
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
     bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-    z-index: 262;
+    z-index: 49;
     min-width: 9.5rem;
     min-height: 46px;
     padding: 0.7rem 1.25rem;
@@ -82,7 +81,7 @@ function injectStyles() {
     bottom: calc(148px + env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%) translateY(12px);
     width: min(420px, calc(100vw - 1rem));
-    z-index: 261;
+    z-index: 48;
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease;
   }
@@ -93,6 +92,8 @@ function injectStyles() {
   }
   .cmc-panel:not(.open) { display: none !important; }
   .cmc-panel.open { display: block !important; }
+  .cmc-panel.is-min { width: min(280px, calc(100vw - 1rem)); }
+  .cmc-panel.is-min .cmc-body { display: none; }
   .cmc-inner {
     border-radius: 16px;
     border: 1px solid rgba(167, 139, 250, 0.5);
@@ -125,20 +126,7 @@ function injectStyles() {
     cursor: pointer;
   }
   .cmc-chip.stop { border-color: rgba(248,113,113,0.5); background: rgba(127,29,29,0.4); color: #fecaca; }
-  .cmc-chip.mute { border-color: rgba(251,191,36,0.55); background: rgba(120,53,15,0.45); color: #fde68a; }
-  .cmc-chip.mute.is-muted { border-color: rgba(148,163,184,0.55); background: rgba(51,65,85,0.7); color: #cbd5e1; }
   .cmc-chip:active { transform: scale(0.96); }
-  /* Minimized mini-player always visible on top while music UI is up */
-  .cmc-panel.is-min {
-    width: min(320px, calc(100vw - 1rem));
-    z-index: 263;
-  }
-  .cmc-panel.is-min .cmc-inner { padding: 0.55rem 0.65rem 0.5rem; }
-  .cmc-min-row {
-    display: none; flex-wrap: wrap; gap: 6px; margin-top: 0.35rem; align-items: center;
-  }
-  .cmc-panel.is-min .cmc-min-row { display: flex; }
-  .cmc-panel.is-min .cmc-head { margin-bottom: 0; }
   .cmc-list {
     max-height: min(38vh, 260px); overflow-y: auto; -webkit-overflow-scrolling: touch;
     display: flex; flex-direction: column; gap: 4px;
@@ -224,17 +212,10 @@ export function mountCampMusicChrome(api = {}) {
             <button type="button" class="cmc-icon" id="cmc-close" title="Close panel (keep playing)">×</button>
           </div>
         </div>
-        <div class="cmc-min-row" id="cmc-min-row" aria-label="Mini player">
-          <button type="button" class="cmc-chip" id="cmc-prev-min" title="Previous">Prev</button>
-          <button type="button" class="cmc-chip" id="cmc-next-min" title="Next">Next</button>
-          <button type="button" class="cmc-chip mute" id="cmc-mute-min" title="Mute / unmute">Mute</button>
-          <button type="button" class="cmc-chip stop" id="cmc-stop-min" title="Stop">Stop</button>
-        </div>
         <div class="cmc-body" id="cmc-body">
           <div class="cmc-controls">
             <button type="button" class="cmc-chip" id="cmc-prev">Prev</button>
             <button type="button" class="cmc-chip" id="cmc-next">Next</button>
-            <button type="button" class="cmc-chip mute" id="cmc-mute" title="Mute / unmute volume">Mute</button>
             <button type="button" class="cmc-chip stop" id="cmc-stop">Stop</button>
           </div>
           <div class="cmc-list" id="cmc-list"></div>
@@ -246,8 +227,7 @@ export function mountCampMusicChrome(api = {}) {
   document.body.appendChild(root);
 
   let panelOpen = false;
-  /** Default true when panel is up — expand only when user maximizes */
-  let minimized = true;
+  let minimized = false;
 
   const fab = root.querySelector("#cmc-fab");
   const fabLabel = root.querySelector("#cmc-fab-label");
@@ -274,25 +254,6 @@ export function mountCampMusicChrome(api = {}) {
       return !!api.isPlaying?.();
     } catch {
       return false;
-    }
-  }
-
-  function muted() {
-    try {
-      return !!api.isMuted?.();
-    } catch {
-      return false;
-    }
-  }
-
-  function syncMuteChips() {
-    const m = muted();
-    for (const id of ["cmc-mute", "cmc-mute-min"]) {
-      const el = root.querySelector(`#${id}`);
-      if (!el) continue;
-      el.textContent = m ? "Unmute" : "Mute";
-      el.classList.toggle("is-muted", m);
-      el.title = m ? "Unmute music" : "Mute music (keeps playing silently)";
     }
   }
 
@@ -368,58 +329,44 @@ export function mountCampMusicChrome(api = {}) {
       panel.hidden = !panelOpen;
       panel.classList.toggle("open", panelOpen);
       panel.classList.toggle("is-min", panelOpen && minimized);
-      // Keep music UI above meadow chrome while open
-      if (panelOpen) {
-        root.style.zIndex = "260";
-        panel.style.zIndex = minimized ? "263" : "261";
-      }
     }
     if (body) body.hidden = !!(panelOpen && minimized);
     if (minBtn) minBtn.hidden = !!(panelOpen && minimized);
     if (maxBtn) maxBtn.hidden = !(panelOpen && minimized);
     document.body.classList.toggle("cmc-panel-open", panelOpen);
-    document.body.classList.toggle("cmc-panel-min", panelOpen && minimized);
     document.body.classList.toggle("cmc-playing", on);
-    syncMuteChips();
     renderList();
   }
 
   function openPanel(opts = {}) {
     panelOpen = true;
-    // Minimized unless user explicitly expands (keeps dock clear)
-    if (opts.expand === true || opts.maximized === true) minimized = false;
-    else if (opts.minimized === false) minimized = false;
-    else minimized = true;
+    minimized = false;
     if (opts.play !== false && !playing()) {
       api.playAt?.(index());
     }
-    // Bring stack to front
-    try {
-      root.parentNode?.appendChild(root);
-    } catch (_) {}
     refresh();
   }
 
   function closePanelKeepPlaying() {
     panelOpen = false;
-    minimized = true;
+    minimized = false;
     refresh();
   }
 
   fab?.addEventListener("click", () => {
-    // First tap: open minimized player + play (front). Expanded only via + / Expand.
+    // Relics-style: first tap opens + plays; if open → hide panel (keep playing);
+    // if playing & closed → show panel; long path uses Stop inside to kill sound.
     if (!panelOpen) {
-      openPanel({ play: true, minimized: true });
+      openPanel({ play: true });
       return;
     }
     if (minimized) {
-      // Second tap on fab while min → hide panel (music keeps playing)
-      panelOpen = false;
+      minimized = false;
       refresh();
       return;
     }
-    // Expanded → collapse to minimized (not fully hide) so Mute stays handy
-    minimized = true;
+    // Hide panel; keep audio. Second intent to stop = Stop chip.
+    panelOpen = false;
     refresh();
   });
 
@@ -444,44 +391,28 @@ export function mountCampMusicChrome(api = {}) {
   });
 
   minBtn?.addEventListener("click", () => {
-    if (!panelOpen) openPanel({ play: false, minimized: true });
+    if (!panelOpen) openPanel({ play: false });
     minimized = true;
     refresh();
   });
   maxBtn?.addEventListener("click", () => {
     minimized = false;
     panelOpen = true;
-    try { root.parentNode?.appendChild(root); } catch (_) {}
     refresh();
   });
   root.querySelector("#cmc-close")?.addEventListener("click", () => closePanelKeepPlaying());
-
-  function bindTransport(prevId, nextId, stopId) {
-    root.querySelector(prevId)?.addEventListener("click", () => {
-      api.prev?.();
-      refresh();
-    });
-    root.querySelector(nextId)?.addEventListener("click", () => {
-      api.next?.();
-      refresh();
-    });
-    root.querySelector(stopId)?.addEventListener("click", () => {
-      api.stop?.();
-      refresh();
-    });
-  }
-  bindTransport("#cmc-prev", "#cmc-next", "#cmc-stop");
-  bindTransport("#cmc-prev-min", "#cmc-next-min", "#cmc-stop-min");
-
-  function onMuteClick() {
-    try {
-      if (typeof api.toggleMute === "function") api.toggleMute();
-      else if (typeof api.setMuted === "function") api.setMuted(!muted());
-    } catch (_) {}
+  root.querySelector("#cmc-prev")?.addEventListener("click", () => {
+    api.prev?.();
     refresh();
-  }
-  root.querySelector("#cmc-mute")?.addEventListener("click", onMuteClick);
-  root.querySelector("#cmc-mute-min")?.addEventListener("click", onMuteClick);
+  });
+  root.querySelector("#cmc-next")?.addEventListener("click", () => {
+    api.next?.();
+    refresh();
+  });
+  root.querySelector("#cmc-stop")?.addEventListener("click", () => {
+    api.stop?.();
+    refresh();
+  });
 
   refresh();
 

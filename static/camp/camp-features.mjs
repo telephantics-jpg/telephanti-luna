@@ -91,9 +91,23 @@ export function mountCampFeatures(opts) {
         animation: feat-hot-pulse 2.6s ease-in-out infinite;
       }
       #camp-feature-root .feat-hotbar button.feat-unknown {
-        border-color: rgba(251,191,36,0.9); color: #fffbeb;
-        background: linear-gradient(135deg, rgba(120,53,15,0.95), rgba(76,29,149,0.9));
-        animation: feat-hot-pulse 1.8s ease-in-out infinite;
+        border: 3px solid rgba(251,191,36,1); color: #fffbeb;
+        font-size: 0.88rem; font-weight: 900; padding: 11px 18px;
+        background: linear-gradient(135deg, rgba(180,83,9,0.98), rgba(88,28,135,0.95), rgba(14,116,144,0.9));
+        box-shadow: 0 0 0 0 rgba(251,191,36,0.7), 0 0 28px rgba(167,139,250,0.55), 0 6px 18px rgba(0,0,0,0.5);
+        animation: feat-unknown-pulse 1.35s ease-in-out infinite;
+        letter-spacing: 0.02em;
+        order: -1; /* first in strip */
+      }
+      @keyframes feat-unknown-pulse {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(251,191,36,0.65), 0 0 18px rgba(167,139,250,0.4), 0 6px 18px rgba(0,0,0,0.5);
+          transform: scale(1);
+        }
+        50% {
+          box-shadow: 0 0 0 12px rgba(251,191,36,0), 0 0 36px rgba(251,191,36,0.55), 0 6px 18px rgba(0,0,0,0.5);
+          transform: scale(1.06);
+        }
       }
       #camp-feature-root .feat-hotbar button.feat-heaven {
         border-color: rgba(253,230,138,0.85); color: #fef3c7;
@@ -274,12 +288,12 @@ export function mountCampFeatures(opts) {
 
   // ── HOTBAR first (always on screen — no menu needed) ──
   function runMysteriousUnknown() {
-    showToast("❓ Frequency opens…");
+    showToast("⚡ VEIL TEAR — something is coming…");
     if (typeof opts.onConjureUnknown === "function") {
       openPanel(
-        "Mysterious Unknown",
-        "Not evil — ancient & curious",
-        "<p>Tearing a hole in the meadow… agents turning to look.</p>",
+        "⚡ Mysterious Unknown",
+        "Not evil — ancient, curious, impossible to ignore",
+        "<p><b>The air splits.</b> A stranger is stepping through. The whole meadow is turning.</p>",
       );
       return Promise.resolve()
         .then(() => opts.onConjureUnknown())
@@ -318,7 +332,16 @@ export function mountCampFeatures(opts) {
   }
 
   if (features.mysterious_unknown !== false) {
-    addHotBtn("❓ Mysterious Unknown", () => { void runMysteriousUnknown(); }, "feat-unknown");
+    const unk = addHotBtn("❓ TEAR THE VEIL · Unknown", () => { void runMysteriousUnknown(); }, "feat-unknown");
+    if (unk) {
+      unk.title = "Mysterious Unknown — rip a stranger into the meadow · agents WILL notice";
+      // Soft periodic nudge so it never blends into the chrome
+      setInterval(() => {
+        if (!unk.isConnected) return;
+        unk.style.filter = "brightness(1.25)";
+        setTimeout(() => { if (unk.isConnected) unk.style.filter = ""; }, 420);
+      }, 9000 + Math.random() * 4000);
+    }
   }
   addHotBtn("✦ Heaven", () => {
     showToast("✦ Summoning Heaven…");

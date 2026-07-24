@@ -27,25 +27,56 @@ export function getVisitorName() {
   }
 }
 
-async function postJSON(path, body) {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body || {}),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail = data.detail || data.message || res.statusText || "request failed";
-    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+/**
+ * POST JSON with optional Abort timeout so a hung Ollama never freezes camp life.
+ * @param {string} path
+ * @param {object} body
+ * @param {{ timeoutMs?: number }} [opts]
+ */
+async function postJSON(path, body, opts = {}) {
+  const timeoutMs = Number(opts.timeoutMs) > 0 ? Number(opts.timeoutMs) : 22000;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+      signal: ctrl.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = data.detail || data.message || res.statusText || "request failed";
+      throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    }
+    return data;
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error(`timeout after ${timeoutMs}ms (${path})`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return data;
 }
 
-async function getJSON(path) {
-  const res = await fetch(path, { cache: "no-store" });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.detail || res.statusText || "request failed");
-  return data;
+async function getJSON(path, opts = {}) {
+  const timeoutMs = Number(opts.timeoutMs) > 0 ? Number(opts.timeoutMs) : 12000;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(path, { cache: "no-store", signal: ctrl.signal });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || res.statusText || "request failed");
+    return data;
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error(`timeout after ${timeoutMs}ms (${path})`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Discovery — super clean for README / debugging */
@@ -110,40 +141,54 @@ export function getWallet(opts = {}) {
 }
 
 export function campBanter(opts = {}) {
-  return postJSON("/api/firmament/camp/banter", {
-    agent_a: opts.agentA || "",
-    agent_b: opts.agentB || "",
-    topic: opts.topic || "",
-    rounds: opts.rounds ?? 2,
-    visitor_id: opts.visitorId ?? getVisitorId(),
-    visitor_name: opts.visitorName ?? getVisitorName(),
-  });
+  return postJSON(
+    "/api/firmament/camp/banter",
+    {
+      agent_a: opts.agentA || "",
+      agent_b: opts.agentB || "",
+      topic: opts.topic || "",
+      rounds: opts.rounds ?? 2,
+      visitor_id: opts.visitorId ?? getVisitorId(),
+      visitor_name: opts.visitorName ?? getVisitorName(),
+    },
+    { timeoutMs: opts.timeoutMs ?? 16000 },
+  );
 }
 
 /** Multi-agent threaded talk (2–4) — pow-wow / circle conversation */
 export function agentsConverse(opts = {}) {
-  return postJSON("/api/firmament/agents/converse", {
-    agent_a: opts.agentA || opts.agent_a || "luna",
-    agent_b: opts.agentB || opts.agent_b || "hermes",
-    agent_c: opts.agentC || opts.agent_c || "",
-    agent_d: opts.agentD || opts.agent_d || "",
-    topic: opts.topic || "",
-    rounds: opts.rounds ?? 3,
-    visitor_id: opts.visitorId ?? getVisitorId(),
-    visitor_name: opts.visitorName ?? getVisitorName(),
-  });
+  // Multi-turn Ollama can be slow; hard-cap so UI falls back to offline barks
+  return postJSON(
+    "/api/firmament/agents/converse",
+    {
+      agent_a: opts.agentA || opts.agent_a || "luna",
+      agent_b: opts.agentB || opts.agent_b || "hermes",
+      agent_c: opts.agentC || opts.agent_c || "",
+      agent_d: opts.agentD || opts.agent_d || "",
+      topic: opts.topic || "",
+      rounds: opts.rounds ?? 3,
+      visitor_id: opts.visitorId ?? getVisitorId(),
+      visitor_name: opts.visitorName ?? getVisitorName(),
+    },
+    { timeoutMs: opts.timeoutMs ?? 32000 },
+  );
 }
 
 export function agentChat(agentId, message, opts = {}) {
-  return postJSON("/api/firmament/agent/chat", {
-    agent_id: agentId,
-    message,
-    speak: false,
-    ambient: !!opts.ambient,
-    visitor_id: opts.visitorId ?? getVisitorId(),
-    visitor_name: opts.visitorName ?? getVisitorName(),
-    force_grok: !!opts.forceGrok,
-  });
+  return postJSON(
+    "/api/firmament/agent/chat",
+    {
+      agent_id: agentId,
+      message,
+      speak: false,
+      ambient: !!opts.ambient,
+      visitor_id: opts.visitorId ?? getVisitorId(),
+      visitor_name: opts.visitorName ?? getVisitorName(),
+      force_grok: !!opts.forceGrok,
+    },
+    // Ambient/free-will: fail fast → local bark. Direct chat: a bit more patience.
+    { timeoutMs: opts.timeoutMs ?? (opts.ambient ? 14000 : 28000) },
+  );
 }
 
 /** Server-side mind states — keep living while the browser/tab is closed. */

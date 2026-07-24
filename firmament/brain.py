@@ -870,9 +870,21 @@ def _complete_ollama(messages: list[dict], model: str, max_tokens: int) -> str:
         },
     }
     last_exc: Exception | None = None
-    # Connect/read timeout — fail fast so cloud chain can use Grok
-    ollama_timeout = httpx.Timeout(connect=2.0, read=90.0, write=15.0, pool=5.0)
-    for attempt_model in (ollama_model,):
+    # Fail fast — hung Ollama must not freeze multi-turn converse (camp falls to aether/offline)
+    ollama_timeout = httpx.Timeout(connect=2.0, read=22.0, write=10.0, pool=4.0)
+    # Prefer the resolved model only; one local alt max (never walk every cloud model)
+    try_models: list[str] = [ollama_model]
+    installed = _ollama_list_models(host)
+    for preferred_alt in ("hermes3:latest", "hermes3", "llama3.2:latest", "llama3.2"):
+        bare = preferred_alt.split(":")[0].lower()
+        for name in installed:
+            if name.lower() == preferred_alt.lower() or name.split(":")[0].lower() == bare:
+                if name not in try_models and ":cloud" not in name.lower():
+                    try_models.append(name)
+                    break
+        if len(try_models) >= 2:
+            break
+    for attempt_model in try_models[:2]:
         try:
             payload["model"] = attempt_model
             r = httpx.post(f"{host}/api/chat", json=payload, timeout=ollama_timeout)
@@ -880,27 +892,14 @@ def _complete_ollama(messages: list[dict], model: str, max_tokens: int) -> str:
             data = r.json()
             content = (data.get("message") or {}).get("content") or ""
             if content.strip():
+                if attempt_model != ollama_model:
+                    log.info("Ollama fell back to installed model %s", attempt_model)
                 return content
             raise RuntimeError("empty ollama content")
         except Exception as exc:
             last_exc = exc
-            # try any other installed model once
-            installed = _ollama_list_models(host)
-            for alt in installed:
-                if alt == attempt_model:
-                    continue
-                try:
-                    payload["model"] = alt
-                    r = httpx.post(f"{host}/api/chat", json=payload, timeout=ollama_timeout)
-                    r.raise_for_status()
-                    data = r.json()
-                    content = (data.get("message") or {}).get("content") or ""
-                    if content.strip():
-                        log.info("Ollama fell back to installed model %s", alt)
-                        return content
-                except Exception as alt_exc:
-                    last_exc = alt_exc
-            break
+            log.warning("Ollama model %s failed: %s", attempt_model, exc)
+            continue
     hint = f"ollama pull {model or 'hermes3'}"
     if last_exc and "404" in str(last_exc):
         hint = f"model missing — run: ollama pull hermes3  (or llama3.2)"
@@ -1329,7 +1328,8 @@ async def agent_chat(
 
     for backend, model in chain:
         try:
-            max_attempts = 3  # draft → rewrite if echo/similar/short
+            # Ambient/converse: one shot (Ollama latency × 3 freezes the meadow)
+            max_attempts = 1 if (ambient or converse_mode) else 3
             for attempt in range(max_attempts):
                 msgs = list(messages)
                 if attempt == 1:
@@ -1513,7 +1513,10 @@ async def agents_converse(
         total_converse_lines,
     )
 
-    rounds = max(2, min(5, int(rounds)))
+    import asyncio
+    import time as _time
+
+    rounds = max(2, min(4, int(rounds)))
     ordered: list[str] = []
     seen: set[str] = set()
     for aid in (agent_a, agent_b, agent_c, agent_d):
@@ -1525,27 +1528,38 @@ async def agents_converse(
         ordered = ["luna", "hermes"]
 
     topic_clean = (topic or "").strip() or pick_converse_topic(visitor_name)
-    target = total_converse_lines(len(ordered), rounds)
+    # Cap lines so a slow Ollama still returns something watchable
+    target = min(total_converse_lines(len(ordered), rounds), max(4, len(ordered) * 2))
     thread: list[dict[str, Any]] = []
     used_backend = "ollama"
     agent_model = "free-chain"
     ai_lines = 0
+    t0 = _time.monotonic()
+    # Overall budget — client also aborts ~32s; leave room for aether fill
+    CONVERSE_BUDGET_S = 28.0
+    TURN_BUDGET_S = 12.0
 
     for i in range(target):
+        if _time.monotonic() - t0 > CONVERSE_BUDGET_S:
+            log.warning("converse overall budget hit after %s turns", len(thread))
+            break
         speaker = ordered[i % len(ordered)]
         prompt = converse_thread_prompt(ordered, topic_clean, thread, speaker)
         from_prev = thread[-1]["agent_id"] if thread else ""
         try:
-            result = await agent_chat(
-                speaker,
-                prompt,
-                pack_name=pack_name,
-                visitor_id=visitor_id,
-                visitor_name=visitor_name,
-                from_agent=from_prev,
-                converse_mode=True,
-                ambient=False,
-                skip_memory=True,
+            result = await asyncio.wait_for(
+                agent_chat(
+                    speaker,
+                    prompt,
+                    pack_name=pack_name,
+                    visitor_id=visitor_id,
+                    visitor_name=visitor_name,
+                    from_agent=from_prev,
+                    converse_mode=True,
+                    ambient=False,
+                    skip_memory=True,
+                ),
+                timeout=TURN_BUDGET_S,
             )
             be = result.get("backend") or "aether"
             if be != "aether":
@@ -1562,6 +1576,9 @@ async def agents_converse(
                 "mood": result.get("mood") or "happy",
                 "backend": be,
             })
+        except asyncio.TimeoutError:
+            log.warning("converse turn timed out %s (%.0fs)", speaker, TURN_BUDGET_S)
+            continue
         except Exception as exc:
             log.warning("converse turn failed %s: %s", speaker, exc)
             continue

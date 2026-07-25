@@ -14,8 +14,13 @@ const XBOT = `${CHAR_BASE}/xbot.glb`;
 const SOLDIER = `${CHAR_BASE}/soldier.glb`;
 const ROBOT = `${CHAR_BASE}/robot.glb`;
 
-/** Prefer specific models per agent / archetype */
+/**
+ * Prefer specific models per agent — free Three.js / Mixamo-style GLBs.
+ * Drop more .glb files in static/avatars/characters/ and map them here
+ * (or set visual.glb on the catalog agent).
+ */
 export const MODEL_FOR_AGENT = {
+  // Feminine / luminous cast
   luna: LUNA_GLB,
   aurora: LUNA_GLB,
   violet: LUNA_GLB,
@@ -23,13 +28,13 @@ export const MODEL_FOR_AGENT = {
   ambrosia: LUNA_GLB,
   rhea: LUNA_GLB,
   mika: LUNA_GLB,
-  // warriors / patrol — soldier has solid walk/run/idle
+  // Warriors / thunder / hall
   sentinel: ROBOT,
   thor: SOLDIER,
   zeus: SOLDIER,
   michael: SOLDIER,
   odin: SOLDIER,
-  // mixamo-style humanoids (good walk cycles)
+  // Messengers / seers / healers — Xbot walk cycles
   hermes: XBOT,
   oracle: XBOT,
   caduceus: XBOT,
@@ -39,6 +44,8 @@ export const MODEL_FOR_AGENT = {
   raphael: XBOT,
   uriel: XBOT,
   ara: XBOT,
+  // Extra ids (heaven / future summons)
+  wanderer: XBOT,
 };
 
 export function modelUrlForAgent(def) {

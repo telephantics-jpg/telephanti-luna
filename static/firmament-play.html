@@ -30,9 +30,35 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+  <script>
+    /* When embedded in telephantim hub (?hub=1), hide ALL camp Play music UI
+       so only the hub's single center-bottom button controls audio. */
+    (function () {
+      try {
+        var q = new URLSearchParams(location.search || "");
+        var hub = q.get("hub") === "1" || q.get("embed") === "hub";
+        if (hub) document.documentElement.classList.add("hub-embed");
+      } catch (e) {}
+    })();
+  </script>
   <link rel="preload" as="image" href="/static/camp/aurora-corona-sky-mobile.jpg" media="(max-width: 899px)" />
   <link rel="preload" as="image" href="/static/camp/aurora-corona-sky.jpg" media="(min-width: 900px)" />
   <style>
+    /* Hub embed: one music player only (parent telephantim hub) */
+    html.hub-embed #btn-camp-tpx,
+    html.hub-embed #chip-camp-tpx,
+    html.hub-embed #camp-tpx-fab,
+    html.hub-embed .dock-tpx,
+    html.hub-embed .cmc-root,
+    html.hub-embed .cmc-fab,
+    html.hub-embed .cmc-panel,
+    html.hub-embed #camp-music-chrome,
+    html.hub-embed [data-camp-music-chrome],
+    html.hub-embed button.dock-icon.dock-tpx {
+      display: none !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
+    }
     :root {
       /* Slimmer header — weather chips + PC/phone share-hint gone so play field is taller */
       --header-h: 72px;
@@ -10916,7 +10942,22 @@
 
     /** Relics-style floating player (shared chrome) */
     let campMusicChrome = null;
+    function isHubEmbed() {
+      try {
+        return document.documentElement.classList.contains("hub-embed")
+          || new URLSearchParams(location.search || "").get("hub") === "1";
+      } catch (_) {
+        return false;
+      }
+    }
     async function mountCampMusicChromeUi() {
+      // Parent hub has the single Play music control — don't mount a second one
+      if (isHubEmbed()) {
+        try {
+          closeAllCampMusic({ quiet: true });
+        } catch (_) {}
+        return;
+      }
       try {
         const mod = await import(`/static/camp/camp-music-chrome.mjs?v=${CAMP_BUILD}`);
         campMusicChrome = mod.mountCampMusicChrome({
@@ -10945,6 +10986,14 @@
         console.warn("camp music chrome", e);
       }
     }
+    // Parent hub can stop camp audio so only one song plays
+    window.addEventListener("message", (ev) => {
+      try {
+        if (ev?.data?.type === "telephantim-stop-music") {
+          closeAllCampMusic({ quiet: true });
+        }
+      } catch (_) {}
+    });
 
     function setCampMusic(on, opts = {}) {
       if (on) {

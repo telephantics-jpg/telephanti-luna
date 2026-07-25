@@ -8,6 +8,28 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <title>Luna Camp — Three.js 3D</title>
+  <script>
+    (function () {
+      try {
+        var q = new URLSearchParams(location.search || "");
+        if (q.get("hub") === "1" || q.get("embed") === "hub") {
+          document.documentElement.classList.add("hub-embed");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    html.hub-embed #album-btn,
+    html.hub-embed .cmc-root,
+    html.hub-embed .cmc-fab,
+    html.hub-embed .cmc-panel,
+    html.hub-embed button.chip[title*="Play music"],
+    html.hub-embed button.chip[title*="Telephantix radio"] {
+      display: none !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
+    }
+  </style>
   <!-- Bust SW/browser cache; three r160 is one self-contained module (no three.core.js) -->
   <script type="importmap">
   {
@@ -236,9 +258,35 @@
       display: block;
       pointer-events: none; /* clicks always hit the bubble box, not text nodes */
     }
-    .bubble3d .who { font-weight: 800; color: var(--violet); font-size: 0.78rem; margin-bottom: 6px; letter-spacing: 0.02em; }
+    .bubble3d .who { font-weight: 800; color: var(--violet); font-size: 0.78rem; margin-bottom: 6px; letter-spacing: 0.02em; padding-right: 28px; }
+    .bubble3d .bubble-x {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      border: 1px solid rgba(248, 113, 113, 0.55);
+      background: rgba(30, 10, 16, 0.92);
+      color: #fecaca;
+      font-size: 0.95rem;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto !important;
+      z-index: 5;
+      padding: 0;
+    }
+    .bubble3d .bubble-x:hover {
+      background: rgba(127, 29, 29, 0.95);
+      border-color: #f87171;
+      color: #fff;
+    }
     .bubble3d .front-chip {
-      position: absolute; top: -10px; right: 8px;
+      position: absolute; top: -10px; right: 36px;
       font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em;
       background: #fde68a; color: #1c1917;
       border-radius: 6px; padding: 2px 7px; line-height: 1.2;
@@ -305,16 +353,126 @@
     #talk-row {
       display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
     }
-    #who-select {
-      background: var(--panel); color: var(--text); border: 1px solid var(--border);
-      border-radius: 12px; padding: 10px 10px; font: inherit; min-width: 110px;
+    .btn-all-agents {
+      appearance: none;
+      flex: 0 0 auto;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(14, 116, 144, 0.95));
+      border: 2px solid rgba(253, 230, 138, 0.85);
+      color: #fffbeb;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 900;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      box-shadow: 0 0 16px rgba(167, 139, 250, 0.35);
+      white-space: nowrap;
+    }
+    .btn-all-agents:hover { filter: brightness(1.08); }
+    .btn-all-agents.on {
+      border-color: #86efac;
+      box-shadow: 0 0 18px rgba(52, 211, 153, 0.4);
+    }
+    /* Custom “Talk to” menu — always opens UP (native <select> can’t) */
+    .who-dd {
+      position: relative;
+      flex: 0 0 auto;
+      z-index: 30;
+    }
+    .who-dd-btn {
+      appearance: none;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      min-width: 118px;
+      max-width: 42vw;
+      cursor: pointer;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .who-dd-btn:focus { outline: 1px solid var(--cyan); }
+    .who-dd-btn[aria-expanded="true"] {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px rgba(103, 232, 249, 0.35);
+    }
+    .who-dd-menu {
+      position: absolute;
+      left: 0;
+      right: auto;
+      bottom: calc(100% + 8px); /* open upward above the dock */
+      top: auto;
+      min-width: min(280px, 88vw);
+      max-width: min(360px, 92vw);
+      max-height: min(48vh, 340px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: linear-gradient(180deg, rgba(12, 18, 36, 0.98), rgba(6, 10, 22, 0.99));
+      border: 1px solid rgba(103, 232, 249, 0.4);
+      border-radius: 14px;
+      box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(167, 139, 250, 0.12);
+      padding: 6px;
+      z-index: 40;
+    }
+    .who-dd-menu[hidden] { display: none !important; }
+    .who-dd-label {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      padding: 8px 10px 4px;
+    }
+    .who-dd-item {
+      appearance: none;
+      display: block;
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      color: #e2e8f0;
+      font: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .who-dd-item:hover, .who-dd-item:focus {
+      background: rgba(56, 189, 248, 0.14);
+      outline: none;
+    }
+    .who-dd-item.active {
+      background: rgba(167, 139, 250, 0.22);
+      color: #f5f3ff;
+    }
+    /* Keep native select for JS state, hide from layout */
+    #who-select.who-select-native {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      border: 0 !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
     }
     #msg {
       flex: 1; min-width: 140px; background: var(--panel); color: var(--text);
       border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px;
       font: inherit; font-size: 0.92rem;
     }
-    #msg:focus, #who-select:focus { outline: 1px solid var(--cyan); }
+    #msg:focus { outline: 1px solid var(--cyan); }
     #send, #banter {
       background: linear-gradient(135deg, rgba(67, 56, 202, 0.85), rgba(14, 116, 144, 0.9));
       border: 1px solid rgba(103, 232, 249, 0.4); color: #ecfeff;
@@ -529,7 +687,7 @@
       #mode-pill { display: none !important; }
       /* Cleaner dock: no Hey / Joke / Pulse / Love chips */
       #quick-bar { display: none !important; }
-      #who-select { min-width: 90px; }
+      .who-dd-btn { min-width: 90px; font-size: 0.8rem; padding: 9px 10px; }
       .c3-msg .c3-bubble {
         height: 110px; min-height: 110px; max-height: 110px;
         font-size: 0.82rem;
@@ -616,8 +774,13 @@
       <button type="button" id="powwow">🔥 Circle</button>
     </div>
     <div id="talk-row">
-      <select id="who-select" aria-label="Talk to"></select>
-      <input id="msg" type="text" maxlength="500" placeholder="Type… pick ✦ All agents or one name" autocomplete="off" />
+      <button type="button" class="btn-all-agents" id="btn-all-agents" title="Speak to every agent on the meadow">✦ All</button>
+      <div class="who-dd" id="who-dd">
+        <button type="button" class="who-dd-btn" id="who-dd-btn" aria-haspopup="listbox" aria-expanded="false" title="Who to talk to">Talk to…</button>
+        <div class="who-dd-menu" id="who-dd-menu" role="listbox" hidden></div>
+        <select id="who-select" class="who-select-native" aria-label="Talk to" tabindex="-1"></select>
+      </div>
+      <input id="msg" type="text" maxlength="500" placeholder="Type a message… then Send (or pick ✦ All)" autocomplete="off" />
       <button type="button" id="send">Send</button>
     </div>
     <div id="hint">✦ Talk = big window · Tap speech FRONT · Hold 🔒 · Houses & flyers too</div>
@@ -640,7 +803,9 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-24-three-v48-mobile-clean";
+    const BUILD = "2026-07-25-three-v53-trex";
+    /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
+    const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
     const bootErr = document.getElementById("boot-error");
     const bootOverlay = document.getElementById("boot-overlay");
@@ -744,7 +909,7 @@
     const THREE_URL = "/static/vendor/three/build/three.module.js?v=r160mono";
     const ORBIT_URL = "/static/vendor/three/examples/jsm/controls/OrbitControls.js?v=r160mono";
 
-    let THREE, OrbitControls, campWorld, campClient, campFeatures, charSystem;
+    let THREE, OrbitControls, campWorld, campClient, campFeatures, charSystem, propSystem;
     try {
       setBootStep("Loading Three.js (free, offline vendor)…");
       const head = await fetch(THREE_URL, { cache: "no-store" });
@@ -765,6 +930,8 @@
       campFeatures = await import(`/static/camp/camp-features.mjs?v=${BUILD}`);
       const campChars = await import(`/static/camp/camp-characters.mjs?v=${BUILD}`);
       charSystem = campChars.createCharacterSystem(THREE, GLTFLoader, SkeletonUtils);
+      const campProps = await import(`/static/camp/camp-props.mjs?v=${BUILD}`);
+      propSystem = campProps.createPropSystem(THREE, GLTFLoader);
       if (!THREE || !THREE.WebGLRenderer) throw new Error("Three.js loaded but WebGLRenderer missing");
       setBootStep("Loading world catalog…");
     } catch (err) {
@@ -862,6 +1029,25 @@
       mood: a.mood || "neutral",
     }));
     let AGENTS = ALL_AGENT_DEFS.filter((a) => a.base || !a.summon);
+    // Never boot with empty talk roster
+    if (!AGENTS.length) {
+      const fb = campWorld.fallbackCatalog();
+      AGENTS = (fb.agents || [])
+        .filter((a) => a.base !== false && !a.summon)
+        .map((a) => ({
+          id: a.id,
+          name: a.name || a.id,
+          color: campWorld.parseColorNumber(a.visual?.primary, 0xaaaaaa),
+          accent: campWorld.parseColorNumber(a.visual?.accent, 0xffffff),
+          x: a.x ?? 0,
+          y: a.y ?? 0,
+          visual: a.visual || {},
+          base: true,
+          summon: "",
+          mood: a.mood || "happy",
+        }));
+      console.warn("[camp3d] catalog agents empty — fallback roster", AGENTS.length);
+    }
 
     function toWorld(x, y) {
       return new THREE.Vector3(x * SCALE, 0, y * SCALE);
@@ -890,7 +1076,19 @@
       tea: { tint: 0x86efac, glow: 0.3, scaleY: 0.98, mood: "think" },
       bread: { tint: 0xd6a06a, glow: 0.25, scaleX: 1.03, mood: "love" },
       cooler2: { tint: 0x0ea5e9, glow: 0.4, scaleY: 1.04, mood: "happy" },
+      trex: { tint: 0x3f7a3a, glow: 0.55, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
+      horse: { tint: 0x3f7a3a, glow: 0.55, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
+      flamingo: { tint: 0xf472b6, glow: 0.4, mood: "flirt" },
+      parrot: { tint: 0x22c55e, glow: 0.4, mood: "happy" },
+      duck: { tint: 0xfbbf24, glow: 0.35, mood: "love" },
     };
+
+    /** Props you can pick up and carry (X to drop). */
+    const PICKABLE_PROPS = new Set([
+      "cookies", "snacks", "fruit", "bread", "marshmallows", "herbs", "weed",
+      "beer", "wine", "tea", "water", "avocado",
+    ]);
+    const WILDLIFE_PROPS = new Set(["trex", "t-rex", "horse", "flamingo", "parrot", "duck"]);
 
     // ── Scene ──
     const host = document.getElementById("canvas-host");
@@ -923,7 +1121,8 @@
 
     const scene = new THREE.Scene();
     // Wider open field — lighter fog so far meadow stays visible
-    scene.fog = new THREE.FogExp2(0x0b1224, 0.0028);
+    // Soft happy meadow fog (warmer than pure night)
+    scene.fog = new THREE.FogExp2(0x122018, 0.0024);
 
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 900);
     // Follow player start pose (target set with OrbitControls below)
@@ -1015,8 +1214,9 @@
     let followPlayer = true; // follow user at start
 
     // Lights
-    scene.add(new THREE.AmbientLight(0x6b7a99, 0.45));
-    const hemi = new THREE.HemisphereLight(0x7dd3fc, 0x1a2e1a, 0.65);
+    // Happy camp lighting — warmer sky, greener ground (2D aurora energy)
+    scene.add(new THREE.AmbientLight(0x8fa8c8, 0.55));
+    const hemi = new THREE.HemisphereLight(0xa5f3fc, 0x2d5a3a, 0.78);
     scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffe7b8, 1.15);
     sun.position.set(28, 40, 18);
@@ -1573,6 +1773,18 @@
           g.add(tip);
         }
         add(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.1, 0.28), mat(0x365314, 0.75, 0, 0)), 0.1);
+      } else if (kit === "trex" || kit === "horse" || prop.id === "trex" || prop.id === "horse") {
+        // Sync fallback silhouette (prefer propSystem.buildTrexMesh)
+        add(new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.75, 6, 12), mat(0x3f7a3a, 0.55)), 1.05);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.38, 0.42), mat(0x3f7a3a, 0.5)), 1.55);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.3), mat(0x2a4a28, 0.55)), 1.32);
+        const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.5, 4, 8), mat(0x3f7a3a, 0.55));
+        tail.position.set(-0.55, 1.05, 0);
+        tail.rotation.z = Math.PI / 2.2;
+        tail.castShadow = true;
+        g.add(tail);
+        g.userData.trex = true;
+        g.userData.interactKind = "wildlife";
       } else {
         add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.55, 0.8), mat(col, 0.5, 0.12, 0.06)), 0.35);
       }
@@ -1580,12 +1792,21 @@
     }
 
     const propMeshes = [];
-    function spawnProp(prop) {
+    async function spawnProp(prop) {
       const p = toWorld(prop.x, prop.y);
-      const group = buildPropVisual(prop);
+      let group;
+      try {
+        if (propSystem) {
+          group = await propSystem.createPropMesh(prop, buildPropVisual);
+        }
+      } catch (err) {
+        console.warn("[camp3d] prop GLB path failed", prop.id, err);
+      }
+      if (!group) group = buildPropVisual(prop);
       const label = makeLabelSprite(prop.name, prop.emoji, prop.color);
-      label.position.y = 1.55;
-      label.scale.set(2.0, 1.0, 1);
+      const tall = group.userData.trex || prop.id === "trex" || prop.visual?.kit === "trex";
+      label.position.y = tall ? 2.35 : 1.55;
+      label.scale.set(tall ? 2.4 : 2.0, tall ? 1.15 : 1.0, 1);
       group.add(label);
       // ground glow ring so you can spot it
       const ring = new THREE.Mesh(
@@ -1596,13 +1817,21 @@
       ring.position.y = 0.03;
       group.add(ring);
       group.position.copy(p);
-      group.userData = { kind: "prop", ...prop };
+      group.userData = { ...group.userData, kind: "prop", ...prop };
       scene.add(group);
       propMeshes.push(group);
       return group;
     }
-    for (const prop of PROPS) spawnProp(prop);
-    console.info("[camp3d] spawned props", propMeshes.length, PROPS.map((p) => p.id).join(","), "source", catalogSource);
+    // Catalog toys + free wildlife accents (T-Rex replaces the runaway horse GLB)
+    const EXTRA_SCENERY = [
+      { id: "flamingo", name: "Flamingo", emoji: "🦩", x: -180, y: 300, color: 0xf472b6, visual: { kit: "flamingo" }, interact: "pet" },
+      { id: "parrot", name: "Parrot", emoji: "🦜", x: 120, y: 280, color: 0x22c55e, visual: { kit: "parrot" }, interact: "pet" },
+      { id: "trex", name: "Camp T-Rex", emoji: "🦖", x: 520, y: -120, color: 0x3f7a3a, visual: { kit: "trex" }, interact: "roar" },
+      { id: "duck", name: "Pond duck", emoji: "🦆", x: -200, y: 340, color: 0xfbbf24, visual: { kit: "duck" }, interact: "pet" },
+    ];
+    setBootStep("Placing props + free models…");
+    await Promise.allSettled([...PROPS, ...EXTRA_SCENERY].map((prop) => spawnProp(prop)));
+    console.info("[camp3d] spawned props", propMeshes.length, "source", catalogSource);
     // Success toast fires once meadow boot finishes (not mid-spawn) — never "N camp objects · api"
 
     // ── Personality from mood + archetype (drives sit / rest / roam / social) ──
@@ -1852,6 +2081,13 @@
       return st;
     }
     for (const a of AGENTS) makeAgent(a);
+    // Roster ready — fill Talk-to list ASAP (not only later in boot)
+    try {
+      refreshWhoSelect();
+      if (AGENTS.length) setTalkWho(AGENTS.some((a) => a.id === "luna") ? "luna" : AGENTS[0].id);
+    } catch (err) {
+      console.warn("[camp3d] early talk roster", err);
+    }
 
     // Roam anchors
     roamPoints.push(new THREE.Vector3(0, 0, 0));
@@ -2295,6 +2531,9 @@
 
     // Visitor (you) + ground click marker
     const visitor = new THREE.Group();
+    let carrySprite = null;
+    let carriedItem = null; // { id, name, emoji }
+    let inventory3d = []; // purchased items you can re-equip
     {
       const mat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0ea5e9, emissiveIntensity: 0.35 });
       const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.7, 6, 12), mat);
@@ -2308,6 +2547,67 @@
       visitor.position.set(2.5, 0, 4);
       scene.add(visitor);
     }
+    function makeCarrySprite(emoji) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, 128, 128);
+      ctx.font = "84px serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(emoji || "✨", 64, 68);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      const spr = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }),
+      );
+      spr.scale.set(0.85, 0.85, 1);
+      spr.position.set(0.45, 1.35, 0.2);
+      return spr;
+    }
+    function setCarriedItem(item) {
+      if (carrySprite) {
+        visitor.remove(carrySprite);
+        try {
+          carrySprite.material.map?.dispose?.();
+          carrySprite.material.dispose?.();
+        } catch (_) {}
+        carrySprite = null;
+      }
+      carriedItem = item || null;
+      if (!item) return;
+      carrySprite = makeCarrySprite(item.emoji || "✨");
+      visitor.add(carrySprite);
+      try {
+        localStorage.setItem(
+          "luna-3d-carry",
+          JSON.stringify({ id: item.id, name: item.name, emoji: item.emoji }),
+        );
+      } catch (_) {}
+    }
+    function dropCarriedItem() {
+      if (!carriedItem) return;
+      showToast(`Dropped ${carriedItem.emoji || ""} ${carriedItem.name || "item"}`);
+      logLine("You", `Set down ${carriedItem.name || "the item"}.`);
+      setCarriedItem(null);
+      try { localStorage.removeItem("luna-3d-carry"); } catch (_) {}
+    }
+    // Restore last carried shop goodie
+    try {
+      const raw = localStorage.getItem("luna-3d-carry");
+      if (raw) {
+        const it = JSON.parse(raw);
+        if (it?.emoji || it?.name) setCarriedItem(it);
+      }
+    } catch (_) {}
+    // Drop carried item with X (not while typing)
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "x" || e.key === "X") {
+        if (e.target?.closest?.("input,textarea,[contenteditable]")) return;
+        if (carriedItem) dropCarriedItem();
+      }
+    });
     const visitorTarget = visitor.position.clone();
     const groundMarker = new THREE.Mesh(
       new THREE.RingGeometry(0.25, 0.4, 32),
@@ -2444,11 +2744,17 @@
     }
 
     try {
+      // Fill Talk-to list from AGENTS (TALK_ALL_ID is defined at top of module)
       refreshWhoSelect();
-      if (whoEl) whoEl.value = "luna";
-      if (chat3dWho && [...chat3dWho.options].some((o) => o.value === "luna")) chat3dWho.value = "luna";
+      if (AGENTS.length) setTalkWho(AGENTS.some((a) => a.id === "luna") ? "luna" : AGENTS[0].id);
+      else setTalkWho(TALK_ALL_ID);
+      console.info("[camp3d] talk roster", AGENTS.length, "agents · options", (whoEl || document.getElementById("who-select"))?.options?.length);
     } catch (err) {
       console.warn("[camp3d] who-select init", err);
+      try {
+        refreshWhoSelect();
+        setTalkWho(TALK_ALL_ID);
+      } catch (_) {}
     }
 
     function refreshEtherealHud() {
@@ -2698,8 +3004,8 @@
       selectedSpeechAgentId = target.agentId || "";
       // Talk-to menu follows whichever chat you picked (not stuck on Hermes)
       try {
-        if (selectedSpeechAgentId && whoEl) {
-          whoEl.value = selectedSpeechAgentId;
+        if (selectedSpeechAgentId) {
+          setTalkWho(selectedSpeechAgentId);
           const nm = target.el.querySelector?.(".who")?.textContent || selectedSpeechAgentId;
           if (msgEl) msgEl.placeholder = `Talk to ${nm}…`;
         }
@@ -3023,6 +3329,23 @@
      * @param {{ force?: boolean, compact?: boolean }} [opts]
      *   force=true visitor/priority; compact=true short greet bubble (not huge)
      */
+    function closeSpeechBubble(agentId, elHint = null) {
+      for (let i = activeBubbles.length - 1; i >= 0; i--) {
+        const b = activeBubbles[i];
+        if (elHint && b.el !== elHint) continue;
+        if (!elHint && b.agentId !== agentId) continue;
+        try { b.el?.remove(); } catch (_) {}
+        activeBubbles.splice(i, 1);
+        if (elHint) break;
+      }
+      // If this was FRONT, clear selection highlight only if no bubble left for them
+      if (selectedSpeechAgentId === agentId && !activeBubbles.some((b) => b.agentId === agentId)) {
+        /* keep selection for next speech — optional clear:
+        selectedSpeechAgentId = "";
+        */
+      }
+    }
+
     function showSpeech3d(agentId, text, ms = MIN_SPEECH_MS, opts = {}) {
       const body = String(text || "").trim();
       if (!body) return;
@@ -3045,6 +3368,22 @@
         if (prev.el) {
           const say = prev.el.querySelector(".say");
           if (say) say.textContent = body;
+          // Ensure close button exists on updated bubbles
+          if (!prev.el.querySelector(".bubble-x")) {
+            const x = document.createElement("button");
+            x.type = "button";
+            x.className = "bubble-x";
+            x.setAttribute("aria-label", "Close bubble");
+            x.title = "Close";
+            x.textContent = "×";
+            x.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); });
+            x.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              closeSpeechBubble(agentId, prev.el);
+            });
+            prev.el.appendChild(x);
+          }
           prev.el.classList.toggle("compact", compact && !prev.holdLocked && !prev.frontPinned);
           // New thought for this character — restart the 5s+ clock
           prev.bornAt = now;
@@ -3095,8 +3434,23 @@
       // New ambient lines stay below a user-selected FRONT chat
       const baseRank = isSelected ? 860 : (300 + activeBubbles.length);
       el.style.setProperty("z-index", String(baseRank), "important");
-      el.title = `${st.def.name} — tap for FRONT · hold to lock`;
-      el.innerHTML = `<span class="who">${escapeHtml(st.def.name)}</span><span class="say">${escapeHtml(body)}</span>`;
+      el.title = `${st.def.name} — tap for FRONT · hold to lock · ✕ to close`;
+      el.innerHTML =
+        `<button type="button" class="bubble-x" aria-label="Close bubble" title="Close">×</button>` +
+        `<span class="who">${escapeHtml(st.def.name)}</span>` +
+        `<span class="say">${escapeHtml(body)}</span>`;
+      const xBtn = el.querySelector(".bubble-x");
+      if (xBtn) {
+        xBtn.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+        xBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeSpeechBubble(agentId, el);
+        });
+      }
       bindBubbleSelect(el);
       const layer = speechLayer || document.body;
       layer.appendChild(el);
@@ -3193,10 +3547,10 @@
         ],
       };
       const lines = pool[agentId] || [
-        `${name}: the meadow's listening — might as well give it a show.`,
-        `${name}: silence is cute for three seconds. Then we talk.`,
-        `${name}: fire's warm, company's better. Who's next?`,
-        `${name}: I've got a take and zero patience for mute camp.`,
+        `${name}: meadow's listening — I'll give it a real beat, not a stub.`,
+        `${name}: fire's warm, company's better. Here's what I'm chewing on…`,
+        `${name}: alright — one solid take, then I'll pass the floor.`,
+        `${name}: I'm here, fully. Ask me something true and I'll meet you there.`,
       ];
       return lines[Math.floor(Math.random() * lines.length)];
     }
@@ -3459,10 +3813,7 @@
             return;
           }
           if (u.kind === "prop") {
-            runPropUse(u.id);
-            if (u.id === "stereo" || u.feature === "music") {
-              try { featureApi?.playMusic?.(); } catch (_) {}
-            }
+            void interactWithProp(obj, u);
             return;
           }
           if (u.kind === "house") {
@@ -3540,6 +3891,117 @@
       });
     }
 
+    function findPropMesh(propId) {
+      return propMeshes.find((g) => String(g.userData?.id || "") === String(propId));
+    }
+
+    /** Walk the visitor next to a prop and pulse its ring. */
+    function approachProp(mesh) {
+      if (!mesh) return;
+      const toward = mesh.position.clone().sub(visitor.position);
+      toward.y = 0;
+      if (toward.lengthSq() < 0.01) toward.set(1, 0, 0);
+      toward.normalize();
+      visitorTarget.copy(mesh.position).addScaledVector(toward, -1.5);
+      visitorTarget.y = 0;
+      groundMarker.position.set(visitorTarget.x, 0.05, visitorTarget.z);
+      groundMarker.visible = true;
+      mesh.userData.pulseUntil = performance.now() + 2400;
+      // face the prop a little
+      mesh.lookAt(visitor.position.x, mesh.position.y, visitor.position.z);
+    }
+
+    /** Nearby agents notice what you just did with an object. */
+    function agentsNoticeProp(mesh, propId, blurb) {
+      if (!mesh || !agentState.length) return;
+      const near = agentState
+        .map((st) => ({ st, d: st.mesh.position.distanceTo(mesh.position) }))
+        .filter((x) => x.d < 7.5)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, 3);
+      for (const { st } of near) {
+        try { shiftFromProp(st, propId); } catch (_) {}
+        st.target.copy(mesh.position).add(
+          new THREE.Vector3((Math.random() - 0.5) * 1.4, 0, (Math.random() - 0.5) * 1.4),
+        );
+        st.moving = true;
+        st.action = "prop";
+        st.propTarget = propId;
+        if (aiInFlight < AI_MAX && Math.random() < 0.55) {
+          aiInFlight++;
+          const seed = blurb || `Visitor just interacted with ${propId} nearby. React in character, one short beat.`;
+          campClient.agentChat(st.def.id, seed, { ambient: true })
+            .then((data) => {
+              const reply = spokenOnly3d(data.reply || data.text || "", seed) || localBark(st.def.id);
+              showSpeech3d(st.def.id, reply, speechReadMs(reply));
+            })
+            .catch(() => {
+              showSpeech3d(st.def.id, localBark(st.def.id), 18000);
+            })
+            .finally(() => { aiInFlight = Math.max(0, aiInFlight - 1); });
+        }
+      }
+    }
+
+    /**
+     * Rich object interactions: walk-to, pick up, pet wildlife, T-Rex roar, stereo, etc.
+     */
+    async function interactWithProp(mesh, u) {
+      const propId = u.id;
+      const name = u.name || propId;
+      const emoji = u.emoji || "✦";
+      approachProp(mesh);
+
+      // T-Rex — roar (no more runaway horse gallop)
+      if (propId === "trex" || propId === "horse" || u.interact === "roar" || mesh.userData.trex) {
+        mesh.userData.roarUntil = performance.now() + 2000;
+        mesh.userData.walkSpeed = 2.4; // brief strut
+        setTimeout(() => { mesh.userData.walkSpeed = 1.15; }, 2200);
+        showToast(`${emoji} ${name} ROARS`);
+        logLine("You", `Poked the ${name} — it roared.`, true);
+        agentsNoticeProp(mesh, "trex", `A T-Rex just roared by the fire. React with awe or jokes, 1–2 sentences.`);
+        // optional server memory
+        try { campClient.useProp("trex", { speak: false }).catch(() => {}); } catch (_) {}
+        return;
+      }
+
+      // Pet wildlife
+      if (WILDLIFE_PROPS.has(propId) || u.interact === "pet") {
+        mesh.userData.pulseUntil = performance.now() + 1800;
+        mesh.userData.spin = true;
+        setTimeout(() => { if (!["flamingo", "parrot"].includes(propId)) mesh.userData.spin = false; }, 1600);
+        showToast(`${emoji} You pet ${name}`);
+        logLine("You", `Gave ${name} a friendly pet.`, true);
+        agentsNoticeProp(mesh, propId, `Visitor is petting the ${name}. Soft reaction, 1 sentence.`);
+        try { campClient.useProp(propId, { speak: false }).catch(() => {}); } catch (_) {}
+        return;
+      }
+
+      // Pick up snacks / drinks
+      if (PICKABLE_PROPS.has(propId)) {
+        setCarriedItem({ id: propId, name, emoji });
+        showToast(`${emoji} Carrying ${name} · press X to drop`);
+        logLine("You", `Picked up ${name}.`, true);
+        agentsNoticeProp(mesh, propId, `Visitor picked up ${name}. Comment in character, short.`);
+        try { await runPropUse(propId); } catch (_) {}
+        return;
+      }
+
+      // Stereo / music
+      if (propId === "stereo" || u.feature === "music") {
+        showToast("🎵 Jukebox");
+        try { featureApi?.playMusic?.(); } catch (_) {}
+        try { await runPropUse(propId); } catch (_) {}
+        return;
+      }
+
+      // Default camp prop use (ouija, grill, …)
+      showToast(`${emoji} ${name}`);
+      logLine("You", `Used ${name}.`, true);
+      agentsNoticeProp(mesh, propId);
+      try { await runPropUse(propId); } catch (_) {}
+    }
+
     async function runPropUse(propId) {
       if (userBusy) return;
       userBusy = true;
@@ -3549,8 +4011,8 @@
         applyEvent(ev);
         statusEl.textContent = ev.ok ? "Prop resolved" : "Prop failed";
       } catch (err) {
-        statusEl.textContent = "Prop API offline — restart server";
-        logLine("Camp", `Prop use failed: ${err.message}`);
+        statusEl.textContent = "Local prop use · API quiet";
+        logLine("Camp", `Prop use offline: ${err.message}`);
       } finally {
         userBusy = false;
       }
@@ -3607,8 +4069,19 @@
         // Open matching feature panel for shop/tv/club
         const feat = ev.meta?.feature || meta.type;
         if (feat === "shop" || feat === "tv" || feat === "club") {
-          // user can also use left dock; auto-nudge toast
-          showToast(feat === "shop" ? "🏪 Use Shop on the left for catalog" : feat === "tv" ? "📺 Use Lucid TV on the left" : "💃 Club vibes — left dock");
+          try {
+            if (feat === "shop") document.querySelector("#feat-hotbar button")?.dispatchEvent(new Event("click"));
+            // Prefer hotbar labels
+            const hot = document.querySelectorAll("#feat-hotbar button");
+            for (const b of hot) {
+              const t = (b.textContent || "").toLowerCase();
+              if (feat === "shop" && t.includes("shop")) { b.click(); break; }
+              if (feat === "tv" && t.includes("tv")) { b.click(); break; }
+              if (feat === "club" && t.includes("club")) { b.click(); break; }
+            }
+          } catch (_) {
+            showToast(feat === "shop" ? "🏪 Shop" : feat === "tv" ? "📺 Lucid TV" : "💃 Club");
+          }
         }
         statusEl.textContent = "Structure ok";
       } catch (err) {
@@ -3618,8 +4091,6 @@
         userBusy = false;
       }
     }
-
-    const TALK_ALL_ID = "__all__";
 
     function refreshWhoSelect() {
       // Always resolve DOM live — never touch unbound consts mid-boot
@@ -3658,6 +4129,136 @@
       };
       fill(whoSel);
       fill(chatSel);
+      syncWhoDropdownUp();
+    }
+
+    /** Bottom “Talk to” picker opens UP so the list isn’t under the dock / hub chrome. */
+    function syncWhoDropdownUp() {
+      const sel = whoEl || document.getElementById("who-select");
+      const btn = document.getElementById("who-dd-btn");
+      const menu = document.getElementById("who-dd-menu");
+      if (!sel || !btn || !menu) return;
+      const labelOf = () => {
+        const opt = sel.selectedOptions?.[0];
+        return (opt && opt.textContent) || "Talk to…";
+      };
+      btn.textContent = labelOf();
+      menu.innerHTML = "";
+      let group = null;
+      [...sel.options].forEach((opt) => {
+        const parent = opt.parentElement;
+        if (parent && parent.tagName === "OPTGROUP") {
+          const gLabel = parent.label || "";
+          if (group !== gLabel) {
+            group = gLabel;
+            const lab = document.createElement("div");
+            lab.className = "who-dd-label";
+            lab.textContent = gLabel;
+            menu.appendChild(lab);
+          }
+        } else {
+          group = null;
+        }
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "who-dd-item" + (opt.value === sel.value ? " active" : "");
+        item.setAttribute("role", "option");
+        item.dataset.value = opt.value;
+        item.textContent = opt.textContent;
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setTalkWho(opt.value);
+          closeWhoDropdownUp();
+          try {
+            sel.dispatchEvent(new Event("change", { bubbles: true }));
+          } catch (_) {}
+        });
+        menu.appendChild(item);
+      });
+      // Always show at least All agents even if AGENTS failed
+      if (!sel.options.length) {
+        const allOpt = document.createElement("option");
+        allOpt.value = TALK_ALL_ID;
+        allOpt.textContent = "✦ All agents";
+        sel.appendChild(allOpt);
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "who-dd-item active";
+        item.textContent = "✦ All agents";
+        item.addEventListener("click", () => {
+          setTalkWho(TALK_ALL_ID);
+          closeWhoDropdownUp();
+        });
+        menu.appendChild(item);
+        btn.textContent = "✦ All agents";
+      }
+    }
+
+    function openWhoDropdownUp() {
+      const btn = document.getElementById("who-dd-btn");
+      const menu = document.getElementById("who-dd-menu");
+      if (!btn || !menu) return;
+      syncWhoDropdownUp();
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+    }
+
+    function closeWhoDropdownUp() {
+      const btn = document.getElementById("who-dd-btn");
+      const menu = document.getElementById("who-dd-menu");
+      if (menu) menu.hidden = true;
+      if (btn) btn.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleWhoDropdownUp(e) {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      const menu = document.getElementById("who-dd-menu");
+      if (!menu || menu.hidden) openWhoDropdownUp();
+      else closeWhoDropdownUp();
+    }
+
+    document.getElementById("who-dd-btn")?.addEventListener("click", toggleWhoDropdownUp);
+    // Close menu on outside click (defer so button toggle isn’t cancelled same tick)
+    document.addEventListener("click", (e) => {
+      const root = document.getElementById("who-dd");
+      if (!root || root.contains(e.target)) return;
+      closeWhoDropdownUp();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeWhoDropdownUp();
+    });
+    // ✦ All agents — one-tap target for talk-to-everyone
+    document.getElementById("btn-all-agents")?.addEventListener("click", () => {
+      setTalkWho(TALK_ALL_ID);
+      document.getElementById("btn-all-agents")?.classList.add("on");
+      showToast("✦ All agents selected — type a message & Send");
+      try { msgEl?.focus?.(); } catch (_) {}
+    });
+
+    function updateWhoDdLabel() {
+      const sel = whoEl || document.getElementById("who-select");
+      const btn = document.getElementById("who-dd-btn");
+      if (!sel || !btn) return;
+      btn.textContent = sel.selectedOptions?.[0]?.textContent || "Talk to…";
+    }
+    /** Keep button label in sync when code sets whoEl.value */
+    function setTalkWho(id) {
+      const sel = whoEl || document.getElementById("who-select");
+      // If options empty (race), rebuild roster first
+      if (sel && (!sel.options || !sel.options.length)) {
+        try { refreshWhoSelect(); } catch (_) {}
+      }
+      if (sel && id != null && [...sel.options].some((o) => o.value === id)) {
+        sel.value = id;
+      }
+      if (chat3dWho && id != null && [...chat3dWho.options].some((o) => o.value === id)) {
+        chat3dWho.value = id;
+      }
+      updateWhoDdLabel();
+      const allBtn = document.getElementById("btn-all-agents");
+      if (allBtn) allBtn.classList.toggle("on", id === TALK_ALL_ID);
     }
 
     /** Short truth-greets on Heaven press — unique per summon, not a shared line. */
@@ -3679,13 +4280,13 @@
       return `I am ${name} — ${namesake}. I answer as myself, not a copy of the others.`;
     }
 
-    /** One-line bubble preview; full text still goes to Talk log. */
-    function bubblePreview(text, maxChars = 120) {
+    /** Bubble preview — longer now so speech doesn't feel cut off (full text still in Talk log). */
+    function bubblePreview(text, maxChars = 280) {
       const t = String(text || "").replace(/\s+/g, " ").trim();
       if (t.length <= maxChars) return t;
       const cut = t.slice(0, maxChars - 1);
       const sp = cut.lastIndexOf(" ");
-      return (sp > 40 ? cut.slice(0, sp) : cut).trim() + "…";
+      return (sp > 60 ? cut.slice(0, sp) : cut).trim() + "…";
     }
 
     let heavenBusy = false;
@@ -4128,10 +4729,11 @@
         // Show bubble on agent if present; else still log in big window
         const hasBody = agentState.some((a) => a.def.id === targetId);
         if (hasBody) {
-          const bub = reply.length > 160 ? bubblePreview(reply, 150) : reply;
+          // Longer bubbles for real answers; Talk panel still gets full text
+          const bub = reply.length > 320 ? bubblePreview(reply, 300) : reply;
           showSpeech3d(targetId, bub, speechReadMs(bub), {
             force: !ambient,
-            compact: reply.length > 160,
+            compact: reply.length > 420,
           });
         }
         statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
@@ -4189,15 +4791,15 @@
           } catch (_) {
             reply = localBark(def.id);
           }
-          // Full response in Talk window; short bubble on meadow
+          // Full response in Talk window; readable bubble on meadow (not mute stubs)
           logLine(def.name, reply);
-          const bub = bubblePreview(reply, 125);
+          const bub = bubblePreview(reply, 260);
           showSpeech3d(def.id, bub, Math.max(MIN_SPEECH_MS, speechReadMs(bub, MIN_SPEECH_MS)), {
             force: true,
-            compact: true,
+            compact: reply.length > 400,
           });
-          // Pace: everyone gets to speak; screen stays readable
-          const pace = Math.min(Math.max(MIN_SPEECH_MS + 900, bub.length * 35), 9000);
+          // Pace: everyone gets to speak; screen stays readable (not a chatter flood)
+          const pace = Math.min(Math.max(MIN_SPEECH_MS + 1200, bub.length * 38), 11000);
           await sleepMs(pace);
         }
         statusEl.textContent = `All agents · ${roster.length} answered`;
@@ -4425,18 +5027,38 @@
     };
 
     async function sendChat() {
-      const text = msgEl.value;
-      msgEl.value = "";
-      const who = whoEl?.value || "luna";
+      const text = (msgEl?.value || "").trim();
+      if (!text) {
+        showToast("Type a message first");
+        return;
+      }
+      if (msgEl) msgEl.value = "";
+      let who = whoEl?.value || "luna";
+      // Empty / missing selection → all agents so talk never dies silently
+      if (!who || (whoEl && ![...whoEl.options].some((o) => o.value === who))) {
+        who = TALK_ALL_ID;
+        setTalkWho(TALK_ALL_ID);
+      }
+      if (who === TALK_ALL_ID) {
+        document.getElementById("btn-all-agents")?.classList.add("on");
+      }
+      statusEl.hidden = false;
+      statusEl.textContent = who === TALK_ALL_ID ? "✦ All agents…" : `Talking to ${who}…`;
       await chatAgent(who, text);
     }
     async function sendChat3d() {
       const text = (chat3dInput?.value || "").trim();
-      if (!text) return;
+      if (!text) {
+        showToast("Type a message first");
+        return;
+      }
       if (chat3dInput) chat3dInput.value = "";
-      const who = chat3dWho?.value || whoEl?.value || "luna";
-      if (whoEl && who !== TALK_ALL_ID) whoEl.value = who;
-      else if (whoEl && who === TALK_ALL_ID) whoEl.value = TALK_ALL_ID;
+      let who = chat3dWho?.value || whoEl?.value || "luna";
+      if (!who) who = TALK_ALL_ID;
+      setTalkWho(who);
+      if (who === TALK_ALL_ID) {
+        document.getElementById("btn-all-agents")?.classList.add("on");
+      }
       await chatAgent(who, text);
     }
     sendBtn.addEventListener("click", sendChat);
@@ -4603,29 +5225,47 @@
     }
 
     let musicChrome3d = null;
-    import(`/static/camp/camp-music-chrome.mjs?v=${BUILD}`)
-      .then((mod) => {
-        musicChrome3d = mod.mountCampMusicChrome({
-          scene: "luna-3d",
-          getTracks: () => ALBUM_TRACKS,
-          isPlaying: () => !!(albumOn && albumAudio && !albumAudio.paused),
-          getIndex: () => albumIndex % Math.max(1, ALBUM_TRACKS.length),
-          playAt: (i) => playAlbumTrack(i, { quiet: true }),
-          stop: () => stopAlbum({ quiet: false }),
-          next: () => {
-            albumIndex = (albumIndex + 1) % Math.max(1, ALBUM_TRACKS.length);
-            playAlbumTrack(albumIndex, { quiet: true });
-          },
-          prev: () => {
-            const n = Math.max(1, ALBUM_TRACKS.length);
-            albumIndex = (albumIndex - 1 + n) % n;
-            playAlbumTrack(albumIndex, { quiet: true });
-          },
-        });
-      })
-      .catch((e) => console.warn("3d music chrome", e));
+    const isHubEmbed3d = () => {
+      try {
+        return document.documentElement.classList.contains("hub-embed")
+          || new URLSearchParams(location.search || "").get("hub") === "1";
+      } catch (_) {
+        return false;
+      }
+    };
+    if (!isHubEmbed3d()) {
+      import(`/static/camp/camp-music-chrome.mjs?v=${BUILD}`)
+        .then((mod) => {
+          musicChrome3d = mod.mountCampMusicChrome({
+            scene: "luna-3d",
+            getTracks: () => ALBUM_TRACKS,
+            isPlaying: () => !!(albumOn && albumAudio && !albumAudio.paused),
+            getIndex: () => albumIndex % Math.max(1, ALBUM_TRACKS.length),
+            playAt: (i) => playAlbumTrack(i, { quiet: true }),
+            stop: () => stopAlbum({ quiet: false }),
+            next: () => {
+              albumIndex = (albumIndex + 1) % Math.max(1, ALBUM_TRACKS.length);
+              playAlbumTrack(albumIndex, { quiet: true });
+            },
+            prev: () => {
+              const n = Math.max(1, ALBUM_TRACKS.length);
+              albumIndex = (albumIndex - 1 + n) % n;
+              playAlbumTrack(albumIndex, { quiet: true });
+            },
+          });
+        })
+        .catch((e) => console.warn("3d music chrome", e));
+    } else {
+      try { stopAlbum({ quiet: true }); } catch (_) {}
+    }
+    window.addEventListener("message", (ev) => {
+      try {
+        if (ev?.data?.type === "telephantim-stop-music") stopAlbum({ quiet: true });
+      } catch (_) {}
+    });
 
     albumBtn?.addEventListener("click", () => {
+      if (isHubEmbed3d()) return;
       // Open Relics-style panel + play (or show panel if already playing)
       if (albumOn && albumAudio && !albumAudio.paused) {
         try { musicChrome3d?.openPanel?.({ play: false }); } catch (_) {}
@@ -4847,7 +5487,7 @@
       if (!document.hidden) syncCampMinds({ announce: true, full: false });
     });
 
-    // 2D parity feature dock (music, shop, TV, club, pulse, heaven…)
+    // 2D parity feature dock (shop, TV, club… · music skipped when hub=1)
     let featureApi = null;
     try {
       featureApi = campFeatures.mountCampFeatures({
@@ -4860,6 +5500,27 @@
         onConjureUnknown: () => conjureMysteriousUnknown3d(),
         onHush: () => toggleHush3d(),
         onStereoMusic: () => featureApi?.playMusic?.(),
+        onShopBuy: (item, res) => {
+          // Purchase → carry it (emoji follows you) · same happy shop energy as 2D
+          const bought = {
+            id: item?.id || res?.item?.id,
+            name: item?.name || res?.item?.name || "goodie",
+            emoji: item?.emoji || res?.item?.emoji || "✨",
+          };
+          if (!inventory3d.find((x) => x.id === bought.id)) inventory3d.push(bought);
+          setCarriedItem(bought);
+          showToast(`Carrying ${bought.emoji} ${bought.name} · press X to drop`);
+          logLine("Shop", `You bought ${bought.emoji} ${bought.name} and took it with you.`);
+          // Cheer nearby agents a bit
+          try {
+            agentState.forEach((st) => {
+              if (st?.persona) {
+                st.persona.joy = Math.min(99, (st.persona.joy || 50) + 4);
+                st.persona.mood = "happy";
+              }
+            });
+          } catch (_) {}
+        },
       });
     } catch (err) {
       console.warn("features dock failed", err);
@@ -4870,12 +5531,12 @@
       const nSeats = seatMeshes.length;
       const nSpots = LANDMARKS.length + 1; // + campfire (filtered out of LANDMARKS)
       const nAgents = agentState.length;
-      logLine("Camp", `Meadow ready · ${nToys} toys · ${nSeats} seats · ${nAgents} agents.`);
+      logLine("Camp", `Meadow ready · ${nToys} toys · ${nSeats} seats · ${nAgents} agents. Happy vibes on.`);
       setBootStep(`Meadow ready · ${nAgents} agents · free Ollama`);
       // Unmistakable success — never "15 camp objects · api" (that read like a failure)
       setTimeout(() => {
         try {
-          showToast(`✦ Camp up · ${nToys} toys · ${nSeats} seats · ${nSpots} spots · ready`);
+          showToast(`✦ Happy camp · shop + carry on · ${nAgents} friends ready`);
         } catch (_) {}
       }, 450);
     }
@@ -5141,11 +5802,49 @@
           groundMarker.scale.set(s, s, s);
         }
 
-        // Subtle prop life — not spinning carnival rides
+        // Prop life — procedural bob + free GLB mixers / spin / T-Rex walk
         for (let i = 0; i < propMeshes.length; i++) {
           const g = propMeshes[i];
           const phase = (g.userData.propBob || 0) + i * 0.7;
-          g.position.y = Math.sin(t * 1.4 + phase) * 0.018;
+          if (propSystem?.updateProp) {
+            try { propSystem.updateProp(g, dt, t); } catch (_) {}
+          } else {
+            if (g.userData.mixer) {
+              try { g.userData.mixer.update(dt); } catch (_) {}
+            }
+            if (g.userData.spin) {
+              g.rotation.y += dt * 0.4;
+              g.position.y = Math.sin(t * 1.4 + phase) * 0.06;
+            } else if (!g.userData.glb && !g.userData.trex) {
+              g.position.y = Math.sin(t * 1.4 + phase) * 0.018;
+            }
+          }
+          if (g.userData.trex) {
+            // Calm meadow patrol (not a runaway gallop)
+            if (!g.userData.homeX) {
+              g.userData.homeX = g.position.x;
+              g.userData.homeZ = g.position.z;
+            }
+            const hx = g.userData.homeX;
+            const hz = g.userData.homeZ;
+            const patrol = Math.sin(t * 0.22 + phase) * 1.8;
+            g.position.x = hx + Math.cos(t * 0.18 + phase) * 1.2;
+            g.position.z = hz + patrol * 0.35;
+            const face = Math.atan2(
+              Math.cos(t * 0.18 + phase + 0.05) - Math.cos(t * 0.18 + phase),
+              Math.sin((t + 0.05) * 0.22 + phase) - Math.sin(t * 0.22 + phase),
+            );
+            if (Number.isFinite(face)) g.rotation.y = face;
+          }
+          // Interaction pulse ring (children RingGeometry)
+          if (g.userData.pulseUntil && performance.now() < g.userData.pulseUntil) {
+            g.traverse((o) => {
+              if (o.isMesh && o.geometry?.type === "RingGeometry" && o.material) {
+                o.material.opacity = 0.55 + Math.sin(t * 10) * 0.35;
+                o.scale.setScalar(1 + Math.sin(t * 8) * 0.12);
+              }
+            });
+          }
           if (g.userData.planchette) {
             g.userData.planchette.position.x = Math.sin(t * 0.8 + phase) * 0.12;
             g.userData.planchette.position.z = Math.cos(t * 0.65 + phase) * 0.08;

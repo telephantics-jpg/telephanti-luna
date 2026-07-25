@@ -23,6 +23,18 @@ const FALLBACK_SHOP = [
   { id: "stereo_boost", name: "Stereo boost", emoji: "🔊", cost: 7, desc: "Jukebox hits harder." },
 ];
 
+/** Offline Lucid TV — real YouTube embeds if the API is slow/offline */
+const FALLBACK_TV = [
+  { title: "lofi beats — study drift", video_id: "jfKfPfyJRdk", emoji: "🎧", thought: "Internet's collective study session. Camp-approved." },
+  { title: "ISS — Earth rolling below", video_id: "iYmvCUonukw", emoji: "🛰", thought: "Someone up there is watching our campfire." },
+  { title: "Rain on window — soft focus", video_id: "DWcJFNfaw9c", emoji: "🌧", thought: "Caduceus calm. Watch the drops." },
+  { title: "Campfire crackle — night loop", video_id: "eKFTSSKC7QA", emoji: "🔥", thought: "Hearth frequency. Stay a while." },
+  { title: "Ocean waves — black sand", video_id: "lTRiuuXZs7k", emoji: "🌊", thought: "Pond energy, scaled up." },
+  { title: "Northern lights — sky breathing", video_id: "ydYDq9p3hyw", emoji: "🌌", thought: "Oracle saw this before we pressed power." },
+  { title: "Lofi girl — classic stream", video_id: "5qap5aO4i9A", emoji: "📺", thought: "Internet canon. Don't fight it." },
+  { title: "Piano in empty hall", video_id: "wucPX7fvElY", emoji: "🎹", thought: "Ghost concert energy." },
+];
+
 const FALLBACK_PULSE = [
   "AI agents are the new group chat",
   "Everyone's debating the same headline in three moods",
@@ -34,6 +46,15 @@ const FALLBACK_PULSE = [
 /**
  * @param {object} opts
  */
+function isHubEmbed() {
+  try {
+    return document.documentElement.classList.contains("hub-embed")
+      || new URLSearchParams(location.search || "").get("hub") === "1";
+  } catch (_) {
+    return false;
+  }
+}
+
 export function mountCampFeatures(opts) {
   const {
     campClient,
@@ -42,7 +63,9 @@ export function mountCampFeatures(opts) {
     showToast = () => {},
     showSpeech = () => {},
     onSummonAgents,
+    onShopBuy,
   } = opts;
+  const hubEmbed = isHubEmbed();
 
   const features = catalog?.features || {};
   let musicTracks = (catalog?.music && catalog.music.length)
@@ -169,8 +192,21 @@ export function mountCampFeatures(opts) {
       }
       #camp-feature-root .feat-body { clear: both; margin-top: 6px; white-space: normal; }
       #camp-feature-root .tv-frame {
-        width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 10px; background: #000;
-        margin: 8px 0 12px;
+        width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 12px; background: #000;
+        margin: 10px 0 12px; min-height: 200px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      }
+      #camp-feature-root .tv-actions {
+        display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+      }
+      #camp-feature-root .club-stage {
+        border-radius: 14px; padding: 14px;
+        background: linear-gradient(145deg, rgba(136,19,55,0.45), rgba(76,29,149,0.4));
+        border: 1px solid rgba(244,114,182,0.45); margin-bottom: 12px;
+      }
+      #camp-feature-root .unknown-glyph {
+        font-size: 2.4rem; text-align: center; margin: 8px 0;
+        filter: drop-shadow(0 0 18px rgba(251,191,36,0.55));
       }
       #camp-feature-root .pulse-line {
         padding: 8px 0; border-bottom: 1px solid rgba(148,163,184,0.15);
@@ -273,23 +309,41 @@ export function mountCampFeatures(opts) {
   }
 
   // ── HOTBAR first (always on screen — no menu needed) ──
+  const UNKNOWN_GLYPHS = ["❓", "🜂", "✧", "☾", "⊕", "⁂", "✶", "◉"];
+  const UNKNOWN_NAMES = [
+    "The Unnamed Frequency", "Soft Static", "Visitor Between", "Old Radio Ghost",
+    "Meadow Echo", "Sealed Question", "Kind Stranger Signal", "Arc of Maybe",
+  ];
+
   function runMysteriousUnknown() {
     showToast("❓ Frequency opens…");
+    const glyph = UNKNOWN_GLYPHS[Math.floor(Math.random() * UNKNOWN_GLYPHS.length)];
+    const mysteryName = UNKNOWN_NAMES[Math.floor(Math.random() * UNKNOWN_NAMES.length)];
+    openPanel(
+      "Mysterious Unknown",
+      "Not evil — ancient, curious, watchable",
+      `<div class="unknown-glyph">${glyph}</div>
+       <p class="sub">Tearing a soft hole in the meadow… agents turning to look.</p>
+       <p><b>${escapeHtml(mysteryName)}</b> is forming…</p>`,
+    );
     if (typeof opts.onConjureUnknown === "function") {
-      openPanel(
-        "Mysterious Unknown",
-        "Not evil — ancient & curious",
-        "<p>Tearing a hole in the meadow… agents turning to look.</p>",
-      );
       return Promise.resolve()
         .then(() => opts.onConjureUnknown())
         .then((result) => {
-          const name = result?.name || "Unknown";
+          const name = result?.name || mysteryName;
           const line = result?.line || "";
+          const g = result?.glyph || glyph;
           bodyEl.innerHTML =
-            `<p><b>${escapeHtml(result?.glyph || "❓")} ${escapeHtml(name)}</b></p>` +
-            (line ? `<p>${escapeHtml(line)}</p>` : "<p class='sub'>Manifesting…</p>") +
-            `<p class="sub">Nearby agents are reacting on the meadow.</p>`;
+            `<div class="unknown-glyph">${escapeHtml(g)}</div>` +
+            `<p><b>${escapeHtml(name)}</b></p>` +
+            (line ? `<p>${escapeHtml(line)}</p>` : "<p class='sub'>Listening…</p>") +
+            `<p class="sub">Nearby agents felt the ripple. Tap them — or watch Lucid TV for more weird.</p>` +
+            `<div class="tv-actions">
+              <button type="button" class="act" id="unk-again">Conjure again</button>
+              <button type="button" class="act" id="unk-tv">Watch Lucid TV</button>
+            </div>`;
+          bodyEl.querySelector("#unk-again")?.addEventListener("click", () => { void runMysteriousUnknown(); });
+          bodyEl.querySelector("#unk-tv")?.addEventListener("click", () => { void openLucidTv(); });
           if (line) {
             logLine(name, line);
             if (result?.speakId) showSpeech(result.speakId, line, 14000);
@@ -299,32 +353,49 @@ export function mountCampFeatures(opts) {
           bodyEl.innerHTML = `<p class="err">${escapeHtml(err.message || "conjure failed")}</p>`;
         });
     }
-    openPanel("Mysterious Unknown", "Not evil — ancient & curious", "<p>Calling Oracle…</p>");
     return campClient
       .agentChat(
         "oracle",
-        "A Mysterious Unknown just arrived at camp (not evil — ancient, curious). React as Oracle in 2-4 sentences, then invite Hermes to notice the ripple.",
+        `A Mysterious Unknown called "${mysteryName}" just arrived at camp (not evil — ancient, curious). React as Oracle in a few full sentences, name what you feel, invite Hermes to notice the ripple. Do not say mute or limited.`,
         { ambient: true },
       )
       .then((data) => {
-        const t = data.reply || data.text || "…";
-        bodyEl.innerHTML = `<p><b>Oracle</b></p><p>${escapeHtml(t)}</p>`;
+        const t = data.reply || data.text || "The veil thinned. Something kind and odd stepped through.";
+        bodyEl.innerHTML =
+          `<div class="unknown-glyph">${glyph}</div>` +
+          `<p><b>${escapeHtml(mysteryName)}</b></p>` +
+          `<p><b>Oracle</b></p><p>${escapeHtml(t)}</p>` +
+          `<div class="tv-actions"><button type="button" class="act" id="unk-again">Conjure again</button></div>`;
+        bodyEl.querySelector("#unk-again")?.addEventListener("click", () => { void runMysteriousUnknown(); });
         logLine("Oracle", t);
-        showSpeech("oracle", t, 10000);
+        showSpeech("oracle", t, 12000);
       })
       .catch((err) => {
-        bodyEl.innerHTML = `<p class="err">${escapeHtml(err.message)}</p><p>You opened a frequency sealed long ago…</p>`;
+        bodyEl.innerHTML =
+          `<div class="unknown-glyph">${glyph}</div>` +
+          `<p class="err">${escapeHtml(err.message)}</p>` +
+          `<p>You opened a frequency sealed long ago. The meadow still remembers how.</p>`;
       });
   }
 
+  // Hotbar: main camp features always one tap away
+  if (features.shop !== false) {
+    addHotBtn("🏪 Shop", () => { void openShop(); });
+  }
+  if (features.lucid_tv !== false) {
+    addHotBtn("📺 Lucid TV", () => { void openLucidTv(); });
+  }
+  if (features.club !== false) {
+    addHotBtn("💃 Club", () => { void openClub(); });
+  }
   if (features.mysterious_unknown !== false) {
-    addHotBtn("❓ Mysterious Unknown", () => { void runMysteriousUnknown(); }, "feat-unknown");
+    addHotBtn("❓ Unknown", () => { void runMysteriousUnknown(); }, "feat-unknown");
   }
   addHotBtn("✦ Heaven", () => {
     showToast("✦ Summoning Heaven…");
     logLine("Camp", "Heaven wave — Jesus & archangels inbound");
     if (typeof opts.onSummonAgents === "function") {
-      opts.onSummonAgents([]); // empty = default heaven crew in host
+      opts.onSummonAgents([]);
     } else {
       showToast("Summon hook missing — refresh");
     }
@@ -342,7 +413,7 @@ export function mountCampFeatures(opts) {
     if (typeof opts.onHush === "function") {
       opts.onHush();
     } else {
-      showToast("🤫 Hush — ask camp to slow down (wire onHush for full effect)");
+      showToast("🤫 Hush — camp slows between lines");
       logLine("Camp", "Visitor asked for hush — leave room between lines.");
     }
   });
@@ -376,6 +447,8 @@ export function mountCampFeatures(opts) {
       .catch(() => showToast("Tap Play again (browser blocked autoplay)"));
   }
 
+  // When hub embeds camp (?hub=1), parent has the single Play music — skip here
+  if (!hubEmbed && features.music !== false) {
   addBtn("♪ Play music", () => {
     if (!musicTracks.length) musicTracks = FALLBACK_MUSIC.slice();
     openPanel("Play music", `${musicTracks.length} Telephantix tracks · hub queue`, "");
@@ -420,145 +493,205 @@ export function mountCampFeatures(opts) {
       frag.appendChild(row);
     });
     bodyEl.appendChild(frag);
-  }, features.music !== false);
+  }, true);
+  }
 
-  // ── Shop ──
-  addBtn("🏪 Shop", async () => {
-    openPanel("Aurora Shop", "Tokens · same economy as 2D", "<p class='sub'>Loading shop…</p>");
+  // ── Shop (hotbar + dock) ──
+  async function openShop() {
+    openPanel("Aurora Shop", "Tokens · buy & carry on the meadow", "<p class='sub'>Loading shop…</p>");
     let items = [];
-    let walletNote = "";
+    let tokens = null;
     try {
       const data = await campClient.fetchShop();
       items = data.items || data.catalog || data || [];
       if (!Array.isArray(items)) items = [];
       try {
-        const w = await fetch(`/api/firmament/wallet?visitor_id=${encodeURIComponent(campClient.getVisitorId())}`, { cache: "no-store" })
-          .then((r) => r.json());
-        if (w && (w.tokens != null || w.balance != null)) {
-          walletNote = ` · balance ${w.tokens ?? w.balance} tok`;
-        }
+        const w = await campClient.getWallet();
+        if (w && (w.tokens != null || w.balance != null)) tokens = w.tokens ?? w.balance;
       } catch (_) {}
     } catch (err) {
       items = FALLBACK_SHOP.slice();
-      walletNote = " · offline catalog";
-      logLine("Shop", `API offline, showing fallback (${err.message})`);
+      logLine("Shop", `API offline, fallback catalog (${err.message})`);
     }
     if (!items.length) items = FALLBACK_SHOP.slice();
-    subEl.textContent = `${items.length} items${walletNote}`;
+    const bal = tokens != null ? ` · 🪙 ${tokens} tokens` : " · chat to earn tokens";
+    subEl.textContent = `${items.length} wares${bal}`;
     bodyEl.innerHTML = "";
+    const tip = document.createElement("p");
+    tip.className = "sub";
+    tip.textContent = "Buy something — on 3D it can ride with you (carry). Talk to agents to earn more tokens.";
+    bodyEl.appendChild(tip);
     items.forEach((it) => {
       const row = document.createElement("div");
       row.className = "row";
       const name = it.name || it.id || "item";
       const price = it.cost ?? it.price ?? "?";
-      row.innerHTML = `<span class="meta"><b>${it.emoji || "✦"} ${name}</b><div class="d">${it.desc || it.description || ""} · <span class="ok">${price} tok</span></div></span>`;
+      row.innerHTML = `<span class="meta"><b>${it.emoji || "✦"} ${name}</b><div class="d">${it.desc || it.description || ""} · <span class="ok">🪙 ${price}</span></div></span>`;
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "act";
       btn.textContent = "Buy";
       btn.onclick = async () => {
+        btn.disabled = true;
         try {
           const r = await campClient.buyShopItem(it.id || it.item_id);
           const msg = r.message || r.detail || `Bought ${name}`;
           showToast(typeof msg === "string" ? msg : `Bought ${name}`);
           logLine("Shop", typeof msg === "string" ? msg : `Bought ${name}`);
+          try { onShopBuy?.(it, r); } catch (_) {}
+          // Refresh balance line
+          try {
+            const w = r.wallet || (await campClient.getWallet());
+            if (w?.tokens != null) subEl.textContent = `${items.length} wares · 🪙 ${w.tokens} tokens`;
+          } catch (_) {}
         } catch (err) {
-          showToast(err.message || "Buy failed");
+          showToast(err.message || "Buy failed — need more tokens?");
           logLine("Shop", err.message || "Buy failed");
+        } finally {
+          btn.disabled = false;
         }
       };
       row.appendChild(btn);
       bodyEl.appendChild(row);
     });
-  }, features.shop !== false);
+    showToast("🏪 Shop open");
+  }
+  addBtn("🏪 Shop", () => { void openShop(); }, features.shop !== false);
 
-  // ── Lucid TV ──
-  async function renderTvChannel(data) {
+  // ── Lucid TV — always watchable (API + offline random pool) ──
+  function pickFallbackTv(excludeId = "") {
+    const pool = FALLBACK_TV.filter((c) => c.video_id !== excludeId);
+    return pool[Math.floor(Math.random() * pool.length)] || FALLBACK_TV[0];
+  }
+
+  async function renderTvChannel(data, lastId = "") {
     const ch = data?.channel || data || {};
-    const title = ch.title || ch.name || "Lucid channel";
-    const thought = ch.thought || ch.subtitle || ch.text || "Static with personality.";
-    const embed = ch.embed || (ch.video_id ? `https://www.youtube-nocookie.com/embed/${ch.video_id}?autoplay=0` : "");
-    const watch = ch.watch || (ch.video_id ? `https://www.youtube.com/watch?v=${ch.video_id}` : "");
+    let title = ch.title || ch.name || "";
+    let thought = ch.thought || ch.subtitle || ch.text || "";
+    let videoId = ch.video_id || "";
+    let emoji = ch.emoji || "📺";
+    if (!videoId) {
+      const fb = pickFallbackTv(lastId);
+      title = fb.title;
+      thought = fb.thought;
+      videoId = fb.video_id;
+      emoji = fb.emoji;
+    }
+    const embed = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&rel=0&modestbranding=1`;
+    const watch = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
     bodyEl.innerHTML = "";
     const head = document.createElement("p");
-    head.innerHTML = `<b>${escapeHtml(title)}</b> ${ch.emoji || "📺"}`;
+    head.innerHTML = `<b>${escapeHtml(title)}</b> ${emoji}`;
     bodyEl.appendChild(head);
     const th = document.createElement("p");
     th.style.color = "#c4b5fd";
-    th.textContent = thought;
+    th.textContent = thought || "Real signal. Lucid approved.";
     bodyEl.appendChild(th);
-    if (embed) {
-      const iframe = document.createElement("iframe");
-      iframe.className = "tv-frame";
-      iframe.src = embed;
-      iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-      iframe.allowFullscreen = true;
-      bodyEl.appendChild(iframe);
-    }
-    if (watch) {
-      const a = document.createElement("p");
-      a.innerHTML = `<a href="${watch}" target="_blank" rel="noopener">Open on YouTube ↗</a>`;
-      bodyEl.appendChild(a);
-    }
+    const iframe = document.createElement("iframe");
+    iframe.className = "tv-frame";
+    iframe.src = embed;
+    iframe.title = title || "Lucid TV";
+    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    iframe.allowFullscreen = true;
+    iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    bodyEl.appendChild(iframe);
+    const actions = document.createElement("div");
+    actions.className = "tv-actions";
     const next = document.createElement("button");
     next.type = "button";
     next.className = "act";
-    next.textContent = "Another channel";
+    next.textContent = "🎲 Random channel";
     next.onclick = async () => {
+      next.disabled = true;
+      next.textContent = "Tuning…";
       try {
         const d2 = await campClient.fetchLucidFeed("random");
-        await renderTvChannel(d2);
-        logLine("Lucid TV", (d2.channel || d2).title || "channel");
-      } catch (err) {
-        bodyEl.innerHTML += `<p class="err">${escapeHtml(err.message)}</p>`;
+        await renderTvChannel(d2, videoId);
+      } catch (_) {
+        await renderTvChannel({ channel: pickFallbackTv(videoId) }, videoId);
       }
     };
-    bodyEl.appendChild(next);
-    logLine("Lucid TV", `${title} — ${thought}`);
+    const openYt = document.createElement("a");
+    openYt.className = "act";
+    openYt.href = watch;
+    openYt.target = "_blank";
+    openYt.rel = "noopener";
+    openYt.textContent = "Open on YouTube ↗";
+    openYt.style.textDecoration = "none";
+    openYt.style.display = "inline-flex";
+    openYt.style.alignItems = "center";
+    actions.appendChild(next);
+    actions.appendChild(openYt);
+    bodyEl.appendChild(actions);
+    logLine("Lucid TV", `${title} — ${thought || "watching"}`);
   }
 
-  addBtn("📺 Lucid TV", async () => {
-    openPanel("Lucid Mind TV", "Dream channels · real embeds", "<p class='sub'>Tuning…</p>");
+  async function openLucidTv() {
+    openPanel("Lucid Mind TV", "Random real video · watchable now", "<p class='sub'>Tuning the meadow antenna…</p>");
+    showToast("📺 Lucid TV");
     try {
       const data = await campClient.fetchLucidFeed("random");
       await renderTvChannel(data);
-      showToast("📺 Lucid TV");
     } catch (err) {
-      bodyEl.innerHTML = `<p class="err">TV offline: ${escapeHtml(err.message)}</p>
-        <p>Server needs /api/firmament/lucid-feed — restart Luna server.</p>`;
+      logLine("Lucid TV", `API offline — local random (${err.message})`);
+      await renderTvChannel({ channel: pickFallbackTv() });
     }
-  }, features.lucid_tv !== false);
+  }
+  addBtn("📺 Lucid TV", () => { void openLucidTv(); }, features.lucid_tv !== false);
 
   // ── Club ──
-  addBtn("💃 Club", async () => {
-    openPanel("Aurora Velvet", "Neon · dance optional", `
-      <p>Bass under the aurora. Agents with high social/energy may wander over.</p>
-      <div class="row"><span class="meta"><b>Drop vibe</b><div class="d">AI line from the club</div></span>
+  async function openClub() {
+    openPanel("Aurora Velvet", "Neon · music · AI vibe", `
+      <div class="club-stage">
+        <p style="margin:0 0 6px;font-weight:800;color:#fce7f3">💃 Club floor is open</p>
+        <p class="sub" style="margin:0">Bass under the aurora. Drop a vibe, play a track, let agents react.</p>
+      </div>
+      <div class="row"><span class="meta"><b>Drop AI vibe</b><div class="d">Someone on the floor speaks</div></span>
       <button type="button" class="act" id="club-vibe">Vibe</button></div>
-      <div class="row"><span class="meta"><b>Play club track</b><div class="d">Loud and Clear</div></span>
+      <div class="row"><span class="meta"><b>Club track</b><div class="d">Telephantix in the booth</div></span>
       <button type="button" class="act" id="club-music">Play</button></div>
-      <div id="club-log" class="sub"></div>
+      <div class="row"><span class="meta"><b>Lucid lights</b><div class="d">Random visual feed</div></span>
+      <button type="button" class="act" id="club-tv">TV</button></div>
+      <div id="club-log" class="sub" style="margin-top:10px;min-height:2.5em"></div>
     `);
     showToast("💃 Aurora Velvet");
     bodyEl.querySelector("#club-vibe").onclick = async () => {
       const log = bodyEl.querySelector("#club-log");
+      if (log) log.textContent = "Reading the room…";
       try {
         const ev = await campClient.useStructure("aurora-velvet");
         const line = (ev.lines && ev.lines[0]) || null;
         if (log) log.textContent = line ? `${line.name}: ${line.text}` : (ev.message || "Vibe dropped");
         campClient.applyCampEvent(ev, {
           onNarration: (m) => { showToast(m); logLine("Club", m); },
-          onLine: (ln) => { logLine(ln.name, ln.text); showSpeech(ln.agent_id, ln.text, 8000); },
+          onLine: (ln) => { logLine(ln.name, ln.text); showSpeech(ln.agent_id, ln.text, 10000); },
         });
       } catch (err) {
-        if (log) log.innerHTML = `<span class="err">${escapeHtml(err.message)}</span>`;
+        // Offline vibe — still fun
+        try {
+          const data = await campClient.agentChat(
+            "aurora",
+            "You're hosting Aurora Velvet club right now. Give a lively floor vibe in a few sentences — neon, bass, welcome the visitor. No meta.",
+            { ambient: true },
+          );
+          const t = data.reply || data.text || "Neon's up. Dance if you want. Or don't. Still looks good.";
+          if (log) log.textContent = `Aurora: ${t}`;
+          logLine("Aurora", t);
+          showSpeech("aurora", t, 12000);
+        } catch (e2) {
+          if (log) log.innerHTML = `<span class="err">${escapeHtml(err.message || e2.message)}</span>`;
+        }
       }
     };
     bodyEl.querySelector("#club-music").onclick = () => {
-      const i = musicTracks.findIndex((t) => /loud/i.test(t.title));
-      playTrack(i >= 0 ? i : 1);
+      const i = musicTracks.findIndex((t) => /loud|free|abracadabra/i.test(t.title));
+      playTrack(i >= 0 ? i : 0);
+      const log = bodyEl.querySelector("#club-log");
+      if (log) log.textContent = "Booth: Telephantix on the system.";
     };
-  }, features.club !== false);
+    bodyEl.querySelector("#club-tv").onclick = () => { void openLucidTv(); };
+  }
+  addBtn("💃 Club", () => { void openClub(); }, features.club !== false);
 
   // ── X Pulse ──
   addBtn("𝕏 Pulse", async () => {

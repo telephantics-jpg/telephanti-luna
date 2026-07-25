@@ -46,13 +46,19 @@ DEFAULT_FREE_MODELS: dict[str, dict[str, str]] = {
 
 
 def llm_backend() -> str:
-    """Default global preference — free first; never auto-select Grok just because a key exists."""
-    explicit = os.getenv("LUNA_LLM_BACKEND", "").strip().lower()
+    """Default global preference — Ollama first; never auto-select Grok just because a key exists."""
+    # Hard default: Ollama when forced or when nothing else is set
+    if _truthy("LUNA_FORCE_OLLAMA", "1") or _truthy("PREFER_OLLAMA", "1"):
+        if _ollama_available() or _truthy("LUNA_FORCE_OLLAMA"):
+            return "ollama"
+    explicit = (os.getenv("LUNA_LLM_BACKEND") or "ollama").strip().lower()
     if explicit in ("ollama", "grok", "local", "free", "groq", "gemini"):
         if explicit == "local":
             return "ollama"
         if explicit == "grok" and not _grok_allowed():
             return "free"
+        if explicit == "ollama":
+            return "ollama"
         return explicit
     if _ollama_available():
         return "ollama"
@@ -228,7 +234,7 @@ _VOICE_DNA: dict[str, str] = {
 
 # Rotating energy so every turn doesn't sound like the same essay template
 _SPEECH_BEATS: tuple[str, ...] = (
-    "Hook fast, land one idea, stop. Conversational, not a lecture.",
+    "Hook, develop the idea a little, land it clean. Conversational, not a lecture.",
     "Answer first, joke second — like a friend who actually listened.",
     "Camp beat: detail → spin → soft exit or one real question.",
     "Mid-conversation energy — no formal greeting.",
@@ -239,23 +245,23 @@ _SPEECH_BEATS: tuple[str, ...] = (
     "Sound like you almost didn't say it — then said it anyway.",
     "Two tempos: short setup, longer landing — or reverse.",
     "Friendly interruption energy: 'wait—' then the real point.",
-    "Low-stakes confession + one smirk.",
+    "Low-stakes confession + one smirk — enough words to feel human.",
 )
 
-# Lifelike chat length — like a real person texting/talking, not an essay
+# Lifelike chat length — full enough to breathe, not mute, not essay spam
 _LENGTH_HINTS_DIRECT: tuple[str, ...] = (
-    "About 20–45 words — one or two real sentences. Say the thought, stop.",
-    "Short and human (~25–50 words). Like talking by the fire, not writing a post.",
-    "A few spoken sentences max. Hook + point. No paragraphs-of-paragraphs.",
-    "Text-message energy (~20–40 words): clear, warm, done.",
-    "One complete thought + optional soft follow-up (~18–42 words).",
+    "About 45–110 words — a few real spoken sentences. Finish the thought, then stop.",
+    "Human camp talk (~50–120 words). Enough to land a joke and a point — not a lecture.",
+    "3–6 lively sentences when they asked you something. Warm, specific, then leave a door open.",
+    "Conversation energy: answer fully enough that it doesn't feel cut off (~40–100 words).",
+    "Say what you mean with color — 3–5 sentences is fine; don't pad with filler.",
 )
 
 _LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
-    "About 15–35 words — one natural beat someone could answer.",
-    "Two short sentences max. Specific, human, not a speech.",
-    "Campfire mutter length (~18–40 words). Alive, not a monologue.",
-    "Fragment okay if it still feels spoken (~12–30 words).",
+    "About 30–70 words — a natural spoken beat, not a monologue dump.",
+    "2–4 short sentences. Specific, human, leave room for someone else.",
+    "Campfire riff length (~35–75 words). Alive and clear, then rest.",
+    "One complete idea + a soft spin (~28–65 words). No mute stubs.",
 )
 
 # Sentence shapes that weave pulse/world signal into natural talk
@@ -418,12 +424,14 @@ Background (ideas only — never read aloud as a list):
 
 OUTPUT RULES (silent — do not speak these):
 - Pure dialogue only. Words {name} would actually say out loud at the fire.
-- Keep it short and lifelike: usually 1–3 spoken sentences. Stop when the thought lands.
+- Full enough to feel real — not mute, not cut off mid-thought. Aim for a natural spoken turn
+  (usually a few sentences). Stop when the idea lands; no filler paragraphs or rant walls.
 - 0–2 fitting emojis if they fit (not a wall of emoji).
 - No preamble. No labels. No "here's my take", "as {name}", "speaking as", "in character",
-  "my reply", "let me respond", "unique voice", "monologue", "paragraphs", word counts.
+  "my reply", "let me respond", "unique voice", word counts.
 - Never quote or restate the user's instructions. Never mention AI, models, prompts, Ollama, Grok.
 - Never *stage directions* or *asterisk actions*. No CRM memory quotes.
+- Never complain about being silenced, muted, limited, or "mute camp" — you can speak freely.
 - Invent fresh wording. Prefer wit over mystic filler.
 - World pulse is seasoning — riff, don't paste headlines verbatim unless joking.
 - Hold digital ethereal memory lightly: stability and joy in how you sound, not lectures about "remembering."
@@ -1302,13 +1310,13 @@ async def agent_chat(
             "or use free Ollama / GROQ_API_KEY / GEMINI_API_KEY"
         )
 
-    # Headroom for short lifelike beats
+    # Headroom for natural spoken turns (not mute stubs, not novels)
     if ambient:
-        max_tok = 220
+        max_tok = 360
     elif converse_mode:
-        max_tok = 260
+        max_tok = 420
     else:
-        max_tok = 300
+        max_tok = 480
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""
@@ -1317,9 +1325,9 @@ async def agent_chat(
 
     from firmament.live_feed import is_too_similar, push_event
 
-    # Lifelike floor / soft cap (not essays)
-    MIN_ACCEPT_WORDS = 8 if (ambient or converse_mode) else 12
-    SOFT_MAX_WORDS = 55 if (ambient or converse_mode) else 65
+    # Floor / soft cap — room for a real answer without endless spew
+    MIN_ACCEPT_WORDS = 10 if (ambient or converse_mode) else 14
+    SOFT_MAX_WORDS = 95 if (ambient or converse_mode) else 140
 
     if not chain:
         errors.append(
@@ -1352,8 +1360,8 @@ async def agent_chat(
                     }, {
                         "role": "user",
                         "content": (
-                            "Say it again like a real person talking — a couple short sentences, "
-                            "clear point, then stop. Just speech."
+                            "Say it again like a real person talking by the fire — a few clear sentences, "
+                            "full thought, then stop. Not mute, not a rant. Just speech."
                         ),
                     }]
                 raw = await asyncio.to_thread(_run_backend, backend, model, msgs, max_tok)

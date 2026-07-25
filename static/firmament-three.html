@@ -261,15 +261,18 @@
     .bubble3d .who { font-weight: 800; color: var(--violet); font-size: 0.78rem; margin-bottom: 6px; letter-spacing: 0.02em; padding-right: 28px; }
     .bubble3d .bubble-x {
       position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 26px;
-      height: 26px;
-      border-radius: 8px;
-      border: 1px solid rgba(248, 113, 113, 0.55);
-      background: rgba(30, 10, 16, 0.92);
+      top: 4px;
+      right: 4px;
+      /* Mobile-friendly hit target (was 26px — easy to miss / steal by parent capture) */
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(248, 113, 113, 0.65);
+      background: rgba(30, 10, 16, 0.96);
       color: #fecaca;
-      font-size: 0.95rem;
+      font-size: 1.15rem;
       font-weight: 900;
       line-height: 1;
       cursor: pointer;
@@ -277,13 +280,17 @@
       align-items: center;
       justify-content: center;
       pointer-events: auto !important;
-      z-index: 5;
+      z-index: 30;
       padding: 0;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
-    .bubble3d .bubble-x:hover {
-      background: rgba(127, 29, 29, 0.95);
+    .bubble3d .bubble-x:hover,
+    .bubble3d .bubble-x:active {
+      background: rgba(127, 29, 29, 0.98);
       border-color: #f87171;
       color: #fff;
+      transform: scale(1.06);
     }
     .bubble3d .front-chip {
       position: absolute; top: -10px; right: 36px;
@@ -514,7 +521,8 @@
       font-size: clamp(0.84rem, 2.6vw, 0.98rem) !important;
       border-width: 2px !important;
     }
-    /* Big talk window — 2D-style who/house chat */
+    /* Big talk window — 2D-style who/house chat
+       MUST sit above #speech-layer (z=200) so mobile can hit ✕ / close */
     #chat3d-panel {
       position: fixed;
       z-index: 40;
@@ -540,7 +548,42 @@
       opacity: 1;
       visibility: visible;
       transform: translateY(0);
+      /* Above world speech bubbles (300–900) so close always works on phone */
+      z-index: 2600 !important;
     }
+    /* When talk window is open, dim world bubbles and let them pass most taps */
+    body.chat3d-open #speech-layer {
+      z-index: 180;
+    }
+    body.chat3d-open .bubble3d {
+      opacity: 0.42 !important;
+      filter: saturate(0.55);
+      pointer-events: none !important; /* don't block chat close / type */
+    }
+    body.chat3d-open .bubble3d .bubble-x {
+      pointer-events: none !important;
+    }
+    #btn-clear-bubbles {
+      position: fixed;
+      z-index: 2550;
+      right: 10px;
+      top: max(56px, calc(env(safe-area-inset-top, 0px) + 48px));
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(248, 113, 113, 0.55);
+      background: rgba(30, 10, 16, 0.92);
+      color: #fecaca;
+      font: inherit;
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+      pointer-events: auto;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    #btn-clear-bubbles.show { display: inline-flex; align-items: center; gap: 4px; }
+    #btn-clear-bubbles:active { transform: scale(0.97); }
+    body.chat3d-open #btn-clear-bubbles { display: none !important; }
     @media (min-width: 900px) {
       #chat3d-panel {
         left: 14px; right: auto;
@@ -693,20 +736,38 @@
         font-size: 0.82rem;
       }
       #chat3d-panel { height: min(42vh, 320px); }
+      #chat3d-close, #chat3d-toggle-size {
+        width: 44px !important;
+        height: 40px !important;
+        font-size: 1.15rem !important;
+      }
+      #btn-clear-bubbles {
+        top: max(52px, calc(env(safe-area-inset-top, 0px) + 44px));
+        font-size: 0.7rem;
+        padding: 9px 12px;
+      }
       /* Smaller speech bubbles so more of the meadow stays visible */
       .bubble3d {
         width: min(188px, 54vw) !important;
         height: auto !important;
         min-height: 0 !important;
         max-height: 88px !important;
-        padding: 7px 9px !important;
+        padding: 7px 28px 7px 9px !important; /* room for × */
         font-size: 0.7rem !important;
         line-height: 1.3 !important;
         border-radius: 12px !important;
       }
+      .bubble3d .bubble-x {
+        width: 32px !important;
+        height: 32px !important;
+        top: 2px !important;
+        right: 2px !important;
+        font-size: 1.05rem !important;
+      }
       .bubble3d .who {
         font-size: 0.6rem !important;
         margin-bottom: 2px !important;
+        padding-right: 22px !important;
       }
       .bubble3d .say { font-size: 0.7rem !important; }
       .bubble3d.compact {
@@ -786,13 +847,14 @@
     <div id="hint">✦ Talk = big window · Tap speech FRONT · Hold 🔒 · Houses & flyers too</div>
   </div>
 
+  <button type="button" id="btn-clear-bubbles" title="Close all world speech bubbles" aria-label="Clear speech bubbles">✕ Bubbles</button>
   <button type="button" id="btn-open-chat3d" title="Open big talk window">✦ Talk</button>
   <div id="chat3d-panel" role="dialog" aria-label="Camp talk" aria-hidden="true">
     <div class="c3-head">
       <span class="c3-title">Talk</span>
       <select id="chat3d-who" title="Who or house to talk to" aria-label="Talk to whom"></select>
       <button type="button" id="chat3d-toggle-size" title="Taller window" aria-label="Expand">↕</button>
-      <button type="button" id="chat3d-close" title="Close" aria-label="Close">✕</button>
+      <button type="button" id="chat3d-close" title="Close talk window" aria-label="Close talk window">✕</button>
     </div>
     <div id="chat3d-meta">Digital ethereal memory · <span class="ethereal" id="chat3d-ethereal">joy · stability</span></div>
     <div id="chat3d-thread" aria-live="polite"></div>
@@ -803,7 +865,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-25-three-v53-trex";
+    const BUILD = "2026-07-25-three-v54-bubbles";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -2771,6 +2833,8 @@
       chat3dPanel.classList.add("open");
       chat3dPanel.setAttribute("aria-hidden", "false");
       document.body.classList.add("chat3d-open");
+      // Ensure panel is always above residual speech
+      chat3dPanel.style.zIndex = "2600";
       if (agentOrHouseId) {
         if (chat3dWho && [...chat3dWho.options].some((o) => o.value === agentOrHouseId)) {
           chat3dWho.value = agentOrHouseId;
@@ -2780,18 +2844,37 @@
         }
       }
       refreshEtherealHud();
+      refreshClearBubblesBtn();
       try { chat3dInput?.focus(); } catch (_) {}
     }
     function closeChat3d() {
       chat3dPanel?.classList.remove("open");
       chat3dPanel?.setAttribute("aria-hidden", "true");
       document.body.classList.remove("chat3d-open");
+      chat3dPanel?.style.removeProperty("z-index");
+      refreshClearBubblesBtn();
     }
-    document.getElementById("btn-open-chat3d")?.addEventListener("click", () => {
+    document.getElementById("btn-open-chat3d")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (chat3dPanel?.classList.contains("open")) closeChat3d();
       else openChat3d(whoEl?.value || "luna");
     });
-    document.getElementById("chat3d-close")?.addEventListener("click", closeChat3d);
+    // Capture so speech-layer / bubble handlers can't block close on mobile
+    const chat3dCloseBtn = document.getElementById("chat3d-close");
+    const closeChatEv = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation?.();
+      closeChat3d();
+    };
+    chat3dCloseBtn?.addEventListener("pointerdown", closeChatEv, { capture: true });
+    chat3dCloseBtn?.addEventListener("click", closeChatEv, { capture: true });
+    document.getElementById("btn-clear-bubbles")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearAllSpeechBubbles({ hushAmbient: true });
+    });
     document.getElementById("chat3d-toggle-size")?.addEventListener("click", () => {
       if (!chat3dPanel) return;
       const tall = chat3dPanel.dataset.tall === "1";
@@ -2884,10 +2967,46 @@
     const MAX_ACTIVE_BUBBLES = 4;
     /** Keep each thought readable — mobile was flipping too fast. */
     const MIN_SPEECH_MS = 10000;
+    /** After visitor hits ×, hush ambient for that agent so a box doesn't respawn instantly. */
+    const SPEECH_DISMISS_MS = 42000;
+    /** agentId → performance.now() until ambient speech allowed again */
+    const speechDismissedUntil = new Map();
+    /** agentId → how many times closed (they get quieter / evolve) */
+    const speechEvolveGen = new Map();
     let orbitPinnedForBubble = false;
     /** Agent id the visitor last FRONT-selected (any agent — not just Hermes). */
     let selectedSpeechAgentId = "";
     const LONG_PRESS_MS = 480; // phone-friendly hold to lock
+
+    function refreshClearBubblesBtn() {
+      const btn = document.getElementById("btn-clear-bubbles");
+      if (!btn) return;
+      const n = activeBubbles.length;
+      if (n > 0 && !document.body.classList.contains("chat3d-open")) {
+        btn.classList.add("show");
+        btn.textContent = n > 1 ? `✕ Bubbles (${n})` : "✕ Bubble";
+      } else {
+        btn.classList.remove("show");
+      }
+    }
+
+    function wireBubbleCloseBtn(xBtn, agentId, el) {
+      if (!xBtn || xBtn.__closeWired) return;
+      xBtn.__closeWired = true;
+      const kill = (e) => {
+        try {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation?.();
+        } catch (_) {}
+        closeSpeechBubble(agentId, el, { userDismiss: true });
+      };
+      // Capture BEFORE parent bubble's capture handlers steal the press
+      xBtn.addEventListener("pointerdown", kill, { capture: true });
+      xBtn.addEventListener("pointerup", kill, { capture: true });
+      xBtn.addEventListener("click", kill, { capture: true });
+      xBtn.addEventListener("touchend", kill, { capture: true, passive: false });
+    }
 
     function setOrbitEnabled(on) {
       try {
@@ -3135,6 +3254,8 @@
       function onDown(e) {
         if (e.button != null && e.button !== 0) return;
         if (e.pointerType === "touch" && e.isPrimary === false) return;
+        // × close must win — parent capture used to eat the event
+        if (e.target?.closest?.(".bubble-x")) return;
         e.preventDefault?.();
         e.stopPropagation?.();
         e.stopImmediatePropagation?.();
@@ -3174,6 +3295,7 @@
       el.addEventListener("pointerup", onUp, { capture: true });
       el.addEventListener("pointercancel", clearHold, { capture: true });
       el.addEventListener("click", (e) => {
+        if (e.target?.closest?.(".bubble-x")) return;
         e.preventDefault();
         e.stopPropagation();
         bringBubbleFront(el);
@@ -3329,21 +3451,74 @@
      * @param {{ force?: boolean, compact?: boolean }} [opts]
      *   force=true visitor/priority; compact=true short greet bubble (not huge)
      */
-    function closeSpeechBubble(agentId, elHint = null) {
+    /**
+     * Close a world speech box. userDismiss=true (× button) mutes ambient respawn.
+     */
+    function closeSpeechBubble(agentId, elHint = null, opts = {}) {
+      const userDismiss = !!(opts && opts.userDismiss);
+      const now = performance.now();
+      let closedId = agentId;
       for (let i = activeBubbles.length - 1; i >= 0; i--) {
         const b = activeBubbles[i];
         if (elHint && b.el !== elHint) continue;
         if (!elHint && b.agentId !== agentId) continue;
+        closedId = b.agentId || closedId;
+        // Unlock so protect logic won't resurrect them
+        b.holdLocked = false;
+        b.frontPinned = false;
         try { b.el?.remove(); } catch (_) {}
         activeBubbles.splice(i, 1);
         if (elHint) break;
       }
-      // If this was FRONT, clear selection highlight only if no bubble left for them
-      if (selectedSpeechAgentId === agentId && !activeBubbles.some((b) => b.agentId === agentId)) {
-        /* keep selection for next speech — optional clear:
-        selectedSpeechAgentId = "";
-        */
+      if (userDismiss && closedId) {
+        const gen = (speechEvolveGen.get(closedId) || 0) + 1;
+        speechEvolveGen.set(closedId, gen);
+        // Each close → they stay quieter a bit longer (evolve toward calm)
+        const hush = SPEECH_DISMISS_MS + Math.min(gen, 6) * 8000;
+        speechDismissedUntil.set(closedId, now + hush);
+        const st = agentState.find((a) => a.def.id === closedId);
+        if (st) {
+          st.nextDecideAt = Math.max(st.nextDecideAt || 0, now + hush);
+          st.speakUntil = now;
+        }
+        if (selectedSpeechAgentId === closedId) selectedSpeechAgentId = "";
+        showToast(`Speech closed · ${closedId} rests a bit`);
       }
+      if (selectedSpeechAgentId === closedId && !activeBubbles.some((b) => b.agentId === closedId)) {
+        selectedSpeechAgentId = "";
+      }
+      if (!activeBubbles.some((b) => b.holdLocked || b.frontPinned)) {
+        orbitPinnedForBubble = false;
+        lastBubblePickEl = null;
+        setOrbitEnabled(true);
+      }
+      refreshClearBubblesBtn();
+    }
+
+    /** Clear every world bubble + optional ambient hush. */
+    function clearAllSpeechBubbles(opts = {}) {
+      const hushAmbient = opts.hushAmbient !== false;
+      const now = performance.now();
+      const ids = [...new Set(activeBubbles.map((b) => b.agentId).filter(Boolean))];
+      for (let i = activeBubbles.length - 1; i >= 0; i--) {
+        try { activeBubbles[i].el?.remove(); } catch (_) {}
+        activeBubbles.splice(i, 1);
+      }
+      if (hushAmbient) {
+        for (const id of ids) {
+          const gen = (speechEvolveGen.get(id) || 0) + 1;
+          speechEvolveGen.set(id, gen);
+          speechDismissedUntil.set(id, now + SPEECH_DISMISS_MS);
+          const st = agentState.find((a) => a.def.id === id);
+          if (st) st.nextDecideAt = Math.max(st.nextDecideAt || 0, now + SPEECH_DISMISS_MS);
+        }
+      }
+      selectedSpeechAgentId = "";
+      orbitPinnedForBubble = false;
+      lastBubblePickEl = null;
+      setOrbitEnabled(true);
+      refreshClearBubblesBtn();
+      showToast(ids.length ? `Cleared ${ids.length} speech box${ids.length > 1 ? "es" : ""}` : "No bubbles open");
     }
 
     function showSpeech3d(agentId, text, ms = MIN_SPEECH_MS, opts = {}) {
@@ -3360,6 +3535,18 @@
       const isSelected = selectedSpeechAgentId && agentId === selectedSpeechAgentId;
       const now = performance.now();
       const force = !!(opts && opts.force);
+      // User closed them — skip ambient respawn (force = visitor talk / priority)
+      if (!force && !isSelected) {
+        const until = speechDismissedUntil.get(agentId) || 0;
+        if (now < until) return;
+      } else if (force || isSelected) {
+        speechDismissedUntil.delete(agentId);
+      }
+      // Evolve: after several closes, ambient lines stay shorter / quieter
+      const gen = speechEvolveGen.get(agentId) || 0;
+      if (gen >= 2 && !force && compact) {
+        ms = Math.min(ms, 14000);
+      }
 
       // Update existing bubble for this agent (keep selection / lock)
       for (let i = activeBubbles.length - 1; i >= 0; i--) {
@@ -3369,21 +3556,17 @@
           const say = prev.el.querySelector(".say");
           if (say) say.textContent = body;
           // Ensure close button exists on updated bubbles
-          if (!prev.el.querySelector(".bubble-x")) {
-            const x = document.createElement("button");
+          let x = prev.el.querySelector(".bubble-x");
+          if (!x) {
+            x = document.createElement("button");
             x.type = "button";
             x.className = "bubble-x";
             x.setAttribute("aria-label", "Close bubble");
-            x.title = "Close";
+            x.title = "Close — won't auto-respawn for a bit";
             x.textContent = "×";
-            x.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); });
-            x.addEventListener("click", (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              closeSpeechBubble(agentId, prev.el);
-            });
             prev.el.appendChild(x);
           }
+          wireBubbleCloseBtn(x, agentId, prev.el);
           prev.el.classList.toggle("compact", compact && !prev.holdLocked && !prev.frontPinned);
           // New thought for this character — restart the 5s+ clock
           prev.bornAt = now;
@@ -3408,6 +3591,7 @@
             }
           }
           st.speakUntil = prev.until;
+          refreshClearBubblesBtn();
           return;
         }
         prev.el?.remove();
@@ -3434,23 +3618,13 @@
       // New ambient lines stay below a user-selected FRONT chat
       const baseRank = isSelected ? 860 : (300 + activeBubbles.length);
       el.style.setProperty("z-index", String(baseRank), "important");
-      el.title = `${st.def.name} — tap for FRONT · hold to lock · ✕ to close`;
+      el.title = `${st.def.name} — tap FRONT · hold lock · ✕ close (stays closed a bit)`;
       el.innerHTML =
-        `<button type="button" class="bubble-x" aria-label="Close bubble" title="Close">×</button>` +
+        `<button type="button" class="bubble-x" aria-label="Close bubble" title="Close — won't auto-respawn for a bit">×</button>` +
         `<span class="who">${escapeHtml(st.def.name)}</span>` +
         `<span class="say">${escapeHtml(body)}</span>`;
       const xBtn = el.querySelector(".bubble-x");
-      if (xBtn) {
-        xBtn.addEventListener("pointerdown", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        });
-        xBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          closeSpeechBubble(agentId, el);
-        });
-      }
+      wireBubbleCloseBtn(xBtn, agentId, el);
       bindBubbleSelect(el);
       const layer = speechLayer || document.body;
       layer.appendChild(el);
@@ -3494,6 +3668,7 @@
       } else if (selectedSpeechAgentId) {
         el.classList.add("dimmed");
       }
+      refreshClearBubblesBtn();
     }
 
     // Offline / soft-signal barks — still spirited so the meadow never goes mute

@@ -97,14 +97,33 @@ export function mountCampFeatures(opts) {
       /* Above meadow UI, below speech bubbles (200) */
       #camp-feature-root { position: fixed; inset: 0; pointer-events: none; z-index: 55; }
       /* ALWAYS-VISIBLE hot tools — center under topbar (2D free-tools parity) */
+      /* Slim always-visible toggle — big tool strip stays hidden until opened */
+      #camp-feature-root .feat-tools-wrap {
+        pointer-events: none; position: fixed; left: 50%; transform: translateX(-50%);
+        top: max(50px, calc(env(safe-area-inset-top, 0px) + 42px));
+        z-index: 56; display: flex; flex-direction: column; align-items: center; gap: 6px;
+        max-width: min(96vw, 760px); width: max-content;
+      }
+      #camp-feature-root .feat-hotbar-toggle {
+        pointer-events: auto;
+        background: linear-gradient(135deg, rgba(14,116,144,0.95), rgba(30,27,75,0.96));
+        border: 1px solid rgba(103,232,249,0.65); color: #e0f2fe;
+        border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 0.74rem; font-weight: 800;
+        cursor: pointer; line-height: 1.2; white-space: nowrap;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      }
+      #camp-feature-root .feat-hotbar-toggle:hover { border-color: #fde68a; filter: brightness(1.08); }
+      #camp-feature-root .feat-hotbar-toggle[aria-expanded="true"] {
+        border-color: #fca5a5; color: #fecaca;
+        background: linear-gradient(135deg, rgba(80,20,30,0.95), rgba(30,27,75,0.95));
+      }
       #camp-feature-root .feat-hotbar {
-        pointer-events: auto; position: fixed; left: 50%; transform: translateX(-50%);
-        top: max(54px, calc(env(safe-area-inset-top, 0px) + 46px));
-        z-index: 56; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+        pointer-events: auto; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
         max-width: min(96vw, 760px); padding: 8px 10px;
-        background: rgba(6, 10, 22, 0.92); border: 1px solid rgba(196, 181, 253, 0.55);
+        background: rgba(6, 10, 22, 0.94); border: 1px solid rgba(196, 181, 253, 0.55);
         border-radius: 16px; box-shadow: 0 8px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(103,232,249,0.12);
       }
+      #camp-feature-root .feat-hotbar.collapsed { display: none !important; }
       #camp-feature-root .feat-hotbar button {
         background: linear-gradient(135deg, rgba(76,29,149,0.92), rgba(30,27,75,0.96));
         border: 2px solid rgba(196,181,253,0.85); color: #f5f3ff;
@@ -129,40 +148,9 @@ export function mountCampFeatures(opts) {
         0%, 100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.5), 0 4px 14px rgba(0,0,0,0.4); }
         50% { box-shadow: 0 0 0 7px rgba(167,139,250,0), 0 4px 14px rgba(0,0,0,0.4); }
       }
+      /* Left “More” dock removed — one center Tools pill only */
       #camp-feature-root .feat-dock-wrap {
-        pointer-events: auto; position: fixed;
-        left: max(8px, env(safe-area-inset-left, 0px));
-        top: max(118px, calc(env(safe-area-inset-top, 0px) + 108px));
-        transform: none;
-        display: flex; flex-direction: column; align-items: flex-start; gap: 6px; z-index: 54;
-      }
-      #camp-feature-root .feat-dock-toggle {
-        background: linear-gradient(135deg, rgba(14,116,144,0.95), rgba(30,41,59,0.95));
-        border: 1px solid rgba(103,232,249,0.55); color: #e0f2fe;
-        border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 0.72rem; font-weight: 700;
-        cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        min-width: 0; line-height: 1.2;
-      }
-      #camp-feature-root .feat-dock-toggle:hover { border-color: #fde68a; filter: brightness(1.08); }
-      #camp-feature-root .feat-dock-toggle[aria-expanded="true"] {
-        border-color: #67e8f9; color: #a5f3fc;
-      }
-      #camp-feature-root .feat-dock {
-        display: flex; flex-direction: column; gap: 5px; max-height: min(55vh, 420px); overflow-y: auto;
-        padding: 6px; background: rgba(6,10,20,0.94); border: 1px solid rgba(103,232,249,0.35);
-        border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
-      }
-      #camp-feature-root .feat-dock.collapsed { display: none !important; }
-      #camp-feature-root .feat-dock button {
-        background: rgba(8,14,28,0.96); border: 1px solid rgba(103,232,249,0.45); color: #e0f2fe;
-        border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 0.74rem; font-weight: 700; cursor: pointer;
-        text-align: left; min-width: 0; max-width: 168px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;
-      }
-      #camp-feature-root .feat-dock button:hover { border-color: #67e8f9; background: rgba(15,30,50,0.98); color: #67e8f9; }
-      #camp-feature-root .feat-dock button.feat-hot {
-        border-color: rgba(196,181,253,0.85); color: #f5f3ff;
-        background: linear-gradient(135deg, rgba(76,29,149,0.75), rgba(30,27,75,0.95));
+        display: none !important;
       }
       #camp-feature-root .feat-panel {
         pointer-events: auto; display: none; position: fixed; left: 50%; top: 50%;
@@ -216,20 +204,23 @@ export function mountCampFeatures(opts) {
       #camp-feature-root .err { color: #fca5a5; }
       #camp-feature-root .ok { color: #86efac; }
       @media (max-width: 640px) {
+        #camp-feature-root .feat-tools-wrap {
+          top: max(48px, calc(env(safe-area-inset-top, 0px) + 40px));
+        }
+        #camp-feature-root .feat-hotbar-toggle {
+          font-size: 0.7rem; padding: 7px 12px;
+        }
         #camp-feature-root .feat-hotbar {
-          top: max(96px, calc(env(safe-area-inset-top, 0px) + 88px));
           gap: 5px; padding: 6px;
         }
         #camp-feature-root .feat-hotbar button { font-size: 0.68rem; padding: 7px 10px; }
-        #camp-feature-root .feat-dock-wrap { left: 6px; top: max(160px, calc(env(safe-area-inset-top, 0px) + 150px)); }
-        #camp-feature-root .feat-dock button { font-size: 0.6rem; padding: 3px 8px; max-width: 96px; }
       }
     </style>
-    <div class="feat-hotbar" id="feat-hotbar" role="toolbar" aria-label="Camp hot tools"></div>
-    <div class="feat-dock-wrap" id="feat-dock-wrap">
-      <button type="button" class="feat-dock-toggle" id="feat-dock-toggle"
-        aria-expanded="false" aria-controls="feat-dock" title="More camp tools — Shop, TV, Club…">✦ More tools</button>
-      <div class="feat-dock collapsed" id="feat-dock" role="group" aria-label="More camp actions"></div>
+    <div class="feat-tools-wrap" id="feat-tools-wrap">
+      <button type="button" class="feat-hotbar-toggle" id="feat-hotbar-toggle"
+        aria-expanded="false" aria-controls="feat-hotbar"
+        title="Show Shop, Lucid TV, Club…">✦ Tools</button>
+      <div class="feat-hotbar collapsed" id="feat-hotbar" role="toolbar" aria-label="Camp hot tools"></div>
     </div>
     <div class="feat-panel" id="feat-panel" role="dialog" aria-modal="true">
       <button type="button" class="feat-close" id="feat-close">Close</button>
@@ -241,36 +232,36 @@ export function mountCampFeatures(opts) {
   document.body.appendChild(root);
 
   const hotbar = root.querySelector("#feat-hotbar");
-  const dock = root.querySelector("#feat-dock");
-  const dockToggle = root.querySelector("#feat-dock-toggle");
+  const hotbarToggle = root.querySelector("#feat-hotbar-toggle");
   const panel = root.querySelector("#feat-panel");
   const titleEl = root.querySelector("#feat-title");
   const subEl = root.querySelector("#feat-sub");
   const bodyEl = root.querySelector("#feat-body");
   root.querySelector("#feat-close").onclick = () => panel.classList.remove("open");
 
-  // Extra tools dock can stay collapsed — hot tools are always on the center strip
-  const DOCK_KEY = "luna-3d-feat-dock-open-v3";
-  function setDockOpen(open) {
-    dock.classList.toggle("collapsed", !open);
-    dockToggle.setAttribute("aria-expanded", open ? "true" : "false");
-    dockToggle.textContent = open ? "✕ Hide extra" : "✦ More tools";
-    dockToggle.title = open
-      ? "Hide Shop / TV / Club / Pulse"
-      : "Shop, Lucid TV, Club, Pulse, music…";
-    try { localStorage.setItem(DOCK_KEY, open ? "1" : "0"); } catch (_) {}
+  // One center control only — Shop / TV / Club live behind ✦ Tools
+  const HOTBAR_KEY = "luna-3d-feat-hotbar-open-v1";
+  function setHotbarOpen(open) {
+    hotbar.classList.toggle("collapsed", !open);
+    hotbarToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    hotbarToggle.textContent = open ? "✕ Hide tools" : "✦ Tools";
+    hotbarToggle.title = open
+      ? "Hide Shop / Lucid TV / Club (free the screen)"
+      : "Show Shop, Lucid TV, Club, Unknown…";
+    try { localStorage.setItem(HOTBAR_KEY, open ? "1" : "0"); } catch (_) {}
   }
-  let startOpen = false;
+  let hotStartOpen = false;
   try {
-    if (localStorage.getItem(DOCK_KEY) === "1") startOpen = true;
+    if (localStorage.getItem(HOTBAR_KEY) === "1") hotStartOpen = true;
   } catch (_) {}
-  setDockOpen(startOpen);
-
-  dockToggle.addEventListener("click", (e) => {
+  setHotbarOpen(hotStartOpen);
+  hotbarToggle.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setDockOpen(dock.classList.contains("collapsed"));
+    setHotbarOpen(hotbar.classList.contains("collapsed"));
   });
+
+  function maybeCollapseAfterOpen() {}
 
   function openPanel(title, sub, html) {
     titleEl.textContent = title;
@@ -293,19 +284,23 @@ export function mountCampFeatures(opts) {
     return b;
   }
 
-  /** Always-visible center strip (2D free-tools parity) */
+  const _hotLabels = new Set();
+
+  /** Center Tools strip only (left “More” dock removed) */
   function addHotBtn(label, onClick, extraClass = "") {
+    const key = String(label || "").replace(/\s+/g, " ").trim().toLowerCase();
+    // Dedupe e.g. Shop added twice via hot + dock path
+    if (key && _hotLabels.has(key)) return null;
+    if (key) _hotLabels.add(key);
     const b = makeBtn(label, onClick, extraClass);
     hotbar.appendChild(b);
     return b;
   }
 
-  /** Secondary tools in left “More tools” list */
+  /** Extra tools (Pulse, music…) also go on the center strip — no second bubble */
   function addBtn(label, onClick, show = true, hot = false) {
     if (!show) return null;
-    const b = makeBtn(label, onClick, hot ? "feat-hot" : "");
-    dock.appendChild(b);
-    return b;
+    return addHotBtn(label, onClick, hot ? "feat-hot" : "");
   }
 
   // ── HOTBAR first (always on screen — no menu needed) ──
@@ -378,15 +373,15 @@ export function mountCampFeatures(opts) {
       });
   }
 
-  // Hotbar: main camp features always one tap away
+  // Hotbar: Shop / TV / Club (behind ✦ Tools toggle so they don't cover the meadow)
   if (features.shop !== false) {
-    addHotBtn("🏪 Shop", () => { void openShop(); });
+    addHotBtn("🏪 Shop", () => { maybeCollapseAfterOpen(); void openShop(); });
   }
   if (features.lucid_tv !== false) {
-    addHotBtn("📺 Lucid TV", () => { void openLucidTv(); });
+    addHotBtn("📺 Lucid TV", () => { maybeCollapseAfterOpen(); void openLucidTv(); });
   }
   if (features.club !== false) {
-    addHotBtn("💃 Club", () => { void openClub(); });
+    addHotBtn("💃 Club", () => { maybeCollapseAfterOpen(); void openClub(); });
   }
   if (features.mysterious_unknown !== false) {
     addHotBtn("❓ Unknown", () => { void runMysteriousUnknown(); }, "feat-unknown");
@@ -778,12 +773,7 @@ export function mountCampFeatures(opts) {
 
   return {
     playMusic: () => playTrack(trackIndex),
-    openShop: () => {
-      const btns = dock.querySelectorAll("button");
-      for (const b of btns) {
-        if (b.textContent.includes("Shop")) { b.click(); break; }
-      }
-    },
+    openShop: () => { void openShop(); },
     dispose: () => root.remove(),
   };
 }

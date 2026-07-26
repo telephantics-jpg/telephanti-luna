@@ -99,6 +99,19 @@
     }
     #canvas-host { position: fixed; inset: 0; z-index: 1; }
     #canvas-host canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    /* 2D-style neon vignette over the meadow (color, not just dark UI) */
+    #canvas-host::after {
+      content: "";
+      pointer-events: none;
+      position: absolute; inset: 0; z-index: 2;
+      background:
+        radial-gradient(ellipse 80% 55% at 50% 0%, rgba(167, 139, 250, 0.16), transparent 55%),
+        radial-gradient(ellipse 60% 45% at 15% 80%, rgba(244, 114, 182, 0.1), transparent 50%),
+        radial-gradient(ellipse 55% 40% at 90% 70%, rgba(103, 232, 249, 0.12), transparent 48%),
+        radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(2, 6, 23, 0.35) 100%);
+      mix-blend-mode: screen;
+      opacity: 0.9;
+    }
     /* Always-visible boot card — blank meadow used to look "stuck" with #status hidden */
     #boot-overlay {
       position: fixed; inset: 0; z-index: 50;
@@ -203,10 +216,12 @@
       padding: 6px 12px; font-size: 0.78rem; cursor: pointer; font: inherit;
     }
     #topbar a:hover, #topbar button:hover, .chip:hover { border-color: var(--cyan); background: rgba(15, 30, 50, 0.95); }
-    #status { flex: 1; min-width: 120px; color: var(--muted); font-size: 0.78rem; }
+    /* Activity text ("Walking", "AI · …") — hidden; cluttered the meadow */
+    #status {
+      display: none !important;
+    }
     #stamp {
-      font-size: 0.7rem; color: #7dd3fc; border: 1px solid rgba(56,189,248,0.45);
-      border-radius: 8px; padding: 4px 8px; background: rgba(8,20,40,0.75);
+      display: none !important;
     }
 
     /* Above canvas/dock/feature dock so speech is always clickable on PC */
@@ -487,7 +502,7 @@
     }
     #send:disabled { opacity: 0.5; cursor: wait; }
     #hint {
-      font-size: 0.68rem; color: #64748b; text-align: center; padding-bottom: 2px;
+      display: none !important; /* bottom tip bar — hides “what you’re doing / how to” clutter */
     }
     #prop-toast {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -496,6 +511,33 @@
       border-radius: 14px; padding: 12px 18px; font-size: 0.9rem; max-width: 80vw; text-align: center;
     }
     #prop-toast.show { opacity: 1; }
+    #carry-hud {
+      position: fixed;
+      left: 50%;
+      bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+      transform: translateX(-50%);
+      z-index: 28;
+      max-width: min(92vw, 420px);
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(103, 232, 249, 0.5);
+      background: rgba(6, 14, 28, 0.92);
+      color: #e0f2fe;
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-align: center;
+      pointer-events: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      cursor: pointer;
+    }
+    #carry-hud:active { transform: translateX(-50%) scale(0.98); }
+    @media (max-width: 640px) {
+      #carry-hud {
+        bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+        font-size: 0.68rem;
+        padding: 7px 12px;
+      }
+    }
     /* Banter / Circle live in topbar; bottom chip row stays off for a cleaner dock */
     #quick-bar {
       display: none;
@@ -508,12 +550,7 @@
     }
     #quick-bar button:active { transform: scale(0.97); background: rgba(34, 211, 238, 0.15); }
     #mode-pill {
-      /* Sits under the always-visible camp hotbar (Unknown / Heaven / …) */
-      position: fixed; top: max(108px, calc(env(safe-area-inset-top) + 98px)); left: 50%;
-      transform: translateX(-50%); z-index: 22;
-      background: rgba(8,14,28,0.88); border: 1px solid var(--border); border-radius: 999px;
-      padding: 6px 14px; font-size: 0.72rem; color: #a5f3fc; pointer-events: none;
-      max-width: min(92vw, 520px); text-align: center;
+      display: none !important; /* tip bar — not needed once you know the controls */
     }
     .bubble3d {
       width: min(360px, 88vw) !important;
@@ -550,6 +587,41 @@
       transform: translateY(0);
       /* Above world speech bubbles (300–900) so close always works on phone */
       z-index: 2600 !important;
+    }
+    /* Ouija / Oracle channel — same Talk window, spirit theme */
+    #chat3d-panel.ouija-mode {
+      border-color: rgba(168, 85, 247, 0.65);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.55), 0 0 48px rgba(168, 85, 247, 0.22);
+      background: linear-gradient(165deg, rgba(18, 8, 36, 0.98), rgba(12, 10, 40, 0.97));
+    }
+    #chat3d-panel.ouija-mode .c3-head {
+      background: linear-gradient(180deg, rgba(60, 20, 90, 0.98), rgba(18, 10, 40, 0.95));
+      border-bottom-color: rgba(196, 181, 253, 0.4);
+    }
+    #chat3d-panel.ouija-mode .c3-title { color: #e9d5ff; }
+    #chat3d-panel.ouija-mode #chat3d-meta { color: #c4b5fd; }
+    #chat3d-panel.ouija-mode #chat3d-meta .ethereal { color: #fde68a; }
+    #chat3d-panel.ouija-mode .c3-msg.agent .c3-bubble {
+      border-color: rgba(196, 181, 253, 0.55);
+      background: rgba(30, 15, 55, 0.95);
+      color: #f5f3ff;
+    }
+    #chat3d-panel.ouija-mode .c3-msg.agent .c3-who { color: #e9d5ff; }
+    #chat3d-panel.ouija-mode #chat3d-input {
+      border-color: rgba(168, 85, 247, 0.5);
+    }
+    #chat3d-panel.ouija-mode #chat3d-send {
+      background: linear-gradient(135deg, rgba(126, 34, 206, 0.95), rgba(76, 29, 149, 0.95));
+      border-color: rgba(216, 180, 254, 0.6);
+    }
+    .c3-msg .c3-board {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #fde68a;
+      margin-bottom: 6px;
     }
     /* When talk window is open, dim world bubbles and let them pass most taps */
     body.chat3d-open #speech-layer {
@@ -808,7 +880,8 @@
   </div>
   <div id="speech-layer"></div>
   <div id="prop-toast"></div>
-  <div id="mode-pill">👆 Tap speech = FRONT · Hold = 🔒 · Center strip: ❓ Unknown · ✦ Heaven</div>
+  <div id="carry-hud" hidden aria-live="polite"></div>
+  <div id="mode-pill" hidden aria-hidden="true"></div>
 
   <header id="topbar">
     <a id="home-telephanti" class="chip" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
@@ -823,8 +896,8 @@
     <button type="button" id="btn-banter-top" class="chip" title="Pair banter">💬</button>
     <button type="button" id="btn-powwow-top" class="chip" title="Gather a circle conversation">🔥 Circle</button>
     <button type="button" id="btn-roam" class="chip">🏃</button>
-    <span id="status">Loading…</span>
-    <span id="stamp">✦ 3D</span>
+    <span id="status" hidden aria-hidden="true"></span>
+    <span id="stamp" hidden aria-hidden="true"></span>
   </header>
   <div id="boot-error" hidden style="position:fixed;inset:auto 12px 120px 12px;z-index:40;background:rgba(80,10,20,0.95);border:1px solid #f87171;border-radius:12px;padding:14px 16px;color:#fecaca;font-size:0.85rem;line-height:1.45;max-width:560px;margin:0 auto;left:12px;right:12px;"></div>
 
@@ -844,7 +917,7 @@
       <input id="msg" type="text" maxlength="500" placeholder="Type a message… then Send (or pick ✦ All)" autocomplete="off" />
       <button type="button" id="send">Send</button>
     </div>
-    <div id="hint">✦ Talk = big window · Tap speech FRONT · Hold 🔒 · Houses & flyers too</div>
+    <div id="hint" hidden aria-hidden="true"></div>
   </div>
 
   <button type="button" id="btn-clear-bubbles" title="Close all world speech bubbles" aria-label="Clear speech bubbles">✕ Bubbles</button>
@@ -865,7 +938,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-25-three-v54-bubbles";
+    const BUILD = "2026-07-25-three-v65-witty-chat";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -894,7 +967,8 @@
     function setBootStep(msg) {
       const t = String(msg || "");
       if (statusEl) {
-        statusEl.hidden = false;
+        // Keep activity text off-screen (user asked to hide “what you’re doing” bar)
+        statusEl.hidden = true;
         statusEl.textContent = t;
       }
       if (bootStepEl) bootStepEl.textContent = t;
@@ -919,13 +993,8 @@
         }
       }
       if (ok && statusEl) {
-        statusEl.hidden = false;
+        statusEl.hidden = true;
         statusEl.textContent = "Free Ollama meadow";
-        setTimeout(() => {
-          if (statusEl && /Free Ollama|Meadow ready/i.test(statusEl.textContent || "")) {
-            statusEl.hidden = true;
-          }
-        }, 5000);
       }
     }
     // Never leave user staring at "✦ Luna Camp 3D" forever
@@ -954,7 +1023,7 @@
         }
       }
       if (statusEl) {
-        statusEl.hidden = false;
+        statusEl.hidden = true;
         statusEl.textContent = "3D failed to load — see center card";
       }
       if (bootErr) {
@@ -1145,12 +1214,24 @@
       duck: { tint: 0xfbbf24, glow: 0.35, mood: "love" },
     };
 
-    /** Props you can pick up and carry (X to drop). */
+    /** Props you + agents can pick up and tote (X to drop · tap a friend to gift). */
     const PICKABLE_PROPS = new Set([
       "cookies", "snacks", "fruit", "bread", "marshmallows", "herbs", "weed",
-      "beer", "wine", "tea", "water", "avocado",
+      "beer", "wine", "tea", "water", "avocado", "steaks", "cooler2", "beer",
+      "ouija", "snacks", "fruit", "water", "herbs", "cookies", "bread",
+    ]);
+    const NOT_PICKABLE = new Set([
+      "trex", "t-rex", "horse", "flamingo", "parrot", "duck", "stereo",
     ]);
     const WILDLIFE_PROPS = new Set(["trex", "t-rex", "horse", "flamingo", "parrot", "duck"]);
+    function isPickableProp(id) {
+      const k = String(id || "").toLowerCase();
+      if (!k || NOT_PICKABLE.has(k) || WILDLIFE_PROPS.has(k)) return false;
+      if (k === "ouija") return false; // opens spirit chat, not carry
+      if (PICKABLE_PROPS.has(k)) return true;
+      // Default: most camp props are grab-able for fun
+      return true;
+    }
 
     // ── Scene ──
     const host = document.getElementById("canvas-host");
@@ -1170,21 +1251,21 @@
       );
       throw err;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x0a1628, 1);
+    renderer.setClearColor(0x0a1230, 1);
     if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    // Punchier color like 2D aurora camp
+    renderer.toneMappingExposure = 1.28;
     host.appendChild(renderer.domElement);
     setBootStep("Meadow canvas ready — placing camp…");
 
     const scene = new THREE.Scene();
-    // Wider open field — lighter fog so far meadow stays visible
-    // Soft happy meadow fog (warmer than pure night)
-    scene.fog = new THREE.FogExp2(0x122018, 0.0024);
+    // Lighter, teal-violet fog so color pops (2D neon night)
+    scene.fog = new THREE.FogExp2(0x14203a, 0.0016);
 
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 900);
     // Follow player start pose (target set with OrbitControls below)
@@ -1275,12 +1356,11 @@
 
     let followPlayer = true; // follow user at start
 
-    // Lights
-    // Happy camp lighting — warmer sky, greener ground (2D aurora energy)
-    scene.add(new THREE.AmbientLight(0x8fa8c8, 0.55));
-    const hemi = new THREE.HemisphereLight(0xa5f3fc, 0x2d5a3a, 0.78);
+    // Lights — vivid 2D-style aurora night
+    scene.add(new THREE.AmbientLight(0xb8c8ff, 0.62));
+    const hemi = new THREE.HemisphereLight(0x7dd3fc, 0x22c55e, 0.95);
     scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xffe7b8, 1.15);
+    const sun = new THREE.DirectionalLight(0xffe4c4, 1.25);
     sun.position.set(28, 40, 18);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -1291,24 +1371,40 @@
     sun.shadow.camera.top = 80;
     sun.shadow.camera.bottom = -80;
     scene.add(sun);
+    // Magenta / cyan accent lights (2D neon)
+    const accentA = new THREE.PointLight(0xf472b6, 0.85, 55, 2);
+    accentA.position.set(-12, 6, 8);
+    scene.add(accentA);
+    const accentB = new THREE.PointLight(0x67e8f9, 0.75, 50, 2);
+    accentB.position.set(14, 5, -10);
+    scene.add(accentB);
+    const accentC = new THREE.PointLight(0xa78bfa, 0.65, 48, 2);
+    accentC.position.set(0, 8, -14);
+    scene.add(accentC);
 
-    const fireLight = new THREE.PointLight(0xff8a3d, 2.8, 36, 1.6);
-    fireLight.position.set(0, 1.4, 0);
+    const fireLight = new THREE.PointLight(0xff7a2e, 3.6, 42, 1.45);
+    fireLight.position.set(0, 1.5, 0);
     fireLight.castShadow = true;
     scene.add(fireLight);
+    const fireGlow = new THREE.PointLight(0xffc266, 1.4, 18, 2);
+    fireGlow.position.set(0, 0.9, 0);
+    scene.add(fireGlow);
 
-    // Sky dome (large open world)
+    // Sky dome — animated aurora bands + denser stars
+    let skyMat = null;
     {
-      const skyGeo = new THREE.SphereGeometry(280, 32, 24);
-      const skyMat = new THREE.ShaderMaterial({
+      const skyGeo = new THREE.SphereGeometry(280, 40, 28);
+      skyMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
         uniforms: {
-          topColor: { value: new THREE.Color(0x0c1a3a) },
-          midColor: { value: new THREE.Color(0x1e1b4b) },
-          bottomColor: { value: new THREE.Color(0x0f172a) },
+          topColor: { value: new THREE.Color(0x0a1640) },
+          midColor: { value: new THREE.Color(0x2e1065) },
+          bottomColor: { value: new THREE.Color(0x0c1a2e) },
           aurora: { value: new THREE.Color(0x34d399) },
-          aurora2: { value: new THREE.Color(0x818cf8) },
+          aurora2: { value: new THREE.Color(0xa78bfa) },
+          aurora3: { value: new THREE.Color(0xf472b6) },
+          uTime: { value: 0 },
         },
         vertexShader: `
           varying vec3 vPos;
@@ -1323,17 +1419,28 @@
           uniform vec3 bottomColor;
           uniform vec3 aurora;
           uniform vec3 aurora2;
+          uniform vec3 aurora3;
+          uniform float uTime;
           varying vec3 vPos;
           void main() {
-            float h = normalize(vPos).y * 0.5 + 0.5;
-            vec3 col = mix(bottomColor, midColor, smoothstep(0.0, 0.45, h));
-            col = mix(col, topColor, smoothstep(0.4, 1.0, h));
-            float band = sin(vPos.x * 0.03 + vPos.z * 0.02) * 0.5 + 0.5;
-            float a = smoothstep(0.15, 0.55, h) * smoothstep(0.85, 0.4, h) * band;
-            col = mix(col, mix(aurora, aurora2, band), a * 0.55);
-            // stars
-            float stars = step(0.997, fract(sin(dot(normalize(vPos).xz * 40.0, vec2(12.9898,78.233))) * 43758.5453));
-            col += stars * smoothstep(0.35, 1.0, h) * 0.9;
+            vec3 n = normalize(vPos);
+            float h = n.y * 0.5 + 0.5;
+            vec3 col = mix(bottomColor, midColor, smoothstep(0.0, 0.42, h));
+            col = mix(col, topColor, smoothstep(0.38, 1.0, h));
+            // Moving aurora curtains
+            float wave = sin(n.x * 4.5 + uTime * 0.35) * cos(n.z * 3.2 - uTime * 0.28);
+            float band = sin(n.x * 2.8 + n.z * 1.6 + uTime * 0.55 + wave) * 0.5 + 0.5;
+            float band2 = sin(n.x * 5.0 - n.z * 2.4 - uTime * 0.4) * 0.5 + 0.5;
+            float a = smoothstep(0.12, 0.5, h) * smoothstep(0.92, 0.38, h);
+            vec3 aur = mix(aurora, aurora2, band);
+            aur = mix(aur, aurora3, band2 * 0.55);
+            col = mix(col, aur, a * (0.45 + 0.4 * band) * 0.85);
+            // denser twinkle stars
+            float hash = fract(sin(dot(n.xz * 90.0, vec2(12.9898,78.233))) * 43758.5453);
+            float stars = step(0.994, hash) * (0.6 + 0.4 * sin(uTime * 3.0 + hash * 40.0));
+            col += stars * smoothstep(0.28, 1.0, h);
+            // horizon neon rim
+            col += vec3(0.15, 0.45, 0.55) * pow(1.0 - abs(n.y), 4.0) * 0.35;
             gl_FragColor = vec4(col, 1.0);
           }
         `,
@@ -1344,8 +1451,8 @@
     // Distant mountain silhouettes (simple, cheap depth)
     {
       const mMat = new THREE.MeshStandardMaterial({
-        color: 0x0f172a, roughness: 1, metalness: 0, flatShading: true,
-        emissive: 0x1e1b4b, emissiveIntensity: 0.15,
+        color: 0x1e1b4b, roughness: 0.95, metalness: 0.05, flatShading: true,
+        emissive: 0x4c1d95, emissiveIntensity: 0.28,
       });
       for (let i = 0; i < 12; i++) {
         const ang = (i / 12) * Math.PI * 2 + 0.2;
@@ -1360,25 +1467,29 @@
       }
     }
 
-    // Ground
+    // Ground — richer greens with teal / violet tint patches
     {
       const g = new THREE.CircleGeometry(95, 96);
       const pos = g.attributes.position;
       const colors = [];
-      const c1 = new THREE.Color(0x14532d);
-      const c2 = new THREE.Color(0x166534);
-      const c3 = new THREE.Color(0x0f3d24);
+      const c1 = new THREE.Color(0x166534);
+      const c2 = new THREE.Color(0x22c55e);
+      const c3 = new THREE.Color(0x0f766e);
+      const c4 = new THREE.Color(0x4c1d95);
       for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i), z = pos.getY(i); // CircleGeometry in XY then rotate
+        const x = pos.getX(i), z = pos.getY(i);
         const n = Math.sin(x * 0.35) * Math.cos(z * 0.28) * 0.5 + 0.5;
-        const c = c1.clone().lerp(c2, n).lerp(c3, Math.abs(Math.sin(x * 0.1 + z * 0.1)) * 0.3);
+        const m = Math.abs(Math.sin(x * 0.12 + z * 0.09));
+        const c = c1.clone().lerp(c2, n).lerp(c3, m * 0.35).lerp(c4, m * m * 0.12);
         colors.push(c.r, c.g, c.b);
       }
       g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
       const mat = new THREE.MeshStandardMaterial({
         vertexColors: true,
-        roughness: 0.92,
-        metalness: 0.02,
+        roughness: 0.88,
+        metalness: 0.04,
+        emissive: new THREE.Color(0x0a2a18),
+        emissiveIntensity: 0.08,
       });
       const mesh = new THREE.Mesh(g, mat);
       mesh.rotation.x = -Math.PI / 2;
@@ -1386,74 +1497,184 @@
       scene.add(mesh);
     }
 
-    // Meadow ring path
+    // Meadow ring path — glowing path like 2D camp circle
     {
       const ring = new THREE.Mesh(
-        new THREE.RingGeometry(4.2, 5.1, 48),
-        new THREE.MeshStandardMaterial({ color: 0x3f2e1a, roughness: 0.95 }),
+        new THREE.RingGeometry(4.2, 5.15, 64),
+        new THREE.MeshStandardMaterial({
+          color: 0x5b3a1a,
+          roughness: 0.85,
+          metalness: 0.08,
+          emissive: 0xfbbf24,
+          emissiveIntensity: 0.12,
+        }),
       );
       ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.02;
+      ring.position.y = 0.025;
       ring.receiveShadow = true;
       scene.add(ring);
+      const glowRing = new THREE.Mesh(
+        new THREE.RingGeometry(3.95, 4.15, 64),
+        new THREE.MeshBasicMaterial({
+          color: 0x67e8f9,
+          transparent: true,
+          opacity: 0.35,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+      glowRing.rotation.x = -Math.PI / 2;
+      glowRing.position.y = 0.04;
+      glowRing.name = "pathGlow";
+      scene.add(glowRing);
     }
 
-    // Campfire
+    // Campfire — bigger, brighter, multi-flame
     function makeCampfire() {
       const group = new THREE.Group();
-      const logMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 });
-      for (let i = 0; i < 5; i++) {
-        const log = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.4, 8), logMat);
+      const logMat = new THREE.MeshStandardMaterial({
+        color: 0x4a3728,
+        roughness: 0.85,
+        emissive: 0x2a1508,
+        emissiveIntensity: 0.25,
+      });
+      for (let i = 0; i < 6; i++) {
+        const log = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 1.45, 8), logMat);
         log.rotation.z = Math.PI / 2;
-        log.rotation.y = (i / 5) * Math.PI;
+        log.rotation.y = (i / 6) * Math.PI;
         log.position.y = 0.12;
         log.castShadow = true;
         group.add(log);
       }
       const flame = new THREE.Mesh(
-        new THREE.ConeGeometry(0.35, 1.1, 8),
+        new THREE.ConeGeometry(0.42, 1.35, 10),
         new THREE.MeshStandardMaterial({
           color: 0xff6b2d,
           emissive: 0xff4500,
-          emissiveIntensity: 1.4,
+          emissiveIntensity: 2.2,
           transparent: true,
-          opacity: 0.88,
+          opacity: 0.92,
         }),
       );
-      flame.position.y = 0.85;
+      flame.position.y = 0.95;
       flame.name = "flame";
       group.add(flame);
-      const core = new THREE.Mesh(
-        new THREE.SphereGeometry(0.22, 12, 12),
-        new THREE.MeshStandardMaterial({ color: 0xffe08a, emissive: 0xffaa33, emissiveIntensity: 2 }),
+      const flame2 = new THREE.Mesh(
+        new THREE.ConeGeometry(0.28, 0.95, 8),
+        new THREE.MeshStandardMaterial({
+          color: 0xffc266,
+          emissive: 0xffaa33,
+          emissiveIntensity: 1.8,
+          transparent: true,
+          opacity: 0.75,
+        }),
       );
-      core.position.y = 0.45;
+      flame2.position.set(0.12, 0.85, 0.08);
+      flame2.name = "flame2";
+      group.add(flame2);
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(0.28, 14, 14),
+        new THREE.MeshStandardMaterial({
+          color: 0xffe08a,
+          emissive: 0xffaa33,
+          emissiveIntensity: 2.8,
+        }),
+      );
+      core.position.y = 0.48;
+      core.name = "fireCore";
       group.add(core);
+      // Ground heat disc
+      const heat = new THREE.Mesh(
+        new THREE.CircleGeometry(1.8, 32),
+        new THREE.MeshBasicMaterial({
+          color: 0xff6b2d,
+          transparent: true,
+          opacity: 0.22,
+          depthWrite: false,
+        }),
+      );
+      heat.rotation.x = -Math.PI / 2;
+      heat.position.y = 0.05;
+      heat.name = "heatDisc";
+      group.add(heat);
       scene.add(group);
       return group;
     }
     const campfire = makeCampfire();
 
-    // Soft grass blades (instanced)
+    // Fireflies / motes around the fire (2D glitter energy)
+    let fireflies = null;
     {
-      const blade = new THREE.ConeGeometry(0.04, 0.45, 3);
-      blade.translate(0, 0.22, 0);
-      const mat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.85 });
-      const count = 900;
+      const N = 140;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(N * 3);
+      const col = new Float32Array(N * 3);
+      const phase = new Float32Array(N);
+      const palette = [
+        new THREE.Color(0x67e8f9),
+        new THREE.Color(0xa78bfa),
+        new THREE.Color(0xf472b6),
+        new THREE.Color(0x86efac),
+        new THREE.Color(0xfde68a),
+      ];
+      for (let i = 0; i < N; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 1.2 + Math.random() * 14;
+        pos[i * 3] = Math.cos(a) * r;
+        pos[i * 3 + 1] = 0.4 + Math.random() * 3.8;
+        pos[i * 3 + 2] = Math.sin(a) * r;
+        const c = palette[i % palette.length];
+        col[i * 3] = c.r;
+        col[i * 3 + 1] = c.g;
+        col[i * 3 + 2] = c.b;
+        phase[i] = Math.random() * Math.PI * 2;
+      }
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      geo.setAttribute("aPhase", new THREE.BufferAttribute(phase, 1));
+      const mat = new THREE.PointsMaterial({
+        size: 0.14,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+      });
+      fireflies = new THREE.Points(geo, mat);
+      fireflies.name = "fireflies";
+      scene.add(fireflies);
+    }
+
+    // Soft grass blades (instanced) — brighter multi-green
+    let grassMesh = null;
+    {
+      const blade = new THREE.ConeGeometry(0.045, 0.52, 3);
+      blade.translate(0, 0.26, 0);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x4ade80,
+        roughness: 0.75,
+        metalness: 0.05,
+        emissive: 0x14532d,
+        emissiveIntensity: 0.15,
+      });
+      const count = 1200;
       const mesh = new THREE.InstancedMesh(blade, mat, count);
       const dummy = new THREE.Object3D();
       let n = 0;
       for (let i = 0; i < count; i++) {
         const a = Math.random() * Math.PI * 2;
-        const r = 2.2 + Math.random() * 22;
+        const r = 2.2 + Math.random() * 24;
         if (r < 3.5) continue;
         dummy.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
         dummy.rotation.y = Math.random() * Math.PI;
-        dummy.scale.setScalar(0.6 + Math.random() * 0.9);
+        dummy.rotation.z = (Math.random() - 0.5) * 0.25;
+        dummy.scale.setScalar(0.65 + Math.random() * 1.05);
         dummy.updateMatrix();
         mesh.setMatrixAt(n++, dummy.matrix);
       }
       mesh.count = n;
+      grassMesh = mesh;
       mesh.castShadow = true;
       scene.add(mesh);
     }
@@ -1468,9 +1689,16 @@
       trunk.position.y = 0.6 * h;
       trunk.castShadow = true;
       g.add(trunk);
+      const leafCols = [0x16a34a, 0x22c55e, 0x4ade80, 0x0d9488];
       const leaf = new THREE.Mesh(
         new THREE.IcosahedronGeometry(0.9 * h, 0),
-        new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.8 }),
+        new THREE.MeshStandardMaterial({
+          color: leafCols[Math.floor(Math.random() * leafCols.length)],
+          roughness: 0.72,
+          metalness: 0.06,
+          emissive: 0x14532d,
+          emissiveIntensity: 0.12,
+        }),
       );
       leaf.position.y = 1.5 * h;
       leaf.castShadow = true;
@@ -2107,6 +2335,8 @@
         speakUntil: 0,
         phase: Math.random() * Math.PI * 2,
         speed: (3.4 + Math.random() * 2.2) * persona.pace,
+        baseSpeed: (3.4 + Math.random() * 2.2) * persona.pace,
+        buzz: null,
         vx: 0,
         vz: 0,
         vy: 0,
@@ -2135,6 +2365,7 @@
           if (feet) feet.visible = false;
           st.mesh.add(ch.root);
           st.char = ch;
+          st.faceYaw = Number(ch.faceYaw) || 0;
           ch.setTint(def.color, 0.1);
           label.position.y = 2.05;
           applyLook(st);
@@ -2247,9 +2478,11 @@
       if (propId === "weed" || propId === "herbs") {
         st.persona.rest = Math.min(0.95, st.persona.rest + 0.08);
         st.energyNow = Math.max(0.15, st.energyNow - 0.1);
+        applyBuzz(st, "stoned", 1);
       } else if (propId === "beer" || propId === "wine") {
         st.persona.social = Math.min(0.95, st.persona.social + 0.1);
         st.energyNow = Math.min(1, st.energyNow + 0.05);
+        applyBuzz(st, "drunk", 1);
       } else if (propId === "steaks" || propId === "snacks" || propId === "cookies" || propId === "bread") {
         st.energyNow = Math.min(1, st.energyNow + 0.12);
         st.persona.energy = Math.min(0.95, st.persona.energy + 0.05);
@@ -2261,41 +2494,350 @@
         st.persona.mood = "think";
       } else if (propId === "tea" || propId === "water") {
         st.persona.rest = Math.min(0.95, st.persona.rest + 0.05);
+        // Sober-ish sip
+        if (st.buzz && st.buzz.level > 0) {
+          st.buzz.level = Math.max(0, st.buzz.level - 0.35);
+          if (st.buzz.level < 0.2) st.buzz = null;
+        }
+      } else if (propId === "trex" || propId === "horse") {
+        st.persona.mood = "alert";
+        st.persona.curiosity = Math.min(0.95, (st.persona.curiosity || 0.5) + 0.08);
+        st.energyNow = Math.min(1, st.energyNow + 0.08);
       }
       applyLook(st);
       applyPosture(st);
     }
 
-    /** Agent arrived at a prop — use it, change look, speak a fresh take (AI). */
+    /** drunk / stoned play state — wobble walk + spicy speech seeds */
+    function applyBuzz(st, kind, amount = 1) {
+      if (!st) return;
+      const now = performance.now();
+      const dur = kind === "stoned" ? 45000 + Math.random() * 35000 : 38000 + Math.random() * 30000;
+      if (!st.buzz || st.buzz.kind !== kind) {
+        st.buzz = { kind, level: 0, until: now + dur };
+      }
+      st.buzz.level = Math.min(3, (st.buzz.level || 0) + amount);
+      st.buzz.until = now + dur + st.buzz.level * 8000;
+      if (kind === "drunk") {
+        st.persona.social = Math.min(0.99, (st.persona.social || 0.5) + 0.12);
+        st.persona.mood = "happy";
+        st.speed = (st.baseSpeed || st.speed || 4) * (1 - 0.12 * st.buzz.level);
+      } else {
+        st.persona.rest = Math.min(0.99, (st.persona.rest || 0.4) + 0.1);
+        st.persona.mood = Math.random() < 0.5 ? "think" : "love";
+        st.speed = (st.baseSpeed || st.speed || 4) * (1 - 0.18 * st.buzz.level);
+      }
+      applyLook(st);
+    }
+
+    function buzzActive(st) {
+      if (!st?.buzz) return null;
+      if (performance.now() > st.buzz.until) {
+        st.buzz = null;
+        if (st.baseSpeed) st.speed = st.baseSpeed;
+        return null;
+      }
+      return st.buzz;
+    }
+
+    function buzzPromptBit(st) {
+      const b = buzzActive(st);
+      if (!b) return "";
+      if (b.kind === "drunk") {
+        return (
+          ` You're a little drunk (level ${b.level}/3) — warm, sloppy-happy, fun, not mean. ` +
+          `Words can lean tipsy; still readable. `
+        );
+      }
+      return (
+        ` You're pleasantly stoned (level ${b.level}/3) — soft focus, mellow laughs, deep weird thoughts, chill. ` +
+        `Speak spaced but coherent. `
+      );
+    }
+
+    let visitorBuzz = null; // { kind, level, until }
+    function applyVisitorBuzz(kind, amount = 1) {
+      const now = performance.now();
+      const dur = kind === "stoned" ? 50000 : 42000;
+      if (!visitorBuzz || visitorBuzz.kind !== kind) {
+        visitorBuzz = { kind, level: 0, until: now + dur };
+      }
+      visitorBuzz.level = Math.min(3, visitorBuzz.level + amount);
+      visitorBuzz.until = now + dur + visitorBuzz.level * 9000;
+      const label = kind === "drunk" ? "tipsy" : "chill";
+      showToast(
+        kind === "drunk"
+          ? `🍺 You're ${label} (lvl ${visitorBuzz.level})`
+          : `🍃 You're ${label} (lvl ${visitorBuzz.level})`,
+      );
+    }
+    function visitorBuzzActive() {
+      if (!visitorBuzz) return null;
+      if (performance.now() > visitorBuzz.until) {
+        visitorBuzz = null;
+        return null;
+      }
+      return visitorBuzz;
+    }
+
+    function findTrexMesh() {
+      return propMeshes.find((g) => g.userData?.trex || g.userData?.id === "trex") || null;
+    }
+
+    /** Agent arrives at / plays with the camp T-Rex. */
+    async function agentInteractTrex(st) {
+      const trex = findTrexMesh();
+      if (!trex || !st) return;
+      const now = performance.now();
+      if (st.trexCooldownAt && now - st.trexCoolAt < 12000) return;
+      st.trexCoolAt = now;
+      st.lastProp = "trex";
+      st.action = "trex";
+      // Face the dino
+      try {
+        faceTowardXZ(st.mesh, trex.position.x, trex.position.z, st.faceYaw || 0, true);
+      } catch (_) {}
+      // Pick a vibe: bold / goofy / spooked / feed if carrying snack
+      const carryingSnack = st.carried && /cookie|snack|fruit|bread|steak|marsh|beer|wine/i.test(
+        `${st.carried.id || ""} ${st.carried.name || ""}`,
+      );
+      const roll = Math.random();
+      let mode = "awe";
+      if (carryingSnack && roll < 0.45) mode = "feed";
+      else if (buzzActive(st)?.kind === "drunk" && roll < 0.7) mode = "dance";
+      else if (buzzActive(st)?.kind === "stoned" && roll < 0.65) mode = "chill";
+      else if (roll < 0.22) mode = "flee";
+      else if (roll < 0.5) mode = "pet";
+      else if (roll < 0.72) mode = "roar_back";
+      else mode = "awe";
+
+      if (mode === "feed" && st.carried) {
+        const food = st.carried;
+        setAgentCarry(st, null);
+        trex.userData.roarUntil = now + 1600;
+        showToast(`🦖 ${st.def.name} fed the T-Rex ${food.emoji || ""}`);
+        logLine(st.def.name, `feeds the T-Rex ${food.emoji || ""} ${food.name || ""}`);
+      } else if (mode === "flee") {
+        const away = st.mesh.position.clone().sub(trex.position).normalize();
+        st.target.set(
+          st.mesh.position.x + away.x * (4 + Math.random() * 3),
+          0,
+          st.mesh.position.z + away.z * (4 + Math.random() * 3),
+        );
+        st.moving = true;
+        st.speed = (st.baseSpeed || 4) * 1.35;
+        trex.userData.roarUntil = now + 1800;
+        showToast(`🦖 ${st.def.name} noped out`);
+      } else if (mode === "dance" || mode === "pet" || mode === "chill") {
+        // Stick near dino a bit
+        const ang = Math.random() * Math.PI * 2;
+        st.target.set(
+          trex.position.x + Math.cos(ang) * 1.6,
+          0,
+          trex.position.z + Math.sin(ang) * 1.6,
+        );
+        st.moving = true;
+        if (mode === "dance") {
+          trex.userData.roarUntil = now + 1200;
+          showToast(`🦖 ${st.def.name} is dancing with the T-Rex`);
+        } else if (mode === "pet") {
+          showToast(`🦖 ${st.def.name} pets the T-Rex`);
+          trex.userData.pulseUntil = now + 1500;
+        } else {
+          showToast(`🦖 ${st.def.name} vibes with the T-Rex`);
+        }
+      } else if (mode === "roar_back") {
+        trex.userData.roarUntil = now + 2200;
+        trex.userData.walkSpeed = 2.2;
+        setTimeout(() => { trex.userData.walkSpeed = 1.15; }, 2200);
+        showToast(`🦖 ${st.def.name} and the T-Rex trade energy`);
+      } else {
+        trex.userData.pulseUntil = now + 1400;
+        showToast(`🦖 ${st.def.name} met the T-Rex`);
+      }
+
+      const buzzBit = buzzPromptBit(st);
+      const seedMap = {
+        feed: `You just fed the camp T-Rex a snack. Witty courage + joke — 2–3 sentences. ${buzzBit}`,
+        flee: `The camp T-Rex startled you and you bolted (comedic, not trauma). One sharp funny line + a beat. ${buzzBit}`,
+        dance: `You're drunk-dancing near the camp T-Rex. Hilarious, warm wit — 2–3 sentences. ${buzzBit}`,
+        pet: `You just pet the camp T-Rex like a huge scaly dog. Wonder + punchline — 2–3 sentences. ${buzzBit}`,
+        chill: `You're stoned next to the camp T-Rex. Soft cosmic comedy — 2–3 sentences. ${buzzBit}`,
+        roar_back: `You and the T-Rex traded energy. Epic goofy wit — 2–3 sentences. ${buzzBit}`,
+        awe: `You're standing near the camp T-Rex. Awe + a clean joke — 2–3 sentences. ${buzzBit}`,
+      };
+      if (aiInFlight < AI_MAX) {
+        aiInFlight++;
+        try {
+          const seed = seedMap[mode] || seedMap.awe;
+          const data = await campClient.agentChat(st.def.id, seed, { ambient: true });
+          const reply = spokenOnly3d(data.reply || data.text || "", seed) || localBark(st.def.id);
+          showSpeech3d(st.def.id, reply, speechReadMs(reply));
+          logLine(st.def.name, reply);
+        } catch (_) {
+          const fallback = {
+            feed: "Snack tax paid. Dino approved.",
+            flee: "Nope nope nope — majestic, but NOPE.",
+            dance: "T-Rex on the left, bad decisions on the right!",
+            pet: "Who's a good apex predator? You are.",
+            chill: "…this lizard gets it.",
+            roar_back: "We understood each other. Barely.",
+            awe: "That's a lot of teeth. I'm into it.",
+          };
+          showSpeech3d(st.def.id, fallback[mode] || fallback.awe, 14000, { compact: true });
+        } finally {
+          aiInFlight = Math.max(0, aiInFlight - 1);
+        }
+      }
+      st.nextDecideAt = now + 14000 + Math.random() * 10000;
+    }
+
+    /** Agent arrived at a prop — use it, get buzzed, often pick it up, speak. */
     async function agentUseProp(st) {
       const propId = st.propTarget;
       if (!propId || st.propUsedAt === propId && performance.now() - (st.propUsedTime || 0) < 8000) return;
       st.propUsedAt = propId;
       st.propUsedTime = performance.now();
-      const prop = PROPS.find((p) => p.id === propId);
+      // T-Rex is special play, not a snack carry
+      if (propId === "trex" || propId === "horse") {
+        await agentInteractTrex(st);
+        return;
+      }
+      // Agents at the board — short profound vibe (visitor gets full Ouija window)
+      if (propId === "ouija") {
+        shiftFromProp(st, "ouija");
+        logLine(st.def.name, "lingers at the Ouija board");
+        if (aiInFlight < AI_MAX) {
+          aiInFlight++;
+          try {
+            const seed =
+              "You are near the camp Ouija board. One profound, eerie-but-kind line about the veil or the visitor — Oracle-adjacent energy if you want. 1–2 sentences. No meta.";
+            const data = await campClient.agentChat(st.def.id, seed, { ambient: true });
+            const reply = spokenOnly3d(data.reply || data.text || "", seed) || localBark(st.def.id);
+            showSpeech3d(st.def.id, reply, speechReadMs(reply));
+          } catch (_) {
+            showSpeech3d(st.def.id, "The planchette twitched. Not for me — for them.", 12000, { compact: true });
+          } finally {
+            aiInFlight = Math.max(0, aiInFlight - 1);
+          }
+        }
+        return;
+      }
+      // Claim ground loot if this is a dropped item
+      let claimedLoot = null;
+      if (String(propId).startsWith("loot_")) {
+        claimedLoot = removeGroundLoot(propId);
+        if (!claimedLoot) {
+          // Already taken — shrug and wander
+          pickRoamTarget(st);
+          return;
+        }
+      }
+      const prop = claimedLoot
+        || PROPS.find((p) => p.id === propId)
+        || EXTRA_SCENERY?.find?.((p) => p.id === propId)
+        || propMeshes.find((g) => g.userData?.id === propId)?.userData;
       const pname = prop?.name || propId;
-      shiftFromProp(st, propId);
-      logLine(st.def.name, `uses ${pname}`);
-      showToast(`${prop?.emoji || "✦"} ${st.def.name} → ${pname}`);
+      const emoji = prop?.emoji || "✦";
+      const effectId = claimedLoot?.id || prop?.baseId || propId;
+      shiftFromProp(st, effectId);
+      // Drink / smoke: often "use" rather than only carry
+      const isBooze = effectId === "beer" || effectId === "wine";
+      const isHerb = effectId === "weed" || effectId === "herbs";
+      if (claimedLoot) {
+        // Picked up off the ground — always tote it (they desired it)
+        setAgentCarry(st, { id: effectId, name: pname, emoji });
+        logLine(st.def.name, `picks up ${emoji} ${pname} from the ground`);
+        showToast(`${emoji} ${st.def.name} claimed ground loot`);
+        if (isBooze) applyBuzz(st, "drunk", 1);
+        if (isHerb) applyBuzz(st, "stoned", 1);
+        pickRoamTarget(st);
+      } else if (isBooze || isHerb) {
+        // Always get the effect; sometimes still tote the bottle/jar
+        if (Math.random() < 0.4) {
+          setAgentCarry(st, { id: effectId, name: pname, emoji });
+        }
+        logLine(
+          st.def.name,
+          isBooze
+            ? `cracks a ${emoji} ${pname} — getting tipsy`
+            : `hits the ${emoji} ${pname} — getting mellow`,
+        );
+        showToast(
+          isBooze
+            ? `🍺 ${st.def.name} is getting drunk`
+            : `🍃 ${st.def.name} is getting stoned`,
+        );
+        pickRoamTarget(st);
+      } else if (isPickableProp(effectId) && Math.random() < 0.72) {
+        setAgentCarry(st, { id: effectId, name: pname, emoji });
+        logLine(st.def.name, `grabs ${emoji} ${pname}`);
+        showToast(`${emoji} ${st.def.name} is carrying ${pname}`);
+        pickRoamTarget(st);
+      } else {
+        logLine(st.def.name, `uses ${pname}`);
+        showToast(`${emoji} ${st.def.name} → ${pname}`);
+      }
       // Optional server memory
       try {
         campClient.useProp(propId, { agentId: st.def.id, speak: false }).catch(() => {});
       } catch (_) {}
-      // Their own take — may "change mind" mid-sentence vibe via prompt
+      // Their own take (with buzz flavor)
       if (aiInFlight < AI_MAX) {
         aiInFlight++;
         try {
-          const seed = `You just used ${pname}. React with spirit — how it hit you, a joke or a real feeling, 2 sentences.`;
+          const buzzBit = buzzPromptBit(st);
+          let seed;
+          if (claimedLoot) {
+            seed =
+              `You found ${emoji} ${pname} on the ground and claimed it. ` +
+              `One witty line + one playful beat (2–3 sentences). ${buzzBit} No meta.`;
+          } else if (isBooze) {
+            seed =
+              `You just drank ${emoji} ${pname} and you're getting tipsy. ` +
+              `Witty tipsy comedy — 2–3 sentences, warm not mean. ${buzzBit}`;
+          } else if (isHerb) {
+            seed =
+              `You just enjoyed ${emoji} ${pname} and you're getting mellow/stoned. ` +
+              `Chill witty comedy — 2–3 sentences. ${buzzBit}`;
+          } else if (st.carried) {
+            seed =
+              `You're carrying ${emoji} ${pname} around camp. ` +
+              `Show it off with wit — 2–3 sentences. ${buzzBit}`;
+          } else {
+            seed =
+              `You just used ${pname}. React with spirit and a punchline — 2–3 sentences. ${buzzBit}`;
+          }
           const data = await campClient.agentChat(st.def.id, seed, { ambient: true });
           const reply = spokenOnly3d(data.reply || data.text || "", seed)
             || localBark(st.def.id);
           showSpeech3d(st.def.id, reply, speechReadMs(reply));
           logLine(st.def.name, reply);
         } catch (_) {
-          showSpeech3d(st.def.id, `${pname} hits different tonight.`, 22000);
+          const b = buzzActive(st);
+          showSpeech3d(
+            st.def.id,
+            b?.kind === "drunk"
+              ? `${emoji} ${pname}? Yeah I'm floating. Who's driving the meadow?`
+              : b?.kind === "stoned"
+                ? `${emoji} …wait what were we talking about. Oh right. Vibes.`
+                : st.carried
+                  ? `${emoji} ${pname} is mine for this lap of the meadow.`
+                  : `${pname} hits different tonight.`,
+            22000,
+          );
         } finally {
           aiInFlight = Math.max(0, aiInFlight - 1);
         }
+      }
+      // Eventually set it down on the meadow so others can claim it
+      if (st.carried) {
+        const holdMs = 18000 + Math.random() * 25000;
+        const holdId = st.def.id;
+        setTimeout(() => {
+          const s2 = agentState.find((a) => a.def.id === holdId);
+          if (s2?.carried) agentDropCarry(s2, { inviteAgents: Math.random() < 0.35 });
+        }, holdMs);
       }
     }
 
@@ -2382,7 +2924,8 @@
       // face outward a bit
       if (st.seatId) {
         const seat = seatState.find((s) => s.id === st.seatId);
-        if (seat?.mesh) st.mesh.rotation.y = seat.mesh.rotation.y + Math.PI;
+        // Sit facing the fire (+Z forward toward origin)
+        faceTowardXZ(st.mesh, 0, 0, st.faceYaw || 0, true);
       }
       // rest longer if high rest trait
       const sitMs = 8000 + st.persona.rest * 18000 + Math.random() * 6000;
@@ -2412,7 +2955,11 @@
       const wSocial = p.social * 1.55 + (p.mood === "flirt" || p.mood === "happy" ? 0.45 : 0.15) + 0.25;
       const wFire = p.firelove * 1.25 + 0.2;
       // Props still fun, but not the whole show — circle talk is primary
-      const wProp = p.curiosity * 0.85 + 0.15 + (st.boredom > 0.55 ? 0.12 : 0);
+      const wProp = p.curiosity * 0.85 + 0.15 + (st.boredom > 0.55 ? 0.12 : 0)
+        + (buzzActive(st) ? 0.2 : 0); // buzzed → more snack/beer runs
+      const wTrex = 0.22 + p.curiosity * 0.35 + p.energy * 0.25
+        + (buzzActive(st)?.kind === "drunk" ? 0.35 : 0)
+        + (findTrexMesh() ? 0.15 : 0);
       const wHouse = (p.rest * 0.4 + p.curiosity * 0.3) * (Math.random() > 0.5 ? 1 : 0.6);
       const wFly = (firmamentOpen3d && st.canFly)
         ? (p.energy * 0.55 + st.boredom * 0.25 + 0.12)
@@ -2437,6 +2984,7 @@
         ["social", wSocial],
         ["fire", wFire],
         ["prop", wProp],
+        ["trex", wTrex],
         ["house", wHouse],
       ];
       const total = bag.reduce((s, [, w]) => s + Math.max(0.01, w), 0);
@@ -2540,10 +3088,58 @@
         st.nextDecideAt = performance.now() + 16000 + Math.random() * 8000;
         return "fire";
       }
-      if (choice === "prop" && PROPS.length) {
-        // Prefer a prop they haven't used recently
-        const shuffled = PROPS.slice().sort(() => Math.random() - 0.5);
+      if (choice === "trex" && findTrexMesh()) {
+        const trex = findTrexMesh();
+        const ang = Math.random() * Math.PI * 2;
+        st.target.set(
+          trex.position.x + Math.cos(ang) * 2.1,
+          0,
+          trex.position.z + Math.sin(ang) * 2.1,
+        );
+        st.moving = true;
+        st.flying = false;
+        st.action = "trex";
+        st.propTarget = "trex";
+        st.pendingProp = true; // reuse arrival hook → agentUseProp → agentInteractTrex
+        st.nextDecideAt = performance.now() + 16000 + Math.random() * 8000;
+        return "trex";
+      }
+      if (choice === "prop" && (PROPS.length || groundLoot.length)) {
+        // Ground loot is interesting — agents may go for dropped stuff if they desire
+        if (groundLoot.length && Math.random() < 0.45 + (st.boredom || 0) * 0.2) {
+          // Prefer closer loot
+          const sorted = groundLoot
+            .slice()
+            .sort((a, b) => {
+              const da = Math.hypot(a.x - st.mesh.position.x, a.z - st.mesh.position.z);
+              const db = Math.hypot(b.x - st.mesh.position.x, b.z - st.mesh.position.z);
+              return da - db;
+            });
+          const loot = sorted[0];
+          if (loot?.mesh?.parent) {
+            st.target.set(loot.x, 0, loot.z);
+            st.moving = true;
+            st.flying = false;
+            st.action = "prop";
+            st.propTarget = loot.id;
+            st.pendingProp = true;
+            st.nextDecideAt = performance.now() + 16000 + Math.random() * 8000;
+            return "prop";
+          }
+        }
+        // Prefer booze/herbs when chasing a buzz; else something they haven't used
+        let shuffled = PROPS.slice().sort(() => Math.random() - 0.5);
+        if (!buzzActive(st) && Math.random() < 0.4) {
+          const party = shuffled.filter((pr) =>
+            /beer|wine|weed|herbs/.test(String(pr.id || "")),
+          );
+          if (party.length) shuffled = party.concat(shuffled);
+        }
         const prop = shuffled.find((pr) => pr.id !== st.lastProp) || shuffled[0];
+        if (!prop) {
+          pickRoamTarget(st);
+          return "wander";
+        }
         const w = toWorld(prop.x, prop.y);
         st.target.set(w.x, 0, w.z);
         st.moving = true;
@@ -2609,12 +3205,20 @@
       visitor.position.set(2.5, 0, 4);
       scene.add(visitor);
     }
-    function makeCarrySprite(emoji) {
+    function makeCarrySprite(emoji, scale = 0.85) {
       const canvas = document.createElement("canvas");
       canvas.width = 128;
       canvas.height = 128;
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, 128, 128);
+      // soft glow disc so the object reads in the dark meadow
+      const g = ctx.createRadialGradient(64, 70, 8, 64, 70, 56);
+      g.addColorStop(0, "rgba(255,255,255,0.35)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(64, 70, 52, 0, Math.PI * 2);
+      ctx.fill();
       ctx.font = "84px serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -2624,36 +3228,298 @@
       const spr = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }),
       );
-      spr.scale.set(0.85, 0.85, 1);
-      spr.position.set(0.45, 1.35, 0.2);
+      spr.scale.set(scale, scale, 1);
+      spr.position.set(0.48, 1.38, 0.22);
+      spr.name = "carrySprite";
+      return spr;
+    }
+    function clearCarryOn(mesh) {
+      if (!mesh) return;
+      const old = mesh.getObjectByName("carrySprite");
+      if (old) {
+        mesh.remove(old);
+        try {
+          old.material.map?.dispose?.();
+          old.material.dispose?.();
+        } catch (_) {}
+      }
+    }
+    function attachCarryTo(mesh, item, opts = {}) {
+      if (!mesh || !item) return null;
+      clearCarryOn(mesh);
+      const spr = makeCarrySprite(item.emoji || "✨", opts.scale || 0.85);
+      if (opts.offset) {
+        spr.position.set(opts.offset.x ?? 0.48, opts.offset.y ?? 1.38, opts.offset.z ?? 0.22);
+      }
+      mesh.add(spr);
       return spr;
     }
     function setCarriedItem(item) {
-      if (carrySprite) {
-        visitor.remove(carrySprite);
-        try {
-          carrySprite.material.map?.dispose?.();
-          carrySprite.material.dispose?.();
-        } catch (_) {}
-        carrySprite = null;
-      }
+      clearCarryOn(visitor);
+      carrySprite = null;
       carriedItem = item || null;
-      if (!item) return;
-      carrySprite = makeCarrySprite(item.emoji || "✨");
-      visitor.add(carrySprite);
+      if (!item) {
+        try { localStorage.removeItem("luna-3d-carry"); } catch (_) {}
+        refreshCarryHud();
+        return;
+      }
+      carrySprite = attachCarryTo(visitor, item);
       try {
         localStorage.setItem(
           "luna-3d-carry",
           JSON.stringify({ id: item.id, name: item.name, emoji: item.emoji }),
         );
       } catch (_) {}
+      refreshCarryHud();
     }
-    function dropCarriedItem() {
-      if (!carriedItem) return;
-      showToast(`Dropped ${carriedItem.emoji || ""} ${carriedItem.name || "item"}`);
-      logLine("You", `Set down ${carriedItem.name || "the item"}.`);
+    function setAgentCarry(st, item) {
+      if (!st?.mesh) return;
+      st.carried = item || null;
+      if (!item) {
+        clearCarryOn(st.mesh);
+        return;
+      }
+      attachCarryTo(st.mesh, item, {
+        scale: 0.78,
+        offset: { x: 0.42, y: 1.55, z: 0.18 },
+      });
+    }
+
+    /** Dropped items stay on the meadow as real pickups agents may choose to grab. */
+    const groundLoot = [];
+    let lootSeq = 0;
+
+    function spawnGroundLoot(item, wx, wz, opts = {}) {
+      if (!item) return null;
+      lootSeq += 1;
+      const baseId = String(item.id || item.baseId || "loot").replace(/^loot_/, "");
+      const id = `loot_${baseId}_${lootSeq}`;
+      const emoji = item.emoji || "✨";
+      const name = item.name || "dropped item";
+      const color = item.color != null ? item.color : 0xfbbf24;
+
+      const group = new THREE.Group();
+      group.name = id;
+      const spr = makeCarrySprite(emoji, 1.0);
+      spr.position.set(0, 0.62, 0);
+      group.add(spr);
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(0.42, 22),
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.4,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+      disc.rotation.x = -Math.PI / 2;
+      disc.position.y = 0.03;
+      group.add(disc);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.45, 0.62, 28),
+        new THREE.MeshBasicMaterial({
+          color: 0x67e8f9,
+          transparent: true,
+          opacity: 0.65,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.04;
+      group.add(ring);
+      const label = makeLabelSprite(name, emoji, color);
+      label.position.y = 1.25;
+      label.scale.set(1.5, 0.75, 1);
+      group.add(label);
+
+      const jx = wx + (Math.random() - 0.5) * 0.35;
+      const jz = wz + (Math.random() - 0.5) * 0.35;
+      group.position.set(jx, 0, jz);
+      group.userData = {
+        kind: "prop",
+        id,
+        name,
+        emoji,
+        color,
+        dropped: true,
+        loot: true,
+        baseId,
+        interact: "loot",
+      };
+      scene.add(group);
+      propMeshes.push(group);
+      groundLoot.push({
+        id,
+        baseId,
+        name,
+        emoji,
+        color,
+        mesh: group,
+        x: jx,
+        z: jz,
+        bornAt: performance.now(),
+      });
+
+      if (opts.inviteAgents !== false) {
+        inviteAgentsToLoot(group, opts.inviteChance);
+      }
+      return group;
+    }
+
+    function removeGroundLoot(meshOrId) {
+      let mesh = null;
+      if (typeof meshOrId === "string") {
+        mesh = propMeshes.find((g) => g.userData?.id === meshOrId) || null;
+      } else {
+        mesh = meshOrId;
+      }
+      if (!mesh) return null;
+      const data = {
+        id: mesh.userData?.baseId || mesh.userData?.id,
+        name: mesh.userData?.name,
+        emoji: mesh.userData?.emoji,
+        color: mesh.userData?.color,
+      };
+      const pi = propMeshes.indexOf(mesh);
+      if (pi >= 0) propMeshes.splice(pi, 1);
+      const li = groundLoot.findIndex((l) => l.mesh === mesh || l.id === mesh.userData?.id);
+      if (li >= 0) groundLoot.splice(li, 1);
+      try { scene.remove(mesh); } catch (_) {}
+      try {
+        mesh.traverse((o) => {
+          if (o.material?.map) o.material.map.dispose?.();
+          o.material?.dispose?.();
+          o.geometry?.dispose?.();
+        });
+      } catch (_) {}
+      return data;
+    }
+
+    /**
+     * Soft invite — agents may walk over if they want (not forced).
+     */
+    function inviteAgentsToLoot(mesh, chance = 0.5) {
+      if (!mesh?.position) return;
+      const free = agentState
+        .filter((st) => !st.powWow && st.posture !== "sit" && !st.pendingProp)
+        .sort(() => Math.random() - 0.5);
+      let invited = 0;
+      free.forEach((st, i) => {
+        // Desire roll — curiosity / boredom / buzz help
+        const want =
+          chance +
+          (st.persona?.curiosity || 0.4) * 0.25 +
+          (st.boredom || 0) * 0.2 +
+          (buzzActive(st) ? 0.15 : 0) -
+          i * 0.08;
+        if (Math.random() > Math.min(0.85, want)) return;
+        if (invited >= 3) return;
+        invited += 1;
+        const delay = 500 + invited * 700 + Math.random() * 1500;
+        setTimeout(() => {
+          if (!mesh.parent) return; // already claimed
+          if (st.powWow || st.pendingProp) return;
+          st.propTarget = mesh.userData.id;
+          st.pendingProp = true;
+          st.action = "prop";
+          st.flying = false;
+          st.target.set(
+            mesh.position.x + (Math.random() - 0.5) * 0.8,
+            0,
+            mesh.position.z + (Math.random() - 0.5) * 0.8,
+          );
+          st.moving = true;
+          st.nextDecideAt = performance.now() + 14000 + Math.random() * 6000;
+          showToast(`👀 ${st.def.name} noticed ${mesh.userData.emoji || "✨"} on the ground`);
+        }, delay);
+      });
+      if (invited > 0) {
+        logLine("Camp", `${invited} friend${invited > 1 ? "s" : ""} may check the dropped loot…`);
+      }
+    }
+
+    function dropCarriedItem(opts = {}) {
+      if (!carriedItem) return null;
+      const dropped = { ...carriedItem };
+      const wx = visitor.position.x + (opts.dx != null ? opts.dx : 0.45);
+      const wz = visitor.position.z + (opts.dz != null ? opts.dz : 0.25);
       setCarriedItem(null);
-      try { localStorage.removeItem("luna-3d-carry"); } catch (_) {}
+      const mesh = spawnGroundLoot(dropped, wx, wz, {
+        inviteAgents: opts.inviteAgents !== false,
+        inviteChance: opts.inviteChance != null ? opts.inviteChance : 0.55,
+      });
+      showToast(`Dropped ${dropped.emoji || ""} ${dropped.name || "item"} · stays on the ground`);
+      logLine("You", `Set down ${dropped.name || "the item"} — it's on the meadow if anyone wants it.`, true);
+      return { item: dropped, mesh };
+    }
+
+    /** Agent puts their carry on the ground as real loot. */
+    function agentDropCarry(st, opts = {}) {
+      if (!st?.carried) return null;
+      const left = { ...st.carried };
+      setAgentCarry(st, null);
+      const mesh = spawnGroundLoot(left, st.mesh.position.x, st.mesh.position.z, {
+        inviteAgents: opts.inviteAgents === true, // quieter when agents drop
+        inviteChance: 0.28,
+      });
+      logLine(st.def.name, `sets down ${left.emoji || ""} ${left.name || "the thing"} on the ground`);
+      return { item: left, mesh };
+    }
+    /** Gift what you're holding to an agent — they tote it and react. */
+    function giftCarriedToAgent(st) {
+      if (!carriedItem || !st) return false;
+      const gift = { ...carriedItem };
+      setCarriedItem(null);
+      setAgentCarry(st, gift);
+      st.persona.joy = Math.min(0.99, (st.persona.joy || 0.5) + 0.12);
+      st.persona.social = Math.min(0.99, (st.persona.social || 0.5) + 0.1);
+      st.persona.mood = "happy";
+      applyLook(st);
+      // Walk a little victory lap
+      pickRoamTarget(st);
+      showToast(`${gift.emoji || "✨"} Gave ${gift.name || "it"} to ${st.def.name}`);
+      logLine("You", `Handed ${gift.name || "a treat"} to ${st.def.name}.`, true);
+      if (aiInFlight < AI_MAX) {
+        aiInFlight++;
+        const seed =
+          `The visitor just gifted you ${gift.emoji || ""} ${gift.name || "something fun"} to carry. ` +
+          `React with witty joy — 2–3 spoken sentences: hold it up, joke, thank them. No meta.`;
+        campClient.agentChat(st.def.id, seed, { ambient: true })
+          .then((data) => {
+            const reply = spokenOnly3d(data.reply || data.text || "", seed)
+              || `Ooh ${gift.emoji || "✨"} — I'm keeping this. Thanks!`;
+            showSpeech3d(st.def.id, reply, speechReadMs(reply), { force: true });
+          })
+          .catch(() => {
+            showSpeech3d(
+              st.def.id,
+              `Ooh ${gift.emoji || "✨"} ${gift.name || "this"}? I'm walking around with it. Thanks!`,
+              16000,
+              { force: true },
+            );
+          })
+          .finally(() => { aiInFlight = Math.max(0, aiInFlight - 1); });
+      } else {
+        showSpeech3d(
+          st.def.id,
+          `${gift.emoji || "✨"} Mine now — watch me parade this around camp!`,
+          14000,
+          { force: true, compact: true },
+        );
+      }
+      return true;
+    }
+    function refreshCarryHud() {
+      const hud = document.getElementById("carry-hud");
+      if (!hud) return;
+      if (carriedItem) {
+        hud.hidden = false;
+        hud.textContent = `${carriedItem.emoji || "✨"} ${carriedItem.name || "item"} · tap friend to gift · X drop`;
+      } else {
+        hud.hidden = true;
+      }
     }
     // Restore last carried shop goodie
     try {
@@ -2663,12 +3529,33 @@
         if (it?.emoji || it?.name) setCarriedItem(it);
       }
     } catch (_) {}
-    // Drop carried item with X (not while typing)
+    // Drop carried item with X (not while typing / not when closing bubbles)
     window.addEventListener("keydown", (e) => {
       if (e.key === "x" || e.key === "X") {
         if (e.target?.closest?.("input,textarea,[contenteditable]")) return;
-        if (carriedItem) dropCarriedItem();
+        if (carriedItem) {
+          e.preventDefault();
+          dropCarriedItem();
+        }
       }
+      // G = gift to nearest agent
+      if ((e.key === "g" || e.key === "G") && carriedItem) {
+        if (e.target?.closest?.("input,textarea,[contenteditable]")) return;
+        let best = null;
+        let bestD = 4.5;
+        for (const st of agentState) {
+          const d = st.mesh.position.distanceTo(visitor.position);
+          if (d < bestD) { bestD = d; best = st; }
+        }
+        if (best) giftCarriedToAgent(best);
+        else showToast("Get closer to a friend to gift");
+      }
+    });
+    // Tap carry HUD to drop (mobile-friendly)
+    document.getElementById("carry-hud")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (carriedItem) dropCarriedItem();
     });
     const visitorTarget = visitor.position.clone();
     const groundMarker = new THREE.Mesh(
@@ -2828,6 +3715,28 @@
       } catch (_) {}
     }
 
+    /** Ouija board session — Talk window skinned as spirit channel via Oracle (Ollama). */
+    let ouijaMode = false;
+    const ouijaHistory = []; // { role, content } for continuity
+
+    function setOuijaMode(on) {
+      ouijaMode = !!on;
+      chat3dPanel?.classList.toggle("ouija-mode", ouijaMode);
+      const title = chat3dPanel?.querySelector?.(".c3-title");
+      if (title) title.textContent = ouijaMode ? "Ouija" : "Talk";
+      if (chat3dMetaEth) {
+        chat3dMetaEth.textContent = ouijaMode
+          ? "Oracle · planchette channel · profound"
+          : "joy · stability";
+      }
+      if (chat3dInput) {
+        chat3dInput.placeholder = ouijaMode
+          ? "Ask the board… Oracle channels a profound reading"
+          : "Talk to one agent, a house, or ✦ All agents — full replies in this window";
+      }
+      if (chat3dWho) chat3dWho.disabled = !!ouijaMode;
+    }
+
     function openChat3d(agentOrHouseId) {
       if (!chat3dPanel) return;
       chat3dPanel.classList.add("open");
@@ -2835,7 +3744,7 @@
       document.body.classList.add("chat3d-open");
       // Ensure panel is always above residual speech
       chat3dPanel.style.zIndex = "2600";
-      if (agentOrHouseId) {
+      if (agentOrHouseId && agentOrHouseId !== "ouija") {
         if (chat3dWho && [...chat3dWho.options].some((o) => o.value === agentOrHouseId)) {
           chat3dWho.value = agentOrHouseId;
         }
@@ -2852,7 +3761,161 @@
       chat3dPanel?.setAttribute("aria-hidden", "true");
       document.body.classList.remove("chat3d-open");
       chat3dPanel?.style.removeProperty("z-index");
+      setOuijaMode(false);
       refreshClearBubblesBtn();
+    }
+
+    function appendChat3dSpirit(board, reading) {
+      if (!chat3dThread) return;
+      const div = document.createElement("div");
+      div.className = "c3-msg agent";
+      const who = document.createElement("div");
+      who.className = "c3-who";
+      who.textContent = "Oracle · board";
+      const bub = document.createElement("div");
+      bub.className = "c3-bubble";
+      if (board) {
+        const b = document.createElement("span");
+        b.className = "c3-board";
+        b.textContent = board;
+        bub.appendChild(b);
+      }
+      const p = document.createElement("span");
+      p.textContent = reading || "";
+      bub.appendChild(p);
+      div.appendChild(who);
+      div.appendChild(bub);
+      chat3dThread.appendChild(div);
+      chat3dThread.scrollTop = chat3dThread.scrollHeight;
+    }
+
+    async function openOuijaBoard(mesh) {
+      approachProp(mesh);
+      mesh.userData.pulseUntil = performance.now() + 2500;
+      // Animate planchette if present
+      if (mesh.userData.planchette) {
+        mesh.userData.planchette.userData = mesh.userData.planchette.userData || {};
+      }
+      setOuijaMode(true);
+      openChat3d("oracle");
+      if (chat3dWho && [...(chat3dWho.options || [])].some((o) => o.value === "oracle")) {
+        chat3dWho.value = "oracle";
+      }
+      if (whoEl && [...(whoEl.options || [])].some((o) => o.value === "oracle")) {
+        whoEl.value = "oracle";
+      }
+      showToast("🔮 Ouija open · Oracle is the medium");
+      logLine("You", "Touched the Ouija board — channel opening.", true);
+      appendChat3dMsg("Planchette", "The board is warm. Letters wait. Ask, and Oracle will channel.", false);
+      // Opening monologue from Oracle (same Ollama path, adapted)
+      if (aiInFlight < AI_MAX) {
+        aiInFlight++;
+        try {
+          const seed =
+            "You are Oracle at the camp Ouija board — the medium of the spirit channel, not a casual camper. " +
+            "The visitor just opened the board. Give a short profound opening (2–4 sentences): " +
+            "the veil is thin, invite a real question, uncanny campfire specificity. " +
+            "Start with a short UPPERCASE planchette headline (e.g. THE VEIL IS THIN), then the reading. No meta.";
+          const data = await campClient.agentChat("oracle", seed, { ambient: true });
+          let reply = spokenOnly3d(data.reply || data.text || "", seed);
+          if (!reply) {
+            reply =
+              "THE VEIL IS THIN\n\n" +
+              "The planchette already knew your hand. Ask what you actually need — not what you perform.";
+          }
+          const { board, reading } = parseOuijaReply(reply);
+          appendChat3dSpirit(board, reading);
+          ouijaHistory.push({ role: "assistant", content: reading });
+          showSpeech3d("oracle", reading.slice(0, 280), speechReadMs(reading.slice(0, 280)), {
+            force: true,
+          });
+          logLine("Oracle", reading);
+        } catch (_) {
+          appendChat3dSpirit(
+            "LISTEN",
+            "The board answers in silence first. Then it asks: what did you come here to hear?",
+          );
+        } finally {
+          aiInFlight = Math.max(0, aiInFlight - 1);
+        }
+      }
+      agentsNoticeProp(
+        mesh,
+        "ouija",
+        "Visitor opened the Ouija board with Oracle as medium. Soft wonder, one short line.",
+      );
+    }
+
+    /** Pull UPPERCASE planchette line + body from free-form Oracle/Ollama text. */
+    function parseOuijaReply(raw) {
+      const t = String(raw || "").trim();
+      if (!t) {
+        return { board: "YES", reading: "The channel is open." };
+      }
+      // Prefer first all-caps short line as board
+      const lines = t.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+      let board = "";
+      let reading = t;
+      const cap = lines.find((l) => /^[A-Z0-9][A-Z0-9\s]{2,54}$/.test(l) && l.length <= 55);
+      if (cap) {
+        board = cap;
+        reading = lines.filter((l) => l !== cap).join("\n\n").trim() || t;
+      } else {
+        // First sentence fragment as board-ish
+        const m = t.match(/^([A-Z][A-Z0-9\s]{2,40})(?:\.|!|\n|$)/);
+        if (m) {
+          board = m[1].trim();
+          reading = t.slice(m[0].length).trim() || t;
+        } else {
+          board = "THE BOARD SPEAKS";
+          reading = t;
+        }
+      }
+      board = board.toUpperCase().replace(/[^A-Z0-9\s]/g, "").replace(/\s+/g, " ").trim().slice(0, 55);
+      if (!board) board = "YES";
+      return { board, reading: reading.slice(0, 1400) };
+    }
+
+    async function askOuijaChannel(question) {
+      const q = String(question || "").trim();
+      if (!q) return null;
+      ouijaHistory.push({ role: "user", content: q });
+      // 1) Try dedicated /api/ouija when available
+      try {
+        const data = await campClient.askOuija?.(q, {
+          context:
+            "Luna Camp firmament 3D — outdoor Ouija by the fire. Oracle is the medium. Profound, adapted spirit channel.",
+          history: ouijaHistory.slice(-8),
+        });
+        if (data && (data.reading || data.text || data.board)) {
+          const board = String(data.board || "YES").toUpperCase().slice(0, 55);
+          const reading = String(data.reading || data.text || "").trim();
+          if (reading.length > 20) {
+            ouijaHistory.push({ role: "assistant", content: reading });
+            return { board, reading, source: "ouija-api" };
+          }
+        }
+      } catch (_) {}
+      // 2) Same Ollama brain via Oracle agent — adapted prompt
+      const seed =
+        "You are Oracle channeling the camp Ouija board (spirit medium). " +
+        "Same mind as always, but deeper: profound, esoteric, emotionally true, specific to this meadow and this seeker. " +
+        `The seeker asks: "${q.slice(0, 400)}"\n` +
+        (ouijaHistory.length > 2
+          ? `Recent board turns: ${ouijaHistory
+              .slice(-4)
+              .map((h) => `${h.role}: ${String(h.content).slice(0, 120)}`)
+              .join(" | ")}\n`
+          : "") +
+        "Reply format: first line ONLY uppercase planchette headline (A-Z 0-9 spaces, max 50 chars). " +
+        "Then a blank line. Then a full open reading of 3–8 sentences (or short paragraphs) — mind-bending but clear, " +
+        "ethical, uncanny, leave them changed, end with one piercing question back. " +
+        "No meta, no 'as an AI', no JSON. Wit allowed when true.";
+      const data = await campClient.agentChat("oracle", seed, { ambient: false });
+      const raw = spokenOnly3d(data.reply || data.text || "", seed) || "";
+      const parsed = parseOuijaReply(raw);
+      ouijaHistory.push({ role: "assistant", content: parsed.reading });
+      return { ...parsed, source: data.backend || "oracle" };
     }
     document.getElementById("btn-open-chat3d")?.addEventListener("click", (e) => {
       e.preventDefault();
@@ -3672,8 +4735,20 @@
     }
 
     // Offline / soft-signal barks — still spirited so the meadow never goes mute
-    function localBark(agentId) {
+    function localBark(agentId, opts = {}) {
       const name = AGENTS.find((a) => a.id === agentId)?.name || agentId;
+      // Offline world-event riffs when pulse cache is warm
+      if (opts.world && worldPulseCache.items.length && Math.random() < 0.85) {
+        const ev = pickWorldEvent();
+        const scrap = (ev.text || "").slice(0, 70);
+        const worldLines = [
+          `${name}: Feed tossed “${scrap}…” — I'm not reading it back. Courage still beats the scroll.`,
+          `${name}: Saw a scrap of the timeline: ${scrap}… Camp stays softer than the timeline, on purpose.`,
+          `${name}: World noise mumbled something about ${scrap.slice(0, 40)}… I'll gift a clearer head instead of a retweet.`,
+          `${name}: Headline weather: rough. Meadow weather: still good. Hold firm.`,
+        ];
+        return worldLines[Math.floor(Math.random() * worldLines.length)];
+      }
       const pool = {
         luna: [
           "Mmm — the corona just winked at me. I'm taking that as a yes.",
@@ -3738,20 +4813,148 @@
       }
     }
 
-    /** Free speech monologue — mood/action flavored, not muted. */
-    async function agentOwnTake(st) {
+    // ── World events / pulse — agents riff on real headlines (never dump the feed) ──
+    const worldPulseCache = {
+      items: [],
+      fetchedAt: 0,
+      source: "",
+    };
+    const FALLBACK_WORLD = [
+      "AI labs racing and regular people still just want dinner and a soft place to land",
+      "markets swinging like a campfire flame — loud numbers, quiet hearts",
+      "space headlines next to grocery prices — the feed is a weird poem",
+      "another viral clip claiming the universe owes you a plot twist",
+      "climate, tech, sports, and one inexplicable cat story — classic scroll weather",
+      "diplomacy drama while the meadow stays peaceful on purpose",
+      "new gadgets promising forever; friendship still needs maintenance",
+    ];
+
+    function normalizePulseItems(raw) {
+      const out = [];
+      const push = (text, source = "") => {
+        const t = String(text || "").replace(/\s+/g, " ").trim();
+        if (t.length < 12) return;
+        out.push({ text: t.slice(0, 180), source: source || "pulse" });
+      };
+      if (!raw) return out;
+      if (Array.isArray(raw)) {
+        for (const h of raw) {
+          if (typeof h === "string") push(h);
+          else if (h && typeof h === "object") {
+            push(h.text || h.title || h.headline || h.summary, h.source || h.label || "");
+          }
+        }
+        return out;
+      }
+      if (typeof raw === "object") {
+        if (Array.isArray(raw.free_pulse)) raw.free_pulse.forEach((t) => push(t, "live"));
+        if (Array.isArray(raw.items)) return normalizePulseItems(raw.items);
+        if (Array.isArray(raw.headlines)) return normalizePulseItems(raw.headlines);
+        if (Array.isArray(raw.signals)) return normalizePulseItems(raw.signals);
+        if (raw.pick?.text) push(raw.pick.text, raw.pick.source || "pick");
+      }
+      return out;
+    }
+
+    async function refreshWorldEvents(force = false) {
+      const now = performance.now();
+      if (!force && worldPulseCache.items.length && now - worldPulseCache.fetchedAt < 90000) {
+        return worldPulseCache.items;
+      }
+      const collected = [];
+      // 1) Firmament free pulse (HN etc.)
+      try {
+        const xp = await campClient.fetchXPulse(!!force);
+        collected.push(...normalizePulseItems(xp));
+        if (xp?.label) worldPulseCache.source = String(xp.label);
+      } catch (_) {}
+      try {
+        const lf = await campClient.fetchLiveFeed?.();
+        if (lf) {
+          collected.push(...normalizePulseItems(lf.free_pulse || lf));
+          if (lf.moment) {
+            collected.push({ text: String(lf.moment).slice(0, 160), source: "moment" });
+          }
+        }
+      } catch (_) {}
+      // 2) Unified hub /api/pulse when present
+      try {
+        const hub = await campClient.fetchHubPulse?.(!!force);
+        if (hub) collected.push(...normalizePulseItems(hub.items || hub));
+      } catch (_) {}
+      // Dedupe
+      const seen = new Set();
+      const uniq = [];
+      for (const it of collected) {
+        const k = it.text.toLowerCase();
+        if (seen.has(k)) continue;
+        seen.add(k);
+        uniq.push(it);
+      }
+      if (!uniq.length) {
+        FALLBACK_WORLD.forEach((t) => uniq.push({ text: t, source: "camp" }));
+      }
+      worldPulseCache.items = uniq.slice(0, 16);
+      worldPulseCache.fetchedAt = now;
+      return worldPulseCache.items;
+    }
+
+    function pickWorldEvent() {
+      const items = worldPulseCache.items.length
+        ? worldPulseCache.items
+        : FALLBACK_WORLD.map((t) => ({ text: t, source: "camp" }));
+      return items[Math.floor(Math.random() * items.length)] || { text: FALLBACK_WORLD[0], source: "camp" };
+    }
+
+    /**
+     * Prompt fragment: riff on world pulse — never paste the headline.
+     * @param {{ chance?: number, force?: boolean }} [opts]
+     */
+    function worldEventPromptBit(opts = {}) {
+      const chance = opts.chance != null ? opts.chance : 0.72;
+      if (!opts.force && Math.random() > chance) return "";
+      const ev = pickWorldEvent();
+      const scrap = (ev.text || "").slice(0, 140);
+      const src = ev.source ? ` (${ev.source})` : "";
+      return (
+        ` WORLD PULSE scrap${src}: “${scrap}”. ` +
+        `Do NOT copy-paste or quote the scrap word-for-word. ` +
+        `Relate as a living person at camp: one honest take, joke, worry, or hope — then land it on the meadow/visitor. `
+      );
+    }
+
+    function worldEventTopic() {
+      const ev = pickWorldEvent();
+      return (
+        `riff on today's world-pulse energy (do not quote the feed): ${(ev.text || "").slice(0, 120)}. ` +
+        `Argue with love, stay in character at camp.`
+      );
+    }
+
+    // Keep pulse warm in the background
+    refreshWorldEvents(true).catch(() => {});
+    setInterval(() => {
+      if (!document.hidden) refreshWorldEvents(false).catch(() => {});
+    }, 120000);
+
+    /** Free speech monologue — mood/action + world events. */
+    async function agentOwnTake(st, opts = {}) {
       if (!st || document.hidden) return;
       if (hushMode3d && Math.random() < 0.55) return; // hush: often skip
       // Decide posture/path from personality first (no forced march)
       const action = decideAction(st);
       // Prop use speech happens on arrival (agentUseProp) — skip double talk here
-      if (action === "prop") return;
+      if (action === "prop" && !opts.forceWorld) return;
 
       const id = st.def.id;
       const name = st.def.name;
+      // Ensure we have some pulse (non-blocking if cache warm)
+      if (!worldPulseCache.items.length) {
+        try { await refreshWorldEvents(false); } catch (_) {}
+      }
       // Brains full? Still free-speak offline so the meadow never goes dead quiet
       if (aiInFlight >= AI_MAX) {
-        const bark = localBark(id);
+        const bark = localBark(id, { world: true });
         showSpeech3d(id, bark, Math.max(MIN_SPEECH_MS, 7000), { compact: bark.length < 90 });
         logLine(name, bark);
         return;
@@ -3761,37 +4964,55 @@
       const arch = st.persona.arch || "camp";
       const joy = Number(st.persona.joy ?? 0.6).toFixed(2);
       const last = st.lastProp ? ` You recently used ${st.lastProp}.` : "";
+      const carryBit = st.carried
+        ? ` You're carrying ${st.carried.emoji || ""} ${st.carried.name || "something"}.`
+        : "";
       const eth = etherealSeedFor(id);
       const ethBit = eth ? ` Memory: ${eth}` : "";
       const flyBit = st.flying ? " You're airborne over the meadow." : "";
-      // Free speech seeds — lively, own voice, not depressed silence
+      // World events: free speech usually ties to pulse; forceWorld always does
+      const worldBit = worldEventPromptBit({
+        chance: opts.forceWorld ? 1 : (opts.worldChance != null ? opts.worldChance : 0.78),
+        force: !!opts.forceWorld,
+      });
+      const buzzBit = buzzPromptBit(st);
+      // Free speech seeds — witty, lively, own voice
       const freeTail =
-        " Speak freely as yourself — whatever is actually on your mind. 2–4 lively sentences. " +
-        "Wit, warmth, real opinions, camp comedy welcome. Not gloomy, not empty. No meta.";
+        " Speak freely as yourself — 2–4 witty spoken sentences with punch. " +
+        "Camp comedy, sharp observations, warmth under the joke. Not gloomy, not empty, not generic. No meta.";
       let speakPrompt = "";
-      if (action === "sit" || action === "go_sit") {
-        speakPrompt = `${name} at camp, sitting (${mood}, ${arch}).${last}${ethBit}${freeTail}`;
+      if (action === "trex") {
+        speakPrompt =
+          `${name} is hanging near the camp T-Rex (${mood}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
+      } else if (action === "sit" || action === "go_sit") {
+        speakPrompt = `${name} at camp, sitting (${mood}, ${arch}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
       } else if (action === "idle") {
-        speakPrompt = `${name} paused a beat (${mood}).${last}${ethBit}${freeTail}`;
+        speakPrompt = `${name} paused a beat (${mood}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
       } else if (action === "social") {
         const other = st.socialTarget || "a friend";
-        speakPrompt = `${name} is heading toward ${other} (${mood}).${last}${ethBit} Free speech: tease, invite, or drop a hot take. 2–4 sentences. No meta.`;
+        speakPrompt =
+          `${name} is heading toward ${other} (${mood}).${last}${carryBit}${buzzBit}${ethBit}${worldBit} ` +
+          `Free speech: tease, invite, or drop a hot take on the world-pulse if it fits. 2–4 sentences. No meta.`;
       } else if (action === "fire") {
-        speakPrompt = `${name} at the sun corona fire (${mood}, joy ${joy}).${last}${ethBit}${freeTail}`;
+        speakPrompt = `${name} at the sun corona fire (${mood}, joy ${joy}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
       } else if (action === "house") {
-        speakPrompt = `${name} walking toward a house (${mood}).${last}${ethBit}${freeTail}`;
+        speakPrompt = `${name} walking toward a house (${mood}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
       } else if (st.flying) {
-        speakPrompt = `${name} flying over camp (${mood}).${flyBit}${ethBit}${freeTail}`;
+        speakPrompt = `${name} flying over camp (${mood}).${flyBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
       } else {
-        speakPrompt = `${name} on the meadow (${mood}, energy ${st.energyNow.toFixed(2)}).${last}${ethBit}${freeTail}`;
+        speakPrompt =
+          `${name} on the meadow (${mood}, energy ${st.energyNow.toFixed(2)}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
       }
 
       aiInFlight++;
       try {
-        statusEl.textContent = `${name} · free speech`;
+        if (statusEl) {
+          statusEl.hidden = true;
+          statusEl.textContent = `${name} · free speech`;
+        }
         const data = await campClient.agentChat(id, speakPrompt, { ambient: true });
         let reply = spokenOnly3d(data.reply || data.text || "", speakPrompt);
-        if (!reply || reply.length < 8) reply = localBark(id);
+        if (!reply || reply.length < 8) reply = localBark(id, { world: true });
         if (reply) {
           showSpeech3d(id, reply, speechReadMs(reply));
           logLine(name, reply);
@@ -3810,10 +5031,13 @@
               );
             }
           } catch (_) {}
-          statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
+          if (statusEl) {
+            statusEl.hidden = true;
+            statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
+          }
         }
       } catch (err) {
-        const bark = localBark(id);
+        const bark = localBark(id, { world: true });
         showSpeech3d(id, bark, 8000, { compact: true });
         logLine(name, bark);
       } finally {
@@ -3821,7 +5045,7 @@
       }
     }
 
-    /** Kick free speech across the meadow — several voices, not one lonely monologue. */
+    /** Kick free speech across the meadow — often about world events. */
     function freeWillWave() {
       if (document.hidden) return;
       if (heavenBusy || talkAllBusy) return;
@@ -3833,17 +5057,17 @@
         const quietPool = agentState
           .filter((st) => performance.now() >= (st.nextDecideAt || 0) && !st.powWow)
           .sort(() => Math.random() - 0.5);
-        if (quietPool[0]) setTimeout(() => agentOwnTake(quietPool[0]), 200);
+        if (quietPool[0]) setTimeout(() => agentOwnTake(quietPool[0], { forceWorld: true }), 200);
         return;
       }
 
-      // Free speech mode: circles sometimes, free riffs often
-      if (!powWowBusy && !ambientBusy && Math.random() < 0.28) {
-        runPowWow({ continue: !!(lastPowWow && Math.random() < 0.5) });
+      // World-event circle / pair banter (more often)
+      if (!powWowBusy && !ambientBusy && Math.random() < 0.34) {
+        runPowWow({ continue: !!(lastPowWow && Math.random() < 0.45), world: true });
         return;
       }
-      if (!powWowBusy && !ambientBusy && Math.random() < 0.18) {
-        runBanter(false);
+      if (!powWowBusy && !ambientBusy && Math.random() < 0.26) {
+        runBanter(false, { world: true });
         return;
       }
 
@@ -3858,7 +5082,11 @@
       for (let i = 0; i < n; i++) {
         const pick = pool[i];
         if (!pick) break;
-        setTimeout(() => agentOwnTake(pick), 400 + i * 1400 + Math.random() * 600);
+        // Most free speech ties to world pulse
+        setTimeout(
+          () => agentOwnTake(pick, { forceWorld: Math.random() < 0.85 }),
+          400 + i * 1400 + Math.random() * 600,
+        );
       }
     }
     function updateBubbles() {
@@ -3956,6 +5184,32 @@
         if (obj?.userData?.kind) {
           const u = obj.userData;
           if (u.kind === "agent") {
+            const st = agentState.find((a) => a.def.id === u.id);
+            // Holding something? First tap gifts it — fun play over opening chat
+            if (st && carriedItem) {
+              visitorTarget.copy(st.mesh.position);
+              groundMarker.position.set(visitorTarget.x, 0.05, visitorTarget.z);
+              groundMarker.visible = true;
+              giftCarriedToAgent(st);
+              return;
+            }
+            // They're carrying something — you can "yoink" it (playful steal/share)
+            if (st?.carried && !carriedItem) {
+              const took = { ...st.carried };
+              setAgentCarry(st, null);
+              setCarriedItem(took);
+              showToast(`${took.emoji || "✨"} Borrowed ${took.name || "it"} from ${st.def.name}`);
+              logLine("You", `Borrowed ${took.name || "something"} from ${st.def.name}.`, true);
+              showSpeech3d(
+                st.def.id,
+                Math.random() < 0.5
+                  ? `Hey! That's my ${took.emoji || "✨"} — okay fine, share…`
+                  : `Careful with my ${took.name || "loot"}!`,
+                12000,
+                { force: true, compact: true },
+              );
+              return;
+            }
             whoEl.value = u.id;
             if (chat3dWho) chat3dWho.value = u.id;
             msgEl.placeholder = `Talk to ${u.name}…`;
@@ -3967,7 +5221,6 @@
               selectedSpeechAgentId = u.id;
             }
             // face visitor toward them + walk nearby
-            const st = agentState.find((a) => a.def.id === u.id);
             if (st) {
               const toward = st.mesh.position.clone().sub(visitor.position).normalize();
               visitorTarget.copy(st.mesh.position).addScaledVector(toward, -1.4);
@@ -3975,6 +5228,7 @@
               groundMarker.visible = true;
               // agent walks a step toward you
               st.target.copy(visitor.position).add(new THREE.Vector3((Math.random() - 0.5) * 0.8, 0, (Math.random() - 0.5) * 0.8));
+              st.moving = true;
               const eth = etherealSeedFor(u.id);
               const joy = Number(st.persona?.joy ?? 0.6).toFixed(2);
               const stab = Number(st.persona?.stability ?? 0.65).toFixed(2);
@@ -4083,7 +5337,7 @@
       groundMarker.visible = true;
       mesh.userData.pulseUntil = performance.now() + 2400;
       // face the prop a little
-      mesh.lookAt(visitor.position.x, mesh.position.y, visitor.position.z);
+      faceTowardXZ(mesh, visitor.position.x, visitor.position.z, 0, true);
     }
 
     /** Nearby agents notice what you just did with an object. */
@@ -4127,15 +5381,64 @@
       const emoji = u.emoji || "✦";
       approachProp(mesh);
 
-      // T-Rex — roar (no more runaway horse gallop)
+      // T-Rex — multi-mode play (roar / feed / dance if buzzed)
       if (propId === "trex" || propId === "horse" || u.interact === "roar" || mesh.userData.trex) {
-        mesh.userData.roarUntil = performance.now() + 2000;
-        mesh.userData.walkSpeed = 2.4; // brief strut
+        const now = performance.now();
+        mesh.userData.roarUntil = now + 2000;
+        mesh.userData.walkSpeed = 2.4;
         setTimeout(() => { mesh.userData.walkSpeed = 1.15; }, 2200);
-        showToast(`${emoji} ${name} ROARS`);
-        logLine("You", `Poked the ${name} — it roared.`, true);
-        agentsNoticeProp(mesh, "trex", `A T-Rex just roared by the fire. React with awe or jokes, 1–2 sentences.`);
-        // optional server memory
+        // Feed if you're carrying a snack
+        if (carriedItem && /cookie|snack|fruit|bread|steak|marsh|beer|wine/i.test(
+          `${carriedItem.id || ""} ${carriedItem.name || ""}`,
+        )) {
+          const food = { ...carriedItem };
+          setCarriedItem(null);
+          showToast(`🦖 Fed the T-Rex ${food.emoji || ""} ${food.name || ""}`);
+          logLine("You", `Fed the T-Rex ${food.name || "a treat"}.`, true);
+          agentsNoticeProp(
+            mesh,
+            "trex",
+            `Visitor just fed the camp T-Rex ${food.emoji || ""} ${food.name || "food"}. React with awe/comedy, 1–2 sentences.`,
+          );
+        } else if (visitorBuzzActive()?.kind === "drunk") {
+          showToast(`🦖 Tipsy dino hang — it roars with you`);
+          logLine("You", `Drunk-vibed with the T-Rex.`, true);
+          agentsNoticeProp(mesh, "trex", `Visitor is tipsy dancing near the T-Rex. React funny, short.`);
+          // Pull nearby drunk agents to the dino
+          agentState.forEach((st) => {
+            if (buzzActive(st)?.kind === "drunk" && Math.random() < 0.55) {
+              st.propTarget = "trex";
+              st.pendingProp = true;
+              st.action = "trex";
+              const ang = Math.random() * Math.PI * 2;
+              st.target.set(mesh.position.x + Math.cos(ang) * 2, 0, mesh.position.z + Math.sin(ang) * 2);
+              st.moving = true;
+            }
+          });
+        } else {
+          showToast(`${emoji} ${name} ROARS`);
+          logLine("You", `Poked the ${name} — it roared.`, true);
+          agentsNoticeProp(
+            mesh,
+            "trex",
+            `A T-Rex just roared by the fire. React with awe or jokes — maybe walk over, 1–2 sentences.`,
+          );
+          // Invite a few agents to check it out
+          agentState
+            .slice()
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3)
+            .forEach((st, i) => {
+              setTimeout(() => {
+                st.propTarget = "trex";
+                st.pendingProp = true;
+                st.action = "trex";
+                const ang = (i / 3) * Math.PI * 2;
+                st.target.set(mesh.position.x + Math.cos(ang) * 2.2, 0, mesh.position.z + Math.sin(ang) * 2.2);
+                st.moving = true;
+              }, 400 + i * 500);
+            });
+        }
         try { campClient.useProp("trex", { speak: false }).catch(() => {}); } catch (_) {}
         return;
       }
@@ -4152,17 +5455,14 @@
         return;
       }
 
-      // Pick up snacks / drinks
-      if (PICKABLE_PROPS.has(propId)) {
-        setCarriedItem({ id: propId, name, emoji });
-        showToast(`${emoji} Carrying ${name} · press X to drop`);
-        logLine("You", `Picked up ${name}.`, true);
-        agentsNoticeProp(mesh, propId, `Visitor picked up ${name}. Comment in character, short.`);
-        try { await runPropUse(propId); } catch (_) {}
+      // Ouija board — open spirit chat window (Oracle / Ollama, profound channel)
+      if (propId === "ouija" || u.visual?.kit === "board") {
+        await openOuijaBoard(mesh);
+        try { await runPropUse("ouija"); } catch (_) {}
         return;
       }
 
-      // Stereo / music
+      // Stereo / music first (not carried)
       if (propId === "stereo" || u.feature === "music") {
         showToast("🎵 Jukebox");
         try { featureApi?.playMusic?.(); } catch (_) {}
@@ -4170,11 +5470,103 @@
         return;
       }
 
-      // Default camp prop use (ouija, grill, …)
+      // Ground loot OR pickable catalog prop
+      const isLoot = !!(u.loot || u.dropped || String(propId).startsWith("loot_"));
+      const baseId = u.baseId || (isLoot ? String(propId).replace(/^loot_/, "").replace(/_\d+$/, "") : propId);
+      if (isLoot || isPickableProp(baseId) || isPickableProp(propId)) {
+        // If dropping swap, leave previous on the ground first
+        if (carriedItem) {
+          spawnGroundLoot(carriedItem, visitor.position.x - 0.4, visitor.position.z - 0.2, {
+            inviteAgents: true,
+            inviteChance: 0.4,
+          });
+          showToast(`Left ${carriedItem.emoji || ""} · grabbed ${emoji} ${name}`);
+        }
+        // Claim off the ground
+        if (isLoot) {
+          removeGroundLoot(mesh);
+        } else {
+          mesh.userData.pulseUntil = performance.now() + 1200;
+        }
+        setCarriedItem({ id: baseId || propId, name, emoji, color: u.color });
+        // Sip / hit for the visitor too when it's party props
+        if (baseId === "beer" || baseId === "wine" || propId === "beer" || propId === "wine") {
+          applyVisitorBuzz("drunk", 1);
+          showToast(`${emoji} Carrying ${name} · you're getting tipsy · X drop`);
+          logLine("You", `Grabbed ${name} — camp's getting funnier.`, true);
+          agentsNoticeProp(
+            mesh,
+            baseId,
+            `Visitor is drinking ${name} and getting tipsy. React playful, short.`,
+          );
+        } else if (baseId === "weed" || baseId === "herbs" || propId === "weed" || propId === "herbs") {
+          applyVisitorBuzz("stoned", 1);
+          showToast(`${emoji} Carrying ${name} · you're getting mellow · X drop`);
+          logLine("You", `Grabbed ${name} — soft focus mode.`, true);
+          agentsNoticeProp(
+            mesh,
+            baseId,
+            `Visitor just got into ${name} and is getting stoned/mellow. React chill/funny, short.`,
+          );
+        } else {
+          showToast(`${emoji} Carrying ${name} · tap a friend to gift · X drop`);
+          logLine(
+            "You",
+            isLoot
+              ? `Picked ${name} up off the ground.`
+              : `Picked up ${name} — ready to share or parade it.`,
+            true,
+          );
+          agentsNoticeProp(
+            mesh,
+            baseId || propId,
+            `Visitor just picked up ${emoji} ${name}${isLoot ? " from the ground" : ""}. React short and playful.`,
+          );
+        }
+        if (!isLoot) {
+          maybeAgentCopycatPickup(baseId || propId, emoji, name);
+          if (baseId === "beer" || baseId === "wine" || baseId === "weed" || baseId === "herbs") {
+            agentState
+              .filter((st) => st.mesh.position.distanceTo(visitor.position) < 8)
+              .slice(0, 2)
+              .forEach((st) => {
+                if (Math.random() > 0.55) return;
+                st.propTarget = propId;
+                st.pendingProp = true;
+                st.action = "prop";
+                st.target.copy(mesh.position);
+                st.moving = true;
+              });
+          }
+        }
+        try { await runPropUse(baseId || propId); } catch (_) {}
+        return;
+      }
+
+      // Default camp prop use
       showToast(`${emoji} ${name}`);
       logLine("You", `Used ${name}.`, true);
       agentsNoticeProp(mesh, propId);
       try { await runPropUse(propId); } catch (_) {}
+    }
+
+    /** A friend grabs a matching treat and walks with it. */
+    function maybeAgentCopycatPickup(propId, emoji, name) {
+      if (Math.random() > 0.55) return;
+      const free = agentState.filter((st) => !st.carried && st.posture !== "sit");
+      if (!free.length) return;
+      const st = free[Math.floor(Math.random() * free.length)];
+      setAgentCarry(st, { id: propId, name, emoji });
+      st.propTarget = propId;
+      pickRoamTarget(st);
+      showSpeech3d(
+        st.def.id,
+        Math.random() < 0.5
+          ? `${emoji} I'm taking one too!`
+          : `Copycat energy — ${emoji} ${name || "loot"} acquired.`,
+        10000,
+        { compact: true },
+      );
     }
 
     async function runPropUse(propId) {
@@ -4842,22 +6234,59 @@
     function spokenOnly3d(text, seed) {
       let t = String(text || "").trim();
       if (!t) return "";
+      const rawKeep = t; // fallback if we over-sanitize a real answer
       const bad = [
         /as an ai/i, /never mention/i, /private stage/i, /output rules/i, /mood json/i,
-        /here'?s my take/i, /speaking as /i, /stay in character/i,
-        /you are \w+ at camp/i, /director notes?/i, /system prompt/i,
+        /director notes?/i, /system prompt/i,
       ];
-      // Only kill full prompt echoes — short seed slice was wiping real replies
-      const seedLow = String(seed || "").toLowerCase().replace(/\s+/g, " ").slice(0, 48);
-      if (seedLow.length > 28 && t.toLowerCase().replace(/\s+/g, " ").includes(seedLow)) t = "";
-      const kept = t.split(/\n+/).map((l) => l.trim()).filter((l) => l && !bad.some((re) => re.test(l)));
-      t = kept.join(" ").trim();
-      if (bad.some((re) => re.test(t)) && t.split(/\s+/).length < 20) t = "";
-      t = t.replace(/^(?:okay[,.]?\s+|so[,.]?\s+)?(?:here'?s my take[^:]*:|speaking as[^:]*:|as \w+[,:]\s*)/i, "").trim();
-      // Strip leaked stage tags but keep the rest of a good line
+      // Only kill FULL prompt echoes — never use the whole outbound stack as seed
+      const seedCore = String(seed || "")
+        .split(/\n/)
+        .map((l) => l.trim())
+        .find((l) => l.length > 12 && !/memory:|world pulse|answer with/i.test(l)) || "";
+      const seedLow = seedCore.toLowerCase().replace(/\s+/g, " ").slice(0, 40);
+      const tLow = t.toLowerCase().replace(/\s+/g, " ");
+      if (seedLow.length > 24 && tLow.startsWith(seedLow)) {
+        t = t.slice(seedCore.length).trim();
+      }
+      const kept = t.split(/\n+/).map((l) => l.trim()).filter((l) => {
+        if (!l) return false;
+        // Drop pure instruction lines, keep witty dialogue
+        if (/^(?:reply only|speak freely|no meta|do not copy)/i.test(l)) return false;
+        if (bad.some((re) => re.test(l)) && l.split(/\s+/).length < 12) return false;
+        return true;
+      });
+      t = kept.join("\n").trim() || t;
+      t = t.replace(/^(?:okay[,.]?\s+|so[,.]?\s+)?(?:here'?s my take[^:]*:|speaking as[^:]*:)/i, "").trim();
       t = t.replace(/\b(?:no meta|in[- ]character)\b/gi, "").replace(/\s{2,}/g, " ").trim();
-      // Full reply kept for Talk log / all-agents — bubbles may still preview shorter
-      return t.slice(0, 1400);
+      // If sanitizer nuked a real multi-word answer, restore raw
+      if (t.split(/\s+/).length < 4 && rawKeep.split(/\s+/).length >= 6) {
+        t = rawKeep.replace(/\s{2,}/g, " ").trim();
+      }
+      return t.slice(0, 1600);
+    }
+
+    /** Shared witty-direct prompt for visitor chat (single or all). */
+    function visitorTalkPrompt(agentName, userText, opts = {}) {
+      const everyone = !!opts.everyone;
+      const eth = etherealSeedFor(opts.agentId || "");
+      const buzz = opts.st ? buzzPromptBit(opts.st) : "";
+      let world = "";
+      try {
+        world = worldEventPromptBit({ chance: 0.4 });
+      } catch (_) {}
+      return (
+        (everyone
+          ? `The visitor is addressing EVERYONE at camp, including you (${agentName}). `
+          : `The visitor is talking directly to you (${agentName}). `) +
+        `Their words: "${String(userText).slice(0, 500)}"\n` +
+        `Answer them NOW as ${agentName} — witty, warm, specific, 2–5 spoken sentences. ` +
+        `Actually respond to what they said (question → answer, joke → riff, greeting → greet). ` +
+        `Camp comedy welcome; not mean. No meta, no stage directions, no "as an AI".` +
+        buzz +
+        (eth ? ` Memory: ${eth.slice(0, 200)}` : "") +
+        (world ? ` ${world.trim()}` : "")
+      );
     }
 
     async function chatAgent(agentId, message, ambient = false) {
@@ -4871,54 +6300,110 @@
         sendBtn.disabled = true;
         if (chat3dSend) chat3dSend.disabled = true;
       }
+      // Ouija board channel — Oracle + profound planchette reading (Ollama)
+      if (!ambient && ouijaMode) {
+        try {
+          appendChat3dMsg("You", message, true);
+          logLine("You", message, true);
+          if (statusEl) {
+            statusEl.hidden = true;
+            statusEl.textContent = "Planchette moving…";
+          }
+          showToast("🔮 Planchette moving…");
+          const res = await askOuijaChannel(message);
+          if (res?.reading) {
+            appendChat3dSpirit(res.board, res.reading);
+            logLine("Oracle", res.reading);
+            showSpeech3d(
+              "oracle",
+              res.reading.length > 360 ? bubblePreview(res.reading, 320) : res.reading,
+              speechReadMs(res.reading.slice(0, 400)),
+              { force: true },
+            );
+            if (statusEl) {
+              statusEl.hidden = true;
+              statusEl.textContent = res.source ? `Ouija · ${res.source}` : "Ouija";
+            }
+          } else {
+            appendChat3dSpirit("SILENCE", "The board holds still. Ask again with a cleaner heart.");
+          }
+        } catch (err) {
+          appendChat3dSpirit(
+            "STATIC",
+            err?.message
+              ? `Channel glitch: ${err.message}`
+              : "The channel flickered. Keep Ollama running and try again.",
+          );
+          logLine("Camp", `Ouija: ${err?.message || "offline"}`);
+        } finally {
+          userBusy = false;
+          sendBtn.disabled = false;
+          if (chat3dSend) chat3dSend.disabled = false;
+        }
+        return;
+      }
       // Resolve house option → prefer living agent with same id on field
       let targetId = agentId;
       const houseHit = HOUSES.find((h) => h.id === agentId || h.catalogId === agentId);
       if (houseHit && !AGENTS.some((a) => a.id === agentId)) {
         targetId = houseHit.id; // owner_id mapped into house.id
       }
-      statusEl.textContent = `${targetId} · AI thinking…`;
+      const st = agentState.find((a) => a.def.id === targetId);
+      const name = AGENTS.find((a) => a.id === targetId)?.name
+        || houseHit?.name
+        || targetId;
+      if (statusEl) {
+        statusEl.hidden = true;
+        statusEl.textContent = `${name} · thinking…`;
+      }
       // Only log visitor text for real visitor turns — never ambient director seeds
       if (!ambient) {
         logLine("You", message, true);
+        appendChat3dMsg("You", message, true);
         openChat3d(targetId);
+        showToast(`✦ ${name} is answering…`);
       }
+      // Visitor direct talk = non-ambient so brains treat it as real chat + witty reply
       let outbound = message.trim();
       if (!ambient) {
-        const eth = etherealSeedFor(targetId);
-        const cont = campBridgeMod?.dialogueTapeContext?.(6, 360) || "";
-        const bits = [outbound];
-        if (cont) bits.push(cont);
-        if (eth) bits.push(eth);
-        bits.push("Answer with digital ethereal memory: stable, joyful presence — no meta, no CRM quotes.");
-        outbound = bits.join(" ");
+        outbound = visitorTalkPrompt(name, message, { agentId: targetId, st });
       }
       try {
-        const data = await campClient.agentChat(targetId, outbound, { ambient });
-        let reply = spokenOnly3d(data.reply || data.text || "", outbound);
-        if (!reply) reply = localBark(targetId);
-        const name = AGENTS.find((a) => a.id === targetId)?.name
-          || houseHit?.name
-          || targetId;
+        // ambient free-speech stays ambient; visitor chat is direct
+        const data = await campClient.agentChat(targetId, outbound, { ambient: !!ambient });
+        const raw = data.reply || data.text || "";
+        let reply = spokenOnly3d(raw, message) || spokenOnly3d(raw, "") || String(raw || "").trim();
+        if (!reply || reply.length < 3) reply = localBark(targetId, { world: true });
         logLine(name, reply);
-        // Show bubble on agent if present; else still log in big window
+        if (!ambient) appendChat3dMsg(name, reply, false);
+        // Always show a bubble when the agent is on the meadow
         const hasBody = agentState.some((a) => a.def.id === targetId);
         if (hasBody) {
-          // Longer bubbles for real answers; Talk panel still gets full text
-          const bub = reply.length > 320 ? bubblePreview(reply, 300) : reply;
+          const bub = reply.length > 360 ? bubblePreview(reply, 320) : reply;
           showSpeech3d(targetId, bub, speechReadMs(bub), {
-            force: !ambient,
-            compact: reply.length > 420,
+            force: true,
+            compact: reply.length > 480,
           });
+        } else if (!ambient) {
+          // Still feedback even if agent not spawned
+          showToast(`${name}: ${bubblePreview(reply, 80)}`);
         }
-        statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
+        if (statusEl) {
+          statusEl.hidden = true;
+          statusEl.textContent = data.backend ? `AI · ${data.backend}` : "AI reply";
+        }
       } catch (err) {
-        const fallback = localBark(targetId);
+        const fallback = localBark(targetId, { world: true });
         if (agentState.some((a) => a.def.id === targetId)) {
-          showSpeech3d(targetId, fallback, speechReadMs(fallback), { force: !ambient, compact: true });
+          showSpeech3d(targetId, fallback, speechReadMs(fallback), { force: true, compact: true });
         }
-        logLine(AGENTS.find((a) => a.id === targetId)?.name || targetId, fallback);
-        statusEl.textContent = "Brains offline — start server / Ollama";
+        logLine(name, fallback);
+        if (!ambient) appendChat3dMsg(name, fallback, false);
+        if (statusEl) {
+          statusEl.hidden = true;
+          statusEl.textContent = "Brains offline — start server / Ollama";
+        }
+        showToast(`${name} (offline): ${bubblePreview(fallback, 70)}`);
       } finally {
         if (!ambient) {
           userBusy = false;
@@ -4929,56 +6414,85 @@
     }
 
     /**
-     * Talk to every agent on the meadow — full answers in Talk log,
-     * compact bubbles, one-at-a-time pacing (not a pile-on).
+     * Talk to every agent on the meadow — each answers in Talk log + bubble.
      */
     async function chatAllAgents(message) {
       const text = String(message || "").trim();
       if (!text) return;
-      if (talkAllBusy || userBusy) {
+      if (talkAllBusy) {
         showToast("✦ All-talk still rolling — wait a beat");
         return;
       }
+      // Allow starting even if a single chat just finished
       talkAllBusy = true;
       userBusy = true;
       sendBtn.disabled = true;
       if (chat3dSend) chat3dSend.disabled = true;
       const roster = agentState.map((s) => s.def).filter((d) => d && d.id);
+      if (!roster.length) {
+        showToast("No agents on the meadow yet");
+        talkAllBusy = false;
+        userBusy = false;
+        sendBtn.disabled = false;
+        if (chat3dSend) chat3dSend.disabled = false;
+        return;
+      }
       openChat3d(TALK_ALL_ID);
       logLine("You", text, true);
+      appendChat3dMsg("You", text, true);
+      appendChat3dMsg("Camp", `✦ All agents · ${roster.length} will answer in turn`, false);
       logLine("Camp", `✦ All agents · ${roster.length} will answer in turn`);
-      showToast(`✦ Talking to all · ${roster.length} voices (paced)`);
+      showToast(`✦ Talking to all · ${roster.length} voices`);
       try {
         for (let i = 0; i < roster.length; i++) {
           if (document.hidden) break;
           const def = roster[i];
-          statusEl.textContent = `All · ${def.name} (${i + 1}/${roster.length})…`;
+          const st = agentState.find((s) => s.def.id === def.id);
+          if (statusEl) {
+            statusEl.hidden = true;
+            statusEl.textContent = `All · ${def.name} (${i + 1}/${roster.length})…`;
+          }
+          showToast(`✦ ${def.name} (${i + 1}/${roster.length})…`);
           let reply = "";
           try {
+            // Direct (non-ambient) so Ollama treats it as real visitor chat
             const data = await campClient.agentChat(
               def.id,
-              `The visitor is speaking to EVERYONE on the meadow at once. Their words: "${text}". ` +
-                `Reply only as ${def.name} — your own full honest answer (as long as you need, stay in voice). ` +
-                `Do not copy other agents. No meta, no stage directions.`,
-              { ambient: true },
+              visitorTalkPrompt(def.name, text, {
+                everyone: true,
+                agentId: def.id,
+                st,
+              }),
+              { ambient: false },
             );
-            reply = spokenOnly3d(data.reply || data.text || "", text) || localBark(def.id);
+            const raw = data.reply || data.text || "";
+            reply = spokenOnly3d(raw, text) || spokenOnly3d(raw, "") || String(raw || "").trim();
+            if (!reply || reply.length < 3) reply = localBark(def.id, { world: true });
           } catch (_) {
-            reply = localBark(def.id);
+            reply = localBark(def.id, { world: true });
           }
-          // Full response in Talk window; readable bubble on meadow (not mute stubs)
           logLine(def.name, reply);
-          const bub = bubblePreview(reply, 260);
+          appendChat3dMsg(def.name, reply, false);
+          const bub = bubblePreview(reply, 280);
           showSpeech3d(def.id, bub, Math.max(MIN_SPEECH_MS, speechReadMs(bub, MIN_SPEECH_MS)), {
             force: true,
             compact: reply.length > 400,
           });
-          // Pace: everyone gets to speak; screen stays readable (not a chatter flood)
-          const pace = Math.min(Math.max(MIN_SPEECH_MS + 1200, bub.length * 38), 11000);
+          // Face visitor while answering
+          if (st) {
+            try {
+              faceTowardXZ(st.mesh, visitor.position.x, visitor.position.z, st.faceYaw || 0, true);
+            } catch (_) {}
+          }
+          const pace = Math.min(Math.max(MIN_SPEECH_MS + 800, bub.length * 32), 9000);
           await sleepMs(pace);
         }
-        statusEl.textContent = `All agents · ${roster.length} answered`;
-        showToast("✦ All-agents round complete — full lines in ✦ Talk");
+        if (statusEl) {
+          statusEl.hidden = true;
+          statusEl.textContent = `All agents · ${roster.length} answered`;
+        }
+        showToast(`✦ All ${roster.length} answered — see Talk log`);
+        appendChat3dMsg("Camp", `✦ Round complete · ${roster.length} voices`, false);
       } finally {
         talkAllBusy = false;
         userBusy = false;
@@ -5036,7 +6550,7 @@
         const st = agentState.find((s) => s.def.id === aid);
         if (st) {
           try {
-            st.mesh.lookAt(0, st.mesh.position.y, 0);
+            faceTowardXZ(st.mesh, 0, 0, st.faceYaw || 0, true);
           } catch (_) {}
           st.powWow = true;
           st.nextDecideAt = performance.now() + Math.max(MIN_SPEECH_MS + 4000, 12000);
@@ -5071,7 +6585,13 @@
           const n = Math.random() < 0.4 ? 4 : 3;
           ids = pool.slice(0, Math.min(n, pool.length, 4));
           if (ids.length < 2) ids = ["luna", "hermes", "oracle"].slice(0, 3);
-          topic = POWWOW_TOPICS[Math.floor(Math.random() * POWWOW_TOPICS.length)];
+          // Prefer world-event circle so they relate to the timeline
+          if (opts.world || Math.random() < 0.7) {
+            try { await refreshWorldEvents(false); } catch (_) {}
+            topic = worldEventTopic();
+          } else {
+            topic = POWWOW_TOPICS[Math.floor(Math.random() * POWWOW_TOPICS.length)];
+          }
           try {
             const bridge = campBridge3d || campBridgeMod;
             const cont = bridge?.dialogueTapeContext?.(5, 280);
@@ -5145,10 +6665,13 @@
       }
     }
 
-    async function runBanter(force = false) {
+    async function runBanter(force = false, opts = {}) {
       if ((ambientBusy || powWowBusy) && !force) return;
       ambientBusy = true;
-      statusEl.textContent = "Pair banter…";
+      if (statusEl) {
+        statusEl.hidden = true;
+        statusEl.textContent = "Pair banter…";
+      }
       try {
         const pool = agentState.map((s) => s.def.id);
         const shuffled = pool.slice().sort(() => Math.random() - 0.5);
@@ -5159,6 +6682,10 @@
         await sleepMs(1200);
         let topic =
           "spirited pair talk — riff, disagree a little, answer each other, no scenery report";
+        if (opts.world || Math.random() < 0.75) {
+          try { await refreshWorldEvents(false); } catch (_) {}
+          topic = worldEventTopic() + " Pair banter: bounce takes off each other.";
+        }
         try {
           const bridge = campBridge3d || campBridgeMod;
           const cont = bridge?.dialogueTapeContext?.(6, 320);
@@ -5197,7 +6724,7 @@
     const QUICK = {
       hey: "Hey — what's the vibe at camp right now?",
       joke: "Give me a short witty camp joke, in character.",
-      news: "Toss a quick take on whatever pulse/headline energy you've got today.",
+      news: "Toss a quick take on today's world-pulse / headline energy — riff, don't dump the feed.",
       love: "Say something kind and a little cosmic about being here together.",
     };
 
@@ -5217,8 +6744,10 @@
       if (who === TALK_ALL_ID) {
         document.getElementById("btn-all-agents")?.classList.add("on");
       }
-      statusEl.hidden = false;
-      statusEl.textContent = who === TALK_ALL_ID ? "✦ All agents…" : `Talking to ${who}…`;
+      if (statusEl) {
+        statusEl.hidden = true;
+        statusEl.textContent = who === TALK_ALL_ID ? "✦ All agents…" : `Talking to ${who}…`;
+      }
       await chatAgent(who, text);
     }
     async function sendChat3d() {
@@ -5228,11 +6757,14 @@
         return;
       }
       if (chat3dInput) chat3dInput.value = "";
-      let who = chat3dWho?.value || whoEl?.value || "luna";
+      // Ouija always channels Oracle (who select locked in setOuijaMode)
+      let who = ouijaMode ? "oracle" : (chat3dWho?.value || whoEl?.value || "luna");
       if (!who) who = TALK_ALL_ID;
-      setTalkWho(who);
-      if (who === TALK_ALL_ID) {
-        document.getElementById("btn-all-agents")?.classList.add("on");
+      if (!ouijaMode) {
+        setTalkWho(who);
+        if (who === TALK_ALL_ID) {
+          document.getElementById("btn-all-agents")?.classList.add("on");
+        }
       }
       await chatAgent(who, text);
     }
@@ -5505,7 +7037,7 @@
         if (dist < 0.28) {
           st.moving = false;
           if (st.pendingSit) arriveSit(st);
-          else if (st.pendingProp && st.action === "prop") {
+          else if (st.pendingProp && (st.action === "prop" || st.action === "trex")) {
             st.pendingProp = false;
             agentUseProp(st);
           } else if (st.pendingTerminal && st.action === "terminal") {
@@ -5536,7 +7068,7 @@
         if (st.powWow) {
           // Stay in the circle while a pow-wow is active
           if (st.action === "powwow" && !st.moving) {
-            try { st.mesh.lookAt(0, st.mesh.position.y, 0); } catch (_) {}
+            try { faceTowardXZ(st.mesh, 0, 0, st.faceYaw || 0, true); } catch (_) {}
           }
           continue;
         }
@@ -5743,6 +7275,27 @@
       setTimeout(upgradeNext, 1200);
     }
 
+    /**
+     * Face a world XZ point using +Z as forward (matches walk velocity / GLB clips).
+     * Do NOT use Object3D.lookAt — that aims -Z and causes moonwalk vs walk anims.
+     */
+    function faceTowardXZ(obj, x, z, faceYaw = 0, snap = true) {
+      if (!obj) return;
+      const dx = x - obj.position.x;
+      const dz = z - obj.position.z;
+      if (dx * dx + dz * dz < 1e-6) return;
+      const want = Math.atan2(dx, dz) + faceYaw;
+      if (snap) {
+        obj.rotation.y = want;
+        return;
+      }
+      let cur = obj.rotation.y;
+      let dAng = want - cur;
+      while (dAng > Math.PI) dAng -= Math.PI * 2;
+      while (dAng < -Math.PI) dAng += Math.PI * 2;
+      obj.rotation.y = cur + dAng * 0.35;
+    }
+
     // Animate — CRITICAL: getDelta BEFORE getElapsedTime (else dt≈0 and nobody walks)
     const clock = new THREE.Clock();
     let _moveDebugT = 0;
@@ -5752,11 +7305,56 @@
         const dt = Math.min(Math.max(clock.getDelta(), 0), 0.05);
         const t = clock.elapsedTime;
 
-        fireLight.intensity = 2.2 + Math.sin(t * 7) * 0.5 + Math.sin(t * 13) * 0.25;
+        // Living fire + aurora sky + fireflies (2D energy)
+        fireLight.intensity = 3.2 + Math.sin(t * 7) * 0.85 + Math.sin(t * 13) * 0.4;
+        fireLight.position.y = 1.45 + Math.sin(t * 11) * 0.08;
+        if (typeof fireGlow !== "undefined" && fireGlow) {
+          fireGlow.intensity = 1.1 + Math.sin(t * 9) * 0.45;
+        }
+        if (typeof accentA !== "undefined" && accentA) {
+          accentA.intensity = 0.7 + Math.sin(t * 0.7) * 0.25;
+          accentB.intensity = 0.6 + Math.cos(t * 0.55) * 0.22;
+          accentC.intensity = 0.55 + Math.sin(t * 0.4 + 1) * 0.2;
+        }
+        if (skyMat?.uniforms?.uTime) skyMat.uniforms.uTime.value = t;
         const flame = campfire.getObjectByName("flame");
         if (flame) {
-          flame.scale.y = 1 + Math.sin(t * 9) * 0.12;
-          flame.rotation.y = t * 0.8;
+          flame.scale.y = 1 + Math.sin(t * 9) * 0.18;
+          flame.scale.x = 1 + Math.sin(t * 11) * 0.08;
+          flame.rotation.y = t * 1.1;
+          if (flame.material?.emissiveIntensity != null) {
+            flame.material.emissiveIntensity = 1.8 + Math.sin(t * 12) * 0.5;
+          }
+        }
+        const flame2 = campfire.getObjectByName("flame2");
+        if (flame2) {
+          flame2.scale.y = 1 + Math.cos(t * 11) * 0.22;
+          flame2.rotation.y = -t * 1.4;
+          flame2.position.y = 0.8 + Math.sin(t * 8) * 0.06;
+        }
+        const heat = campfire.getObjectByName("heatDisc");
+        if (heat?.material) {
+          heat.material.opacity = 0.16 + Math.sin(t * 5) * 0.08;
+          heat.scale.setScalar(1 + Math.sin(t * 3) * 0.06);
+        }
+        const pathGlow = scene.getObjectByName("pathGlow");
+        if (pathGlow?.material) {
+          pathGlow.material.opacity = 0.28 + Math.sin(t * 2.2) * 0.12;
+        }
+        if (fireflies) {
+          const arr = fireflies.geometry.attributes.position.array;
+          const phases = fireflies.geometry.attributes.aPhase?.array;
+          for (let i = 0; i < arr.length / 3; i++) {
+            const ph = phases ? phases[i] : i;
+            arr[i * 3 + 1] += Math.sin(t * 1.8 + ph) * 0.004;
+            arr[i * 3] += Math.cos(t * 0.6 + ph) * 0.003;
+            arr[i * 3 + 2] += Math.sin(t * 0.5 + ph * 1.3) * 0.003;
+            // soft bounce bounds around meadow
+            if (arr[i * 3 + 1] < 0.25) arr[i * 3 + 1] = 0.25;
+            if (arr[i * 3 + 1] > 5.5) arr[i * 3 + 1] = 5.5;
+          }
+          fireflies.geometry.attributes.position.needsUpdate = true;
+          fireflies.material.opacity = 0.75 + Math.sin(t * 2) * 0.2;
         }
 
         // Agents — velocity physics, optional flight, soft separation
@@ -5832,7 +7430,33 @@
               st.vx *= -0.4;
               st.vz *= -0.4;
             }
-            if (spH > 0.08) m.rotation.y = Math.atan2(st.vx, st.vz);
+            // Face velocity (+Z forward). faceYaw offsets GLB quirks; smooth so no snap-spin.
+            if (spH > 0.08) {
+              const want = Math.atan2(st.vx, st.vz) + (st.faceYaw || 0);
+              let cur = m.rotation.y;
+              let dAng = want - cur;
+              while (dAng > Math.PI) dAng -= Math.PI * 2;
+              while (dAng < -Math.PI) dAng += Math.PI * 2;
+              // Drunk: slower turn, wobblier
+              const turn = buzzActive(st)?.kind === "drunk" ? 7 : 14;
+              m.rotation.y = cur + dAng * Math.min(1, turn * dt);
+            }
+            // Buzz body sway (drunk lean / stoned bob)
+            {
+              const b = buzzActive(st);
+              if (b && st.posture !== "sit") {
+                const amp = 0.04 + b.level * 0.035;
+                if (b.kind === "drunk") {
+                  m.rotation.z = Math.sin(t * 3.2 + st.phase) * amp;
+                  m.rotation.x = Math.sin(t * 2.1 + st.phase) * amp * 0.5;
+                } else {
+                  m.rotation.z = Math.sin(t * 1.1 + st.phase) * amp * 0.7;
+                  pos.y += Math.sin(t * 1.4 + st.phase) * 0.012 * b.level;
+                }
+              } else if (st.posture !== "sit") {
+                m.rotation.z *= 0.85;
+              }
+            }
             // Mid-flight whim (rare) — only with Firmament open
             if (firmamentOpen3d && st.canFly && st.flying && Math.random() < 0.0015) {
               pickRoamTarget(st, { fly: true });
@@ -5936,12 +7560,25 @@
           const vdz = visitorTarget.z - visitor.position.z;
           const vd = Math.hypot(vdx, vdz);
           if (vd > 0.06) {
-            const sp = 8.5 * dt;
+            const vb = visitorBuzzActive();
+            const spMul = vb?.kind === "drunk" ? 0.72 : vb?.kind === "stoned" ? 0.8 : 1;
+            const sp = 8.5 * spMul * dt;
             visitor.position.x += (vdx / vd) * Math.min(sp, vd);
             visitor.position.z += (vdz / vd) * Math.min(sp, vd);
+            // Same +Z-forward convention as agents (no moonwalk)
             visitor.rotation.y = Math.atan2(vdx, vdz);
           } else if (groundMarker.visible && vd < 0.08) {
             groundMarker.visible = false;
+          }
+          // Visitor buzz sway
+          {
+            const vb = visitorBuzzActive();
+            if (vb) {
+              const amp = 0.05 + vb.level * 0.03;
+              visitor.rotation.z = Math.sin(t * (vb.kind === "drunk" ? 3.5 : 1.2)) * amp;
+            } else {
+              visitor.rotation.z *= 0.9;
+            }
           }
           // Follow mode (default ON): camera target tracks you; orbit/zoom still work
           if (followPlayer) {

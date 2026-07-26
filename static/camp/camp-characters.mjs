@@ -92,7 +92,9 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
     clone.scale.setScalar(s);
     const box = new THREE.Box3().setFromObject(clone);
     clone.position.y = -box.min.y * s;
-    clone.rotation.y = Math.PI;
+    // Keep model local +Z as "forward" so walk clips match group facing.
+    // (Math.PI here used to flip them — they moonwalked: feet one way, body the other.)
+    clone.rotation.y = 0;
     clone.name = "skinned";
 
     const tint = new THREE.Color(colorHex || 0xcccccc);
@@ -187,7 +189,8 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
       if (current && actions[current] && actions[current] !== next) {
         actions[current].fadeOut(fade);
       }
-      const speed = kind === "walk" || kind === "run" ? 1.05 : kind === "talk" ? 1.15 : 0.9;
+      // Positive timescale = play clip forward (matches +Z facing / velocity)
+      const speed = kind === "walk" || kind === "run" ? 1.12 : kind === "talk" ? 1.15 : 0.9;
       next.reset()
         .setEffectiveTimeScale(speed)
         .setEffectiveWeight(1)
@@ -280,6 +283,8 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
       update,
       height: targetH,
       hasClips: entry.animations.length > 0,
+      /** Added to mesh.rotation.y so +Z faces velocity (0 = walk forward correctly) */
+      faceYaw: 0,
     };
   }
 

@@ -97,6 +97,16 @@ export function fetchXPulse(refresh = false) {
   return getJSON(`/api/firmament/x-pulse${refresh ? "?refresh=true" : ""}`);
 }
 
+/** Shared camp feed + free world pulse (HN etc.) */
+export function fetchLiveFeed() {
+  return getJSON("/api/firmament/live-feed");
+}
+
+/** Hub world pulse when unified server exposes /api/pulse */
+export function fetchHubPulse(force = false) {
+  return getJSON(`/api/pulse${force ? "?force=1" : ""}`);
+}
+
 export async function buyShopItem(itemId, opts = {}) {
   return postJSON("/api/firmament/shop/buy", {
     visitor_id: opts.visitorId ?? getVisitorId(),
@@ -143,6 +153,18 @@ export function agentChat(agentId, message, opts = {}) {
     visitor_id: opts.visitorId ?? getVisitorId(),
     visitor_name: opts.visitorName ?? getVisitorName(),
     force_grok: !!opts.forceGrok,
+  });
+}
+
+/** Spirit board API (cloud path when available; 3D also falls back to Oracle/Ollama). */
+export function askOuija(question, opts = {}) {
+  return postJSON("/api/ouija", {
+    question: question || "",
+    context:
+      opts.context ||
+      "Luna Camp firmament 3D — outdoor Ouija board by the fire. Oracle is the medium.",
+    history: opts.history || [],
+    avoid_recent: opts.avoidRecent || [],
   });
 }
 

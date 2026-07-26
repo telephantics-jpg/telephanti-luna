@@ -867,10 +867,193 @@
       #talk-row { gap: 6px; }
       #msg { font-size: 0.84rem; }
     }
+
+    /* ── House / center interior (2D-parity visit) ── */
+    #place-interior {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      background: radial-gradient(ellipse at 50% 20%, rgba(88, 28, 135, 0.55), rgba(8, 12, 28, 0.94) 70%);
+      flex-direction: column;
+      pointer-events: auto;
+    }
+    #place-interior.open { display: flex; }
+    #place-interior .pi-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-bottom: 1px solid rgba(148,163,184,0.25);
+    }
+    #place-interior .pi-head h2 { margin: 0; flex: 1; font-size: 1.1rem; color: #e0f2fe; }
+    #place-interior .pi-sub { font-size: 0.72rem; color: #94a3b8; letter-spacing: 0.06em; text-transform: uppercase; }
+    #place-interior .pi-exit {
+      background: rgba(15,23,42,0.85); border: 1px solid #64748b; color: #e2e8f0;
+      border-radius: 10px; padding: 8px 12px; cursor: pointer; font: inherit; font-weight: 700;
+    }
+    #place-interior .pi-body {
+      flex: 1; display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px;
+      padding: 12px 16px; min-height: 0; overflow: auto;
+    }
+    @media (max-width: 720px) {
+      #place-interior .pi-body { grid-template-columns: 1fr; }
+    }
+    #place-interior .pi-room {
+      position: relative; border-radius: 16px; overflow: hidden;
+      min-height: 220px; border: 1px solid rgba(148,163,184,0.3);
+      background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 55%, #1c1917 100%);
+    }
+    #place-interior .pi-room-glow {
+      position: absolute; inset: 10% 15% auto; height: 40%;
+      background: radial-gradient(circle, rgba(251,191,36,0.35), transparent 70%);
+      pointer-events: none;
+    }
+    #place-interior .pi-room-floor {
+      position: absolute; left: 8%; right: 8%; bottom: 8%; height: 28%;
+      background: linear-gradient(180deg, rgba(120,80,40,0.35), rgba(60,40,20,0.7));
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);
+    }
+    #place-interior .pi-room-window {
+      position: absolute; top: 18%; right: 14%; width: 22%; height: 28%;
+      background: linear-gradient(160deg, rgba(56,189,248,0.45), rgba(167,139,250,0.35));
+      border-radius: 8px; border: 2px solid rgba(226,232,240,0.35);
+      box-shadow: 0 0 24px rgba(56,189,248,0.25);
+    }
+    #place-interior .pi-room-label {
+      position: absolute; left: 12px; bottom: 12px; color: #cbd5e1; font-size: 0.8rem;
+    }
+    #place-interior .pi-host {
+      background: rgba(15,23,42,0.72); border: 1px solid rgba(148,163,184,0.28);
+      border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+    }
+    #place-interior .pi-host-row { display: flex; gap: 12px; align-items: flex-start; }
+    #place-interior .pi-portrait {
+      width: 88px; height: 88px; border-radius: 16px; flex-shrink: 0;
+      border: 2px solid rgba(251,191,36,0.55); overflow: hidden; position: relative;
+      background: radial-gradient(circle at 40% 30%, #334155, #0f172a);
+      display: grid; place-items: center;
+    }
+    #place-interior .pi-portrait img {
+      width: 100%; height: 100%; object-fit: cover; display: none;
+    }
+    #place-interior .pi-portrait img.show { display: block; }
+    #place-interior .pi-portrait .pi-glyph {
+      font-size: 2.2rem; line-height: 1; position: absolute;
+    }
+    #place-interior .pi-portrait.img-on .pi-glyph { display: none; }
+    #place-interior .pi-home-badge {
+      display: inline-block; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em;
+      padding: 3px 8px; border-radius: 999px; margin-top: 4px;
+    }
+    #place-interior .pi-home-badge.home {
+      background: rgba(52,211,153,0.2); color: #6ee7b7; border: 1px solid rgba(52,211,153,0.45);
+    }
+    #place-interior .pi-home-badge.away {
+      background: rgba(248,113,113,0.15); color: #fca5a5; border: 1px solid rgba(248,113,113,0.4);
+    }
+    #place-interior .pi-host h3 { margin: 0; color: #f8fafc; font-size: 1.05rem; }
+    #place-interior .pi-vibe { margin: 0; color: #94a3b8; font-size: 0.82rem; line-height: 1.4; }
+    #place-interior .pi-guests { margin: 0; color: #6ee7b7; font-size: 0.8rem; line-height: 1.45; }
+    #place-interior .pi-guest-list {
+      display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto;
+    }
+    #place-interior .pi-guest-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(30,41,59,0.95); border: 1px solid #475569; color: #e2e8f0;
+      border-radius: 999px; padding: 4px 10px 4px 4px; font-size: 0.78rem; cursor: pointer; font: inherit;
+    }
+    #place-interior .pi-guest-chip.on {
+      border-color: #38bdf8; background: rgba(56,189,248,0.15); color: #e0f2fe;
+    }
+    #place-interior .pi-guest-chip .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    #place-interior .pi-guest-chip .chip-face {
+      width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+      border: 1px solid rgba(148,163,184,0.45); background: #1e293b; flex-shrink: 0;
+    }
+    #place-interior .pi-guest-chip .chip-face.glyph {
+      display: grid; place-items: center; font-size: 0.95rem; border-style: dashed;
+    }
+    #place-interior .pi-portrait {
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 12px 28px rgba(0,0,0,0.45);
+    }
+    #place-interior .pi-host-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    #place-interior .pi-bubble {
+      margin-top: auto; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.35);
+      border-radius: 12px; padding: 10px 12px; color: #e0f2fe; font-size: 0.9rem; line-height: 1.45;
+      min-height: 3.2em;
+    }
+    #place-interior .pi-talk {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 10px 16px 14px; border-top: 1px solid rgba(148,163,184,0.22);
+      background: rgba(2,6,23,0.85);
+    }
+    #place-interior .pi-talk input {
+      flex: 1; min-width: 160px; background: #0f172a; border: 1px solid #334155;
+      color: #f1f5f9; border-radius: 10px; padding: 10px 12px; font: inherit;
+    }
+    #place-interior .pi-talk button {
+      background: linear-gradient(135deg, #7c3aed, #2563eb); border: none; color: #fff;
+      border-radius: 10px; padding: 10px 14px; font-weight: 800; cursor: pointer; font: inherit;
+    }
+    #place-interior .pi-quick { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+    #place-interior .pi-quick button {
+      background: rgba(30,41,59,0.9); border: 1px solid #475569; color: #e2e8f0;
+      border-radius: 999px; padding: 6px 10px; font-size: 0.78rem; cursor: pointer; font: inherit;
+    }
+    #enter-prompt {
+      position: fixed; left: 50%; bottom: 108px; transform: translateX(-50%);
+      z-index: 35; display: none; pointer-events: none;
+      background: rgba(15,23,42,0.92); border: 1px solid #fde68a; color: #fde68a;
+      padding: 8px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 800;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+    }
+    #enter-prompt.show { display: block; }
+    body.place-inside #topbar,
+    body.place-inside #dock,
+    body.place-inside #btn-open-chat3d { opacity: 0.35; pointer-events: none; }
   </style>
 </head>
 <body>
   <div id="canvas-host"></div>
+  <div id="enter-prompt" aria-live="polite">E · Enter</div>
+  <div id="place-interior" role="dialog" aria-label="Interior visit" aria-modal="true">
+    <div class="pi-head">
+      <button type="button" class="pi-exit" id="pi-exit">← Leave</button>
+      <div>
+        <h2 id="pi-title">House</h2>
+        <div class="pi-sub" id="pi-sub">interior visit</div>
+      </div>
+    </div>
+    <div class="pi-body">
+      <div class="pi-room" id="pi-room">
+        <div class="pi-room-glow"></div>
+        <div class="pi-room-window"></div>
+        <div class="pi-room-floor"></div>
+        <div class="pi-room-label" id="pi-room-label">Inside</div>
+      </div>
+      <div class="pi-host">
+        <div class="pi-host-row">
+          <div class="pi-portrait" id="pi-portrait">
+            <img id="pi-portrait-img" alt="" />
+            <span class="pi-glyph" id="pi-glyph">🌙</span>
+          </div>
+          <div class="pi-host-meta">
+            <h3 id="pi-host-name">Host</h3>
+            <span class="pi-home-badge away" id="pi-home-badge">Away</span>
+            <p class="pi-vibe" id="pi-vibe">Warm light through the glass.</p>
+          </div>
+        </div>
+        <p class="pi-guests" id="pi-guests-label">Talk to someone here:</p>
+        <div class="pi-guest-list" id="pi-guest-list"></div>
+        <div class="pi-bubble" id="pi-bubble">Welcome in.</div>
+      </div>
+    </div>
+    <div class="pi-talk">
+      <div class="pi-quick" id="pi-quick"></div>
+      <input id="pi-input" maxlength="400" placeholder="Talk inside…" autocomplete="off" />
+      <button type="button" id="pi-send">Send</button>
+    </div>
+  </div>
   <div id="boot-overlay" aria-live="polite">
     <div class="boot-card">
       <div class="boot-title">✦ Luna Camp 3D</div>
@@ -938,7 +1121,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-25-three-v65-witty-chat";
+    const BUILD = "2026-07-26-three-v84-loadfix";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -997,7 +1180,23 @@
         statusEl.textContent = "Free Ollama meadow";
       }
     }
-    // Never leave user staring at "✦ Luna Camp 3D" forever
+    // Never leave user staring at boot forever (server drop / hung GLB)
+    function forceBootClear(reason) {
+      if (bootFinished) return;
+      const hasCanvas = !!document.querySelector("#canvas-host canvas");
+      if (hasCanvas) {
+        setBootStep(reason || "Meadow ready");
+        finishBoot(true);
+        return;
+      }
+      // No canvas = usually dead server or blocked Three.js
+      showBootError(
+        "Server not answering or Three.js never started. " +
+          "Run START_TOWN_LOCAL.bat and keep the black window open, then open " +
+          "http://127.0.0.1:8767/firmament/3d — use http not https.",
+      );
+      finishBoot(false);
+    }
     setTimeout(() => {
       if (bootFinished) return;
       const hasCanvas = !!document.querySelector("#canvas-host canvas");
@@ -1005,9 +1204,11 @@
         setBootStep("Meadow is up — clearing boot card…");
         finishBoot(true);
       } else {
-        setBootStep("Still loading… if stuck, Ctrl+Shift+R or run OPEN_FREE_3D_CAMP.bat");
+        setBootStep("Still loading… checking server…");
       }
-    }, 8000);
+    }, 5000);
+    setTimeout(() => forceBootClear("Taking too long — opening meadow anyway"), 10000);
+    setTimeout(() => forceBootClear(), 16000);
     function showBootError(msg) {
       console.error(msg);
       const text = String(msg && msg.message ? msg.message : msg);
@@ -1043,7 +1244,21 @@
     let THREE, OrbitControls, campWorld, campClient, campFeatures, charSystem, propSystem;
     try {
       setBootStep("Loading Three.js (free, offline vendor)…");
-      const head = await fetch(THREE_URL, { cache: "no-store" });
+      // Timeout so a dead server can't hang the load card forever
+      const headCtrl = new AbortController();
+      const headTimer = setTimeout(() => headCtrl.abort(), 5000);
+      let head;
+      try {
+        head = await fetch(THREE_URL, { cache: "no-store", signal: headCtrl.signal });
+      } catch (fe) {
+        clearTimeout(headTimer);
+        throw new Error(
+          "Can't reach Luna server (Three.js fetch failed). " +
+            "Double-click START_TOWN_LOCAL.bat and leave it open. " +
+            "Then use http://127.0.0.1:8767/firmament/3d",
+        );
+      }
+      clearTimeout(headTimer);
       if (!head.ok) throw new Error(`three.module.js HTTP ${head.status} — is the Luna server running on :8767?`);
       THREE = await import(THREE_URL);
       setBootStep("Loading camera controls…");
@@ -1088,8 +1303,10 @@
     let bubbleFrontZ = 220;
 
     const isLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
-    stampEl.textContent = isLocal ? `✦ SANDBOX 3D · ${BUILD}` : `✦ 3D THREE · ${BUILD}`;
-    stampEl.style.borderColor = isLocal ? "#38bdf8" : "rgba(56,189,248,0.45)";
+    if (stampEl) {
+      stampEl.textContent = isLocal ? `✦ SANDBOX 3D · ${BUILD}` : `✦ 3D THREE · ${BUILD}`;
+      stampEl.style.borderColor = isLocal ? "#38bdf8" : "rgba(56,189,248,0.45)";
+    }
 
     // ── Shared world catalog (architecture layer B) ──
     let catalog;
@@ -1158,6 +1375,10 @@
       base: a.base !== false && !a.summon,
       summon: a.summon || "",
       mood: a.mood || "neutral",
+      faction: a.faction || a.visual?.faction || "",
+      daily: !!a.daily,
+      opener: a.opener || "",
+      blurb: a.blurb || a.persona_hint || "",
     }));
     let AGENTS = ALL_AGENT_DEFS.filter((a) => a.base || !a.summon);
     // Never boot with empty talk roster
@@ -1185,6 +1406,12 @@
     }
 
     setBootStep("Building meadow…");
+
+    // Enterable places (houses + town centers) — used by click / E key / prompts
+    const ENTERABLE_CENTER_TYPES = new Set([
+      "shop", "club", "shelter", "tv", "carnival", "inn", "temple", "square",
+      "terrace", "gate", "church", "market", "pond",
+    ]);
 
     // Mood/prop look tables MUST exist before makeAgent → applyLook (const TDZ bug froze boot)
     const MOOD_TINT = {
@@ -1712,19 +1939,22 @@
       makeTree(Math.cos(a) * r, Math.sin(a) * r, 0.9 + Math.random() * 0.7);
     }
 
-    // Houses
+    // Houses — solid footprint + front door for enter/leave
     const houseMeshes = [];
     for (const h of HOUSES) {
       const p = toWorld(h.x, h.y);
       const group = new THREE.Group();
       const wallH = h.castle ? 2.4 : 1.6;
+      const halfX = h.castle ? 1.65 : 1.25;
+      const halfZ = h.castle ? 1.45 : 1.1;
       const wall = new THREE.Mesh(
-        new THREE.BoxGeometry(h.castle ? 3.2 : 2.4, wallH, h.castle ? 2.8 : 2.1),
+        new THREE.BoxGeometry(halfX * 2, wallH, halfZ * 2),
         new THREE.MeshStandardMaterial({ color: h.wall, roughness: 0.75 }),
       );
       wall.position.y = wallH / 2;
       wall.castShadow = true;
       wall.receiveShadow = true;
+      wall.name = "houseWall";
       group.add(wall);
       const roof = new THREE.Mesh(
         new THREE.ConeGeometry(h.castle ? 2.4 : 1.9, h.castle ? 1.4 : 1.0, 4),
@@ -1736,16 +1966,58 @@
       group.add(roof);
       const door = new THREE.Mesh(
         new THREE.BoxGeometry(0.55, 0.95, 0.08),
-        new THREE.MeshStandardMaterial({ color: 0x2a1810 }),
+        new THREE.MeshStandardMaterial({
+          color: 0x2a1810,
+          emissive: 0x000000,
+          emissiveIntensity: 0,
+        }),
       );
-      door.position.set(0, 0.48, h.castle ? 1.42 : 1.08);
+      door.position.set(0, 0.48, halfZ + 0.02);
+      door.name = "houseDoor";
       group.add(door);
+      // Host home lamp over door (glows when owner is inside)
+      const lamp = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 10, 10),
+        new THREE.MeshStandardMaterial({
+          color: 0xfde68a,
+          emissive: 0x000000,
+          emissiveIntensity: 0,
+        }),
+      );
+      lamp.position.set(0, wallH + 0.15, halfZ + 0.08);
+      lamp.name = "houseHomeLamp";
+      group.add(lamp);
+      // Soft doorway mat (visual only)
+      const mat = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.9, 0.55),
+        new THREE.MeshBasicMaterial({
+          color: h.wall,
+          transparent: true,
+          opacity: 0.22,
+          depthWrite: false,
+        }),
+      );
+      mat.rotation.x = -Math.PI / 2;
+      mat.position.set(0, 0.03, halfZ + 0.45);
+      group.add(mat);
       const label = makeLabelSprite(h.name, h.emoji || "🏠", h.wall);
       label.position.y = wallH + 1.6;
       label.scale.set(2.0, 1.0, 1);
       group.add(label);
       group.position.copy(p);
-      group.userData = { kind: "house", id: h.id, catalogId: h.catalogId, name: h.name };
+      group.userData = {
+        kind: "house",
+        id: h.catalogId || h.id,
+        ownerId: h.id,
+        catalogId: h.catalogId,
+        name: h.name,
+        emoji: h.emoji,
+        halfX,
+        halfZ,
+        wallH,
+        occupants: 0,
+        solid: true,
+      };
       scene.add(group);
       houseMeshes.push(group);
     }
@@ -1824,7 +2096,24 @@
       label.scale.set(2.0, 1.0, 1);
       group.add(label);
       group.position.copy(p);
-      group.userData = { kind: "landmark", id: lm.id, type: lm.type, name: lm.name, emoji: lm.emoji, use: lm.use };
+      // Solid footprint for buildings (pond is open water — no hard block)
+      let halfX = 0, halfZ = 0, solid = false;
+      if (type === "shop") { halfX = 1.35; halfZ = 0.95; solid = true; }
+      else if (type === "shelter") { halfX = 1.15; halfZ = 0.95; solid = true; }
+      else if (type === "tv") { halfX = 0.85; halfZ = 0.4; solid = true; }
+      else if (type === "club") { halfX = 1.5; halfZ = 1.5; solid = true; }
+      group.userData = {
+        kind: "landmark",
+        id: lm.id,
+        type: lm.type || type,
+        name: lm.name,
+        emoji: lm.emoji,
+        use: lm.use,
+        halfX,
+        halfZ,
+        solid,
+        enterable: ENTERABLE_CENTER_TYPES.has(String(lm.type || type || "").toLowerCase()),
+      };
       scene.add(group);
       landmarkMeshes.push(group);
       return group;
@@ -2119,9 +2408,26 @@
       { id: "trex", name: "Camp T-Rex", emoji: "🦖", x: 520, y: -120, color: 0x3f7a3a, visual: { kit: "trex" }, interact: "roar" },
       { id: "duck", name: "Pond duck", emoji: "🦆", x: -200, y: 340, color: 0xfbbf24, visual: { kit: "duck" }, interact: "pet" },
     ];
-    setBootStep("Placing props + free models…");
-    await Promise.allSettled([...PROPS, ...EXTRA_SCENERY].map((prop) => spawnProp(prop)));
-    console.info("[camp3d] spawned props", propMeshes.length, "source", catalogSource);
+    setBootStep("Placing props (won't block boot)…");
+    // GLB fetches can hang if server dies mid-load — never block the meadow forever
+    const propJobs = [...PROPS, ...EXTRA_SCENERY].map((prop) =>
+      Promise.race([
+        spawnProp(prop),
+        new Promise((resolve) => setTimeout(() => resolve(null), 4500)),
+      ]).catch((e) => {
+        console.warn("[camp3d] prop skip", prop?.id, e);
+        return null;
+      }),
+    );
+    await Promise.race([
+      Promise.allSettled(propJobs),
+      new Promise((r) => setTimeout(r, 2800)),
+    ]);
+    // Finish remaining in background
+    Promise.allSettled(propJobs).then(() => {
+      console.info("[camp3d] spawned props", propMeshes.length, "source", catalogSource);
+    });
+    console.info("[camp3d] props phase done (async remaining ok)", propMeshes.length);
     // Success toast fires once meadow boot finishes (not mid-spawn) — never "N camp objects · api"
 
     // ── Personality from mood + archetype (drives sit / rest / roam / social) ──
@@ -2132,18 +2438,29 @@
       let energy = 0.5, rest = 0.4, social = 0.45, curiosity = 0.5, firelove = 0.4, pace = 1;
       let joy = 0.58, stability = 0.62;
       const archMap = {
-        messenger: { energy: 0.9, rest: 0.15, social: 0.55, curiosity: 0.7, pace: 1.25, joy: 0.72, stability: 0.5 },
-        seer: { energy: 0.3, rest: 0.75, social: 0.35, curiosity: 0.85, firelove: 0.5, pace: 0.75, joy: 0.55, stability: 0.82 },
-        healer: { energy: 0.35, rest: 0.65, social: 0.5, curiosity: 0.45, firelove: 0.55, pace: 0.8, joy: 0.7, stability: 0.85 },
-        guardian: { energy: 0.7, rest: 0.25, social: 0.3, curiosity: 0.4, firelove: 0.35, pace: 1.1, joy: 0.5, stability: 0.88 },
-        shepherd: { energy: 0.35, rest: 0.7, social: 0.6, curiosity: 0.4, firelove: 0.7, pace: 0.7, joy: 0.75, stability: 0.9 },
-        reveler: { energy: 0.75, rest: 0.25, social: 0.9, curiosity: 0.5, firelove: 0.55, pace: 1.15, joy: 0.9, stability: 0.45 },
-        lights: { energy: 0.6, rest: 0.35, social: 0.7, curiosity: 0.65, firelove: 0.4, pace: 1.05, joy: 0.8, stability: 0.6 },
-        allfather: { energy: 0.4, rest: 0.6, social: 0.4, curiosity: 0.7, firelove: 0.65, pace: 0.75, joy: 0.55, stability: 0.92 },
-        thunder: { energy: 0.95, rest: 0.1, social: 0.55, curiosity: 0.45, firelove: 0.3, pace: 1.35, joy: 0.65, stability: 0.55 },
-        moon_host: { energy: 0.5, rest: 0.55, social: 0.65, curiosity: 0.55, firelove: 0.8, pace: 0.9, joy: 0.72, stability: 0.78 },
+        messenger: { energy: 0.75, rest: 0.25, social: 0.55, curiosity: 0.7, pace: 0.95, joy: 0.72, stability: 0.5 },
+        seer: { energy: 0.3, rest: 0.75, social: 0.35, curiosity: 0.85, firelove: 0.5, pace: 0.62, joy: 0.55, stability: 0.82 },
+        healer: { energy: 0.35, rest: 0.65, social: 0.5, curiosity: 0.45, firelove: 0.55, pace: 0.68, joy: 0.7, stability: 0.85 },
+        guardian: { energy: 0.6, rest: 0.3, social: 0.3, curiosity: 0.4, firelove: 0.35, pace: 0.85, joy: 0.5, stability: 0.88 },
+        shepherd: { energy: 0.35, rest: 0.7, social: 0.6, curiosity: 0.4, firelove: 0.7, pace: 0.6, joy: 0.75, stability: 0.9 },
+        reveler: { energy: 0.65, rest: 0.3, social: 0.9, curiosity: 0.5, firelove: 0.55, pace: 0.88, joy: 0.9, stability: 0.45 },
+        lights: { energy: 0.55, rest: 0.4, social: 0.7, curiosity: 0.65, firelove: 0.4, pace: 0.82, joy: 0.8, stability: 0.6 },
+        allfather: { energy: 0.4, rest: 0.6, social: 0.4, curiosity: 0.7, firelove: 0.65, pace: 0.65, joy: 0.55, stability: 0.92 },
+        thunder: { energy: 0.8, rest: 0.2, social: 0.55, curiosity: 0.45, firelove: 0.3, pace: 0.98, joy: 0.65, stability: 0.55 },
+        moon_host: { energy: 0.5, rest: 0.55, social: 0.65, curiosity: 0.55, firelove: 0.8, pace: 0.72, joy: 0.72, stability: 0.78 },
+        // Daily town visitors
+        god: { energy: 0.55, rest: 0.45, social: 0.5, curiosity: 0.7, firelove: 0.55, pace: 0.7, joy: 0.65, stability: 0.8 },
+        demon: { energy: 0.7, rest: 0.25, social: 0.55, curiosity: 0.6, firelove: 0.35, pace: 0.8, joy: 0.55, stability: 0.5 },
+        angel: { energy: 0.4, rest: 0.6, social: 0.55, curiosity: 0.55, firelove: 0.7, pace: 0.62, joy: 0.75, stability: 0.85 },
+        clever: { energy: 0.55, rest: 0.4, social: 0.75, curiosity: 0.8, firelove: 0.4, pace: 0.78, joy: 0.8, stability: 0.55 },
       };
-      const am = archMap[arch];
+      // Faction can override archetype for daily NPCs
+      const faction = String(def.faction || def.visual?.faction || "").toLowerCase();
+      if (faction && archMap[faction] && !archMap[arch]) {
+        // use faction map below via arch rewrite
+      }
+      const archKey = archMap[arch] ? arch : (archMap[faction] ? faction : arch);
+      const am = archMap[archKey] || archMap[arch] || archMap[faction];
       if (am) {
         energy = am.energy ?? energy;
         rest = am.rest ?? rest;
@@ -2153,6 +2470,12 @@
         pace = am.pace ?? pace;
         joy = am.joy ?? joy;
         stability = am.stability ?? stability;
+      }
+      // You (Telephantix): calmer stroll — was sprinty/wonky
+      if (String(def.id || "") === "telephantix") {
+        pace = 0.52;
+        energy = Math.min(energy, 0.45);
+        rest = Math.max(rest, 0.55);
       }
       const moodMap = {
         happy: { energy: 0.12, social: 0.1, rest: -0.05, joy: 0.15 },
@@ -2205,10 +2528,26 @@
       group.position.copy(p);
       // face roughly toward fire
       group.lookAt(0, group.position.y, 0);
-      group.userData = { kind: "seat", id: seat.id, name: seat.name };
+      // NOT solid — agents must walk onto chairs
+      group.userData = { kind: "seat", id: seat.id, name: seat.name, solid: false };
       scene.add(group);
       seatMeshes.push(group);
-      const rec = { id: seat.id, pos: p.clone(), mesh: group, occupiedBy: null };
+      // Sit on the cushion; approach from the open side (toward fire / +Z local after lookAt)
+      const sitPos = p.clone();
+      const approach = p.clone();
+      // World offset: step in from fire direction so they don't clip the backrest
+      const toFireX = -p.x;
+      const toFireZ = -p.z;
+      const len = Math.hypot(toFireX, toFireZ) || 1;
+      approach.x += (toFireX / len) * 0.85;
+      approach.z += (toFireZ / len) * 0.85;
+      const rec = {
+        id: seat.id,
+        pos: sitPos,
+        approach,
+        mesh: group,
+        occupiedBy: null,
+      };
       seatState.push(rec);
       return rec;
     }
@@ -2312,6 +2651,35 @@
       const body = ph.body;
       const head = ph.head;
       const feet = ph.feet;
+      // 2D-style speak ring (pulses while talking)
+      const speakRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.42, 0.55, 36),
+        new THREE.MeshBasicMaterial({
+          color: def.color,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        }),
+      );
+      speakRing.rotation.x = -Math.PI / 2;
+      speakRing.position.y = 0.04;
+      speakRing.name = "speakRing";
+      group.add(speakRing);
+      const speakRing2 = new THREE.Mesh(
+        new THREE.RingGeometry(0.58, 0.68, 36),
+        new THREE.MeshBasicMaterial({
+          color: def.color,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        }),
+      );
+      speakRing2.rotation.x = -Math.PI / 2;
+      speakRing2.position.y = 0.05;
+      speakRing2.name = "speakRing2";
+      group.add(speakRing2);
       const label = makeLabelSprite(def.name, "✦", def.color);
       label.position.y = 2.2;
       label.scale.set(1.6, 0.8, 1);
@@ -2323,8 +2691,14 @@
       scene.add(group);
       const persona = buildPersonality(def);
       const canFly = FLYER_IDS.has(def.id);
+      // Town pace: stroll-first (old 5.8–9 felt like everyone was sprinting)
+      const isYou = def.id === "telephantix" || def.id === "stood";
+      const speedBase = isYou
+        ? (2.05 + Math.random() * 0.35) * persona.pace
+        : (2.35 + Math.random() * 0.95) * persona.pace;
       const st = {
         def,
+        id: def.id,
         mesh: group,
         body,
         head,
@@ -2334,8 +2708,8 @@
         home: p.clone(),
         speakUntil: 0,
         phase: Math.random() * Math.PI * 2,
-        speed: (3.4 + Math.random() * 2.2) * persona.pace,
-        baseSpeed: (3.4 + Math.random() * 2.2) * persona.pace,
+        speed: speedBase,
+        baseSpeed: speedBase,
         buzz: null,
         vx: 0,
         vz: 0,
@@ -2352,13 +2726,22 @@
         boredom: Math.random() * 0.3,
         char: null,
         animState: "idle",
+        insideHouse: null,
+        housePhase: null,
+        homeTarget: null,
+        houseGuest: false,
+        houseLeaveAt: 0,
       };
       agentState.push(st);
       applyLook(st);
       st._upgradeChar = () => {
         if (!charSystem || st.char) return Promise.resolve();
+        const isYou = def.id === "telephantix" || def.id === "stood" || def.visual?.forceCustomMesh;
         return charSystem.createCharacter(def, def.color).then((ch) => {
-          if (!ch || !st.mesh) return;
+          if (!ch || !st.mesh) {
+            console.warn("[camp3d] no mesh returned for", def.id, def.visual?.glb);
+            return;
+          }
           if (st.placeholder) st.placeholder.visible = false;
           body.visible = false;
           head.visible = false;
@@ -2366,8 +2749,40 @@
           st.mesh.add(ch.root);
           st.char = ch;
           st.faceYaw = Number(ch.faceYaw) || 0;
-          ch.setTint(def.color, 0.1);
-          label.position.y = 2.05;
+          // Never brand-wash the real body mesh into a color blob
+          if (!isYou) ch.setTint(def.color, 0.1);
+          label.position.y = isYou ? 2.35 : 2.05;
+          if (isYou) {
+            // Mark label clearly so you can find the body, not just the name
+            try {
+              const old = st.mesh.getObjectByName("label");
+              if (old) st.mesh.remove(old);
+              const youLabel = makeLabelSprite("YOU · Telephantix", "🧍", 0xc4a494);
+              youLabel.position.y = 2.4;
+              youLabel.scale.set(2.2, 0.95, 1);
+              youLabel.name = "label";
+              st.mesh.add(youLabel);
+            } catch (_) {}
+            console.info("[camp3d] YOUR mesh attached", def.visual?.glb || "telephantix.glb", ch.height);
+          }
+          // Daily visitors: witty opener + short info once their mesh is on field
+          if (def.daily && !st._dailyIntroDone) {
+            st._dailyIntroDone = true;
+            const fac = def.faction || "guest";
+            const opener = (def.opener || "").trim();
+            const blurb = (def.blurb || "").trim();
+            const line = opener
+              || `${def.name} · ${fac} on today's rotation.`;
+            const info = blurb
+              ? `${line}${line.endsWith(".") ? "" : "."} ${blurb}`
+              : line;
+            setTimeout(() => {
+              try {
+                showSpeech3d(def.id, info.slice(0, 320), speechReadMs(info.slice(0, 320)), { force: true });
+                logLine(def.name, info.slice(0, 280));
+              } catch (_) {}
+            }, 400 + Math.random() * 1800);
+          }
           applyLook(st);
         }).catch((e) => console.warn("char load", def.id, e));
       };
@@ -2377,20 +2792,40 @@
     // Roster ready — fill Talk-to list ASAP (not only later in boot)
     try {
       refreshWhoSelect();
-      if (AGENTS.length) setTalkWho(AGENTS.some((a) => a.id === "luna") ? "luna" : AGENTS[0].id);
+      // Default talk target: Telephantix (you) when present
+      if (AGENTS.length) {
+        const prefer = AGENTS.some((a) => a.id === "telephantix")
+          ? "telephantix"
+          : AGENTS.some((a) => a.id === "luna")
+            ? "luna"
+            : AGENTS[0].id;
+        setTalkWho(prefer);
+      }
     } catch (err) {
       console.warn("[camp3d] early talk roster", err);
     }
 
-    // Roam anchors
+    // Roam anchors — full town (houses + districts + far scatter)
     roamPoints.push(new THREE.Vector3(0, 0, 0));
     for (const p of PROPS) roamPoints.push(toWorld(p.x, p.y));
     for (const h of HOUSES) roamPoints.push(toWorld(h.x, h.y).add(new THREE.Vector3(0, 0, 1.2)));
     for (const lm of LANDMARKS) roamPoints.push(toWorld(lm.x, lm.y));
     for (const s of seatState) roamPoints.push(s.pos.clone());
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2;
-      const r = 4 + (i % 3) * 3;
+    // Wide scatter grid so walks use the whole level (not a tight ring)
+    for (let i = 0; i < 48; i++) {
+      const a = (i / 48) * Math.PI * 2;
+      const r = 10 + (i % 8) * 14 + (i % 5) * 6;
+      roamPoints.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
+    }
+    for (let gx = -7; gx <= 7; gx++) {
+      for (let gz = -7; gz <= 7; gz++) {
+        if (gx === 0 && gz === 0) continue;
+        roamPoints.push(new THREE.Vector3(gx * 22, 0, gz * 22));
+      }
+    }
+    for (let i = 0; i < 16; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 22 + Math.random() * 55;
       roamPoints.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
     }
 
@@ -2648,8 +3083,9 @@
         }
       } else if (mode === "roar_back") {
         trex.userData.roarUntil = now + 2200;
-        trex.userData.walkSpeed = 2.2;
-        setTimeout(() => { trex.userData.walkSpeed = 1.15; }, 2200);
+        trex.userData.sprint = true;
+        trex.userData.walkSpeed = 3.2;
+        setTimeout(() => { trex.userData.walkSpeed = 2.0; trex.userData.sprint = false; }, 2800);
         showToast(`🦖 ${st.def.name} and the T-Rex trade energy`);
       } else {
         trex.userData.pulseUntil = now + 1400;
@@ -2846,53 +3282,403 @@
       if (!free.length) return null;
       if (preferNear) {
         free.sort((a, b) => a.pos.distanceTo(preferNear) - b.pos.distanceTo(preferNear));
+        // Prefer a seat within a reasonable stroll (don't cross the whole map every time)
+        const near = free.filter((s) => s.pos.distanceTo(preferNear) < 28);
+        if (near.length) return near[Math.floor(Math.random() * Math.min(3, near.length))];
         return free[0];
       }
       return free[Math.floor(Math.random() * free.length)];
     }
 
+    // ── Solid collision + house enter/leave (2D parity) ──
+    // Slightly smaller radius so agents can slip to chairs / props without jamming
+    const AGENT_COLLIDE_R = 0.42;
+    const VISITOR_COLLIDE_R = 0.4;
+    const SIT_ARRIVE_R = 1.15;
+
+    // Snap spawn points outside solid buildings (no start-inside-wall)
+    // resolveSolidXZ is a function declaration → hoisted in this scope
+    for (const st of agentState) {
+      const r = resolveSolidXZ(st.mesh.position.x, st.mesh.position.z, AGENT_COLLIDE_R + 0.1, {});
+      st.mesh.position.x = r.x;
+      st.mesh.position.z = r.z;
+      st.target.copy(st.mesh.position);
+      st.home.copy(st.mesh.position);
+    }
+
+    function houseMeshById(id) {
+      return houseMeshes.find((g) => g.userData?.id === id || g.userData?.catalogId === id) || null;
+    }
+
+    function houseDoorWorld(houseMesh) {
+      const halfZ = houseMesh.userData.halfZ || 1.1;
+      return {
+        x: houseMesh.position.x,
+        z: houseMesh.position.z + halfZ + 0.65,
+      };
+    }
+
+    /** Front doorway slab — walk-through when approaching this house */
+    function inHouseDoorway(px, pz, houseMesh, pad = 0.15) {
+      const hx = houseMesh.position.x;
+      const hz = houseMesh.position.z;
+      const halfX = houseMesh.userData.halfX || 1.25;
+      const halfZ = houseMesh.userData.halfZ || 1.1;
+      const doorHalfW = Math.min(0.55, halfX * 0.55) + pad;
+      const front = hz + halfZ;
+      return (
+        Math.abs(px - hx) <= doorHalfW &&
+        pz >= front - 0.35 &&
+        pz <= front + 1.35
+      );
+    }
+
+    /**
+     * Push a circle out of solid AABBs (houses + solid landmarks).
+     * @param {number} px @param {number} pz @param {number} radius
+     * @param {{ allowHouseId?: string|null, fly?: boolean }} opts
+     */
+    function resolveSolidXZ(px, pz, radius, opts = {}) {
+      let x = px;
+      let z = pz;
+      let hit = false;
+      if (opts.fly) return { x, z, hit: false }; // airborne clears roofs
+      const solids = [];
+      for (const g of houseMeshes) {
+        if (!g.userData?.solid) continue;
+        if (opts.allowHouseId && (g.userData.id === opts.allowHouseId || g.userData.catalogId === opts.allowHouseId)) {
+          if (inHouseDoorway(x, z, g, 0.25)) continue; // open door
+        }
+        solids.push(g);
+      }
+      // Chairs / prop use: skip bulky landmark AABBs so agents can sit by fire/pond/etc.
+      if (!opts.skipLandmarks) {
+        for (const g of landmarkMeshes) {
+          if (g.userData?.solid) solids.push(g);
+        }
+      }
+      for (let pass = 0; pass < 3; pass++) {
+        for (const g of solids) {
+          const cx = g.position.x;
+          const cz = g.position.z;
+          const halfX = (g.userData.halfX || 1) + radius;
+          const halfZ = (g.userData.halfZ || 1) + radius;
+          // Expanded AABB = circle vs box via Minkowski
+          const dx = x - cx;
+          const dz = z - cz;
+          if (Math.abs(dx) > halfX || Math.abs(dz) > halfZ) continue;
+          // Inside expanded box — push out shortest axis
+          const penX = halfX - Math.abs(dx);
+          const penZ = halfZ - Math.abs(dz);
+          if (penX < penZ) {
+            x = cx + Math.sign(dx || 1) * halfX;
+          } else {
+            z = cz + Math.sign(dz || 1) * halfZ;
+          }
+          hit = true;
+        }
+      }
+      return { x, z, hit };
+    }
+
+    function resolveAgentPairs() {
+      const minD = AGENT_COLLIDE_R * 2;
+      for (let i = 0; i < agentState.length; i++) {
+        const a = agentState[i];
+        if (a.insideHouse || !a.mesh?.visible || a.posture === "sit" || a.pendingSit) continue;
+        for (let j = i + 1; j < agentState.length; j++) {
+          const b = agentState[j];
+          if (b.insideHouse || !b.mesh?.visible || b.posture === "sit" || b.pendingSit) continue;
+          // Flying agents soft-only vs grounded
+          if ((a.flying && a.mesh.position.y > 1.2) || (b.flying && b.mesh.position.y > 1.2)) continue;
+          let dx = a.mesh.position.x - b.mesh.position.x;
+          let dz = a.mesh.position.z - b.mesh.position.z;
+          let d = Math.hypot(dx, dz);
+          if (d >= minD) continue;
+          if (d < 1e-4) {
+            dx = Math.cos(i * 1.7);
+            dz = Math.sin(i * 1.7);
+            d = 1e-4;
+          }
+          const push = (minD - d) * 0.52;
+          const nx = dx / d;
+          const nz = dz / d;
+          a.mesh.position.x += nx * push;
+          a.mesh.position.z += nz * push;
+          b.mesh.position.x -= nx * push;
+          b.mesh.position.z -= nz * push;
+          // Kill closing velocity
+          if (a.vx != null) {
+            const va = a.vx * nx + a.vz * nz;
+            if (va < 0) { a.vx -= va * nx; a.vz -= va * nz; }
+          }
+          if (b.vx != null) {
+            const vb = b.vx * (-nx) + b.vz * (-nz);
+            if (vb < 0) { b.vx -= vb * (-nx); b.vz -= vb * (-nz); }
+          }
+        }
+      }
+      // Re-snap vs buildings after pair push
+      for (const st of agentState) {
+        if (st.insideHouse || st.flying) continue;
+        const r = resolveSolidXZ(
+          st.mesh.position.x,
+          st.mesh.position.z,
+          AGENT_COLLIDE_R,
+          { allowHouseId: st.housePhase === "approach" || st.housePhase === "exit" ? st.homeTarget : null },
+        );
+        st.mesh.position.x = r.x;
+        st.mesh.position.z = r.z;
+      }
+    }
+
+    function refreshHouseOccupancy(houseMesh) {
+      if (!houseMesh) return;
+      const id = houseMesh.userData.id;
+      const ownerId = houseMesh.userData.ownerId || id;
+      const n = agentState.filter(
+        (s) => s.insideHouse === id || s.insideHouse === ownerId || s.insideHouse === houseMesh.userData.catalogId,
+      ).length;
+      houseMesh.userData.occupants = n;
+      const hostHome = agentState.some(
+        (s) =>
+          s.def.id === ownerId &&
+          (s.insideHouse === id || s.insideHouse === ownerId || s.insideHouse === houseMesh.userData.catalogId),
+      );
+      const door = houseMesh.getObjectByName("houseDoor");
+      if (door?.material) {
+        door.material.emissive = new THREE.Color(n > 0 ? 0xfbbf24 : 0x000000);
+        door.material.emissiveIntensity = n > 0 ? 0.45 + Math.min(0.4, n * 0.12) : 0;
+      }
+      const lamp = houseMesh.getObjectByName("houseHomeLamp");
+      if (lamp?.material) {
+        lamp.material.emissive = new THREE.Color(hostHome ? 0x34d399 : 0x000000);
+        lamp.material.emissiveIntensity = hostHome ? 0.85 : 0;
+        lamp.material.color.setHex(hostHome ? 0x6ee7b7 : 0x64748b);
+      }
+      const wall = houseMesh.getObjectByName("houseWall");
+      if (wall?.material) {
+        if (n > 0) {
+          wall.material.emissive = wall.material.color.clone().multiplyScalar(0.25);
+          wall.material.emissiveIntensity = 0.15 + Math.min(0.25, n * 0.06);
+        } else {
+          wall.material.emissive.setHex(0x000000);
+          wall.material.emissiveIntensity = 0;
+        }
+      }
+      // Live-update interior panel if player is inside this house
+      if (
+        playerInsidePlace &&
+        (playerInsidePlace.id === id ||
+          playerInsidePlace.ownerId === ownerId ||
+          playerInsidePlace.catalogId === houseMesh.userData.catalogId)
+      ) {
+        try { refreshInteriorGuestStrip(); } catch (_) {}
+      }
+    }
+
+    function agentsInsideHouse(houseId) {
+      return agentState.filter((s) => s.insideHouse === houseId);
+    }
+
+    /** When player is inside the same place, keep agents visible in the doorway room */
+    let playerInsidePlace = null; // { kind, id, name, emoji, ownerId, mesh }
+
+    function setAgentInsideVisual(st, inside) {
+      if (!st?.mesh) return;
+      const sameRoom =
+        playerInsidePlace &&
+        (st.insideHouse === playerInsidePlace.id || st.insideHouse === playerInsidePlace.ownerId);
+      if (inside && !sameRoom) {
+        st.mesh.visible = false;
+        st.moving = false;
+        st.flying = false;
+        st.vx = 0; st.vz = 0; st.vy = 0;
+      } else {
+        st.mesh.visible = true;
+        if (inside && sameRoom) {
+          st.moving = false;
+          st.flying = false;
+          st.vx = 0; st.vz = 0; st.vy = 0;
+        }
+      }
+    }
+
+    function refreshAgentsInsideVisibility() {
+      for (const st of agentState) {
+        if (st.insideHouse) setAgentInsideVisual(st, true);
+      }
+    }
+
+    function startAgentHouseVisit(st, preferOwn = true) {
+      if (!HOUSES.length || !houseMeshes.length) return false;
+      freeSeat(st);
+      let houseDef = null;
+      if (preferOwn) {
+        houseDef = HOUSES.find((h) => h.id === st.def.id || h.catalogId === `${st.def.id}-home`);
+      }
+      if (!houseDef || Math.random() > (preferOwn ? 0.75 : 0)) {
+        houseDef = HOUSES[Math.floor(Math.random() * HOUSES.length)];
+      }
+      const mesh = houseMeshById(houseDef.catalogId) || houseMeshById(houseDef.id);
+      if (!mesh) return false;
+      const door = houseDoorWorld(mesh);
+      // Store catalog id so enter/leave matches mesh.userData.id
+      st.homeTarget = houseDef.catalogId || houseDef.id;
+      st.housePhase = "approach";
+      st.insideHouse = null;
+      st.houseGuest = houseDef.id !== st.def.id;
+      st.houseLeaveAt = 0;
+      st.target.set(door.x, 0, door.z);
+      st.flying = false;
+      st.moving = true;
+      st.action = "house";
+      st.posture = "stand";
+      st.nextDecideAt = performance.now() + 22000 + Math.random() * 10000;
+      return true;
+    }
+
+    function agentEnterHouse(st) {
+      const mesh = houseMeshById(st.homeTarget);
+      if (!mesh) {
+        st.housePhase = null;
+        st.homeTarget = null;
+        return;
+      }
+      const id = mesh.userData.id;
+      st.housePhase = "inside";
+      st.insideHouse = id;
+      st.moving = false;
+      st.action = "house_inside";
+      // Park at interior (hidden) so speech projects from the house
+      const guests = agentsInsideHouse(id).length;
+      const ang = guests * 0.95 + st.phase;
+      st.mesh.position.set(
+        mesh.position.x + Math.cos(ang) * 0.35,
+        0,
+        mesh.position.z + Math.sin(ang) * 0.25,
+      );
+      st.target.copy(st.mesh.position);
+      setAgentInsideVisual(st, true);
+      const stayMs = 7000 + (st.persona?.rest || 0.4) * 14000 + Math.random() * 8000;
+      st.houseLeaveAt = performance.now() + stayMs;
+      st.nextDecideAt = st.houseLeaveAt + 500;
+      refreshHouseOccupancy(mesh);
+      const guest = st.houseGuest;
+      const hName = mesh.userData.name || "house";
+      if (guest) {
+        showToast(`🚪 ${st.def.name} visits ${hName}`);
+        logLine(st.def.name, `steps into ${hName}.`);
+        if (Math.random() < 0.55) {
+          showSpeech3d(st.def.id, "Knock knock — firmament light through the glass.", 10000);
+        }
+        // Host already inside may greet
+        const host = agentsInsideHouse(id).find((s) => s.def.id === id && s !== st);
+        if (host && Math.random() < 0.65) {
+          setTimeout(() => {
+            if (host.insideHouse !== id) return;
+            showSpeech3d(host.def.id, `${st.def.name} — come in, make yourself at home.`, 11000);
+          }, 800 + Math.random() * 1000);
+        }
+      } else {
+        showToast(`🏠 ${st.def.name} is home`);
+        logLine(st.def.name, `heads inside ${hName}.`);
+        if (Math.random() < 0.45) {
+          showSpeech3d(st.def.id, "Home sweet aurora home.", 9000);
+        }
+      }
+    }
+
+    function agentBeginExitHouse(st) {
+      const mesh = houseMeshById(st.insideHouse || st.homeTarget);
+      if (!mesh) {
+        setAgentInsideVisual(st, false);
+        st.insideHouse = null;
+        st.housePhase = null;
+        st.homeTarget = null;
+        return;
+      }
+      const was = st.insideHouse;
+      st.housePhase = "exit";
+      st.insideHouse = null; // visible again at door
+      setAgentInsideVisual(st, false);
+      const door = houseDoorWorld(mesh);
+      st.mesh.position.set(door.x, 0, door.z);
+      st.target.set(door.x + (Math.random() - 0.5) * 1.2, 0, door.z + 1.4 + Math.random() * 0.8);
+      st.moving = true;
+      st.action = "house";
+      st.flying = false;
+      refreshHouseOccupancy(mesh);
+      if (Math.random() < 0.35) {
+        showSpeech3d(
+          st.def.id,
+          st.houseGuest ? "Thanks for the walls — back to the meadow." : "Stepping back out — corona's calling.",
+          9000,
+        );
+      }
+      logLine(st.def.name, `leaves ${mesh.userData.name || "the house"}.`);
+      st.nextDecideAt = performance.now() + 5000 + Math.random() * 4000;
+      // clear guest flag after exit walk
+      st._exitHouseId = was;
+    }
+
+    function agentFinishExitHouse(st) {
+      st.housePhase = null;
+      st.homeTarget = null;
+      st.houseGuest = false;
+      st._exitHouseId = null;
+      st.action = "wander";
+      pickRoamTarget(st);
+      st.nextDecideAt = performance.now() + 4000 + Math.random() * 4000;
+    }
+
     function pickRoamTarget(st, opts = {}) {
+      if (st.insideHouse || st.housePhase === "inside") return;
       freeSeat(st);
       let tx = st.mesh.position.x;
       let tz = st.mesh.position.z;
       let tries = 0;
-      const maxR = 4 + st.persona.energy * 14;
-      // Flight only when Firmament is open — still optional / not constant
+      // Big meadow hops — camp should feel like people actually explore
+      const maxR = 14 + st.persona.energy * 32;
       const wantFly = !!(
         firmamentOpen3d &&
         st.canFly &&
-        (opts.fly || (opts.allowFly !== false && Math.random() < 0.22))
+        (opts.fly || (opts.allowFly !== false && Math.random() < 0.28))
       );
       do {
         const roll = Math.random();
-        if (roll < 0.35 && roamPoints.length) {
+        if (roll < 0.32 && roamPoints.length) {
           const p = roamPoints[Math.floor(Math.random() * roamPoints.length)];
-          tx = p.x + (Math.random() - 0.5) * 3.2;
-          tz = p.z + (Math.random() - 0.5) * 3.2;
-        } else if (roll < 0.62) {
+          tx = p.x + (Math.random() - 0.5) * 8;
+          tz = p.z + (Math.random() - 0.5) * 8;
+        } else if (roll < 0.55) {
+          // Long hop from current position (not just home)
           const a = Math.random() * Math.PI * 2;
-          const r = 2.5 + Math.random() * maxR;
-          tx = st.home.x + Math.cos(a) * r;
-          tz = st.home.z + Math.sin(a) * r;
-        } else if (agentState.length > 1 && roll < 0.85) {
+          const r = 8 + Math.random() * maxR;
+          tx = st.mesh.position.x + Math.cos(a) * r;
+          tz = st.mesh.position.z + Math.sin(a) * r;
+        } else if (agentState.length > 1 && roll < 0.72) {
           const other = agentState[Math.floor(Math.random() * agentState.length)];
-          tx = other.mesh.position.x + (Math.random() - 0.5) * 3.5;
-          tz = other.mesh.position.z + (Math.random() - 0.5) * 3.5;
+          tx = other.mesh.position.x + (Math.random() - 0.5) * 7;
+          tz = other.mesh.position.z + (Math.random() - 0.5) * 7;
         } else {
-          // Freer “go where I want” long hop
+          // Longer stroll hop (not a sprint across the map)
           const a = Math.random() * Math.PI * 2;
-          const r = 5 + Math.random() * (wantFly ? 14 : 10);
+          const r = 8 + Math.random() * (wantFly ? 22 : 16);
           tx = Math.cos(a) * r;
           tz = Math.sin(a) * r;
         }
         tries++;
-      } while (tries < 8 && Math.hypot(tx - st.mesh.position.x, tz - st.mesh.position.z) < 2.2);
-      // Clamp to wider meadow
-      const meadowR = FIELD * 0.42;
-      const dist0 = Math.hypot(tx, tz);
-      if (dist0 > meadowR) {
-        tx = (tx / dist0) * meadowR;
-        tz = (tz / dist0) * meadowR;
+      } while (tries < 12 && Math.hypot(tx - st.mesh.position.x, tz - st.mesh.position.z) < 4);
+      // Soft rectangular map bounds (no restrictive roam circle)
+      const HALF = FIELD * 0.98;
+      tx = THREE.MathUtils.clamp(tx, -HALF, HALF);
+      tz = THREE.MathUtils.clamp(tz, -HALF, HALF);
+      // Don't path into solid buildings
+      if (!wantFly) {
+        const cleared = resolveSolidXZ(tx, tz, AGENT_COLLIDE_R + 0.15, {});
+        tx = cleared.x;
+        tz = cleared.z;
       }
       const ty = wantFly ? (1.1 + Math.random() * 2.4) : 0;
       st.target.set(tx, ty, tz);
@@ -2901,6 +3687,25 @@
       st.moving = true;
       st.action = wantFly ? "fly" : "wander";
       st.posture = "stand";
+      // Clear house visit if just roaming
+      if (st.housePhase && st.housePhase !== "exit") {
+        st.housePhase = null;
+        st.homeTarget = null;
+      }
+      // Prefer walk; rare gentle jog only on long hops (was always run-tier)
+      const hop = Math.hypot(tx - st.mesh.position.x, tz - st.mesh.position.z);
+      const isYou = st.def?.id === "telephantix" || st.id === "telephantix";
+      if (st.baseSpeed) {
+        if (isYou) {
+          st.speed = st.baseSpeed * (0.88 + Math.random() * 0.12);
+        } else if (hop > 22 && Math.random() < 0.22) {
+          st.speed = st.baseSpeed * (1.12 + Math.random() * 0.12); // soft jog
+        } else if (hop > 12) {
+          st.speed = st.baseSpeed * (0.98 + Math.random() * 0.1);
+        } else {
+          st.speed = st.baseSpeed * (0.85 + Math.random() * 0.12); // stroll
+        }
+      }
     }
 
     function goSit(st, seat) {
@@ -2908,72 +3713,149 @@
       freeSeat(st);
       seat.occupiedBy = st.def.id;
       st.seatId = seat.id;
-      st.target.copy(seat.pos);
+      // Walk to approach first (open side), then snap-sit — avoids backrest / solid jams
+      st.target.copy(seat.approach || seat.pos);
+      st.sitTarget = seat.pos.clone();
       st.moving = true;
+      st.flying = false;
       st.action = "go_sit";
       st.pendingSit = true;
+      st.sitPhase = "approach";
+      st.sitStartedAt = performance.now();
+      st.speed = (st.baseSpeed || 2.2) * 0.9;
+      st.ignoreAgentPush = true; // don't get shoved off the chair path
+      return true;
+    }
+
+    /** Sit on the grass if no chair is free — still a real rest action */
+    function goGroundSit(st) {
+      freeSeat(st);
+      const a = Math.random() * Math.PI * 2;
+      const r = 0.4 + Math.random() * 1.2;
+      st.target.set(
+        st.mesh.position.x + Math.cos(a) * r,
+        0,
+        st.mesh.position.z + Math.sin(a) * r,
+      );
+      st.sitTarget = st.target.clone();
+      st.moving = true;
+      st.flying = false;
+      st.action = "go_sit";
+      st.pendingSit = true;
+      st.sitPhase = "ground";
+      st.seatId = null;
+      st.sitStartedAt = performance.now();
+      st.speed = (st.baseSpeed || 2.2) * 0.75;
+      st.ignoreAgentPush = true;
       return true;
     }
 
     function arriveSit(st) {
+      const seat = st.seatId ? seatState.find((s) => s.id === st.seatId) : null;
+      if (seat?.pos) {
+        st.mesh.position.x = seat.pos.x;
+        st.mesh.position.z = seat.pos.z;
+      } else if (st.sitTarget) {
+        st.mesh.position.x = st.sitTarget.x;
+        st.mesh.position.z = st.sitTarget.z;
+      }
+      st.mesh.position.y = 0;
+      st.vx = 0;
+      st.vz = 0;
+      st.vy = 0;
       st.posture = "sit";
       st.moving = false;
       st.pendingSit = false;
       st.action = "sit";
+      st.sitPhase = null;
+      st.ignoreAgentPush = false;
       applyPosture(st);
-      // face outward a bit
-      if (st.seatId) {
-        const seat = seatState.find((s) => s.id === st.seatId);
-        // Sit facing the fire (+Z forward toward origin)
-        faceTowardXZ(st.mesh, 0, 0, st.faceYaw || 0, true);
-      }
-      // rest longer if high rest trait
-      const sitMs = 8000 + st.persona.rest * 18000 + Math.random() * 6000;
+      // Face fire or a nearby friend
+      faceTowardXZ(st.mesh, 0, 0, st.faceYaw || 0, true);
+      // Real rest window (longer so sitting is visible)
+      const sitMs = 5500 + st.persona.rest * 9000 + Math.random() * 4000;
       st.nextDecideAt = performance.now() + sitMs;
-      st.energyNow = Math.min(1, st.energyNow + 0.12);
-      st.boredom = Math.max(0, st.boredom - 0.15);
+      st.energyNow = Math.min(1, st.energyNow + 0.18);
+      st.boredom = Math.max(0, st.boredom - 0.28);
+      if (Math.random() < 0.45) {
+        const lines = [
+          "Ah. Chair rights.",
+          "Sitting is a lifestyle.",
+          "Finally — gravity and I agree.",
+          "I'll just rest my lore here a minute.",
+          "Don't mind me. Charging my monologue.",
+        ];
+        showSpeech3d(st.def.id, lines[Math.floor(Math.random() * lines.length)], 7000, { compact: true });
+      }
     }
 
     /**
-     * Mood/personality-weighted free will — NOT forced marching.
-     * Actions: sit | idle | wander | social | fire | prop | house
+     * Mood/personality-weighted free will — roam-heavy meadow life.
+     * Actions: sit | idle | wander | social | fire | prop | trex | house
      */
     function decideAction(st) {
+      // Inside a house — stay until leave timer, then walk out
+      if (st.insideHouse || st.housePhase === "inside") {
+        if (performance.now() >= (st.houseLeaveAt || 0)) {
+          agentBeginExitHouse(st);
+          return "house_exit";
+        }
+        st.moving = false;
+        st.action = "house_inside";
+        st.nextDecideAt = Math.min(
+          st.nextDecideAt || performance.now() + 4000,
+          (st.houseLeaveAt || performance.now() + 4000) + 200,
+        );
+        // Occasional interior chatter
+        if (Math.random() < 0.2) {
+          const others = agentsInsideHouse(st.insideHouse).filter((s) => s !== st);
+          if (others.length) {
+            const o = others[Math.floor(Math.random() * others.length)];
+            showSpeech3d(st.def.id, `${o.def.name} — I like how the firmament peeks through the glass.`, 10000);
+          }
+        }
+        return "house_inside";
+      }
+      if (st.housePhase === "approach" || st.housePhase === "exit") {
+        // Let approach/exit finish
+        st.nextDecideAt = performance.now() + 3000;
+        return st.housePhase;
+      }
+
       const p = st.persona;
-      // drift stats
-      st.boredom = Math.min(1, st.boredom + 0.04 + (1 - p.rest) * 0.03);
+      // drift stats — boredom rises fast so they keep moving
+      st.boredom = Math.min(1, st.boredom + 0.1 + (1 - p.rest) * 0.05);
       st.energyNow = THREE.MathUtils.clamp(
-        st.energyNow + (Math.random() - 0.45) * 0.06 - (st.posture === "sit" ? -0.02 : 0.02),
-        0.1,
+        st.energyNow + (Math.random() - 0.35) * 0.09 - (st.posture === "sit" ? -0.04 : 0.012),
+        0.15,
         1,
       );
 
-      // weights
-      const wSit = p.rest * 1.4 + (1 - st.energyNow) * 0.8 + (p.mood === "think" || p.mood === "love" ? 0.35 : 0);
-      const wIdle = p.rest * 0.6 + (st.posture === "sit" ? 0.5 : 0.2);
-      const wWander = p.energy * 1.1 + st.boredom * 0.7 + st.energyNow * 0.4;
-      const wSocial = p.social * 1.55 + (p.mood === "flirt" || p.mood === "happy" ? 0.45 : 0.15) + 0.25;
-      const wFire = p.firelove * 1.25 + 0.2;
-      // Props still fun, but not the whole show — circle talk is primary
-      const wProp = p.curiosity * 0.85 + 0.15 + (st.boredom > 0.55 ? 0.12 : 0)
-        + (buzzActive(st) ? 0.2 : 0); // buzzed → more snack/beer runs
+      // Stroll + sit + prop use (not pure wander spam)
+      const wSit = p.rest * 1.15 + (1 - st.energyNow) * 0.75 + 0.4;
+      const wIdle = p.rest * 0.35 + (st.posture === "sit" ? 0.2 : 0.1);
+      const wWander = p.energy * 1.35 + st.boredom * 1.05 + st.energyNow * 0.55 + 0.5;
+      const wSocial = p.social * 1.2 + (p.mood === "flirt" || p.mood === "happy" ? 0.35 : 0.15) + 0.2;
+      const wFire = p.firelove * 0.95 + 0.25;
+      const wProp = p.curiosity * 1.1 + 0.4 + (st.boredom > 0.4 ? 0.25 : 0)
+        + (buzzActive(st) ? 0.2 : 0);
       const wTrex = 0.22 + p.curiosity * 0.35 + p.energy * 0.25
-        + (buzzActive(st)?.kind === "drunk" ? 0.35 : 0)
-        + (findTrexMesh() ? 0.15 : 0);
-      const wHouse = (p.rest * 0.4 + p.curiosity * 0.3) * (Math.random() > 0.5 ? 1 : 0.6);
+        + (buzzActive(st)?.kind === "drunk" ? 0.3 : 0)
+        + (findTrexMesh() ? 0.25 : 0);
+      const wHouse = (p.rest * 0.5 + p.curiosity * 0.4 + 0.25) * (Math.random() > 0.35 ? 1 : 0.75);
       const wFly = (firmamentOpen3d && st.canFly)
-        ? (p.energy * 0.55 + st.boredom * 0.25 + 0.12)
+        ? (p.energy * 0.55 + st.boredom * 0.3 + 0.12)
         : 0;
 
-      // if already sitting and still comfy, often stay
-      if (st.posture === "sit" && Math.random() < p.rest * 0.7 && st.boredom < 0.55) {
-        st.nextDecideAt = performance.now() + 12000 + p.rest * 14000;
+      // Stay seated more often — sitting should be visible
+      if (st.posture === "sit" && Math.random() < 0.55 + p.rest * 0.25 && st.boredom < 0.55) {
+        st.nextDecideAt = performance.now() + 4000 + p.rest * 5000;
         st.action = "sit";
         return "sit";
       }
 
-      const wReason = 0.55 + p.curiosity * 0.45 + (p.mood === "think" ? 0.35 : 0);
-      const wTerminal = 0.35 + p.curiosity * 0.5 + p.energy * 0.2;
+      const wReason = 0.28 + p.curiosity * 0.28 + (p.mood === "think" ? 0.22 : 0);
+      const wTerminal = 0.22 + p.curiosity * 0.35 + p.energy * 0.15;
       const bag = [
         ["sit", wSit],
         ["idle", wIdle],
@@ -3000,18 +3882,29 @@
       if (choice === "sit") {
         const seat = findFreeSeat(st.mesh.position);
         if (seat && goSit(st, seat)) {
-          st.nextDecideAt = performance.now() + 14000 + p.rest * 16000;
+          st.nextDecideAt = performance.now() + 8000 + p.rest * 6000;
           return "go_sit";
         }
-        choice = "idle";
+        // No free chair → sit on the grass nearby (still a sit)
+        if (goGroundSit(st)) {
+          st.nextDecideAt = performance.now() + 7000 + p.rest * 5000;
+          return "go_sit";
+        }
+        choice = "wander";
       }
       if (choice === "idle") {
+        // Idle almost always turns into another walk
+        if (Math.random() < 0.82) {
+          pickRoamTarget(st);
+          st.nextDecideAt = performance.now() + 4500 + Math.random() * 4000;
+          return "wander";
+        }
         st.moving = false;
         st.flying = false;
         st.target.copy(st.mesh.position);
         st.target.y = 0;
         st.action = "idle";
-        st.nextDecideAt = performance.now() + 10000 + p.rest * 14000 + Math.random() * 6000;
+        st.nextDecideAt = performance.now() + 1800 + p.rest * 2800 + Math.random() * 1500;
         return "idle";
       }
       if (choice === "reason") {
@@ -3083,8 +3976,8 @@
         st.target.set(Math.cos(a) * r, 0, Math.sin(a) * r);
         st.moving = true;
         st.action = "fire";
-        // maybe sit at fire ring after
-        st.wantSitAfter = Math.random() < p.rest * 0.8;
+        // Usually park on a chair after the fire visit
+        st.wantSitAfter = Math.random() < 0.78 + p.rest * 0.15;
         st.nextDecideAt = performance.now() + 16000 + Math.random() * 8000;
         return "fire";
       }
@@ -3123,6 +4016,7 @@
             st.action = "prop";
             st.propTarget = loot.id;
             st.pendingProp = true;
+            st.ignoreAgentPush = true;
             st.nextDecideAt = performance.now() + 16000 + Math.random() * 8000;
             return "prop";
           }
@@ -3141,50 +4035,56 @@
           return "wander";
         }
         const w = toWorld(prop.x, prop.y);
-        st.target.set(w.x, 0, w.z);
+        // Stand slightly off the prop so solid kits don't block forever
+        const ang = Math.random() * Math.PI * 2;
+        st.target.set(w.x + Math.cos(ang) * 0.75, 0, w.z + Math.sin(ang) * 0.75);
         st.moving = true;
         st.action = "prop";
         st.propTarget = prop.id;
         st.pendingProp = true;
+        st.ignoreAgentPush = true;
         st.nextDecideAt = performance.now() + 18000 + Math.random() * 10000;
         return "prop";
       }
       if (choice === "house" && HOUSES.length) {
-        // prefer own house if high rest
-        let house = HOUSES.find((h) => h.id === st.def.id);
-        if (!house || Math.random() > p.rest * 0.7) house = HOUSES[Math.floor(Math.random() * HOUSES.length)];
-        const w = toWorld(house.x, house.y);
-        st.target.set(w.x + (Math.random() - 0.5), 0, w.z + 1);
-        st.moving = true;
-        st.action = "house";
-        st.nextDecideAt = performance.now() + 16000 + Math.random() * 10000;
-        return "house";
+        const preferOwn = p.rest > 0.45 || Math.random() < 0.4;
+        if (startAgentHouseVisit(st, preferOwn)) return "house";
+        choice = "wander";
       }
-      // wander fallback
+      // wander fallback — default life mode
       pickRoamTarget(st);
-      st.nextDecideAt = performance.now() + 12000 + (1 - p.energy) * 10000 + Math.random() * 8000;
+      st.nextDecideAt = performance.now() + 3500 + (1 - p.energy) * 3000 + Math.random() * 3000;
       return "wander";
     }
 
     function scatterAll() {
-      // Soft nudge — high-energy types walk; restful types may sit
-      let walked = 0, sat = 0;
+      // Almost everyone walks; sits are rare; leave house visitors alone
+      let walked = 0, sat = 0, home = 0;
       for (const st of agentState) {
-        if (st.persona.energy > 0.55 || Math.random() < st.persona.energy) {
+        if (st.insideHouse || st.housePhase === "approach" || st.housePhase === "exit") {
+          home++;
+          continue;
+        }
+        // A few head home on scatter waves
+        if (Math.random() < 0.12 && HOUSES.length && startAgentHouseVisit(st, Math.random() < 0.5)) {
+          home++;
+          continue;
+        }
+        if (st.persona.energy > 0.25 || Math.random() < 0.88) {
           pickRoamTarget(st);
           walked++;
         } else {
           const seat = findFreeSeat(st.mesh.position);
           if (seat && goSit(st, seat)) sat++;
           else {
-            st.moving = false;
-            st.action = "idle";
+            pickRoamTarget(st);
+            walked++;
           }
         }
-        st.nextDecideAt = performance.now() + 8000 + Math.random() * 12000;
+        st.nextDecideAt = performance.now() + 2500 + Math.random() * 4000;
       }
-      showToast(`🌿 free will · ${walked} stroll · ${sat} sit`);
-      logLine("Camp", `Mood wave — ${walked} walking, ${sat} claiming chairs (not forced).`);
+      showToast(`🌿 free will · ${walked} roam · ${sat} sit · ${home} home`);
+      logLine("Camp", `Mood wave — ${walked} roaming, ${sat} sitting, ${home} housebound.`);
     }
 
     // Visitor (you) + ground click marker
@@ -3531,8 +4431,24 @@
     } catch (_) {}
     // Drop carried item with X (not while typing / not when closing bubbles)
     window.addEventListener("keydown", (e) => {
+      if (e.target?.closest?.("input,textarea,[contenteditable]")) return;
+      // Leave interior
+      if (playerInsidePlace && (e.key === "Escape" || e.key === "e" || e.key === "E")) {
+        e.preventDefault();
+        leavePlaceInterior();
+        return;
+      }
+      // Enter nearest house / center (2D parity)
+      if (!playerInsidePlace && (e.key === "e" || e.key === "E" || e.key === "Enter")) {
+        const n = nearestEnterablePlace(4.5);
+        if (n) {
+          e.preventDefault();
+          if (n.kind === "house") void runHouseEnter(n.id);
+          else void runCenterEnter(n.id, n.meta || {});
+          return;
+        }
+      }
       if (e.key === "x" || e.key === "X") {
-        if (e.target?.closest?.("input,textarea,[contenteditable]")) return;
         if (carriedItem) {
           e.preventDefault();
           dropCarriedItem();
@@ -3540,7 +4456,6 @@
       }
       // G = gift to nearest agent
       if ((e.key === "g" || e.key === "G") && carriedItem) {
-        if (e.target?.closest?.("input,textarea,[contenteditable]")) return;
         let best = null;
         let bestD = 4.5;
         for (const st of agentState) {
@@ -3549,6 +4464,20 @@
         }
         if (best) giftCarriedToAgent(best);
         else showToast("Get closer to a friend to gift");
+      }
+    });
+
+    // Interior panel wiring (once DOM exists)
+    document.getElementById("pi-exit")?.addEventListener("click", () => leavePlaceInterior());
+    document.getElementById("pi-send")?.addEventListener("click", () => sendInteriorChat());
+    document.getElementById("pi-input")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendInteriorChat();
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        leavePlaceInterior();
       }
     });
     // Tap carry HUD to drop (mobile-friendly)
@@ -3568,7 +4497,7 @@
     scene.add(groundMarker);
 
     // Ground plane for click-to-move (invisible, large)
-    const FIELD = 96; // wider meadow half-size
+    const FIELD = 190; // wide-open town half-size (gates ~1600 units)
     let firmamentOpen3d = false;
     try { firmamentOpen3d = localStorage.getItem("luna-firmament-open") === "1"; } catch (_) {}
 
@@ -3695,9 +4624,23 @@
     try {
       // Fill Talk-to list from AGENTS (TALK_ALL_ID is defined at top of module)
       refreshWhoSelect();
-      if (AGENTS.length) setTalkWho(AGENTS.some((a) => a.id === "luna") ? "luna" : AGENTS[0].id);
-      else setTalkWho(TALK_ALL_ID);
-      console.info("[camp3d] talk roster", AGENTS.length, "agents · options", (whoEl || document.getElementById("who-select"))?.options?.length);
+      if (AGENTS.length) {
+        setTalkWho(
+          AGENTS.some((a) => a.id === "telephantix")
+            ? "telephantix"
+            : AGENTS.some((a) => a.id === "luna")
+              ? "luna"
+              : AGENTS[0].id
+        );
+      } else setTalkWho(TALK_ALL_ID);
+      console.info(
+        "[camp3d] talk roster",
+        AGENTS.length,
+        "agents · options",
+        (whoEl || document.getElementById("who-select"))?.options?.length,
+        "ids",
+        AGENTS.map((a) => a.id).join(",")
+      );
     } catch (err) {
       console.warn("[camp3d] who-select init", err);
       try {
@@ -3765,8 +4708,19 @@
       refreshClearBubblesBtn();
     }
 
+    /** Only follow new lines if the user is already near the bottom. */
+    function chat3dNearBottom(el = chat3dThread, pad = 72) {
+      if (!el) return true;
+      return el.scrollHeight - el.scrollTop - el.clientHeight < pad;
+    }
+    function chat3dScrollIfPinned(el = chat3dThread) {
+      if (!el) return;
+      if (chat3dNearBottom(el)) el.scrollTop = el.scrollHeight;
+    }
+
     function appendChat3dSpirit(board, reading) {
       if (!chat3dThread) return;
+      const stick = chat3dNearBottom();
       const div = document.createElement("div");
       div.className = "c3-msg agent";
       const who = document.createElement("div");
@@ -3786,7 +4740,7 @@
       div.appendChild(who);
       div.appendChild(bub);
       chat3dThread.appendChild(div);
-      chat3dThread.scrollTop = chat3dThread.scrollHeight;
+      if (stick) chat3dThread.scrollTop = chat3dThread.scrollHeight;
     }
 
     async function openOuijaBoard(mesh) {
@@ -3960,6 +4914,9 @@
       const speaker = String(who || "Camp").trim();
       const clean = String(text || "").trim();
       if (!clean) return;
+      // Capture before DOM grows — if you scrolled up, stay put
+      const stick = chat3dNearBottom();
+      const prevTop = chat3dThread.scrollTop;
       const kind = isYou ? "you" : (speaker.toLowerCase() === "camp" ? "camp" : "agent");
       chat3dLines.push({ who: speaker, text: clean, you: !!isYou });
       while (chat3dLines.length > CHAT3D_MAX) chat3dLines.shift();
@@ -3972,8 +4929,9 @@
       while (chat3dThread.children.length > CHAT3D_MAX) {
         chat3dThread.removeChild(chat3dThread.firstChild);
       }
-      chat3dThread.scrollTop = chat3dThread.scrollHeight;
-      // Scroll monologue bubble to top so long replies start readable
+      if (stick) chat3dThread.scrollTop = chat3dThread.scrollHeight;
+      else chat3dThread.scrollTop = prevTop;
+      // New bubble starts at top of its own monologue (not the thread)
       const bub = row.querySelector(".c3-bubble");
       if (bub) bub.scrollTop = 0;
     }
@@ -4941,6 +5899,19 @@
     async function agentOwnTake(st, opts = {}) {
       if (!st || document.hidden) return;
       if (hushMode3d && Math.random() < 0.55) return; // hush: often skip
+      // Inside house — short interior line, no meadow march
+      if (st.insideHouse || st.housePhase === "inside") {
+        if (performance.now() >= (st.houseLeaveAt || 0)) {
+          agentBeginExitHouse(st);
+          return;
+        }
+        if (Math.random() < 0.4) {
+          const bark = localBark(st.def.id, { world: false }) || "Quiet walls, loud thoughts.";
+          showSpeech3d(st.def.id, bark, 9000, { compact: true });
+        }
+        return;
+      }
+      if (st.housePhase === "approach" || st.housePhase === "exit") return;
       // Decide posture/path from personality first (no forced march)
       const action = decideAction(st);
       // Prop use speech happens on arrival (agentUseProp) — skip double talk here
@@ -4976,32 +5947,29 @@
         force: !!opts.forceWorld,
       });
       const buzzBit = buzzPromptBit(st);
-      // Free speech seeds — witty, lively, own voice
-      const freeTail =
-        " Speak freely as yourself — 2–4 witty spoken sentences with punch. " +
-        "Camp comedy, sharp observations, warmth under the joke. Not gloomy, not empty, not generic. No meta.";
+      // Lean seeds for Ollama (short user msg → faster, less prompt-echo)
+      const freeTail = " 2–3 witty spoken sentences. Stay in character. No meta.";
+      const dailyBit = st.def?.daily
+        ? ` Daily ${st.def.faction || "guest"} visitor.${st.def.opener ? ` Vibe: ${String(st.def.opener).slice(0, 90)}` : ""}`
+        : "";
       let speakPrompt = "";
       if (action === "trex") {
-        speakPrompt =
-          `${name} is hanging near the camp T-Rex (${mood}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
+        speakPrompt = `${name} near the T-Rex (${mood}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (action === "sit" || action === "go_sit") {
-        speakPrompt = `${name} at camp, sitting (${mood}, ${arch}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
+        speakPrompt = `${name} sitting (${mood}, ${arch}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (action === "idle") {
-        speakPrompt = `${name} paused a beat (${mood}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
+        speakPrompt = `${name} paused (${mood}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (action === "social") {
         const other = st.socialTarget || "a friend";
-        speakPrompt =
-          `${name} is heading toward ${other} (${mood}).${last}${carryBit}${buzzBit}${ethBit}${worldBit} ` +
-          `Free speech: tease, invite, or drop a hot take on the world-pulse if it fits. 2–4 sentences. No meta.`;
+        speakPrompt = `${name} heading to ${other} (${mood}).${dailyBit}${buzzBit}${worldBit} Tease or invite. 2–3 sentences.`;
       } else if (action === "fire") {
-        speakPrompt = `${name} at the sun corona fire (${mood}, joy ${joy}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
+        speakPrompt = `${name} at the fire (${mood}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (action === "house") {
-        speakPrompt = `${name} walking toward a house (${mood}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
+        speakPrompt = `${name} walking to a house (${mood}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (st.flying) {
-        speakPrompt = `${name} flying over camp (${mood}).${flyBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
+        speakPrompt = `${name} flying (${mood}).${flyBit}${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else {
-        speakPrompt =
-          `${name} on the meadow (${mood}, energy ${st.energyNow.toFixed(2)}).${last}${carryBit}${buzzBit}${ethBit}${worldBit}${freeTail}`;
+        speakPrompt = `${name} strolling town (${mood}).${dailyBit}${last}${buzzBit}${worldBit}${freeTail}`;
       }
 
       aiInFlight++;
@@ -5055,7 +6023,7 @@
         if (activeBubbles.length >= 2) return;
         if (Math.random() > 0.35) return;
         const quietPool = agentState
-          .filter((st) => performance.now() >= (st.nextDecideAt || 0) && !st.powWow)
+          .filter((st) => performance.now() >= (st.nextDecideAt || 0) && !st.powWow && !st.insideHouse)
           .sort(() => Math.random() - 0.5);
         if (quietPool[0]) setTimeout(() => agentOwnTake(quietPool[0], { forceWorld: true }), 200);
         return;
@@ -5073,11 +6041,11 @@
 
       // Don't freeze just because bubbles are full — rotate new free speech in
       const due = agentState
-        .filter((st) => performance.now() >= (st.nextDecideAt || 0) && !st.powWow)
+        .filter((st) => performance.now() >= (st.nextDecideAt || 0) && !st.powWow && !st.insideHouse && !st.housePhase)
         .sort(() => Math.random() - 0.5);
       const pool = due.length
         ? due
-        : agentState.filter((st) => !st.powWow).sort(() => Math.random() - 0.5);
+        : agentState.filter((st) => !st.powWow && !st.insideHouse).sort(() => Math.random() - 0.5);
       const n = Math.min(freeSpeech3d ? 2 : 1, Math.max(1, pool.length));
       for (let i = 0; i < n; i++) {
         const pick = pool[i];
@@ -5246,28 +6214,33 @@
             return;
           }
           if (u.kind === "house") {
-            runHouseEnter(u.id);
+            // Prefer catalog id so enter matches mesh + owner
+            void runHouseEnter(u.catalogId || u.id);
             return;
           }
           if (u.kind === "landmark") {
-            runStructureUse(u.id, u);
+            const t = String(u.type || "").toLowerCase();
+            if (ENTERABLE_CENTER_TYPES.has(t) || u.enterable) {
+              void runCenterEnter(u.id, u);
+            } else {
+              void runStructureUse(u.id, u);
+            }
             return;
           }
         }
       }
 
-      // Empty ground → walk there (open field)
+      // Empty ground → walk there (open field, not through walls)
       const gHits = raycaster.intersectObject(walkPlane);
       if (gHits.length) {
         const p = gHits[0].point;
-        visitorTarget.set(
-          THREE.MathUtils.clamp(p.x, -FIELD, FIELD),
-          0,
-          THREE.MathUtils.clamp(p.z, -FIELD, FIELD),
-        );
+        let tx = THREE.MathUtils.clamp(p.x, -FIELD, FIELD);
+        let tz = THREE.MathUtils.clamp(p.z, -FIELD, FIELD);
+        const cleared = resolveSolidXZ(tx, tz, VISITOR_COLLIDE_R, {});
+        visitorTarget.set(cleared.x, 0, cleared.z);
         groundMarker.position.set(visitorTarget.x, 0.05, visitorTarget.z);
         groundMarker.visible = true;
-        showToast("★ Walking");
+        showToast(cleared.hit ? "★ Walking (around walls)" : "★ Walking");
       }
     });
 
@@ -5385,8 +6358,15 @@
       if (propId === "trex" || propId === "horse" || u.interact === "roar" || mesh.userData.trex) {
         const now = performance.now();
         mesh.userData.roarUntil = now + 2000;
-        mesh.userData.walkSpeed = 2.4;
-        setTimeout(() => { mesh.userData.walkSpeed = 1.15; }, 2200);
+        mesh.userData.sprint = true;
+        mesh.userData.walkSpeed = 3.4;
+        // Burst run after roar
+        if (typeof visitor !== "undefined" && visitor) {
+          mesh.userData.tx = visitor.position.x + (Math.random() - 0.5) * 10;
+          mesh.userData.tz = visitor.position.z + (Math.random() - 0.5) * 10;
+          mesh.userData.nextWaypointAt = performance.now() + 3500;
+        }
+        setTimeout(() => { mesh.userData.walkSpeed = 2.0; }, 3200);
         // Feed if you're carrying a snack
         if (carriedItem && /cookie|snack|fruit|bread|steak|marsh|beer|wine/i.test(
           `${carriedItem.id || ""} ${carriedItem.name || ""}`,
@@ -5585,43 +6565,768 @@
       }
     }
 
-    async function runHouseEnter(houseId) {
-      if (userBusy) return;
-      userBusy = true;
-      const house = HOUSES.find((h) => h.id === houseId || h.catalogId === houseId);
-      whoEl.value = houseId;
-      if (chat3dWho) chat3dWho.value = houseId;
-      openChat3d(houseId);
-      statusEl.textContent = "Knocking…";
-      logLine("You", `Knock on ${house?.name || houseId}…`, true);
-      try {
-        const ev = await campClient.enterHouse(houseId);
-        applyEvent(ev);
-        const owner = ev.meta?.owner_id || houseId;
-        if (owner) {
-          whoEl.value = owner;
-          if (chat3dWho && [...chat3dWho.options].some((o) => o.value === owner)) {
-            chat3dWho.value = owner;
+    function placeInteriorEl() {
+      return document.getElementById("place-interior");
+    }
+
+    /** House owners (have a door on the map) */
+    const HOUSE_OWNER_IDS = new Set(
+      (typeof HOUSES !== "undefined" ? HOUSES : []).map((h) => h.id).filter(Boolean),
+    );
+
+    const AGENT_GLYPH = {
+      luna: "🌙", hermes: "⚡", oracle: "🔮", caduceus: "🐍", sentinel: "🤖",
+      dionysus: "🍇", jesus: "✝️", michael: "🗡️", gabriel: "📯", raphael: "💚",
+      uriel: "🔥", aurora: "✨", violet: "💜", seraph: "😇", odin: "🐦‍⬛",
+      thor: "🔨", zeus: "⚡", ambrosia: "🍯", rhea: "🌾", telephantix: "✨",
+      stood: "✨", ara: "🟢", mika: "🟣", telephanthantim: "🛡️",
+    };
+    /** Preferred face art for interiors (houses + visitor hub chips). */
+    const AGENT_PORTRAIT = {
+      luna: "/static/avatars/luna-portrait.jpg",
+      hermes: "/static/camp/portraits/hermes/flowing-free.jpg",
+      oracle: "/static/camp/portraits/oracle/flowing-free.jpg",
+      dionysus: "/static/camp/portraits/dionysus/flowing-free.jpg",
+      odin: "/static/camp/portraits/odin/hall.jpg",
+      // You — studio/mesh preview art (not a stock body double)
+      telephantix: "/static/camp/portraits/guest/meshy-preview-4.png",
+      stood: "/static/camp/portraits/guest/meshy-preview-4.png",
+      telephanthantim: "/static/camp/portraits/guest/d4-ref.jpg",
+    };
+    const PORTRAIT_SONG_FALLBACK = "flowing-free";
+    const HOUSE_ROOM_THEME = {
+      luna: { vibe: "Warm corona light — cedar, starlight, Luna's quiet hearth.", glyph: "🌙", accent: "#d946ef" },
+      hermes: { vibe: "Ripple maps on the walls — the psychic relay hums softly.", glyph: "⚡", accent: "#fbbf24" },
+      oracle: { vibe: "Veil-thin curtains and candle smoke — dreams run ahead.", glyph: "🔮", accent: "#8b5cf6" },
+      dionysus: { vibe: "Vine shadows on the floorboards — always a pour waiting.", glyph: "🍷", accent: "#e11d48" },
+      odin: { vibe: "Stone hall on the outskirts — fire low, ravens on the rafters.", glyph: "🦅", accent: "#94a3b8" },
+      jesus: { vibe: "Church and house in one — warm wood, stained glass, no dress code.", glyph: "✝", accent: "#fde68a" },
+      telephantix: { vibe: "Your corner of camp — studio light, brand pulse, mesh that is actually you.", glyph: "✨", accent: "#38bdf8" },
+      visitor: {
+        vibe: "Visitor Center hub — anyone without a house can be found and spoken to here.",
+        glyph: "⛺",
+        accent: "#38bdf8",
+      },
+    };
+
+    function isHouseOwnerAgent(agentId) {
+      return HOUSE_OWNER_IDS.has(agentId);
+    }
+
+    function isHostHome(ownerId) {
+      if (!ownerId) return false;
+      return agentState.some(
+        (s) =>
+          s.def.id === ownerId &&
+          (s.insideHouse ||
+            s.housePhase === "inside" ||
+            (playerInsidePlace &&
+              (s.insideHouse === playerInsidePlace.id ||
+                s.insideHouse === playerInsidePlace.catalogId ||
+                s.insideHouse === ownerId))),
+      );
+    }
+
+    /** Resolve a face image for house/VC panels — map first, then portrait folders. */
+    function portraitSrcForAgent(agentId) {
+      const id = String(agentId || "").toLowerCase();
+      if (!id) return "";
+      if (AGENT_PORTRAIT[id]) return AGENT_PORTRAIT[id];
+      // Aliases
+      if (id === "stood") return AGENT_PORTRAIT.telephantix || "";
+      // Song-style house portrait packs (2D parity)
+      if (["luna", "hermes", "oracle", "dionysus"].includes(id)) {
+        return `/static/camp/portraits/${id}/${PORTRAIT_SONG_FALLBACK}.jpg`;
+      }
+      if (id === "odin") return "/static/camp/portraits/odin/hall.jpg";
+      // Optional drop-in faces: /static/camp/portraits/{id}/face.jpg
+      return `/static/camp/portraits/${id}/face.jpg`;
+    }
+
+    function agentGlyph(agentId) {
+      return AGENT_GLYPH[agentId] || "✦";
+    }
+
+    function setInteriorPortrait(agentId, name) {
+      const frame = document.getElementById("pi-portrait");
+      const img = document.getElementById("pi-portrait-img");
+      const glyph = document.getElementById("pi-glyph");
+      const g = agentGlyph(agentId);
+      const src = portraitSrcForAgent(agentId);
+      if (glyph) glyph.textContent = g;
+      if (!frame || !img) return;
+      frame.classList.remove("img-on");
+      img.classList.remove("show");
+      img.removeAttribute("src");
+      img.alt = name || agentId || "";
+      const theme = HOUSE_ROOM_THEME[agentId] || HOUSE_ROOM_THEME.visitor;
+      if (theme?.accent) frame.style.borderColor = theme.accent;
+      if (!src) return;
+      // Chain fallbacks so a missing face.jpg still shows a known portrait
+      const fallbacks = [];
+      if (AGENT_PORTRAIT[agentId]) fallbacks.push(AGENT_PORTRAIT[agentId]);
+      if (src) fallbacks.push(src);
+      if (agentId === "telephantix" || agentId === "stood") {
+        fallbacks.push(
+          "/static/camp/portraits/guest/meshy-preview-4.png",
+          "/static/camp/portraits/guest/stood-wireframe.webp",
+          "/static/camp/portraits/guest/source-me-and-d4.jpg",
+        );
+      }
+      fallbacks.push("/static/avatars/luna-portrait.jpg");
+      const unique = [...new Set(fallbacks.filter(Boolean))];
+      let i = 0;
+      const tryNext = () => {
+        if (i >= unique.length) {
+          img.classList.remove("show");
+          frame.classList.remove("img-on");
+          return;
+        }
+        const u = unique[i++];
+        img.onload = () => {
+          img.classList.add("show");
+          frame.classList.add("img-on");
+        };
+        img.onerror = tryNext;
+        img.src = u;
+      };
+      tryNext();
+    }
+
+    function setInteriorTalkTarget(agentId) {
+      if (!playerInsidePlace) return;
+      playerInsidePlace.talkTo = agentId;
+      setTalkWho(agentId);
+      const st = agentState.find((s) => s.def.id === agentId);
+      const name = st?.def?.name || agentId;
+      const hostName = document.getElementById("pi-host-name");
+      if (hostName) hostName.textContent = name;
+      setInteriorPortrait(agentId, name);
+      // highlight chip
+      document.querySelectorAll(".pi-guest-chip").forEach((el) => {
+        el.classList.toggle("on", el.dataset.id === agentId);
+      });
+      const inp = document.getElementById("pi-input");
+      if (inp) inp.placeholder = `Talk to ${name}…`;
+    }
+
+    /** People you can chat with in this place */
+    function interiorChatRoster() {
+      if (!playerInsidePlace) return [];
+      const place = playerInsidePlace;
+      const ownerId = place.ownerId;
+      const seen = new Set();
+      const out = [];
+
+      const push = (st, tag) => {
+        if (!st?.def?.id || seen.has(st.def.id)) return;
+        seen.add(st.def.id);
+        out.push({ st, tag });
+      };
+
+      // House: host + anyone currently inside
+      if (place.kind === "house") {
+        const host = agentState.find((s) => s.def.id === ownerId);
+        if (host) push(host, isHostHome(ownerId) ? "host · home" : "host · away");
+        for (const st of agentState) {
+          if (
+            st.insideHouse === place.id ||
+            st.insideHouse === place.catalogId ||
+            st.insideHouse === ownerId
+          ) {
+            push(st, st.def.id === ownerId ? "host · home" : "guest");
           }
         }
-        // House talk — invite the resident with ethereal home warmth
-        const talkTo = owner || houseId;
-        const eth = etherealSeedFor(talkTo);
-        await chatAgent(
-          talkTo,
-          `The visitor just entered or knocked on ${house?.name || "your house"}. Welcome them at the threshold in character — home, safety, a little joy and stability. 2–5 sentences. ${eth} No meta.`,
-          true,
-        );
-        statusEl.textContent = "House resolved";
-      } catch (err) {
-        statusEl.textContent = "House API offline — restart server";
-        logLine("Camp", `House enter failed: ${err.message}`);
-        // Offline: still open talk to house owner id
-        const fallback = houseId;
-        showSpeech3d(fallback, `${house?.name || "This house"} holds a quiet glow. Come in when the door knows you.`, 28000);
-      } finally {
-        userBusy = false;
+        return out;
       }
+
+      // Visitor Center hub: houseless base cast + daily guests + anyone tagged here
+      if (place.kind === "center" && (place.id === "visitor-shelter" || place.hub)) {
+        for (const st of agentState) {
+          const id = st.def.id;
+          const daily = !!st.def.daily;
+          const houseless = !isHouseOwnerAgent(id);
+          const here =
+            st.insideHouse === place.id ||
+            st.insideHouse === "visitor-shelter" ||
+            st.homeTarget === "visitor-shelter";
+          if (daily || houseless || here) {
+            let tag = daily ? `daily · ${st.def.faction || "guest"}` : "guest";
+            if (here) tag += " · here";
+            if (!houseless && !daily) tag = "visitor";
+            push(st, tag);
+          }
+        }
+        // Prefer daily + houseless first
+        out.sort((a, b) => {
+          const score = (x) =>
+            (x.st.def.daily ? 0 : 1) + (isHouseOwnerAgent(x.st.def.id) ? 2 : 0);
+          return score(a) - score(b);
+        });
+        return out;
+      }
+
+      // Other centers: nearby agents + a default host voice
+      const host = agentState.find((s) => s.def.id === ownerId) || agentState.find((s) => s.def.id === "luna");
+      if (host) push(host, "host");
+      for (const st of agentState) {
+        if (!st?.mesh || !visitor) continue;
+        try {
+          const d = st.mesh.position.distanceTo(visitor.position);
+          if (d < 14 || st.insideHouse === place.id) push(st, "nearby");
+        } catch (_) { /* mesh not ready */ }
+      }
+      return out;
+    }
+
+    function refreshInteriorGuestStrip() {
+      try {
+        _refreshInteriorGuestStripInner();
+      } catch (err) {
+        console.warn("[camp3d] interior guest strip", err);
+      }
+    }
+
+    function _refreshInteriorGuestStripInner() {
+      const list = document.getElementById("pi-guest-list");
+      const guestsLabel = document.getElementById("pi-guests-label");
+      const badge = document.getElementById("pi-home-badge");
+      if (!playerInsidePlace) return;
+
+      const ownerId = playerInsidePlace.ownerId;
+      const roster = interiorChatRoster();
+
+      if (badge && playerInsidePlace.kind === "house") {
+        const home = isHostHome(ownerId);
+        const hostSt = agentState.find((s) => s.def.id === ownerId);
+        const hostName = hostSt?.def?.name || ownerId || "Host";
+        badge.textContent = home
+          ? hostName + " is home"
+          : hostName + " is away - still chatable";
+        badge.classList.toggle("home", home);
+        badge.classList.toggle("away", !home);
+        badge.hidden = false;
+      } else if (badge) {
+        badge.textContent = playerInsidePlace.hub
+          ? "Guest hub - " + roster.length + " chatable"
+          : "Open center";
+        badge.classList.add("home");
+        badge.classList.remove("away");
+        badge.hidden = false;
+      }
+
+      if (guestsLabel) {
+        guestsLabel.textContent =
+          playerInsidePlace.hub || playerInsidePlace.id === "visitor-shelter"
+            ? "Guests and daily visitors (tap to talk):"
+            : "Who is here - tap to talk:";
+      }
+      if (!list) return;
+      list.innerHTML = "";
+      if (!roster.length) {
+        list.innerHTML =
+          '<span style="color:#94a3b8;font-size:0.8rem">No one to talk to yet - wait for a daily guest or host.</span>';
+        return;
+      }
+      for (const { st, tag } of roster) {
+        if (!st?.def?.id) continue;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "pi-guest-chip";
+        btn.dataset.id = st.def.id;
+        if (playerInsidePlace.talkTo === st.def.id) btn.classList.add("on");
+        const color =
+          st.def.color != null
+            ? "#" + (st.def.color >>> 0).toString(16).padStart(6, "0")
+            : "#94a3b8";
+        const g = agentGlyph(st.def.id);
+        const faceSrc = AGENT_PORTRAIT[st.def.id] || "";
+        if (faceSrc) {
+          const img = document.createElement("img");
+          img.className = "chip-face";
+          img.alt = "";
+          img.decoding = "async";
+          img.src = faceSrc;
+          img.onerror = function () {
+            try {
+              const disc = document.createElement("span");
+              disc.className = "chip-face glyph";
+              disc.textContent = g;
+              disc.style.background = color + "33";
+              disc.style.borderColor = color;
+              if (img.parentNode) img.parentNode.replaceChild(disc, img);
+            } catch (_) {}
+          };
+          btn.appendChild(img);
+        } else {
+          const disc = document.createElement("span");
+          disc.className = "chip-face glyph";
+          disc.textContent = g;
+          disc.style.background = color + "33";
+          disc.style.borderColor = color;
+          btn.appendChild(disc);
+        }
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = String(st.def.name || st.def.id) + " · " + String(tag || "guest");
+        btn.appendChild(nameSpan);
+        btn.title = "Talk to " + (st.def.name || st.def.id);
+        btn.addEventListener("click", () => {
+          setInteriorTalkTarget(st.def.id);
+          const bubble = document.getElementById("pi-bubble");
+          if (bubble) {
+            const home = isHostHome(st.def.id) || !!st.insideHouse;
+            const nm = st.def.name || st.def.id;
+            bubble.textContent = home
+              ? nm + " is here - say something."
+              : nm + " is not in the room, but you can still call out.";
+          }
+        });
+        list.appendChild(btn);
+      }
+    }
+
+    function leavePlaceInterior() {
+      if (!playerInsidePlace) return;
+      const was = playerInsidePlace;
+      playerInsidePlace = null;
+      document.body.classList.remove("place-inside");
+      const layer = placeInteriorEl();
+      if (layer) layer.classList.remove("open");
+      // Restore wall opacity
+      if (was.mesh) {
+        const wall = was.mesh.getObjectByName("houseWall");
+        if (wall?.material) {
+          wall.material.transparent = false;
+          wall.material.opacity = 1;
+          wall.material.depthWrite = true;
+        }
+      }
+      // Restore outdoor visibility for hidden agents
+      for (const st of agentState) {
+        if (st.insideHouse) setAgentInsideVisual(st, true);
+        else if (st.mesh) st.mesh.visible = true;
+      }
+      // Step visitor out the door
+      if (was.mesh) {
+        try {
+          const door = houseDoorWorld(was.mesh);
+          visitor.position.set(door.x, 0, door.z + 1.1);
+          visitorTarget.copy(visitor.position);
+          groundMarker.visible = false;
+          controls.target.set(visitor.position.x, 1.1, visitor.position.z);
+          camera.position.set(visitor.position.x + 4.2, 3.6, visitor.position.z + 5.5);
+        } catch (_) {
+          // landmarks may not have houseDoorWorld — step back from mesh
+          const p = was.mesh.position;
+          visitor.position.set(p.x + 1.5, 0, p.z + 2.2);
+          visitorTarget.copy(visitor.position);
+        }
+      }
+      showToast(`← Left ${was.name || "the place"}`);
+      logLine("You", `Left ${was.name || "the place"}.`, true);
+    }
+
+    function nearestEnterablePlace(maxDist = 4.5) {
+      let best = null;
+      let bestD = maxDist;
+      for (const mesh of houseMeshes) {
+        const door = houseDoorWorld(mesh);
+        const d = Math.hypot(visitor.position.x - door.x, visitor.position.z - door.z);
+        if (d < bestD) {
+          bestD = d;
+          best = { kind: "house", id: mesh.userData.id, d };
+        }
+      }
+      for (const mesh of landmarkMeshes) {
+        const t = String(mesh.userData?.type || "").toLowerCase();
+        if (!ENTERABLE_CENTER_TYPES.has(t) && !mesh.userData?.enterable) continue;
+        const d = mesh.position.distanceTo(visitor.position);
+        if (d < bestD) {
+          bestD = d;
+          best = { kind: "center", id: mesh.userData.id, d, meta: mesh.userData };
+        }
+      }
+      return best;
+    }
+
+    function updateEnterPrompt() {
+      const el = document.getElementById("enter-prompt");
+      if (!el || playerInsidePlace) {
+        if (el) el.classList.remove("show");
+        return;
+      }
+      const n = nearestEnterablePlace(4.2);
+      if (!n) {
+        el.classList.remove("show");
+        return;
+      }
+      if (n.kind === "house") {
+        const h = HOUSES.find((x) => x.id === n.id || x.catalogId === n.id);
+        const ownerId = h?.id;
+        const home = ownerId && isHostHome(ownerId);
+        el.textContent = `E · Enter ${h?.emoji || "🏠"} ${h?.name || "house"}${home ? " · host home" : " · host away"}`;
+      } else if (n.id === "visitor-shelter" || n.meta?.id === "visitor-shelter") {
+        el.textContent = "E · Enter ⛺ Visitor Center (guest hub)";
+      } else {
+        el.textContent = `E · Enter ${n.meta?.emoji || "✦"} ${n.meta?.name || "center"}`;
+      }
+      el.classList.add("show");
+    }
+
+    function openPlaceInterior(place) {
+      try {
+        _openPlaceInteriorInner(place);
+      } catch (err) {
+        console.error("[camp3d] openPlaceInterior", err);
+        try { showToast("Could not open interior - try again"); } catch (_) {}
+        playerInsidePlace = null;
+        document.body.classList.remove("place-inside");
+        const layer = placeInteriorEl();
+        if (layer) layer.classList.remove("open");
+      }
+    }
+
+    function _openPlaceInteriorInner(place) {
+      // place: { kind, id, catalogId, name, emoji, ownerId, mesh, vibe, hub? }
+      const isHub = !!(place.hub || place.id === "visitor-shelter");
+      place.hub = isHub;
+      playerInsidePlace = place;
+      document.body.classList.add("place-inside");
+      const layer = placeInteriorEl();
+      if (layer) layer.classList.add("open");
+
+      const themeKey = isHub ? "visitor" : (place.ownerId || "visitor");
+      const theme = HOUSE_ROOM_THEME[themeKey] || HOUSE_ROOM_THEME.visitor;
+
+      const title = document.getElementById("pi-title");
+      const sub = document.getElementById("pi-sub");
+      const vibe = document.getElementById("pi-vibe");
+      const bubble = document.getElementById("pi-bubble");
+      const roomLabel = document.getElementById("pi-room-label");
+      if (title) {
+        title.textContent = isHub
+          ? `⛺ Visitor Center`
+          : `${place.emoji || "🏠"} ${place.name || "Interior"}`;
+      }
+      if (sub) {
+        sub.textContent = isHub
+          ? "Guest hub · houseless + daily visitors · E / Esc leave"
+          : place.kind === "house"
+            ? `Host: ${place.ownerId || "—"} · E / Esc leave`
+            : `Town center · E / Esc leave`;
+      }
+      if (vibe) vibe.textContent = place.vibe || theme.vibe;
+      if (bubble) {
+        bubble.textContent = isHub
+          ? "Welcome to the Visitor Center — pick a guest chip to talk."
+          : "…";
+      }
+      if (roomLabel) {
+        roomLabel.textContent = isHub
+          ? "Hub · speak to any guest without a house"
+          : `Inside · ${place.name || place.id}`;
+      }
+
+      // Quick lines
+      const quick = document.getElementById("pi-quick");
+      if (quick) {
+        const lines = isHub
+          ? ["Who's new in town?", "Any daily visitors around?", "Got a witty take for me?"]
+          : place.kind === "house"
+            ? ["Mind if I come in?", "How's home treating you?", "Got a story for a traveler?"]
+            : ["What's the vibe?", "Any news?", "Who hangs out here?"];
+        quick.innerHTML = "";
+        for (const t of lines) {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.textContent = t;
+          b.addEventListener("click", () => {
+            const inp = document.getElementById("pi-input");
+            if (inp) inp.value = t;
+            sendInteriorChat();
+          });
+          quick.appendChild(b);
+        }
+      }
+
+      // Camera / visitor into the place
+      if (place.mesh) {
+        const hx = place.mesh.position.x;
+        const hz = place.mesh.position.z;
+        visitor.position.set(hx, 0, hz);
+        visitorTarget.copy(visitor.position);
+        groundMarker.visible = false;
+        try {
+          controls.target.set(hx, 1.0, hz);
+          camera.position.set(hx + 0.2, 2.4, hz + 3.2);
+        } catch (_) {}
+        const wall = place.mesh.getObjectByName("houseWall");
+        if (wall?.material) {
+          wall.material.transparent = true;
+          wall.material.opacity = 0.35;
+          wall.material.depthWrite = false;
+        }
+      }
+
+      // Pull houseless + daily guests into Visitor Center hub when you enter
+      if (isHub) {
+        let pulled = 0;
+        const hubPool = agentState
+          .filter((st) => {
+            if (!st?.def?.id) return false;
+            if (st.def.daily) return true;
+            if (isHouseOwnerAgent(st.def.id)) return false;
+            return true;
+          })
+          .sort((a, b) => (b.def.daily ? 1 : 0) - (a.def.daily ? 1 : 0));
+        for (const st of hubPool) {
+          if (pulled >= 12) break;
+          st.insideHouse = "visitor-shelter";
+          st.housePhase = "inside";
+          st.homeTarget = "visitor-shelter";
+          st.moving = false;
+          if (place.mesh && st.mesh) {
+            try {
+              st.mesh.visible = true;
+              const ang = (pulled / 12) * Math.PI * 2 + (st.phase || 0) * 0.2;
+              const r = 0.55 + (pulled % 4) * 0.22;
+              st.mesh.position.set(
+                place.mesh.position.x + Math.cos(ang) * r,
+                0,
+                place.mesh.position.z + Math.sin(ang) * r,
+              );
+            } catch (_) {}
+          }
+          pulled++;
+        }
+      }
+
+      refreshAgentsInsideVisibility();
+      for (const st of agentState) {
+        if (!st?.mesh) continue;
+        const hid = st.insideHouse;
+        if (
+          place.mesh &&
+          hid &&
+          (hid === place.id || hid === place.ownerId || hid === place.catalogId || hid === "visitor-shelter")
+        ) {
+          try { st.mesh.visible = true; } catch (_) {}
+        }
+      }
+
+      // Default talk target
+      const roster = interiorChatRoster();
+      const defaultTalk =
+        (place.kind === "house" && place.ownerId) ||
+        roster[0]?.st?.def?.id ||
+        place.ownerId ||
+        "luna";
+      place.talkTo = defaultTalk;
+      setInteriorTalkTarget(defaultTalk);
+      refreshInteriorGuestStrip();
+      try { document.getElementById("pi-input")?.focus?.(); } catch (_) {}
+    }
+
+    async function sendInteriorChat() {
+      if (!playerInsidePlace) return;
+      const inp = document.getElementById("pi-input");
+      const text = String(inp?.value || "").trim();
+      if (!text) return;
+      if (inp) inp.value = "";
+      const talkTo =
+        playerInsidePlace.talkTo ||
+        playerInsidePlace.ownerId ||
+        interiorChatRoster()[0]?.st?.def?.id ||
+        "luna";
+      const bubble = document.getElementById("pi-bubble");
+      if (bubble) bubble.textContent = "…";
+      setInteriorTalkTarget(talkTo);
+      logLine("You", text, true);
+      const homeBit =
+        playerInsidePlace.kind === "house"
+          ? isHostHome(playerInsidePlace.ownerId)
+            ? "Host is home."
+            : "Host may be away — still answer as them if addressed."
+          : playerInsidePlace.hub
+            ? "You are in the Visitor Center guest hub."
+            : "You are in a town center.";
+      try {
+        const eth = etherealSeedFor(talkTo);
+        const data = await campClient.agentChat(
+          talkTo,
+          `Visitor is INSIDE ${playerInsidePlace.name || "this place"} speaking to you (${talkTo}). ${homeBit} They said: "${text}". Reply in character, 2–5 sentences, warm and specific. ${eth} No meta.`,
+          { ambient: false },
+        );
+        const reply = spokenOnly3d(data.reply || data.text || "", text) || localBark(talkTo);
+        if (bubble) bubble.textContent = reply;
+        showSpeech3d(talkTo, reply, speechReadMs(reply), { force: true });
+        logLine(talkTo, reply);
+        refreshInteriorGuestStrip();
+      } catch (err) {
+        const fallback = localBark(talkTo) || "Come sit. The walls hold stories.";
+        if (bubble) bubble.textContent = fallback;
+        showSpeech3d(talkTo, fallback, 16000, { force: true });
+      }
+    }
+
+    async function runHouseEnter(houseId) {
+      if (userBusy || playerInsidePlace) return;
+      userBusy = true;
+      const house = HOUSES.find((h) => h.id === houseId || h.catalogId === houseId);
+      const mesh =
+        houseMeshById(houseId) ||
+        (house ? houseMeshById(house.catalogId || house.id) : null);
+      if (!house || !mesh) {
+        userBusy = false;
+        showToast("No door found");
+        return;
+      }
+      const ownerId = house.id; // already mapped to owner_id
+      const placeId = house.catalogId || house.id;
+      // Walk to door first (visual), then open interior
+      const door = houseDoorWorld(mesh);
+      visitorTarget.set(door.x, 0, door.z + 0.2);
+      groundMarker.position.set(visitorTarget.x, 0.05, visitorTarget.z);
+      groundMarker.visible = true;
+
+      // Nudge owner home
+      const owner = agentState.find((s) => s.def.id === ownerId);
+      if (owner && !owner.insideHouse && !owner.powWow) {
+        startAgentHouseVisit(owner, true);
+      }
+
+      // Wait briefly for walk, then enter (also allow immediate if already close)
+      const distDoor = Math.hypot(visitor.position.x - door.x, visitor.position.z - door.z);
+      const delay = distDoor < 2.2 ? 200 : 900;
+      setTimeout(async () => {
+        openPlaceInterior({
+          kind: "house",
+          id: placeId,
+          catalogId: house.catalogId,
+          name: house.name,
+          emoji: house.emoji || "🏠",
+          ownerId,
+          mesh,
+          vibe: house.use || "Private walls, firmament light through the glass.",
+        });
+        // Mark player as "visiting" so guest strip works; force owner inside visually
+        if (owner && owner.housePhase === "approach") {
+          // let them arrive soon
+        } else if (owner && !owner.insideHouse) {
+          owner.homeTarget = placeId;
+          owner.housePhase = "inside";
+          owner.insideHouse = placeId;
+          setAgentInsideVisual(owner, true);
+          refreshHouseOccupancy(mesh);
+        }
+        refreshInteriorGuestStrip();
+        logLine("You", `Entered ${house.name}.`, true);
+        showToast(`🚪 Inside ${house.emoji || "🏠"} ${house.name}`);
+
+        try {
+          const inside = agentsInsideHouse(placeId).concat(
+            agentsInsideHouse(ownerId).filter((s) => !agentsInsideHouse(placeId).includes(s)),
+          );
+          const insideNames = inside.map((s) => s.def.name).join(", ");
+          const ev = await campClient.enterHouse(placeId);
+          applyEvent(ev);
+          const talkTo = ev.meta?.owner_id || ownerId;
+          setTalkWho(talkTo);
+          const eth = etherealSeedFor(talkTo);
+          const guestBit = insideNames
+            ? ` Guests already inside: ${insideNames}.`
+            : " The room is quiet until you arrive.";
+          const data = await campClient.agentChat(
+            talkTo,
+            `The visitor just walked INSIDE ${house.name}.${guestBit} Welcome them at home — warm, specific, 2–5 sentences. ${eth} No meta.`,
+            { ambient: false },
+          );
+          const reply =
+            spokenOnly3d(data.reply || data.text || "", "welcome") ||
+            `Come in — ${house.name} is glad you knocked.`;
+          const bubble = document.getElementById("pi-bubble");
+          if (bubble) bubble.textContent = reply;
+          showSpeech3d(talkTo, reply, speechReadMs(reply), { force: true });
+          logLine(talkTo, reply);
+        } catch (err) {
+          const fallback = `Come in — ${house.name} holds a quiet glow for travelers.`;
+          const bubble = document.getElementById("pi-bubble");
+          if (bubble) bubble.textContent = fallback;
+          showSpeech3d(ownerId, fallback, 20000, { force: true });
+          logLine("Camp", `House enter offline: ${err.message}`);
+        } finally {
+          userBusy = false;
+        }
+      }, delay);
+    }
+
+    async function runCenterEnter(landmarkId, meta = {}) {
+      if (userBusy || playerInsidePlace) return;
+      const mesh = landmarkMeshes.find((g) => g.userData?.id === landmarkId);
+      const lm = LANDMARKS.find((l) => l.id === landmarkId) || meta;
+      if (!mesh && !lm) {
+        showToast("No center found");
+        return;
+      }
+      userBusy = true;
+      const m = mesh || null;
+      if (m) {
+        visitorTarget.copy(m.position);
+        visitorTarget.y = 0;
+        groundMarker.position.set(visitorTarget.x, 0.05, visitorTarget.z);
+        groundMarker.visible = true;
+      }
+      setTimeout(async () => {
+        const isHub = landmarkId === "visitor-shelter" || meta.id === "visitor-shelter";
+        openPlaceInterior({
+          kind: "center",
+          id: landmarkId,
+          name: isHub ? "Visitor Center" : (lm.name || meta.name || landmarkId),
+          emoji: lm.emoji || meta.emoji || (isHub ? "⛺" : "✦"),
+          ownerId: isHub ? "luna" : (lm.owner_id || meta.ownerId || "luna"),
+          mesh: m || houseMeshes[0],
+          vibe: isHub
+            ? HOUSE_ROOM_THEME.visitor.vibe
+            : (lm.use || meta.use || "A public center of the town."),
+          catalogId: landmarkId,
+          hub: isHub,
+        });
+        logLine("You", `Entered ${isHub ? "Visitor Center" : (lm.name || landmarkId)}.`, true);
+        showToast(
+          isHub
+            ? "⛺ Visitor Center · pick a guest to talk"
+            : `${lm.emoji || "✦"} Inside ${lm.name || landmarkId}`,
+        );
+        try {
+          const roster = interiorChatRoster();
+          const talkTo = playerInsidePlace?.talkTo || roster[0]?.st?.def?.id || "luna";
+          const data = await campClient.agentChat(
+            talkTo,
+            isHub
+              ? `Visitor entered the Visitor Center guest hub. Welcome them; mention they can speak to houseless guests and daily visitors. 2–4 witty sentences. No meta.`
+              : `Visitor entered the center "${lm.name || landmarkId}". Welcome them as the place's vibe, 2–4 witty sentences. No meta.`,
+            { ambient: false },
+          );
+          const reply =
+            spokenOnly3d(data.reply || data.text || "", "center") ||
+            (isHub
+              ? "Welcome to the Visitor Center — tap a guest chip to chat."
+              : "Welcome to the center of camp.");
+          const bubble = document.getElementById("pi-bubble");
+          if (bubble) bubble.textContent = reply;
+          showSpeech3d(talkTo, reply, speechReadMs(reply), { force: true });
+          refreshInteriorGuestStrip();
+        } catch (_) {
+          const bubble = document.getElementById("pi-bubble");
+          if (bubble) {
+            bubble.textContent = isHub
+              ? "Visitor Center open — choose someone to talk to."
+              : (lm.use || "The center hums.");
+          }
+        } finally {
+          userBusy = false;
+        }
+      }, 500);
     }
 
     async function runStructureUse(structureId, meta = {}) {
@@ -6512,9 +8217,25 @@
       list.forEach((id, i) => {
         const st = agentState.find((s) => s.def.id === id);
         if (!st) return;
+        // Pull them out of houses for the circle
+        if (st.insideHouse) {
+          const mesh = houseMeshById(st.insideHouse);
+          setAgentInsideVisual(st, false);
+          st.insideHouse = null;
+          st.housePhase = null;
+          st.homeTarget = null;
+          if (mesh) {
+            const door = houseDoorWorld(mesh);
+            st.mesh.position.set(door.x, 0, door.z + 0.8);
+            refreshHouseOccupancy(mesh);
+          }
+        }
         freeSeat(st);
         const a = (i / Math.max(1, list.length)) * Math.PI * 2 + 0.15;
-        st.target.set(c.x + Math.cos(a) * radius, 0, c.z + Math.sin(a) * radius);
+        let tx = c.x + Math.cos(a) * radius;
+        let tz = c.z + Math.sin(a) * radius;
+        const cleared = resolveSolidXZ(tx, tz, AGENT_COLLIDE_R, {});
+        st.target.set(cleared.x, 0, cleared.z);
         st.moving = true;
         st.flying = false;
         st.action = "powwow";
@@ -6581,7 +8302,10 @@
             `Continue your pow-wow circle. Same friends, same thread — do not restart. ` +
             `React, disagree, joke, build. Recent: ${recent}`;
         } else {
-          const pool = agentState.map((s) => s.def.id).sort(() => Math.random() - 0.5);
+          const pool = agentState
+            .filter((s) => !s.insideHouse && s.housePhase !== "approach")
+            .map((s) => s.def.id)
+            .sort(() => Math.random() - 0.5);
           const n = Math.random() < 0.4 ? 4 : 3;
           ids = pool.slice(0, Math.min(n, pool.length, 4));
           if (ids.length < 2) ids = ["luna", "hermes", "oracle"].slice(0, 3);
@@ -7032,14 +8756,42 @@
       if (document.hidden) return;
       const now = performance.now();
       for (const st of agentState) {
+        // Leave timer while inside (even if not "deciding")
+        if (st.insideHouse && performance.now() >= (st.houseLeaveAt || 0)) {
+          agentBeginExitHouse(st);
+          continue;
+        }
+        if (st.insideHouse) continue;
         const pos = st.mesh.position;
         const dist = Math.hypot(st.target.x - pos.x, st.target.z - pos.z);
-        if (dist < 0.28) {
+        // Sit path: two-phase approach → seat, larger radius, timeout force-sit
+        if (st.pendingSit) {
+          const stuckMs = performance.now() - (st.sitStartedAt || 0);
+          if (st.sitPhase === "approach" && dist < SIT_ARRIVE_R && st.sitTarget) {
+            st.target.copy(st.sitTarget);
+            st.sitPhase = "seat";
+            st.moving = true;
+          } else if (dist < SIT_ARRIVE_R || stuckMs > 11000) {
+            arriveSit(st);
+          }
+          continue;
+        }
+        // Props / trex — larger arrival so solid kits don't block use
+        if (st.pendingProp && (st.action === "prop" || st.action === "trex") && dist < 1.35) {
           st.moving = false;
-          if (st.pendingSit) arriveSit(st);
-          else if (st.pendingProp && (st.action === "prop" || st.action === "trex")) {
-            st.pendingProp = false;
-            agentUseProp(st);
+          st.pendingProp = false;
+          st.ignoreAgentPush = false;
+          agentUseProp(st);
+          continue;
+        }
+        if (dist < 0.55) {
+          st.moving = false;
+          if (st.housePhase === "approach") {
+            agentEnterHouse(st);
+            continue;
+          } else if (st.housePhase === "exit") {
+            agentFinishExitHouse(st);
+            continue;
           } else if (st.pendingTerminal && st.action === "terminal") {
             st.pendingTerminal = false;
             const builds = [
@@ -7063,6 +8815,7 @@
             st.wantSitAfter = false;
             const seat = findFreeSeat(pos);
             if (seat) goSit(st, seat);
+            else goGroundSit(st);
           }
         }
         if (st.powWow) {
@@ -7072,17 +8825,70 @@
           }
           continue;
         }
+        // Don't interrupt house approach / exit walks
+        if (st.housePhase === "approach" || st.housePhase === "exit") {
+          if (now >= (st.nextDecideAt || 0) && dist < 0.5) {
+            // stuck near door — force phase step
+            if (st.housePhase === "approach") agentEnterHouse(st);
+            else agentFinishExitHouse(st);
+          }
+          continue;
+        }
+        // Don't interrupt going to a seat
+        if (st.pendingSit || st.action === "go_sit") continue;
+        if (st.posture === "sit") {
+          if (now >= (st.nextDecideAt || 0)) decideAction(st);
+          continue;
+        }
         if (now >= (st.nextDecideAt || 0) && !st.moving) {
-          // Free speech, but paced so bubbles are readable
-          const talkChance = hushMode3d ? 0.08 : (freeSpeech3d ? 0.28 : 0.16);
-          if (Math.random() < talkChance) agentOwnTake(st);
-          else decideAction(st);
-        } else if (now >= (st.nextDecideAt || 0) && st.moving && st.persona.energy > 0.55 && Math.random() < 0.22) {
+          // Organic mix: talk / sit / interact / stroll
+          const talkChance = hushMode3d ? 0.06 : (freeSpeech3d ? 0.14 : 0.1);
+          const you = st.def?.id === "telephantix" || st.id === "telephantix";
+          const roll = Math.random();
+          if (roll < talkChance) agentOwnTake(st);
+          else if (roll < talkChance + 0.22) decideAction(st); // often picks sit/prop/fire
+          else if (roll < talkChance + 0.22 + (you ? 0.35 : 0.42)) {
+            pickRoamTarget(st);
+            st.nextDecideAt = now + (you ? 5500 : 4200) + Math.random() * (you ? 5000 : 4500);
+          } else if (roll < 0.85) {
+            st.action = "idle";
+            st.moving = false;
+            st.nextDecideAt = now + 2800 + Math.random() * 4200;
+          } else decideAction(st);
+        } else if (
+          now >= (st.nextDecideAt || 0) &&
+          st.moving &&
+          st.action !== "go_sit" &&
+          st.action !== "prop" &&
+          st.persona.energy > 0.55 &&
+          Math.random() < 0.12
+        ) {
+          // Rare mid-route re-path
           pickRoamTarget(st);
-          st.nextDecideAt = now + (freeSpeech3d ? 5000 : 9000) + Math.random() * 6000;
+          st.nextDecideAt = now + 5000 + Math.random() * 5000;
+        } else if (
+          !st.moving &&
+          st.posture !== "sit" &&
+          (st.action === "wander" || st.action === "fly" || st.action === "idle") &&
+          now >= (st.nextDecideAt || 0) - 500
+        ) {
+          // Arrived — sometimes sit, sometimes pause, sometimes keep strolling
+          const r2 = Math.random();
+          if (r2 < 0.28) {
+            const seat = findFreeSeat(pos);
+            if (seat) goSit(st, seat);
+            else goGroundSit(st);
+            st.nextDecideAt = now + 6000 + Math.random() * 4000;
+          } else if (r2 < 0.55) {
+            st.action = "idle";
+            st.nextDecideAt = now + 2500 + Math.random() * 3500;
+          } else {
+            pickRoamTarget(st);
+            st.nextDecideAt = now + 4000 + Math.random() * 4500;
+          }
         }
       }
-    }, 500);
+    }, 400);
     setTimeout(() => { scatterAll(); }, 700);
     // Free speech first so camp doesn't open in silence
     setTimeout(() => { if (!document.hidden) freeWillWave(); }, 2800);
@@ -7236,24 +9042,31 @@
     {
       const nToys = propMeshes.length;
       const nSeats = seatMeshes.length;
-      const nSpots = LANDMARKS.length + 1; // + campfire (filtered out of LANDMARKS)
       const nAgents = agentState.length;
-      logLine("Camp", `Meadow ready · ${nToys} toys · ${nSeats} seats · ${nAgents} agents. Happy vibes on.`);
-      setBootStep(`Meadow ready · ${nAgents} agents · free Ollama`);
-      // Unmistakable success — never "15 camp objects · api" (that read like a failure)
+      const nDaily = (catalog.daily_rotation?.added || []).length;
+      logLine("Camp", `Town ready · ${nToys} toys · ${nSeats} seats · ${nAgents} agents${nDaily ? ` (${nDaily} daily visitors)` : ""}.`);
+      setBootStep(`Town ready · ${nAgents} agents`);
       setTimeout(() => {
         try {
-          showToast(`✦ Happy camp · shop + carry on · ${nAgents} friends ready`);
+          const day = catalog.daily_rotation?.day || "";
+          showToast(`✦ Luna Town · ${nAgents} souls · ${nDaily ? nDaily + " daily · " : ""}stroll`);
         } catch (_) {}
       }, 450);
     }
-    // Drop overlay after first painted frames so it never looks "stuck loading"
+    // Drop boot card ASAP — do not wait on character GLB upgrades
     requestAnimationFrame(() => {
       requestAnimationFrame(() => finishBoot(true));
     });
+    // Belt + suspenders
+    setTimeout(() => finishBoot(true), 400);
 
     // Upgrade to free GLB characters (2–3 at a time so meadow fills faster)
+    // Telephantix (you) first so you're visible + chat-ready ASAP
     if (charSystem) {
+      const upgradeOrder = [...agentState].sort((a, b) => {
+        const score = (st) => (st?.id === "telephantix" ? 0 : st?.id === "luna" ? 1 : 2);
+        return score(a) - score(b);
+      });
       let i = 0;
       const CONCURRENT = 3;
       const upgradeNext = () => {
@@ -7261,18 +9074,34 @@
           setTimeout(upgradeNext, 600);
           return;
         }
-        if (i >= agentState.length) {
-          showToast("🎭 Characters upgraded");
+        if (i >= upgradeOrder.length) {
+          showToast("🎭 Characters upgraded · Telephantix ready");
           return;
         }
         const batch = [];
-        for (let n = 0; n < CONCURRENT && i < agentState.length; n++, i++) {
-          const st = agentState[i];
+        for (let n = 0; n < CONCURRENT && i < upgradeOrder.length; n++, i++) {
+          const st = upgradeOrder[i];
           batch.push(st._upgradeChar ? st._upgradeChar() : Promise.resolve());
         }
         Promise.allSettled(batch).finally(() => setTimeout(upgradeNext, 120));
       };
-      setTimeout(upgradeNext, 1200);
+      // Immediate upgrade for you (don't wait 1.2s)
+      const you = agentState.find((st) => st.id === "telephantix");
+      if (you?._upgradeChar) {
+        you._upgradeChar().then(() => {
+          try {
+            if (you.mesh) {
+              // Nudge camera toward you near the fire
+              if (typeof controls !== "undefined" && controls?.target && you.mesh.position) {
+                controls.target.lerp(you.mesh.position, 0.65);
+              }
+            }
+            setTalkWho("telephantix");
+            showToast("✨ Telephantix is here — talk to them");
+          } catch (_) {}
+        }).catch((e) => console.warn("[camp3d] telephantix mesh", e));
+      }
+      setTimeout(upgradeNext, 400);
     }
 
     /**
@@ -7357,7 +9186,15 @@
           fireflies.material.opacity = 0.75 + Math.sin(t * 2) * 0.2;
         }
 
-        // Agents — velocity physics, optional flight, soft separation
+        // E-prompt for nearby doors / centers
+        try { updateEnterPrompt(); } catch (_) {}
+
+        // While inside a place, freeze outdoor stroll for visitor
+        if (playerInsidePlace) {
+          visitorTarget.copy(visitor.position);
+        }
+
+        // Agents — velocity physics, solid collision, flight, house enter/leave
         let movers = 0, sitters = 0, flyers = 0;
         for (const st of agentState) {
           const m = st.mesh;
@@ -7366,39 +9203,58 @@
           if (!tgt) continue;
           if (st.vx == null) { st.vx = 0; st.vz = 0; st.vy = 0; }
 
+          // Hidden indoors — no meadow movement
+          if (st.insideHouse) {
+            st.moving = false;
+            st.vx = 0; st.vz = 0;
+            continue;
+          }
+
           const dx = tgt.x - pos.x;
           const dz = tgt.z - pos.z;
           const groundDist = Math.hypot(dx, dz);
           const wantY = st.flying || st.action === "fly" ? (tgt.y || st.flyHeight || 1.6) : 0;
           const dy = wantY - pos.y;
-          const moving = (groundDist > 0.14 || Math.abs(dy) > 0.08) && st.posture !== "sit";
+          const sitArrive = st.pendingSit ? SIT_ARRIVE_R : 0.14;
+          const moving = (groundDist > sitArrive || Math.abs(dy) > 0.08) && st.posture !== "sit";
           if (st.posture === "sit") sitters++;
           if (st.flying || pos.y > 0.35) flyers++;
           st.moving = moving;
 
           if (moving && dt > 0) {
             movers++;
-            // Steering force toward target (acceleration + damping)
-            const maxSp = (st.speed || 5) * (st.flying ? 1.35 : 1);
-            const steer = st.flying ? 14 : 11;
+            // Organic seek: arrival slowdown + gentle lateral sway
+            let maxSp = (st.speed || 2.6) * (st.flying ? 1.15 : 1);
+            if (groundDist < 3.5) maxSp *= 0.45 + 0.55 * (groundDist / 3.5); // ease in
+            if (st.pendingSit) maxSp *= 0.85;
+            const steer = st.flying ? 9 : (st.pendingSit ? 11 : 6.2);
             if (groundDist > 0.001) {
-              st.vx += (dx / groundDist) * steer * dt;
-              st.vz += (dz / groundDist) * steer * dt;
+              const inv = 1 / groundDist;
+              st.vx += dx * inv * steer * dt;
+              st.vz += dz * inv * steer * dt;
+              // Lateral wander noise (feels less robotic)
+              if (!st.pendingSit && !st.flying) {
+                const sway = Math.sin(t * 1.7 + st.phase) * 1.8 * dt;
+                st.vx += (-dz * inv) * sway;
+                st.vz += (dx * inv) * sway;
+              }
             }
-            // Soft separation — don't clump
-            for (const other of agentState) {
-              if (other === st) continue;
-              const ox = pos.x - other.mesh.position.x;
-              const oz = pos.z - other.mesh.position.z;
-              const od = Math.hypot(ox, oz);
-              if (od > 0.01 && od < 1.35) {
-                const push = (1.35 - od) * 2.8 * dt;
-                st.vx += (ox / od) * push;
-                st.vz += (oz / od) * push;
+            // Soft separation (skip while claiming a seat)
+            if (!st.ignoreAgentPush && !st.pendingSit) {
+              for (const other of agentState) {
+                if (other === st || other.insideHouse || other.posture === "sit") continue;
+                const ox = pos.x - other.mesh.position.x;
+                const oz = pos.z - other.mesh.position.z;
+                const od = Math.hypot(ox, oz);
+                if (od > 0.01 && od < AGENT_COLLIDE_R * 2.4) {
+                  const push = (AGENT_COLLIDE_R * 2.4 - od) * 3.2 * dt;
+                  st.vx += (ox / od) * push;
+                  st.vz += (oz / od) * push;
+                }
               }
             }
             // Damping + speed clamp
-            const damp = Math.pow(0.86, dt * 60);
+            const damp = Math.pow(st.pendingSit ? 0.82 : 0.88, dt * 60);
             st.vx *= damp;
             st.vz *= damp;
             const spH = Math.hypot(st.vx, st.vz);
@@ -7408,6 +9264,25 @@
             }
             pos.x += st.vx * dt;
             pos.z += st.vz * dt;
+            // Solid buildings — softer radius when approaching seats/props
+            if (!st.flying || pos.y < 1.6) {
+              const allow =
+                (st.housePhase === "approach" || st.housePhase === "exit")
+                  ? st.homeTarget
+                  : null;
+              const rad = st.pendingSit || st.pendingProp ? AGENT_COLLIDE_R * 0.55 : AGENT_COLLIDE_R;
+              const solid = resolveSolidXZ(pos.x, pos.z, rad, {
+                allowHouseId: allow,
+                fly: !!(st.flying && pos.y > 2.0),
+                skipLandmarks: !!(st.pendingSit || st.pendingProp),
+              });
+              if (solid.hit) {
+                pos.x = solid.x;
+                pos.z = solid.z;
+                st.vx *= 0.4;
+                st.vz *= 0.4;
+              }
+            }
             // Vertical flight
             st.vy += dy * 6 * dt;
             st.vy *= Math.pow(0.9, dt * 60);
@@ -7421,14 +9296,15 @@
               pos.y += Math.sin(t * 2.4 + st.phase) * 0.012;
               pos.y = Math.max(0.35, Math.min(4.2, pos.y));
             }
-            // Meadow soft bounds (wider field)
-            const meadowR = FIELD * 0.42;
-            const rd = Math.hypot(pos.x, pos.z);
-            if (rd > meadowR) {
-              pos.x = (pos.x / rd) * meadowR;
-              pos.z = (pos.z / rd) * meadowR;
-              st.vx *= -0.4;
-              st.vz *= -0.4;
+            // Soft rectangular bounds only — no circular “invisible wall” pen
+            const HALF = FIELD * 0.98;
+            if (pos.x > HALF || pos.x < -HALF) {
+              pos.x = THREE.MathUtils.clamp(pos.x, -HALF, HALF);
+              st.vx *= -0.35;
+            }
+            if (pos.z > HALF || pos.z < -HALF) {
+              pos.z = THREE.MathUtils.clamp(pos.z, -HALF, HALF);
+              st.vz *= -0.35;
             }
             // Face velocity (+Z forward). faceYaw offsets GLB quirks; smooth so no snap-spin.
             if (spH > 0.08) {
@@ -7461,8 +9337,14 @@
             if (firmamentOpen3d && st.canFly && st.flying && Math.random() < 0.0015) {
               pickRoamTarget(st, { fly: true });
             }
-          } else if (groundDist <= 0.14 && Math.abs(dy) <= 0.1 && st.pendingSit) {
-            arriveSit(st);
+          } else if (st.pendingSit && groundDist <= SIT_ARRIVE_R) {
+            if (st.sitPhase === "approach" && st.sitTarget) {
+              st.target.copy(st.sitTarget);
+              st.sitPhase = "seat";
+              st.moving = true;
+            } else {
+              arriveSit(st);
+            }
           } else if (!moving && st.posture !== "sit") {
             // idle settle / hover
             st.vx *= 0.9;
@@ -7474,12 +9356,16 @@
             }
           }
 
-          // Character animations — GLB clips + procedural life; limb walk for placeholders
+          // Character animations — 2D camp energy (bounce, talk hop, run, glow rings)
           const speaking = performance.now() < st.speakUntil;
+          const spH = Math.hypot(st.vx || 0, st.vz || 0);
+          // Walk default — old thresholds (6.5/7.5) never hit because max speed is ~3, so anim used wrong branch via other paths; keep run rare
+          const running = moving && (spH > 3.6 || (st.speed || 0) > 3.4);
+          const energyFeel = (st.energyNow || 0.7) * (st.persona?.pace || 1) * (st.persona?.energy || 0.7 + 0.3);
           if (st.char) {
             const want = st.posture === "sit"
               ? "sit"
-              : (speaking && !moving ? "talk" : (moving || st.flying ? "walk" : "idle"));
+              : (speaking && !moving ? "talk" : (moving || st.flying ? (running ? "run" : "walk") : "idle"));
             if (st.animState !== want) {
               st.animState = want;
               st.char.play?.(want);
@@ -7490,6 +9376,9 @@
                 sitting: st.posture === "sit",
                 flying: st.flying,
                 speaking,
+                running,
+                speed: spH || st.speed || 0,
+                energy: energyFeel,
                 phase: st.phase,
                 t,
               });
@@ -7497,31 +9386,83 @@
               st.char.mixer.update(dt);
             }
           } else if (st.limbs && st.placeholder?.visible !== false) {
-            // Procedural walk cycle on limb rig
-            const gait = moving ? Math.sin(t * 11 + st.phase) : Math.sin(t * 2.2 + st.phase) * 0.15;
-            const amp = moving ? 0.55 : 0.08;
+            // Procedural walk cycle — punchy 2D-style limb energy
+            const gaitHz = running ? 15 : (moving ? 12 : 2.4);
+            const gait = Math.sin(t * gaitHz + st.phase);
+            const amp = st.posture === "sit" ? 0 : (moving ? (running ? 0.85 : 0.68) : 0.12);
+            const bounce = moving ? Math.abs(gait) * (running ? 0.09 : 0.055) : Math.sin(t * 2.4 + st.phase) * 0.02;
             st.limbs.Lleg.rotation.x = gait * amp;
             st.limbs.Rleg.rotation.x = -gait * amp;
-            st.limbs.Larm.rotation.x = -gait * amp * 0.7;
-            st.limbs.Rarm.rotation.x = gait * amp * 0.7;
+            st.limbs.Larm.rotation.x = -gait * amp * 0.85;
+            st.limbs.Rarm.rotation.x = gait * amp * 0.85;
+            if (st.limbs.hips) {
+              st.limbs.hips.position.y = 0.92 + bounce * 0.35;
+              st.limbs.hips.rotation.z = moving ? gait * 0.06 : Math.sin(t * 1.4 + st.phase) * 0.03;
+            }
             if (st.body) {
-              st.body.position.y = 1.28 + (moving ? Math.abs(gait) * 0.04 : Math.sin(t * 2 + st.phase) * 0.015);
+              st.body.position.y = 1.28 + bounce + (speaking ? Math.sin(t * 10 + st.phase) * 0.04 : 0);
+              st.body.rotation.z = moving ? gait * 0.05 : Math.sin(t * 1.3 + st.phase) * 0.025;
+              st.body.rotation.x = moving ? (running ? 0.1 : 0.06) : Math.sin(t * 1.6 + st.phase) * 0.02;
               if (st.body.material) {
                 st.body.material.emissiveIntensity = speaking
-                  ? 0.35 + Math.sin(t * 12) * 0.15
-                  : (moving ? 0.2 : 0.12);
+                  ? 0.55 + Math.sin(t * 14) * 0.22
+                  : (moving ? 0.28 + Math.abs(gait) * 0.08 : 0.16 + Math.sin(t * 2.2 + st.phase) * 0.05);
               }
             }
             if (st.head) {
-              st.head.position.y = 1.72 + (speaking ? Math.sin(t * 10 + st.phase) * 0.02 : 0);
-              st.head.rotation.x = speaking ? Math.sin(t * 8 + st.phase) * 0.08 : Math.sin(t * 1.5 + st.phase) * 0.03;
+              st.head.position.y = 1.72 + bounce * 0.6 + (speaking ? Math.sin(t * 10 + st.phase) * 0.035 : 0);
+              st.head.rotation.x = speaking
+                ? Math.sin(t * 9 + st.phase) * 0.12
+                : Math.sin(t * 1.8 + st.phase) * 0.04;
+              st.head.rotation.z = speaking ? Math.sin(t * 7 + st.phase) * 0.05 : 0;
+              if (st.head.material?.emissiveIntensity != null) {
+                st.head.material.emissiveIntensity = speaking
+                  ? 0.35 + Math.sin(t * 12) * 0.2
+                  : 0.06;
+              }
             }
             if (st.posture === "sit" && st.placeholder) {
               st.placeholder.position.y = -0.28;
               st.limbs.Lleg.rotation.x = -1.1;
               st.limbs.Rleg.rotation.x = -1.1;
             } else if (st.placeholder) {
-              st.placeholder.position.y = 0;
+              st.placeholder.position.y = bounce * 0.5;
+            }
+          }
+          // 2D speak rings + label hop
+          {
+            const ring = m.getObjectByName("speakRing");
+            const ring2 = m.getObjectByName("speakRing2");
+            const label = m.getObjectByName("label");
+            if (speaking) {
+              const pulse = 0.55 + Math.sin(t * 7 + st.phase) * 0.3;
+              if (ring?.material) {
+                ring.material.opacity = pulse;
+                ring.scale.setScalar(1 + Math.sin(t * 7 + st.phase) * 0.12);
+              }
+              if (ring2?.material) {
+                ring2.material.opacity = 0.28 + Math.sin(t * 7 + st.phase) * 0.18;
+                ring2.scale.setScalar(1.05 + Math.sin(t * 5.5 + st.phase) * 0.1);
+              }
+              if (label) {
+                label.position.y = 2.25 + Math.sin(t * 10 + st.phase) * 0.08;
+                label.scale.setScalar(1 + Math.sin(t * 8) * 0.05);
+              }
+            } else {
+              if (ring?.material) ring.material.opacity *= 0.85;
+              if (ring2?.material) ring2.material.opacity *= 0.85;
+              if (label) {
+                const baseY = st.posture === "sit" ? 1.75 : 2.25;
+                label.position.y += (baseY - label.position.y) * Math.min(1, 6 * dt);
+                label.scale.setScalar(1 + (moving ? Math.sin(t * 12 + st.phase) * 0.02 : 0));
+              }
+            }
+            // Feet contact glow — more alive when moving
+            const feetMesh = m.getObjectByName("feet");
+            if (feetMesh?.material) {
+              feetMesh.material.opacity = moving
+                ? 0.28 + Math.abs(Math.sin(t * (running ? 15 : 12) + st.phase)) * 0.22
+                : (speaking ? 0.4 + Math.sin(t * 8) * 0.15 : 0.28);
             }
           }
           if (st.look && st.look.glow > 0.22 && Math.random() < 0.002) {
@@ -7529,6 +9470,9 @@
             applyLook(st);
           }
         }
+        // Hard agent↔agent + final building snap
+        resolveAgentPairs();
+
         _moveDebugT += dt;
         if (_moveDebugT > 5) {
           _moveDebugT = 0;
@@ -7536,7 +9480,7 @@
           statusEl.dataset.sitters = String(sitters);
         }
 
-        // Visitor: click-to-move target + optional WASD
+        // Visitor: click-to-move target + optional WASD + solid collision
         {
           let mx = 0, mz = 0;
           if (keys.w) mz -= 1;
@@ -7553,6 +9497,10 @@
             visitorTarget.addScaledVector(right, mx * 9 * dt);
             visitorTarget.x = THREE.MathUtils.clamp(visitorTarget.x, -FIELD, FIELD);
             visitorTarget.z = THREE.MathUtils.clamp(visitorTarget.z, -FIELD, FIELD);
+            // Don't path into buildings
+            const vt = resolveSolidXZ(visitorTarget.x, visitorTarget.z, VISITOR_COLLIDE_R, {});
+            visitorTarget.x = vt.x;
+            visitorTarget.z = vt.z;
             groundMarker.position.set(visitorTarget.x, 0.05, visitorTarget.z);
             groundMarker.visible = true;
           }
@@ -7565,6 +9513,25 @@
             const sp = 8.5 * spMul * dt;
             visitor.position.x += (vdx / vd) * Math.min(sp, vd);
             visitor.position.z += (vdz / vd) * Math.min(sp, vd);
+            // Buildings block you
+            const vs = resolveSolidXZ(visitor.position.x, visitor.position.z, VISITOR_COLLIDE_R, {});
+            visitor.position.x = vs.x;
+            visitor.position.z = vs.z;
+            // Soft body vs agents
+            for (const st of agentState) {
+              if (st.insideHouse || !st.mesh.visible) continue;
+              const ax = visitor.position.x - st.mesh.position.x;
+              const az = visitor.position.z - st.mesh.position.z;
+              const ad = Math.hypot(ax, az);
+              const minD = VISITOR_COLLIDE_R + AGENT_COLLIDE_R;
+              if (ad > 0.01 && ad < minD) {
+                const push = (minD - ad);
+                visitor.position.x += (ax / ad) * push * 0.65;
+                visitor.position.z += (az / ad) * push * 0.65;
+                st.mesh.position.x -= (ax / ad) * push * 0.35;
+                st.mesh.position.z -= (az / ad) * push * 0.35;
+              }
+            }
             // Same +Z-forward convention as agents (no moonwalk)
             visitor.rotation.y = Math.atan2(vdx, vdz);
           } else if (groundMarker.visible && vd < 0.08) {
@@ -7632,21 +9599,109 @@
             }
           }
           if (g.userData.trex) {
-            // Calm meadow patrol (not a runaway gallop)
+            // T-Rex runs the meadow hard — long sprints, chase, roar
             if (!g.userData.homeX) {
               g.userData.homeX = g.position.x;
               g.userData.homeZ = g.position.z;
+              g.userData.tvx = 0;
+              g.userData.tvz = 0;
             }
-            const hx = g.userData.homeX;
-            const hz = g.userData.homeZ;
-            const patrol = Math.sin(t * 0.22 + phase) * 1.8;
-            g.position.x = hx + Math.cos(t * 0.18 + phase) * 1.2;
-            g.position.z = hz + patrol * 0.35;
-            const face = Math.atan2(
-              Math.cos(t * 0.18 + phase + 0.05) - Math.cos(t * 0.18 + phase),
-              Math.sin((t + 0.05) * 0.22 + phase) - Math.sin(t * 0.22 + phase),
-            );
-            if (Number.isFinite(face)) g.rotation.y = face;
+            const meadowR = FIELD * 0.7;
+            const needTarget =
+              !g.userData.tx ||
+              Math.hypot(g.position.x - g.userData.tx, g.position.z - g.userData.tz) < 1.8 ||
+              (g.userData.nextWaypointAt && performance.now() > g.userData.nextWaypointAt);
+            if (needTarget) {
+              const a = Math.random() * Math.PI * 2;
+              // Wide run radius — cross-meadow patrols
+              const r = 12 + Math.random() * 38;
+              let nx = Math.cos(a) * r;
+              let nz = Math.sin(a) * r;
+              const chaseRoll = Math.random();
+              if (chaseRoll < 0.12) {
+                nx = (Math.random() - 0.5) * 8;
+                nz = (Math.random() - 0.5) * 8;
+              } else if (chaseRoll < 0.38 && typeof visitor !== "undefined" && visitor) {
+                nx = visitor.position.x + (Math.random() - 0.5) * 7;
+                nz = visitor.position.z + (Math.random() - 0.5) * 7;
+              } else if (chaseRoll < 0.62 && agentState.length) {
+                const prey = agentState[Math.floor(Math.random() * agentState.length)];
+                nx = prey.mesh.position.x + (Math.random() - 0.5) * 5;
+                nz = prey.mesh.position.z + (Math.random() - 0.5) * 5;
+              }
+              const d0 = Math.hypot(nx, nz);
+              if (d0 > meadowR) {
+                nx = (nx / d0) * meadowR;
+                nz = (nz / d0) * meadowR;
+              }
+              g.userData.tx = nx;
+              g.userData.tz = nz;
+              g.userData.sprint = Math.random() < 0.72; // usually running
+              g.userData.nextWaypointAt = performance.now() + 2200 + Math.random() * 4200;
+              if (Math.random() < 0.35) {
+                g.userData.roarUntil = performance.now() + 1600;
+              }
+            }
+            const tdx = (g.userData.tx || 0) - g.position.x;
+            const tdz = (g.userData.tz || 0) - g.position.z;
+            const td = Math.hypot(tdx, tdz) || 1;
+            // Movement speed separate from leg gait (walkSpeed is animation only)
+            const baseSp = g.userData.sprint ? 11.5 : 6.8;
+            const roarBoost = performance.now() < (g.userData.roarUntil || 0) ? 1.4 : 1;
+            const sp = baseSp * roarBoost;
+            g.userData.tvx = (g.userData.tvx || 0) * 0.86 + (tdx / td) * sp * 0.28;
+            g.userData.tvz = (g.userData.tvz || 0) * 0.86 + (tdz / td) * sp * 0.28;
+            const vH = Math.hypot(g.userData.tvx, g.userData.tvz);
+            if (vH > sp) {
+              g.userData.tvx = (g.userData.tvx / vH) * sp;
+              g.userData.tvz = (g.userData.tvz / vH) * sp;
+            }
+            g.position.x += g.userData.tvx * dt;
+            g.position.z += g.userData.tvz * dt;
+            // T-Rex doesn't phase through houses
+            {
+              const solid = resolveSolidXZ(g.position.x, g.position.z, 1.1, {});
+              if (solid.hit) {
+                g.position.x = solid.x;
+                g.position.z = solid.z;
+                g.userData.tvx *= -0.6;
+                g.userData.tvz *= -0.6;
+                g.userData.tx = undefined;
+              }
+            }
+            // Soft push off agents (big dino)
+            for (const st of agentState) {
+              if (st.insideHouse) continue;
+              const ax = g.position.x - st.mesh.position.x;
+              const az = g.position.z - st.mesh.position.z;
+              const ad = Math.hypot(ax, az);
+              const minD = 1.35;
+              if (ad > 0.01 && ad < minD) {
+                const push = (minD - ad) * 0.7;
+                g.position.x += (ax / ad) * push * 0.4;
+                g.position.z += (az / ad) * push * 0.4;
+                st.mesh.position.x -= (ax / ad) * push * 0.6;
+                st.mesh.position.z -= (az / ad) * push * 0.6;
+              }
+            }
+            const rd = Math.hypot(g.position.x, g.position.z);
+            if (rd > meadowR) {
+              g.position.x = (g.position.x / rd) * meadowR;
+              g.position.z = (g.position.z / rd) * meadowR;
+              g.userData.tvx *= -0.55;
+              g.userData.tvz *= -0.55;
+              g.userData.tx = undefined;
+            }
+            if (vH > 0.15) {
+              const want = Math.atan2(g.userData.tvx, g.userData.tvz);
+              let cur = g.rotation.y;
+              let dAng = want - cur;
+              while (dAng > Math.PI) dAng -= Math.PI * 2;
+              while (dAng < -Math.PI) dAng += Math.PI * 2;
+              g.rotation.y = cur + dAng * Math.min(1, 12 * dt);
+            }
+            // Leg cycle for animation only
+            g.userData.walkSpeed = g.userData.sprint ? 3.1 : 2.0;
           }
           // Interaction pulse ring (children RingGeometry)
           if (g.userData.pulseUntil && performance.now() < g.userData.pulseUntil) {

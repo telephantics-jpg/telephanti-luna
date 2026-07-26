@@ -8536,6 +8536,9 @@
         if (metaEl) metaEl.innerHTML = `Ready · <span class="ccm-brain">live agent brains</span>`;
         return;
       }
+      // Keep scroll where the user left it (only stick to bottom if already there)
+      const nearBottom = threadEl.scrollHeight - threadEl.scrollTop - threadEl.clientHeight < 72;
+      const prevTop = threadEl.scrollTop;
       threadEl.innerHTML = thread.map((m) => {
         const kind = m.role === "you" ? "you" : (m.thinking ? "agent thinking" : "agent");
         const who = m.role === "you" ? (myVisitorName || player.name || "You") : (m.who || agentNames[key] || key);
@@ -8545,9 +8548,10 @@
         // Full text — never truncate; CSS max-height + overflow scrolls
         return `<div class="ccp-msg ${kind}"><span class="ccp-who">${escapeHtml(who)}</span><div class="ccp-bubble" tabindex="0">${escapeHtml(m.text)}</div>${tag}</div>`;
       }).join("");
-      threadEl.scrollTop = threadEl.scrollHeight;
+      if (nearBottom) threadEl.scrollTop = threadEl.scrollHeight;
+      else threadEl.scrollTop = prevTop;
       const lastAgent = [...threadEl.querySelectorAll(".ccp-msg.agent:not(.thinking) .ccp-bubble")].pop();
-      if (lastAgent) lastAgent.scrollTop = 0;
+      if (lastAgent && nearBottom) lastAgent.scrollTop = 0;
       const last = thread[thread.length - 1];
       if (metaEl && last) {
         const brain = last.backend
@@ -11409,14 +11413,61 @@
         });
         return;
       }
-      // Another speaker is locked front — still store this line so its bubble stays tappable
+      // Another speaker is FRONT — store this line but never steal selected front
       const hold = Math.max(18, Math.min(holdSec || 72, 180));
       const prev = speechHold.get(who);
-      // Don't shorten a longer front hold with a short ambient refresh
       const until = Math.max(prev?.until || 0, Date.now() + hold * 1000);
-      speechHold.set(who, { line: text, until, front: !!(prev?.front) });
+      const someoneFront =
+        (bubbleFrontPinned || bubbleHoldLocked) &&
+        selectedBubbleSpeaker &&
+        selectedBubbleSpeaker !== who;
+      speechHold.set(who, {
+        line: text,
+        until,
+        // New ambient chats stay behind the visitor's selected box
+        front: someoneFront ? false : !!(prev?.front),
+      });
       if (selectedBubbleSpeaker === who) {
         selectedBubbleLine = text;
+        // Keep selected alive while they keep talking
+        if (bubbleFrontPinned || bubbleHoldLocked) {
+          speechHold.set(who, {
+            line: text,
+            until: bubbleHoldLocked ? Date.now() + 86400000 : Date.now() + 180000,
+            front: true,
+            holdLocked: bubbleHoldLocked,
+          });
+        }
+      }
+    }
+
+    /** Close one canvas conversation bubble (3D-style ✕). Always wins over lock. */
+    function closeSpeechBubble(speaker, opts = {}) {
+      const who = speaker || selectedBubbleSpeaker;
+      if (!who) return;
+      const npc = allRoamers().find((n) => n.name === who || n.id === who);
+      speechHold.delete(who);
+      clearBubbleFreePos(who);
+      if (npc && !opts.keepLine) {
+        npc.line = "";
+        // Keep fullLine in memory for chat log, just hide meadow box
+      }
+      const wasSelected =
+        selectedBubbleSpeaker === who ||
+        (npc && selectedBubbleAgentId && selectedBubbleAgentId === npc.id);
+      if (wasSelected) {
+        if (selectedBubbleAgentId) {
+          releaseSpeechFloor(selectedBubbleAgentId, { clearFocus: true });
+        }
+        selectedBubbleSpeaker = null;
+        selectedBubbleLine = "";
+        selectedBubbleAgentId = "";
+        bubbleFrontPinned = false;
+        bubbleHoldLocked = false;
+      }
+      hideCampSpeechPin();
+      if (!opts.quiet) {
+        try { showToast?.(`✕ Closed ${who}`); } catch (_) {}
       }
     }
 
@@ -14421,25 +14472,46 @@
       ctx.strokeStyle = selected ? "#fde68a" : color;
       ctx.lineWidth = selected ? 4 : 2.5;
       ctx.stroke();
+      // ✕ close button (3D parity) — drawn on every bubble, fat hit target
+      const xBtn = mobile ? 34 : 30;
+      const xPad = 4;
+      const closeX = bx + boxW - xBtn - xPad;
+      const closeY = by + xPad;
+      // FRONT / LOCK chip left of ✕ when selected
       if (selected) {
         ctx.strokeStyle = "rgba(103, 232, 249, 0.7)";
         ctx.lineWidth = 1.5;
         ctx.strokeRect(bx + 2, by + 2, boxW - 4, boxH - 4);
-        // FRONT / LOCK chip so it's obvious which box is on top
         const chip = (meta?.holdLocked || bubbleHoldLocked) ? "🔒 LOCK" : "FRONT";
         const chipW = (meta?.holdLocked || bubbleHoldLocked) ? 62 : 52;
         ctx.fillStyle = (meta?.holdLocked || bubbleHoldLocked)
           ? "rgba(52, 211, 153, 0.95)"
           : "rgba(253, 230, 138, 0.95)";
         ctx.beginPath();
-        ctx.roundRect(bx + boxW - chipW - 6, by - 11, chipW, 16, 6);
+        ctx.roundRect(bx + boxW - chipW - xBtn - 12, by - 11, chipW, 16, 6);
         ctx.fill();
         ctx.fillStyle = "#1c1917";
         ctx.font = "bold 10px Segoe UI";
         ctx.textAlign = "center";
-        ctx.fillText(chip, bx + boxW - chipW / 2 - 6, by + 1);
+        ctx.fillText(chip, bx + boxW - chipW / 2 - xBtn - 12, by + 1);
         ctx.textAlign = "left";
       }
+      // Close button
+      ctx.fillStyle = "rgba(30, 10, 16, 0.96)";
+      ctx.strokeStyle = "rgba(248, 113, 113, 0.75)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(closeX, closeY, xBtn, xBtn, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#fecaca";
+      ctx.font = `900 ${mobile ? 18 : 16}px Segoe UI`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("×", closeX + xBtn / 2, closeY + xBtn / 2 + 1);
+      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "left";
+
       ctx.fillStyle = color + "33";
       ctx.beginPath();
       if (above) {
@@ -14453,12 +14525,23 @@
       }
       ctx.closePath();
       ctx.fill();
+      // Leave room for ✕ on the right of first line
       const textTop = by + 14;
+      const textRightPad = xBtn + 10;
       lines.forEach((ln, i) => {
         const isHint = ln.startsWith("↕");
         ctx.fillStyle = isHint ? "#67e8f9" : "#f8fafc";
         ctx.font = `600 ${fontSize}px Segoe UI`;
-        ctx.fillText(ln, bx + 12, textTop + i * lineH);
+        // Clip long first line under the X
+        const maxW = boxW - 24 - (i === 0 ? textRightPad - 12 : 0);
+        let drawLn = ln;
+        if (ctx.measureText(drawLn).width > maxW) {
+          while (drawLn.length > 4 && ctx.measureText(drawLn + "…").width > maxW) {
+            drawLn = drawLn.slice(0, -1);
+          }
+          drawLn += "…";
+        }
+        ctx.fillText(drawLn, bx + 12, textTop + i * lineH);
       });
       ctx.globalAlpha = 1;
       ctx.textAlign = "center";
@@ -14473,6 +14556,11 @@
         anchorSx: ax,
         anchorSy: ay,
         lift,
+        // Fat close hit area (3D parity)
+        closeX,
+        closeY,
+        closeW: xBtn,
+        closeH: xBtn,
       };
       speechBubbleRects.push(rect);
       return rect;
@@ -14482,26 +14570,20 @@
       speechBubbleRects.length = 0;
       let drawn = 0;
       // Always draw several bubbles so you can TAP any of them to bring that one front
-      const max = Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 5 : 4);
+      const max = Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 6 : 4);
       const now = Date.now();
-      // Front-pinned / hold-locked stay until visitor releases them
+      // Front-pinned / hold-locked stay until visitor closes (✕) or unpins
       if (selectedBubbleSpeaker) {
         const held = speechHold.get(selectedBubbleSpeaker);
-        if (bubbleHoldLocked) {
+        const lineKeep = held?.line || selectedBubbleLine || "";
+        if (bubbleHoldLocked || bubbleFrontPinned) {
+          // Keep selected on top indefinitely while pinned (✕ or meadow unpin to clear)
           speechHold.set(selectedBubbleSpeaker, {
-            line: held?.line || selectedBubbleLine,
-            until: now + 86400000,
+            line: lineKeep,
+            until: bubbleHoldLocked ? now + 86400000 : Math.max(held?.until || 0, now + 120000),
             front: true,
-            holdLocked: true,
+            holdLocked: bubbleHoldLocked,
           });
-        } else if (bubbleFrontPinned && held) {
-          if (held.until <= now + 5000) {
-            speechHold.set(selectedBubbleSpeaker, {
-              line: held.line || selectedBubbleLine,
-              until: now + 180000,
-              front: true,
-            });
-          }
         } else if (!held || held.until <= now) {
           clearBubbleFreePos(selectedBubbleSpeaker);
           selectedBubbleSpeaker = null;
@@ -14512,19 +14594,21 @@
         }
       }
       const roamers = allRoamers();
-      // Queue everyone with a live line — selected drawn last so it paints ON TOP
+      // Queue: non-selected first, SELECTED always last so it paints ON TOP of new chatter
       const priority = [
+        ...roamers.filter((n) => n.id === speakingAgentId && n.name !== selectedBubbleSpeaker),
+        ...roamers.filter((n) => speechHold.has(n.name) && speechHold.get(n.name).until > now
+          && n.name !== selectedBubbleSpeaker),
+        ...roamers.filter((n) => {
+          const line = (n.line || "").trim();
+          return line && line !== "..." && line !== "…" && n.name !== selectedBubbleSpeaker;
+        }),
+        ...roamers.filter((n) => {
+          const line = (n.line || "").trim();
+          return (line === "..." || line === "…") && n.name !== selectedBubbleSpeaker;
+        }),
+        // Selected always last in queue
         ...roamers.filter((n) => n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId),
-        ...roamers.filter((n) => n.id === speakingAgentId),
-        ...roamers.filter((n) => speechHold.has(n.name) && speechHold.get(n.name).until > now),
-        ...roamers.filter((n) => {
-          const line = (n.line || "").trim();
-          return line && line !== "..." && line !== "…";
-        }),
-        ...roamers.filter((n) => {
-          const line = (n.line || "").trim();
-          return line === "..." || line === "…";
-        }),
       ];
       const seen = new Set();
       const queue = [];
@@ -14533,34 +14617,32 @@
         seen.add(n.id);
         queue.push(n);
       }
-      // Non-selected first, selected last → paints on top + hit-test finds it first when overlapping
+      // Hard sort: selected last (paint on top)
       queue.sort((a, b) => {
         const aSel = a.name === selectedBubbleSpeaker || a.id === selectedBubbleAgentId ? 1 : 0;
         const bSel = b.name === selectedBubbleSpeaker || b.id === selectedBubbleAgentId ? 1 : 0;
         return aSel - bSel;
       });
-      for (const n of queue) {
-        const isSel = n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId;
-        if (drawn >= max && !isSel) continue;
+
+      function paintOne(n, forceSel) {
+        const isSel = forceSel || n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId;
         const s = worldToScreen(camp.x + n.x, camp.y + n.y);
         const free = bubbleFreePos.get(n.name);
         if (!free && isCampMobile() && (s.x < -80 || s.x > viewW + 80 || s.y < -80 || s.y > viewH + 80)
-            && !isSel) continue;
+            && !isSel) return false;
         const color = n.color || AGENT_COLORS[n.id] || "#67e8f9";
         const thinkLine = (n.line || "").trim();
         if (thinkLine === "..." || thinkLine === "…") {
-          drawThoughtBubble(s.x, s.y - 8, thinkLine, color);
-          drawn += 1;
-          continue;
+          if (!isSel) drawThoughtBubble(s.x, s.y - 8, thinkLine, color);
+          return !isSel;
         }
         const held = speechHold.get(n.name);
-        // Prefer full line when front so the visitor can finish reading
         let activeLine = (isSel && selectedBubbleLine)
           || (held && held.until > now ? held.line : null)
           || (isSel && n.fullLine)
           || (n.line || "");
         activeLine = String(activeLine || "").trim();
-        if (!activeLine) continue;
+        if (!activeLine) return false;
         const words = activeLine.split(/\s+/);
         const wordCap = isSel && (bubbleFrontPinned || bubbleHoldLocked) ? 90 : 48;
         if (words.length > wordCap) activeLine = words.slice(0, wordCap).join(" ") + "…";
@@ -14578,26 +14660,70 @@
           holdLocked: isSel && bubbleHoldLocked,
           fullLine: activeLine,
           freePos: !!free,
-          // Dim others but KEEP them drawn + hittable so you can switch front
-          dim: (bubbleFrontPinned || bubbleHoldLocked) && selectedBubbleSpeaker && !isSel,
+          // Dim others while a box is selected so FRONT stays obvious
+          dim: !!(selectedBubbleSpeaker && !isSel),
         });
-        drawn += 1;
+        return true;
+      }
+
+      // Pass 1: everyone except re-paint selected last
+      let selectedNpc = null;
+      for (const n of queue) {
+        const isSel = n.name === selectedBubbleSpeaker || n.id === selectedBubbleAgentId;
+        if (isSel) { selectedNpc = n; continue; }
+        if (drawn >= max) continue;
+        if (paintOne(n, false)) drawn += 1;
+      }
+      // Pass 2: selected ALWAYS on top of new chatter
+      if (selectedNpc) paintOne(selectedNpc, true);
+      else if (selectedBubbleSpeaker && selectedBubbleLine) {
+        // Selected speaker left the meadow — still show their parked bubble if free-pos
+        const free = bubbleFreePos.get(selectedBubbleSpeaker);
+        if (free || speechHold.has(selectedBubbleSpeaker)) {
+          drawSpeechBubble(
+            free?.sx ?? viewW / 2,
+            free?.sy ?? 80,
+            selectedBubbleLine,
+            selectedBubbleColor || "#fde68a",
+            true,
+            {
+              speaker: selectedBubbleSpeaker,
+              agentId: selectedBubbleAgentId,
+              mood: selectedBubbleMood,
+              selected: true,
+              holdLocked: bubbleHoldLocked,
+              fullLine: selectedBubbleLine,
+              freePos: !!free,
+            },
+          );
+        }
       }
     }
 
     function hitTestSpeechBubble(sx, sy) {
       // Fat-finger pad — critical on Android / iPhone
       const pad = isCampMobile() ? 18 : 8;
+      const closePad = isCampMobile() ? 10 : 6;
       // Top-most first (last drawn = selected / front)
       for (let i = speechBubbleRects.length - 1; i >= 0; i--) {
         const r = speechBubbleRects[i];
+        // Prefer ✕ close hit before body (so close always wins)
+        if (
+          r.closeW != null &&
+          sx >= r.closeX - closePad &&
+          sx <= r.closeX + r.closeW + closePad &&
+          sy >= r.closeY - closePad &&
+          sy <= r.closeY + r.closeH + closePad
+        ) {
+          return { ...r, hitClose: true };
+        }
         if (
           sx >= r.bx - pad &&
           sx <= r.bx + r.boxW + pad &&
           sy >= r.by - pad &&
           sy <= r.by + r.boxH + pad
         ) {
-          return r;
+          return { ...r, hitClose: false };
         }
       }
       // Nearest bubble within slop if no direct hit (still on meadow)
@@ -14614,7 +14740,7 @@
           best = r;
         }
       }
-      return best;
+      return best ? { ...best, hitClose: false } : null;
     }
 
     function updateAetherEntities() {
@@ -15811,6 +15937,12 @@
       const { sx, sy } = campPointerPos(ev);
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       if (bubbleHit?.speaker) {
+        // ✕ close — 3D parity (don't start drag)
+        if (bubbleHit.hitClose) {
+          closeSpeechBubble(bubbleHit.speaker, { force: true });
+          try { navigator.vibrate?.(10); } catch (_) {}
+          return;
+        }
         startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
         return;
       }

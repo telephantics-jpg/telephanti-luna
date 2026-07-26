@@ -6,6 +6,7 @@
  *
  * When a mesh has few clips (e.g. brunette), we still drive lifelike
  * root sway / bob / lean so they never look frozen.
+ * Motion energy aims at the 2D camp feel: bouncey walk, talk hop, glow pulse.
  */
 
 const CHAR_BASE = "/static/avatars/characters";
@@ -46,12 +47,28 @@ export const MODEL_FOR_AGENT = {
   ara: XBOT,
   // Extra ids (heaven / future summons)
   wanderer: XBOT,
+  // Custom guest GLBs (drop files in static/avatars/characters/)
+  // Telephantix = you (studio mesh → telephantix.glb)
+  telephantix: `${CHAR_BASE}/telephantix.glb`,
+  stood: `${CHAR_BASE}/telephantix.glb`, // alias → same mesh
+  // Telephanthantim = D4 gold armor (Meshy export)
+  telephanthantim: `${CHAR_BASE}/telephanthantim.glb`,
 };
 
 export function modelUrlForAgent(def) {
-  if (def?.visual?.glb) return def.visual.glb;
+  // Always prefer explicit GLB path (you / guests) — strip nothing; keep ?v= cache bust
+  if (def?.visual?.glb) return String(def.visual.glb);
   if (def?.id && MODEL_FOR_AGENT[def.id]) return MODEL_FOR_AGENT[def.id];
   const arch = String(def?.visual?.archetype || "").toLowerCase();
+  const faction = String(def?.faction || def?.visual?.faction || "").toLowerCase();
+  // Do NOT map telephantix/stood by archetype (that wrongly used Luna body)
+  const id = String(def?.id || "").toLowerCase();
+  if (id === "telephantix" || id === "stood") return `${CHAR_BASE}/telephantix.glb?v=you-wireframe-2`;
+  // Daily town visitors by faction
+  if (faction === "demon") return ROBOT;
+  if (faction === "angel") return LUNA_GLB;
+  if (faction === "god") return SOLDIER;
+  if (faction === "clever") return XBOT;
   if (["moon_host", "lights", "reveler"].includes(arch)) return LUNA_GLB;
   if (["thunder", "guardian", "allfather"].includes(arch)) return SOLDIER;
   if (arch === "guardian" && def?.id === "sentinel") return ROBOT;
@@ -87,11 +104,20 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
       ? SkeletonUtils.clone(entry.gltf.scene)
       : entry.gltf.scene.clone(true);
 
-    const targetH = 1.72;
-    const s = targetH / entry.height;
+    const idLow = String(def?.id || "").toLowerCase();
+    // Custom photo / studio meshes: keep look faithful, fix ground + visibility
+    const isCustomYou =
+      idLow === "telephantix" ||
+      idLow === "stood" ||
+      String(def?.visual?.glb || "").includes("telephantix.glb") ||
+      String(def?.visual?.glb || "").includes("stood.glb");
+
+    const targetH = isCustomYou ? 1.85 : 1.72;
+    const s = targetH / Math.max(entry.height, 0.01);
     clone.scale.setScalar(s);
+    // Box is already in scaled space — do NOT multiply by s again (that buried/hid custom GLBs)
     const box = new THREE.Box3().setFromObject(clone);
-    clone.position.y = -box.min.y * s;
+    clone.position.y = -box.min.y;
     // Keep model local +Z as "forward" so walk clips match group facing.
     // (Math.PI here used to flip them — they moonwalked: feet one way, body the other.)
     clone.rotation.y = 0;
@@ -102,21 +128,52 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
       if (!o.isMesh) return;
       o.castShadow = true;
       o.receiveShadow = true;
-      if (!o.material) return;
+      o.frustumCulled = false;
+      o.visible = true;
+      // Geometry color attribute → force vertexColors on (studio exports)
+      const hasColorAttr = !!(o.geometry && o.geometry.attributes && o.geometry.attributes.color);
+      if (!o.material) {
+        o.material = new THREE.MeshStandardMaterial({
+          color: isCustomYou ? 0xc4a494 : 0xcccccc,
+          roughness: 0.65,
+          metalness: 0.05,
+          side: THREE.DoubleSide,
+          vertexColors: hasColorAttr,
+        });
+        return;
+      }
       const mats = Array.isArray(o.material) ? o.material : [o.material];
       const next = mats.map((m) => {
         const cm = m.clone();
-        if (cm.color) {
-          const base = cm.color.clone();
-          cm.color = base.lerp(tint, 0.28);
+        cm.side = THREE.DoubleSide;
+        cm.visible = true;
+        cm.transparent = false;
+        cm.opacity = 1;
+        cm.depthWrite = true;
+        if (hasColorAttr || m.vertexColors) cm.vertexColors = true;
+        if (isCustomYou) {
+          // Real body mesh — no brand wash, readable on dark meadow
+          if (cm.color) cm.color.setHex(0xffffff);
+          if (cm.emissive) {
+            cm.emissive.setHex(0x2a221c);
+            cm.emissiveIntensity = 0.18;
+          }
+          if (cm.roughness != null) cm.roughness = 0.62;
+          if (cm.metalness != null) cm.metalness = 0.02;
+        } else {
+          if (cm.color) {
+            const base = cm.color.clone();
+            cm.color = base.lerp(tint, 0.28);
+          }
+          if (cm.emissive) {
+            cm.emissive = tint.clone().multiplyScalar(0.15);
+            cm.emissiveIntensity = 0.06;
+          }
+          if (cm.roughness != null) cm.roughness = Math.min(0.92, Math.max(0.35, cm.roughness));
+          if (cm.metalness != null) cm.metalness = Math.min(0.45, cm.metalness);
         }
-        if (cm.emissive) {
-          cm.emissive = tint.clone().multiplyScalar(0.15);
-          cm.emissiveIntensity = 0.06;
-        }
-        if (cm.roughness != null) cm.roughness = Math.min(0.92, Math.max(0.35, cm.roughness));
-        if (cm.metalness != null) cm.metalness = Math.min(0.45, cm.metalness);
         cm.envMapIntensity = cm.envMapIntensity != null ? cm.envMapIntensity : 0.85;
+        cm.needsUpdate = true;
         return cm;
       });
       o.material = Array.isArray(o.material) ? next : next[0];
@@ -173,7 +230,7 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
       );
     }
 
-    function play(kind, fade = 0.28) {
+    function play(kind, fade = 0.22) {
       if (!mixer) {
         currentKind = kind;
         return;
@@ -189,8 +246,12 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
       if (current && actions[current] && actions[current] !== next) {
         actions[current].fadeOut(fade);
       }
-      // Positive timescale = play clip forward (matches +Z facing / velocity)
-      const speed = kind === "walk" || kind === "run" ? 1.12 : kind === "talk" ? 1.15 : 0.9;
+      // Snappier than stock Mixamo — 2D camp energy
+      const speed =
+        kind === "run" ? 1.55 :
+        kind === "walk" ? 1.32 :
+        kind === "talk" || kind === "dance" ? 1.28 :
+        0.95;
       next.reset()
         .setEffectiveTimeScale(speed)
         .setEffectiveWeight(1)
@@ -210,7 +271,7 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
         const mats = Array.isArray(o.material) ? o.material : [o.material];
         for (const m of mats) {
           if (m.emissive) {
-            m.emissive.copy(c).multiplyScalar(0.35);
+            m.emissive.copy(c).multiplyScalar(0.42);
             m.emissiveIntensity = glow;
           }
         }
@@ -218,58 +279,83 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
     }
 
     /**
-     * Per-frame: mixer + lifelike procedural motion when clips are weak/missing.
+     * Per-frame: mixer + 2D-camp energy (bounce, talk hop, glow).
      * @param {number} dt
-     * @param {{ moving?: boolean, sitting?: boolean, flying?: boolean, speaking?: boolean, phase?: number, t?: number }} state
+     * @param {{ moving?: boolean, sitting?: boolean, flying?: boolean, speaking?: boolean, phase?: number, t?: number, speed?: number, running?: boolean, energy?: number }} state
      */
     function update(dt, state = {}) {
       const moving = !!state.moving;
       const sitting = !!state.sitting;
       const flying = !!state.flying;
       const speaking = !!state.speaking;
+      const running = !!state.running || (moving && (state.speed || 0) > 3.5);
       const phase = state.phase || 0;
       const t = state.t || performance.now() * 0.001;
+      const energy = Math.max(0.35, Math.min(1.35, state.energy != null ? state.energy : 0.85));
+      const vel = Math.max(0, state.speed || 0);
 
-      if (mixer) mixer.update(dt);
+      if (mixer) {
+        mixer.update(dt);
+        // Match clip cadence to real move speed (alive, not slideshow)
+        if (current && actions[current] && (currentKind === "walk" || currentKind === "run")) {
+          const base = currentKind === "run" ? 1.45 : 1.2;
+          const ts = base * (0.85 + Math.min(1.4, vel / 8) * 0.55) * (0.9 + energy * 0.2);
+          actions[current].setEffectiveTimeScale(ts);
+        }
+      }
 
-      // Procedural life on the root (works even with full skeleton clips)
+      // Procedural life on the root — readable even when GLB clips are stiff
       let bob = 0;
       let sway = 0;
       let lean = 0;
+      let squash = 1;
       if (sitting) {
-        bob = Math.sin(t * 1.4 + phase) * 0.008;
+        bob = Math.sin(t * 1.8 + phase) * 0.014 * energy;
         root.position.y = -0.32 + bob;
         root.rotation.x = 0.12;
-        root.rotation.z = Math.sin(t * 0.9 + phase) * 0.02;
+        root.rotation.z = Math.sin(t * 1.2 + phase) * 0.03;
+        root.scale.set(1, 1, 1);
       } else if (flying) {
-        bob = Math.sin(t * 3.2 + phase) * 0.045;
-        sway = Math.sin(t * 2.1 + phase) * 0.04;
-        root.position.y = 0.08 + bob;
+        bob = Math.sin(t * 4.2 + phase) * 0.07 * energy;
+        sway = Math.sin(t * 2.8 + phase) * 0.06 * energy;
+        root.position.y = 0.1 + bob;
         root.rotation.z = sway;
-        root.rotation.x = -0.08 + Math.sin(t * 2.4 + phase) * 0.03;
+        root.rotation.x = -0.1 + Math.sin(t * 3.1 + phase) * 0.045;
+        root.scale.set(1.02, 0.98 + Math.sin(t * 5 + phase) * 0.02, 1.02);
       } else if (moving) {
-        // gait bob — more visible if mesh has no walk clip
-        const gait = Math.sin(t * 11 + phase);
-        bob = Math.abs(gait) * 0.04;
-        lean = 0.06;
+        // 2D-style bouncey gait — bigger hop when running
+        const gaitHz = running ? 16 : 12.5;
+        const gait = Math.sin(t * gaitHz + phase);
+        const amp = (running ? 0.085 : 0.055) * energy;
+        bob = Math.abs(gait) * amp;
+        lean = running ? 0.12 : 0.08;
         root.position.y = bob;
-        root.rotation.x = lean + gait * 0.02;
-        root.rotation.z = Math.sin(t * 11 + phase) * 0.035;
+        root.rotation.x = lean + gait * (running ? 0.04 : 0.028);
+        root.rotation.z = Math.sin(t * gaitHz + phase) * (running ? 0.055 : 0.04);
+        // Subtle squash-stretch on footfalls
+        squash = 1 + Math.abs(gait) * (running ? 0.04 : 0.025);
+        root.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
       } else {
-        // breathing idle
-        bob = Math.sin(t * 2.0 + phase) * 0.012;
-        sway = Math.sin(t * 1.1 + phase) * 0.018;
+        // Breathing idle — visible chest/sway like 2D glow figures
+        bob = Math.sin(t * 2.4 + phase) * 0.022 * energy;
+        sway = Math.sin(t * 1.35 + phase) * 0.028 * energy;
         root.position.y = bob;
         root.rotation.z = sway;
-        root.rotation.x = Math.sin(t * 1.6 + phase) * 0.015;
+        root.rotation.x = Math.sin(t * 1.9 + phase) * 0.022;
+        const breath = 1 + Math.sin(t * 2.4 + phase) * 0.018 * energy;
+        root.scale.set(1 / Math.sqrt(breath), breath, 1 / Math.sqrt(breath));
       }
 
       if (speaking) {
-        // soft glow pulse while talking
-        const pulse = 0.12 + Math.sin(t * 14 + phase) * 0.08;
+        // 2D talkBob + talkScale energy
+        const talkHop = Math.sin(t * 10 + phase) * 0.05 * energy;
+        const talkScale = 1 + Math.sin(t * 8 + phase) * 0.045;
+        root.position.y += talkHop;
+        root.scale.multiplyScalar(talkScale);
+        const pulse = 0.22 + Math.sin(t * 14 + phase) * 0.14;
         setTint(colorHex || 0xffffff, pulse);
-        // tiny head nod (root nod reads as engagement)
-        root.rotation.x += Math.sin(t * 9 + phase) * 0.025;
+        root.rotation.x += Math.sin(t * 9 + phase) * 0.04;
+        root.rotation.z += Math.sin(t * 7 + phase) * 0.02;
       }
     }
 
@@ -290,13 +376,36 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
 
   async function createCharacter(def, colorHex) {
     const url = modelUrlForAgent(def);
-    try {
-      const entry = await loadTemplate(url);
-      return spawnFromTemplate(entry, def, colorHex);
-    } catch (err) {
-      console.warn("[camp-characters] load failed", url, err);
-      return null;
+    const id = String(def?.id || "");
+    const isYou = id === "telephantix" || id === "stood" || def?.visual?.forceCustomMesh;
+    // YOU: only your file — never silent Xbot/Luna fallback (that looked like "username only")
+    const tryUrls = isYou
+      ? [
+          url,
+          `${CHAR_BASE}/telephantix.glb?v=you-wireframe-2`,
+          `${CHAR_BASE}/telephantix.glb`,
+          `${CHAR_BASE}/stood.glb`,
+        ]
+      : [url];
+    if (id === "telephanthantim" && url.includes("telephanthantim.glb")) {
+      tryUrls.push(SOLDIER);
     }
+    if (!isYou && id !== "telephanthantim") {
+      // generic soft fallback for missing guest files only
+    }
+    let lastErr = null;
+    for (const u of tryUrls) {
+      try {
+        const entry = await loadTemplate(u);
+        console.info("[camp-characters] mesh OK", id, "→", u, "h=", entry.height.toFixed(2));
+        return spawnFromTemplate(entry, def, colorHex);
+      } catch (err) {
+        lastErr = err;
+        console.warn("[camp-characters] load failed", u, err?.message || err);
+      }
+    }
+    console.warn("[camp-characters] all loads failed", def?.id, lastErr);
+    return null;
   }
 
   function preloadAll(agentDefs) {

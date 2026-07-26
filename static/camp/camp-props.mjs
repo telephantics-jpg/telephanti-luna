@@ -150,7 +150,7 @@ export function buildTrexMesh(THREE) {
 
   g.userData.trex = true;
   g.userData.trexParts = { headRoot, jaw, legL, legR, tail, armL, armR };
-  g.userData.walkSpeed = 1.15; // calm walk — not a gallop
+  g.userData.walkSpeed = 2.0; // base run gait (sprint bumps this higher in 3D loop)
   g.userData.roarUntil = 0;
   g.userData.pulseUntil = 0;
   g.userData.interactKind = "wildlife";
@@ -302,18 +302,19 @@ export function createPropSystem(THREE, GLTFLoader) {
       const phase = group.userData.propBob || 0;
       group.position.y = Math.sin(t * 1.4 + phase) * 0.08;
     }
-    // T-Rex calm walk + roar chomp
+    // T-Rex run gait + roar chomp (walkSpeed = leg cadence from 3D sprint loop)
     if (group.userData.trex && group.userData.trexParts) {
       const p = group.userData.trexParts;
-      const speed = group.userData.walkSpeed || 1.15;
-      const phase = (group.userData.propBob || 0) + t * speed;
+      const speed = group.userData.walkSpeed || 2.0;
+      const phase = (group.userData.propBob || 0) + t * speed * 2.6;
       const strut = Math.sin(phase);
-      if (p.legL) p.legL.rotation.x = strut * 0.38;
-      if (p.legR) p.legR.rotation.x = -strut * 0.38;
-      if (p.tail) p.tail.rotation.y = Math.sin(phase * 0.7) * 0.18;
-      if (p.armL) p.armL.rotation.x = Math.sin(phase * 0.9) * 0.15;
-      if (p.armR) p.armR.rotation.x = -Math.sin(phase * 0.9) * 0.15;
-      if (p.headRoot) p.headRoot.rotation.y = Math.sin(phase * 0.35) * 0.08;
+      const amp = 0.48 + Math.min(0.32, (speed - 1) * 0.14);
+      if (p.legL) p.legL.rotation.x = strut * amp;
+      if (p.legR) p.legR.rotation.x = -strut * amp;
+      if (p.tail) p.tail.rotation.y = Math.sin(phase * 0.85) * 0.28;
+      if (p.armL) p.armL.rotation.x = Math.sin(phase * 1.1) * 0.22;
+      if (p.armR) p.armR.rotation.x = -Math.sin(phase * 1.1) * 0.22;
+      if (p.headRoot) p.headRoot.rotation.y = Math.sin(phase * 0.4) * 0.1;
       const roaring = performance.now() < (group.userData.roarUntil || 0);
       if (p.jaw) {
         p.jaw.rotation.x = roaring
@@ -323,10 +324,12 @@ export function createPropSystem(THREE, GLTFLoader) {
       if (p.headRoot && roaring) {
         p.headRoot.rotation.x = -0.12 + Math.sin(t * 14) * 0.05;
       } else if (p.headRoot) {
-        p.headRoot.rotation.x = 0;
+        p.headRoot.rotation.x = Math.sin(phase * 0.6) * 0.04;
       }
-      // soft ground contact only — no fly-away bob
-      group.position.y = roaring ? Math.sin(t * 20) * 0.03 : 0;
+      // Run bounce
+      group.position.y = roaring
+        ? Math.sin(t * 20) * 0.04
+        : Math.abs(strut) * 0.06 * Math.min(1.4, speed / 1.5);
     }
   }
 

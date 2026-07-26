@@ -30,7 +30,7 @@ export async function fetchCampCatalog() {
 
   // 2) Static file — always available if /static is served
   try {
-    const res = await fetch("/static/camp/camp_catalog.json?v=5toys", { cache: "no-store" });
+    const res = await fetch("/static/camp/camp_catalog.json?v=vc-hub-1", { cache: "no-store" });
     if (res.ok) {
       const cat = await res.json();
       if (cat && (cat.props || cat.agents)) {
@@ -169,6 +169,7 @@ export function fallbackCatalog() {
       { id: "uriel", name: "Uriel", x: 50, y: 360, mood: "think", base: false, summon: "heaven", visual: { archetype: "seer", primary: "#fb923c", accent: "#ffedd5" } },
       { id: "ara", name: "Ara", x: -165, y: 95, mood: "think", base: false, summon: "grok", visual: { archetype: "messenger", primary: "#4ade80", accent: "#bbf7d0" } },
       { id: "mika", name: "Mika", x: 165, y: 95, mood: "happy", base: false, summon: "grok", visual: { archetype: "lights", primary: "#a78bfa", accent: "#ddd6fe" } },
+      { id: "telephantix", name: "Telephantix", x: 36, y: 48, mood: "happy", base: true, visual: { archetype: "reveler", primary: "#38bdf8", accent: "#f0d060", glb: "/static/avatars/characters/telephantix.glb" } },
     ],
   };
 }

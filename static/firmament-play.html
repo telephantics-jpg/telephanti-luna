@@ -3936,7 +3936,7 @@
     <div id="dock-tip" class="dock-tip">🎲 3D = full 3D camp · Telephantix = album · swipe toolbar →</div>
     <div class="dock-scroll-hint">swipe toolbar →</div>
   </footer>
-  <audio id="camp-music-audio" preload="none" playsinline></audio>
+  <audio id="camp-music-audio" preload="auto" playsinline webkit-playsinline></audio>
   <iframe id="camp-music-yt-fallback" title="Telephantix fallback" allow="autoplay; encrypted-media" hidden></iframe>
   <div id="camp-chat-panel" role="dialog" aria-label="Camp chat" aria-hidden="true">
     <div class="ccp-head">
@@ -4147,7 +4147,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-23-311-live";
+    const CAMP_BUILD = "2026-07-27-311-music-mobile";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -10594,21 +10594,125 @@
       return campMusicBoost ? 1.0 : 0.92;
     }
 
+    let campMusicMobile = null;
+    let campMediaSession = null;
+    let campMusicKeepAlive = null;
+    let campNearEndUnbind = null;
+
+    function advanceCampMusicTrack(why = "") {
+      if (!campMusicOn) return;
+      campMusicTrackIdx = (campMusicTrackIdx + 1) % Math.max(1, CAMP_MUSIC_TRACKS.length);
+      try {
+        console.info("[camp-music] advance", why || "next", campMusicTrackIdx);
+      } catch (_) {}
+      tuneCampJukebox({ quiet: true });
+    }
+
+    function updateCampMediaSession(playing) {
+      if (!campMediaSession) return;
+      const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % Math.max(1, CAMP_MUSIC_TRACKS.length)];
+      try {
+        campMediaSession.update({
+          title: track?.title || "Telephantix",
+          artist: "Telephantix",
+          album: "Luna Camp",
+          playing: playing ?? !!(campMusicOn && !campMusicMuted),
+        });
+      } catch (_) {}
+    }
+
+    function wireCampMusicMobile() {
+      if (!campMusicMobile || campMusicKeepAlive) return;
+      campMediaSession = campMusicMobile.installMediaSession({
+        play: () => {
+          if (campMusicUserStopped) return;
+          campMusicOn = true;
+          campMusicMuted = false;
+          campMusicSource = "telephantix";
+          resumeCampMusicPlayback({ quiet: true });
+        },
+        pause: () => {
+          try {
+            campAudioElement()?.pause();
+          } catch (_) {}
+          updateCampMediaSession(false);
+        },
+        stop: () => closeAllCampMusic({ quiet: true }),
+        next: () => {
+          campMusicOn = true;
+          campMusicSource = "telephantix";
+          advanceCampMusicTrack("mediasession-next");
+        },
+        prev: () => {
+          campMusicOn = true;
+          campMusicSource = "telephantix";
+          const n = Math.max(1, CAMP_MUSIC_TRACKS.length);
+          campMusicTrackIdx = (campMusicTrackIdx - 1 + n) % n;
+          tuneCampJukebox({ quiet: true });
+        },
+      });
+      campMusicKeepAlive = campMusicMobile.installMusicKeepAlive({
+        isWantedPlaying: () => !!(campMusicOn && campMusicSource === "telephantix" && !campMusicUserStopped && !campMusicMuted),
+        getAudio: () => campAudioElement(),
+        resume: () => resumeCampMusicPlayback({ quiet: true }),
+        advance: (why) => advanceCampMusicTrack(why || "keep-alive"),
+        log: (m) => {
+          try {
+            console.info(m);
+          } catch (_) {}
+        },
+      });
+    }
+
+    import(`/static/camp/camp-music-mobile.mjs?v=${CAMP_BUILD}`)
+      .then((mod) => {
+        campMusicMobile = mod;
+        try {
+          const a = campAudioElement();
+          mod.hardenAudioEl?.(a);
+          wireCampMusicMobile();
+        } catch (e) {
+          console.warn("camp music mobile", e);
+        }
+      })
+      .catch((e) => console.warn("camp music mobile load", e));
+
     function campAudioElement() {
       if (!campAudioEl) {
         campAudioEl = document.getElementById("camp-music-audio");
         if (campAudioEl) {
+          try {
+            campAudioEl.setAttribute("playsinline", "");
+            campAudioEl.setAttribute("webkit-playsinline", "");
+            campAudioEl.playsInline = true;
+            campAudioEl.preload = "auto";
+          } catch (_) {}
+          campMusicMobile?.hardenAudioEl?.(campAudioEl);
           campAudioEl.addEventListener("ended", () => {
             if (!campMusicOn) return;
-            campMusicTrackIdx = (campMusicTrackIdx + 1) % CAMP_MUSIC_TRACKS.length;
-            tuneCampJukebox({ quiet: true });
+            advanceCampMusicTrack("ended");
           });
           campAudioEl.addEventListener("error", () => {
             const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
             showToast("MP3 unavailable — trying YouTube…");
             fallbackCampMusicYoutube(track);
           });
+          campAudioEl.addEventListener("play", () => updateCampMediaSession(true));
+          campAudioEl.addEventListener("pause", () => {
+            if (campMusicOn) updateCampMediaSession(false);
+          });
+          try {
+            campNearEndUnbind?.();
+            campNearEndUnbind = campMusicMobile?.bindNearEndAdvance?.(campAudioEl, () => {
+              if (!campMusicOn || !campAudioEl) return;
+              if (campAudioEl.ended || campAudioEl.paused) {
+                advanceCampMusicTrack("near-end-stuck");
+              }
+            });
+          } catch (_) {}
         }
+      } else {
+        campMusicMobile?.hardenAudioEl?.(campAudioEl);
       }
       return campAudioEl;
     }
@@ -10659,13 +10763,17 @@
         yt.hidden = true;
         yt.removeAttribute("src");
       }
+      updateCampMediaSession(true);
       updateCampMusicPrompt();
     }
 
     function campMusicPlayBlocked(opts = {}) {
+      // Keep music "on" so lock-screen unlock / Media Session can resume (Android next song)
       campMusicPlayPending = true;
+      campMusicOn = true;
+      updateCampMediaSession(false);
       updateCampMusicPrompt();
-      if (!opts.quiet) showToast("Tap 🔊 to hear Telephantix at camp");
+      if (!opts.quiet && !document.hidden) showToast("Tap 🔊 to hear Telephantix at camp");
     }
 
     function attemptCampAudioPlay(audio, opts = {}) {
@@ -10675,6 +10783,8 @@
         updateCampMusicPrompt();
         return;
       }
+      wireCampMusicMobile();
+      campMusicMobile?.hardenAudioEl?.(audio);
       audio.volume = campMusicVolumeLevel();
       audio.muted = false;
       const attempt = audio.play();
@@ -10826,6 +10936,9 @@
       }
       campMusicPlayPending = false;
       campMusicYtFallback = false;
+      try {
+        campMediaSession?.clear?.();
+      } catch (_) {}
       const yt = document.getElementById("camp-music-yt-fallback");
       if (yt) {
         yt.hidden = true;

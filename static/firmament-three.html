@@ -1121,7 +1121,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-26-three-v84-loadfix";
+    const BUILD = "2026-07-27-three-v85-music-mobile";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -8535,9 +8535,26 @@
     let albumAudio = null;
     let albumIndex = 0;
     let albumOn = false;
+    let albumPlayPending = false;
+    let albumMediaSession = null;
+    let albumKeepAlive = null;
+    let albumNearEndUnbind = null;
     const albumBtn = document.getElementById("album-btn");
     const albumNow = document.getElementById("album-now");
     let campBridge3d = campBridgeMod;
+    let musicMobile3d = null;
+
+    import(`/static/camp/camp-music-mobile.mjs?v=${BUILD}`)
+      .then((mod) => {
+        musicMobile3d = mod;
+        try {
+          ensureAlbumAudio();
+          wireAlbumMobileKeepAlive();
+        } catch (e) {
+          console.warn("3d music mobile", e);
+        }
+      })
+      .catch((e) => console.warn("3d music mobile load", e));
 
     import("/static/camp-bridge.mjs?v=310-ethereal")
       .then(async (mod) => {
@@ -8572,23 +8589,117 @@
       })
       .catch(() => {});
 
+    function albumTrackMeta(t) {
+      return {
+        title: t?.title || "Telephantix",
+        artist: t?.artist || "Telephantix",
+        album: "Luna Camp",
+        playing: !!(albumOn && albumAudio && !albumAudio.paused),
+      };
+    }
+
+    function updateAlbumMediaSession(playing) {
+      const t = ALBUM_TRACKS[albumIndex % Math.max(1, ALBUM_TRACKS.length)];
+      try {
+        albumMediaSession?.update?.({
+          ...albumTrackMeta(t),
+          playing: playing ?? !!(albumOn && albumAudio && !albumAudio.paused),
+        });
+      } catch (_) {}
+    }
+
+    function advanceAlbumTrack(why = "") {
+      if (!albumOn || !ALBUM_TRACKS.length) return;
+      albumIndex = (albumIndex + 1) % ALBUM_TRACKS.length;
+      playAlbumTrack(albumIndex, { quiet: true, reason: why || "advance" });
+    }
+
+    function wireAlbumMobileKeepAlive() {
+      if (!musicMobile3d || albumKeepAlive) return;
+      albumMediaSession = musicMobile3d.installMediaSession({
+        play: () => {
+          if (!albumOn) albumOn = true;
+          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-play" });
+        },
+        pause: () => {
+          // Soft pause only — keep albumOn so unlock can resume
+          try {
+            albumAudio?.pause();
+          } catch (_) {}
+          updateAlbumMediaSession(false);
+          try { musicChrome3d?.refresh?.(); } catch (_) {}
+        },
+        stop: () => stopAlbum({ quiet: true }),
+        next: () => {
+          if (!ALBUM_TRACKS.length) return;
+          albumOn = true;
+          albumIndex = (albumIndex + 1) % ALBUM_TRACKS.length;
+          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-next" });
+        },
+        prev: () => {
+          if (!ALBUM_TRACKS.length) return;
+          albumOn = true;
+          const n = Math.max(1, ALBUM_TRACKS.length);
+          albumIndex = (albumIndex - 1 + n) % n;
+          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-prev" });
+        },
+      });
+      albumKeepAlive = musicMobile3d.installMusicKeepAlive({
+        isWantedPlaying: () => !!albumOn,
+        getAudio: () => albumAudio,
+        resume: (why) => playAlbumTrack(albumIndex, { quiet: true, reason: why || "resume" }),
+        advance: (why) => advanceAlbumTrack(why || "keep-alive"),
+        log: (m) => {
+          try {
+            console.info(m);
+          } catch (_) {}
+        },
+      });
+    }
+
     function ensureAlbumAudio() {
       if (!albumAudio) {
-        albumAudio = new Audio();
+        if (musicMobile3d?.ensureDomAudio) {
+          albumAudio = musicMobile3d.ensureDomAudio("camp-music-audio-3d");
+        } else {
+          albumAudio = new Audio();
+          try {
+            albumAudio.setAttribute("playsinline", "");
+            albumAudio.setAttribute("webkit-playsinline", "");
+            albumAudio.playsInline = true;
+          } catch (_) {}
+        }
+        musicMobile3d?.hardenAudioEl?.(albumAudio);
         albumAudio.volume = 0.55;
         albumAudio.preload = "auto";
         albumAudio.addEventListener("ended", () => {
           if (!albumOn) return;
-          albumIndex = (albumIndex + 1) % ALBUM_TRACKS.length;
-          playAlbumTrack(albumIndex);
+          advanceAlbumTrack("ended");
         });
         albumAudio.addEventListener("error", () => {
           logLine("Album", `Couldn't load track — skipping`);
-          if (albumOn) {
-            albumIndex = (albumIndex + 1) % ALBUM_TRACKS.length;
-            playAlbumTrack(albumIndex);
-          }
+          if (albumOn) advanceAlbumTrack("error");
         });
+        albumAudio.addEventListener("play", () => {
+          albumPlayPending = false;
+          updateAlbumMediaSession(true);
+        });
+        albumAudio.addEventListener("pause", () => {
+          // Don't clear albumOn — lock screen pauses are temporary
+          if (albumOn) updateAlbumMediaSession(false);
+        });
+        // Near-end: only kick if stuck paused at end (ended event sometimes drops on Android)
+        try {
+          albumNearEndUnbind?.();
+          albumNearEndUnbind = musicMobile3d?.bindNearEndAdvance?.(albumAudio, () => {
+            if (!albumOn || !albumAudio) return;
+            if (albumAudio.ended || albumAudio.paused) {
+              advanceAlbumTrack("near-end-stuck");
+            }
+          });
+        } catch (_) {}
+      } else {
+        musicMobile3d?.hardenAudioEl?.(albumAudio);
       }
       return albumAudio;
     }
@@ -8601,38 +8712,76 @@
       albumIndex = ((i % ALBUM_TRACKS.length) + ALBUM_TRACKS.length) % ALBUM_TRACKS.length;
       const t = ALBUM_TRACKS[albumIndex];
       const a = ensureAlbumAudio();
-      a.src = t.src;
-      a.play()
-        .then(() => {
+      wireAlbumMobileKeepAlive();
+      // Keep same element; only reload when src actually changes (iOS-friendly)
+      const nextSrc = t.src || "";
+      const file = (nextSrc.split("/").pop() || "").split("?")[0];
+      const cur = a.currentSrc || a.src || "";
+      const needsSrc = !cur || !file || !cur.includes(file) || !!a.ended;
+      if (needsSrc) {
+        a.src = nextSrc;
+        try {
+          a.load();
+        } catch (_) {}
+      }
+      a.loop = false;
+      a.volume = 0.55;
+      a.muted = false;
+      const start = () => {
+        const attempt = a.play();
+        if (!attempt || typeof attempt.then !== "function") {
           albumOn = true;
-          albumBtn?.classList.add("playing");
-          if (albumBtn) albumBtn.textContent = "♪ Music on";
-          if (albumNow) {
-            albumNow.hidden = false;
-            albumNow.textContent = `♪ ${t.title}`;
-            albumNow.title = t.title;
-          }
-          if (!opts.quiet) showToast(`🎵 ${t.title}`);
-          logLine("Telephantix", `Playing: ${t.title}`);
-          statusEl.textContent = `♪ ${t.title}`;
-          try {
-            campBridge3d?.writeMusicState?.({
-              trackIndex: albumIndex,
-              title: t.title,
-              playing: true,
-              scene: "luna-3d",
-            });
-          } catch (_) {}
-          try { musicChrome3d?.refresh?.(); } catch (_) {}
-        })
-        .catch((err) => {
-          showToast("Tap Play music again if blocked");
-          logLine("Telephantix", err.message || "play blocked");
+          albumPlayPending = false;
+          onAlbumPlayingUi(t, opts);
+          return;
+        }
+        attempt
+          .then(() => {
+            albumOn = true;
+            albumPlayPending = false;
+            onAlbumPlayingUi(t, opts);
+          })
+          .catch((err) => {
+            // Background/lock: mark pending — keep-alive resumes on unlock (Android next-track)
+            albumOn = true;
+            albumPlayPending = true;
+            updateAlbumMediaSession(false);
+            if (!opts.quiet && !document.hidden) {
+              showToast("Tap Play music again if blocked");
+            }
+            logLine("Telephantix", err?.message || "play blocked (will retry on unlock)");
+          });
+      };
+      if (a.readyState >= 2) start();
+      else a.addEventListener("canplay", start, { once: true });
+    }
+
+    function onAlbumPlayingUi(t, opts = {}) {
+      albumBtn?.classList.add("playing");
+      if (albumBtn) albumBtn.textContent = "♪ Music on";
+      if (albumNow) {
+        albumNow.hidden = false;
+        albumNow.textContent = `♪ ${t.title}`;
+        albumNow.title = t.title;
+      }
+      if (!opts.quiet) showToast(`🎵 ${t.title}`);
+      logLine("Telephantix", `Playing: ${t.title}`);
+      statusEl.textContent = `♪ ${t.title}`;
+      updateAlbumMediaSession(true);
+      try {
+        campBridge3d?.writeMusicState?.({
+          trackIndex: albumIndex,
+          title: t.title,
+          playing: true,
+          scene: "luna-3d",
         });
+      } catch (_) {}
+      try { musicChrome3d?.refresh?.(); } catch (_) {}
     }
 
     function stopAlbum(opts = {}) {
       albumOn = false;
+      albumPlayPending = false;
       if (albumAudio) {
         albumAudio.pause();
         try {
@@ -8640,6 +8789,9 @@
           albumAudio.load?.();
         } catch (_) {}
       }
+      try {
+        albumMediaSession?.clear?.();
+      } catch (_) {}
       albumBtn?.classList.remove("playing");
       if (albumBtn) albumBtn.textContent = "♪ Play music";
       if (albumNow) albumNow.hidden = true;

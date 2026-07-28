@@ -2690,6 +2690,75 @@
       scrollbar-width: thin; -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
     }
+    /* Digital ethereal memory block — joy/stability, drag anywhere */
+    #ethereal-block {
+      position: fixed;
+      z-index: 55;
+      left: 10px;
+      top: max(56px, env(safe-area-inset-top, 0px) + 48px);
+      width: min(200px, 44vw);
+      pointer-events: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(167, 139, 250, 0.45);
+      background: linear-gradient(160deg, rgba(12, 10, 28, 0.94), rgba(6, 12, 24, 0.96));
+      box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+      color: #e2e8f0;
+      font-size: 0.7rem;
+      line-height: 1.35;
+      user-select: none;
+      touch-action: none;
+      cursor: grab;
+    }
+    #ethereal-block:active { cursor: grabbing; }
+    #ethereal-block .eth-head {
+      padding: 0.4rem 0.5rem 0.28rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      color: #c4b5fd;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    #ethereal-block .eth-meters {
+      padding: 0.35rem 0.5rem 0.2rem;
+      font-weight: 700;
+      color: #a5f3fc;
+      font-size: 0.75rem;
+    }
+    #ethereal-block .eth-bar-row {
+      display: flex;
+      gap: 0.3rem;
+      padding: 0 0.5rem 0.28rem;
+      align-items: center;
+    }
+    #ethereal-block .eth-bar {
+      flex: 1;
+      height: 5px;
+      border-radius: 99px;
+      background: rgba(30, 41, 59, 0.9);
+      overflow: hidden;
+    }
+    #ethereal-block .eth-bar > i {
+      display: block;
+      height: 100%;
+      width: 50%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #67e8f9, #a78bfa);
+    }
+    #ethereal-block .eth-bar.stab > i {
+      background: linear-gradient(90deg, #86efac, #38bdf8);
+    }
+    #ethereal-block .eth-moments {
+      padding: 0.15rem 0.5rem 0.45rem;
+      color: #94a3b8;
+      font-size: 0.62rem;
+      max-height: 3.6em;
+      overflow: hidden;
+    }
+    @media (max-width: 520px) {
+      #ethereal-block { width: min(150px, 40vw); top: max(48px, env(safe-area-inset-top, 0px) + 40px); }
+    }
+    html.hub-embed #ethereal-block { /* keep on hub embed — small chip */ z-index: 60; }
     .quick-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
     .quick-btns button {
       border: 1px solid rgba(255,255,255,0.15); background: #1a2740; color: #dbeafe;
@@ -3774,6 +3843,13 @@
   </div>
   <div id="mood-panel"><div id="mood-rows"></div></div>
   <!-- camp-speech-pin removed — bubbles select/drag on canvas only -->
+  <aside id="ethereal-block" aria-label="Digital ethereal memory" title="Digital ethereal memory — drag to place">
+    <div class="eth-head">✦ Digital ethereal memory</div>
+    <div class="eth-meters" id="ethereal-meters">joy · stability</div>
+    <div class="eth-bar-row"><span>joy</span><div class="eth-bar joy"><i id="ethereal-joy-bar"></i></div></div>
+    <div class="eth-bar-row"><span>stab</span><div class="eth-bar stab"><i id="ethereal-stab-bar"></i></div></div>
+    <div class="eth-moments" id="ethereal-moments">Field quiet — speak at camp to seed the aether.</div>
+  </aside>
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
   <button type="button" id="camp-tpx-fab" title="Play music" aria-label="Play music" hidden style="display:none !important">♪</button>
@@ -4147,7 +4223,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-27-311-radio";
+    const CAMP_BUILD = "2026-07-28-314-mobile-agent-over-bubble";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4389,15 +4465,16 @@
     const CAMP_TRAVERSE_PAD = { x: 40, y: 32 };
     const DESKTOP_REF_W = 1280;
     const DESKTOP_REF_H = 720;
-    // Wider meadow so roam/fly feels open (was ~720×480)
-    const DESKTOP_WORLD_BOUNDS = { xMin: -980, xMax: 980, yMin: -560, yMax: 640 };
+    // Meadow bounds — expanded when shared catalog (same as 3D town) hydrates
+    let DESKTOP_WORLD_BOUNDS = { xMin: -980, xMax: 980, yMin: -560, yMax: 640 };
     const CAMP_POND = { cx: -520, cy: 160, rx: 128, ry: 92, name: "Aurora Pond" };
     const AGENT_DRAG_THRESHOLD = 10;
     const AGENT_HIT_RADIUS = 52;
     function agentHitRadius() {
       if (!isCampMobile()) return AGENT_HIT_RADIUS;
       const zoom = getWorldZoom();
-      return Math.max(72, Math.min(110, 58 + zoom * 85));
+      // Generous on phone so agent icons beat chat-bubble corpses under the finger
+      return Math.max(84, Math.min(128, 70 + zoom * 95));
     }
     const AGENT_CLICK_DELAY_MS = 260;
     const AGENT_DOUBLE_CLICK_MS = 420;
@@ -5697,6 +5774,7 @@
         vibe: "It's a church… and also Jesus's house (lol). Warm wood, stained glass, cookies on the altar table, no dress code.",
       },
     };
+    // Seed layout (fallback) — overwritten by shared camp_catalog (same meadow x,y as 3D)
     const campHouses = [
       { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -580, y: 210,
         color: "#d946ef", roof: "#a21caf", wall: "#581c87", enterRadius: 40,
@@ -5737,6 +5815,153 @@
         color: "#f97316", roof: "#fdba74", wall: "#9a3412", enterRadius: 58,
         doorOffset: { x: 0, y: -0.36 }, interior: { x: 0, y: 0.1 } },
     ];
+    /** Extra landmarks from shared catalog (town square, gates, etc.) drawn as map pins */
+    let campMapPins = [];
+    let sharedMapSynced = false;
+
+    /**
+     * Align 2D meadow with 3D: same camp_catalog meadow (x,y) for houses,
+     * landmarks, and agent anchors. 3D multiplies by scale.three for world units.
+     */
+    async function hydrateLayoutFromSharedCatalog() {
+      let cat = null;
+      try {
+        const r = await fetch("/api/firmament/camp/catalog", { cache: "no-store" });
+        if (r.ok) {
+          const d = await r.json();
+          cat = d.catalog || d;
+        }
+      } catch (_) {}
+      if (!cat?.houses?.length) {
+        try {
+          const r = await fetch(`/static/camp/camp_catalog.json?v=${CAMP_BUILD}`, { cache: "no-store" });
+          if (r.ok) cat = await r.json();
+        } catch (_) {}
+      }
+      if (!cat) return false;
+
+      const housesById = new Map((cat.houses || []).map((h) => [h.id, h]));
+      for (const h of campHouses) {
+        const src = housesById.get(h.id);
+        if (!src) continue;
+        if (src.x != null) h.x = Number(src.x);
+        if (src.y != null) h.y = Number(src.y);
+        if (src.name) h.name = src.name;
+        if (src.emoji) h.emoji = src.emoji;
+        if (src.owner_id) h.ownerId = src.owner_id;
+        if (src.visual?.primary) h.color = src.visual.primary;
+        if (src.visual?.roof) h.roof = src.visual.roof;
+      }
+
+      const lmById = new Map((cat.landmarks || []).map((l) => [l.id, l]));
+      for (const s of campStructures) {
+        const src = lmById.get(s.id);
+        if (!src) continue;
+        if (src.x != null) s.x = Number(src.x);
+        if (src.y != null) s.y = Number(src.y);
+        if (src.name) s.name = src.name;
+        if (src.emoji) s.emoji = src.emoji;
+        if (src.visual?.primary) s.color = src.visual.primary;
+        if (src.visual?.roof) s.roof = src.visual.roof;
+      }
+
+      const pond = lmById.get("pond");
+      if (pond) {
+        if (pond.x != null) CAMP_POND.cx = Number(pond.x);
+        if (pond.y != null) CAMP_POND.cy = Number(pond.y);
+        if (pond.name) CAMP_POND.name = pond.name;
+      }
+
+      // Agent home anchors = same meadow coords as 3D
+      for (const a of cat.agents || []) {
+        if (!a?.id) continue;
+        if (a.x == null && a.y == null) continue;
+        NPC_ANCHORS[a.id] = {
+          x: Number(a.x) || 0,
+          y: Number(a.y) || 0,
+        };
+      }
+
+      // Town pins not already buildings (gates, squares, alleys)
+      const structureIds = new Set(campStructures.map((s) => s.id));
+      campMapPins = (cat.landmarks || [])
+        .filter((l) => l.id && l.id !== "campfire" && l.id !== "pond" && !structureIds.has(l.id))
+        .map((l) => ({
+          id: l.id,
+          name: l.name || l.id,
+          emoji: l.emoji || "✦",
+          x: Number(l.x) || 0,
+          y: Number(l.y) || 0,
+          use: l.use || "",
+        }));
+
+      // Bounds from shared layout so 2D roam covers the full town
+      const xs = [];
+      const ys = [];
+      for (const h of campHouses) {
+        xs.push(h.x);
+        ys.push(h.y);
+      }
+      for (const s of campStructures) {
+        xs.push(s.x);
+        ys.push(s.y);
+      }
+      for (const p of campMapPins) {
+        xs.push(p.x);
+        ys.push(p.y);
+      }
+      for (const a of Object.values(NPC_ANCHORS)) {
+        xs.push(a.x);
+        ys.push(a.y);
+      }
+      if (xs.length) {
+        const pad = 280;
+        DESKTOP_WORLD_BOUNDS = {
+          xMin: Math.min(...xs) - pad,
+          xMax: Math.max(...xs) + pad,
+          yMin: Math.min(...ys) - pad,
+          yMax: Math.max(...ys) + pad,
+        };
+      }
+
+      // Daily rotation + any base agents 3D has that 2D was missing (same roster as 3D)
+      try {
+        spawnCatalogRotationCast(cat);
+      } catch (e) {
+        console.warn("daily roster spawn", e);
+      }
+
+      sharedMapSynced = true;
+      try {
+        console.info(
+          "[camp2d] map sync with 3D catalog",
+          cat.id || cat.name,
+          "houses",
+          campHouses.length,
+          "pins",
+          campMapPins.length,
+          "daily",
+          (cat.agents || []).filter((a) => a.daily).length,
+          "bounds",
+          DESKTOP_WORLD_BOUNDS,
+        );
+      } catch (_) {}
+      try {
+        if (typeof spreadAllNpcs === "function") spreadAllNpcs();
+      } catch (_) {}
+      try {
+        const dCount = (cat.agents || []).filter((a) => a.daily).length;
+        showToast?.(
+          dCount
+            ? `🗺 Map + daily cast synced with 3D · +${dCount} visitors today`
+            : "🗺 2D map synced with 3D town",
+        );
+      } catch (_) {}
+      return true;
+    }
+
+    // Kick off shared map hydrate ASAP (non-blocking)
+    void hydrateLayoutFromSharedCatalog().catch((e) => console.warn("map sync", e));
     /** Ferris / carousel ride — agents + visitor board; real carnival SFX via Web Audio */
     const carnivalRide = {
       spinning: false,
@@ -5812,23 +6037,65 @@
       }
       return campBridgeMod;
     }
+
+    function refreshEtherealBlock2d(mod) {
+      try {
+        const mem = (mod || campBridgeMod)?.readEtherealMemory?.();
+        if (!mem) return;
+        const joy = Number(mem.joy) || 0.5;
+        const stab = Number(mem.stability) || 0.5;
+        const meters = document.getElementById("ethereal-meters");
+        const joyBar = document.getElementById("ethereal-joy-bar");
+        const stabBar = document.getElementById("ethereal-stab-bar");
+        const momEl = document.getElementById("ethereal-moments");
+        if (meters) meters.textContent = `joy ${joy.toFixed(2)} · stability ${stab.toFixed(2)}`;
+        if (joyBar) joyBar.style.width = `${Math.round(joy * 100)}%`;
+        if (stabBar) stabBar.style.width = `${Math.round(stab * 100)}%`;
+        if (momEl) {
+          const moments = Array.isArray(mem.moments) ? mem.moments.slice(-3) : [];
+          momEl.textContent = moments.length
+            ? moments.map((m) => `${m.speaker}: ${String(m.text || "").slice(0, 48)}`).join(" · ")
+            : "Field quiet — speak at camp to seed the aether.";
+        }
+      } catch (_) {}
+    }
+
+    function wireEtherealBlock2d() {
+      const block = document.getElementById("ethereal-block");
+      if (!block || block.dataset.dragBound === "1") return;
+      import(`/static/camp/camp-ui-drag.mjs?v=${CAMP_BUILD}`)
+        .then((mod) => {
+          mod.makeDraggable?.(block, {
+            handle: block.querySelector(".eth-head") || block,
+            storageKey: "luna-2d-ethereal-block-pos",
+            zBoost: 58,
+          });
+        })
+        .catch(() => {});
+      ensureCampBridge().then((m) => refreshEtherealBlock2d(m));
+      setInterval(() => {
+        ensureCampBridge().then((m) => refreshEtherealBlock2d(m));
+      }, 4500);
+    }
+    setTimeout(() => { try { wireEtherealBlock2d(); } catch (_) {} }, 600);
     async function hydrateCampMusicFromHub() {
       const mod = await ensureCampBridge();
       if (!mod?.loadSunoCatalog) return;
       try {
         const tracks = await mod.loadSunoCatalog();
         if (tracks?.length) {
-          CAMP_MUSIC_TRACKS = tracks.map((t) => ({
+          let mapped = tracks.map((t) => ({
             id: t.id,
             title: t.title,
             src: t.src || t.audio_url,
+            artist: t.artist || "Telephantix",
           }));
           try {
-            const st = mod.readMusicState?.() || {};
-            if (typeof st.trackIndex === "number" && st.trackIndex < CAMP_MUSIC_TRACKS.length) {
-              campMusicTrackIdx = st.trackIndex;
-            }
+            const mm = await import(`/static/camp/camp-music-mobile.mjs?v=${CAMP_BUILD}`);
+            mapped = mm.applySessionShuffle(mapped);
           } catch (_) {}
+          CAMP_MUSIC_TRACKS = mapped;
+          campMusicTrackIdx = 0;
           updateCampMusicUi?.();
           try { campMusicChrome?.refresh?.(); } catch (_) {}
         }
@@ -6000,6 +6267,154 @@
       { id: "ambrosia", name: "Ambrosia", color: "#f59e0b", x: 348, y: 142, tx: 348, ty: 142, speed: 0.95, roam: 195, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "ambrosia", paceMul: 0.7 },
       { id: "rhea", name: "Rhea", color: "#d4a574", x: 540, y: -258, tx: 540, ty: -258, speed: 0.9, roam: 320, idle: 0, line: "", fullLine: "", mood: "love", behavior: "roam", behaviorTimer: 0, visitTarget: null, socializing: false, gathering: false, insideHouse: null, homeTarget: null, housePhase: null, sprite: "rhea", paceMul: 0.65 },
     ];
+    // Filled from shared catalog daily rotation (same as 3D gods/demons/angels/wits)
+    let dailyRosterSpawned = false;
+
+    function factionVisual(faction, visual) {
+      const primary = visual?.primary;
+      if (primary) return { color: primary, glyph: visual?.glyph || "✦" };
+      const map = {
+        god: { color: "#fbbf24", glyph: "☀" },
+        demon: { color: "#f87171", glyph: "⛧" },
+        angel: { color: "#e0f2fe", glyph: "✝" },
+        clever: { color: "#67e8f9", glyph: "✦" },
+      };
+      return map[String(faction || "").toLowerCase()] || { color: "#a78bfa", glyph: "✦" };
+    }
+
+    function ensureDailyVisitorChip(def) {
+      const strip = document.getElementById("agent-strip");
+      if (!strip || document.getElementById(`chip-${def.id}`)) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "agent-chip visitor-chip daily-chip";
+      btn.id = `chip-${def.id}`;
+      btn.dataset.agent = def.id;
+      btn.title = `${def.name} · daily visitor${def.faction ? ` · ${def.faction}` : ""}`;
+      btn.innerHTML =
+        `<span class="dot" style="background:${def.color};color:${def.color}"></span>` +
+        `<span class="chip-text"><span class="aname">${def.name}</span>` +
+        `<span class="amood">${def.faction || "daily"}</span></span>`;
+      btn.onclick = () => {
+        try {
+          if (typeof openDialogue === "function") openDialogue(def.id);
+          else if (typeof focusAgent === "function") focusAgent(def.id);
+        } catch (_) {}
+      };
+      strip.appendChild(btn);
+    }
+
+    /**
+     * Spawn today's rotation cast from catalog (same API merge as 3D).
+     * Daily visitors → campGuests; missing base cast (e.g. telephantix) → npcs.
+     */
+    function spawnCatalogRotationCast(cat) {
+      const agents = Array.isArray(cat?.agents) ? cat.agents : [];
+      if (!agents.length) return 0;
+      let added = 0;
+      const present = new Set([
+        ...npcs.map((n) => n.id),
+        ...campGuests.map((g) => g.id),
+      ]);
+
+      for (const a of agents) {
+        const id = String(a.id || "").trim();
+        if (!id) continue;
+        // Heaven-summon only stay out until summoned (unless already daily-marked base)
+        if (a.summon === "heaven" && !a.daily && !heavenSummoned) continue;
+        if (a.summon === "grok" && !a.daily) continue;
+
+        const name = a.name || id;
+        agentNames[id] = name;
+        const vis = factionVisual(a.faction, a.visual);
+        const x = Number(a.x);
+        const y = Number(a.y);
+        const ax = Number.isFinite(x) ? x : (NPC_ANCHORS[id]?.x ?? (Math.random() - 0.5) * 400);
+        const ay = Number.isFinite(y) ? y : (NPC_ANCHORS[id]?.y ?? (Math.random() - 0.5) * 300);
+        NPC_ANCHORS[id] = { x: ax, y: ay };
+        if (!NPC_SECTORS[id]) {
+          NPC_SECTORS[id] = {
+            angle: (added * 0.7 + (a.faction === "demon" ? 2 : 0)) % (Math.PI * 2),
+            bias: a.daily ? 1.05 : 1.0,
+          };
+        }
+
+        if (present.has(id)) {
+          // Already on meadow — snap anchors / coords to catalog town layout
+          const n = findRoamAgent(id);
+          if (n && Number.isFinite(x) && Number.isFinite(y)) {
+            n.tx = ax;
+            n.ty = ay;
+            // Soft pull if far from town layout
+            if (Math.hypot((n.x || 0) - ax, (n.y || 0) - ay) > 900) {
+              n.x = ax;
+              n.y = ay;
+            }
+          }
+          continue;
+        }
+
+        const entry = {
+          id,
+          name,
+          color: vis.color,
+          x: ax,
+          y: ay,
+          tx: ax,
+          ty: ay,
+          speed: 0.95 + Math.random() * 0.25,
+          roam: a.daily ? 260 : 210,
+          idle: 0,
+          line: "",
+          fullLine: a.opener || a.blurb || "",
+          mood: a.mood || "happy",
+          behavior: "roam",
+          behaviorTimer: 0,
+          visitTarget: null,
+          socializing: false,
+          gathering: false,
+          insideHouse: null,
+          homeTarget: null,
+          housePhase: null,
+          sprite: a.daily ? "daily" : "guest",
+          paceMul: 0.75,
+          daily: !!a.daily,
+          faction: a.faction || "",
+          opener: a.opener || "",
+          glyph: vis.glyph,
+        };
+
+        if (a.daily) {
+          campGuests.push(entry);
+          ensureDailyVisitorChip(entry);
+          if (entry.opener) {
+            try {
+              // Soft intro line once they land
+              setTimeout(() => {
+                if (!findRoamAgent(id)?.leaving) {
+                  pushCampLine?.(name, entry.opener, campReadHoldSec?.(entry.opener, 16) || 16, entry.mood, {
+                    quiet: true,
+                    fromLocal: true,
+                  });
+                }
+              }, 1200 + added * 400);
+            } catch (_) {}
+          }
+        } else {
+          npcs.push(entry);
+          ensureDailyVisitorChip(entry);
+        }
+        present.add(id);
+        added++;
+      }
+
+      dailyRosterSpawned = true;
+      try {
+        refreshCampLayerPicker?.();
+        refreshCampTalkTarget?.(true);
+      } catch (_) {}
+      return added;
+    }
     const GROK_LINK_IDS = ["ara", "mika"];
     const GROK_AGENT_DEFS = {
       ara: {
@@ -7825,6 +8240,8 @@
       thor: "Thor", zeus: "Zeus",
       ambrosia: "Ambrosia", rhea: "Rhea",
       ara: "Ara", mika: "Mika",
+      telephantix: "Telephantix",
+      // Daily rotation names filled from catalog (bastet, asmodeus, heckler, …)
     };
     let chatBusy = false;
     // Per-agent lock so multi-brain parallel replies don't stick on "..."
@@ -10764,6 +11181,7 @@
           campMusicMobile?.hardenAudioEl?.(campAudioEl);
           campAudioEl.addEventListener("ended", () => {
             if (!campMusicOn) return;
+            if (campDjRadio?.isEnabled?.()) return; // DJ owns handoff
             advanceCampMusicTrack("ended");
           });
           campAudioEl.addEventListener("error", () => {
@@ -10914,17 +11332,21 @@
       const src = campTrackSrc(track);
       audio.loop = false;
       audio.volume = campMusicVolumeLevel();
-      audio.muted = campMusicMuted;
-      if (campMusicMuted) {
-        audio.pause();
-        updateCampMusicUi();
-        updateCampMusicPrompt();
-        return;
+      // Respect mute chip; only force unmute when opts.unmuted
+      if (opts.unmuted === true) {
+        campMusicMuted = false;
+        audio.muted = false;
+      } else {
+        audio.muted = !!campMusicMuted;
+      }
+      if (campMusicMuted && opts.unmuted !== true) {
+        // Still swap track while muted so next/prev change songs
       }
 
+      const hard = !!(opts.hard || opts.forceReload);
       // Soft unlock: same file keeps position; optional session seek restore
       let seekTime = opts.seekTime;
-      if (opts.soft && seekTime == null) {
+      if (!hard && opts.soft && seekTime == null) {
         try {
           const saved = campMusicMobile?.loadMusicPersist?.();
           if (saved && saved.index === campMusicTrackIdx && saved.time > 0.5) {
@@ -10934,7 +11356,7 @@
           }
         } catch (_) {}
       }
-      if (opts.forceReload) seekTime = opts.seekTime ?? 0;
+      if (hard) seekTime = 0;
 
       const soft = campMusicMobile?.softPlayAudio;
       if (soft) {
@@ -10942,7 +11364,8 @@
           src,
           volume: campMusicVolumeLevel(),
           seekTime,
-          forceReload: !!opts.forceReload || campAudioNeedsSrc(audio, track),
+          forceReload: hard || campAudioNeedsSrc(audio, track),
+          hard,
         })
           .then(() => {
             campMusicPlaySucceeded();
@@ -10951,12 +11374,18 @@
           })
           .catch(() => campMusicPlayBlocked(opts));
       } else {
-        const needsSrc = campAudioNeedsSrc(audio, track) || !!opts.forceReload;
+        const needsSrc = campAudioNeedsSrc(audio, track) || hard;
         if (needsSrc) {
+          try { audio.pause(); } catch (_) {}
           audio.src = src;
           audio.load();
         }
-        const start = () => attemptCampAudioPlay(audio, opts);
+        const start = () => {
+          try {
+            if (hard) audio.currentTime = 0;
+          } catch (_) {}
+          attemptCampAudioPlay(audio, opts);
+        };
         if (audio.readyState >= 2) start();
         else audio.addEventListener("canplay", start, { once: true });
       }
@@ -11195,8 +11624,9 @@
       try { campMusicChrome?.refresh?.(); } catch (_) {}
     }
 
-    /** Relics-style floating player (shared chrome) */
+    /** Relics-style floating player (shared chrome) + free DJ radio */
     let campMusicChrome = null;
+    let campDjRadio = null;
     function isHubEmbed() {
       try {
         return document.documentElement.classList.contains("hub-embed")
@@ -11214,15 +11644,54 @@
         return;
       }
       try {
-        const mod = await import(`/static/camp/camp-music-chrome.mjs?v=${CAMP_BUILD}`);
+        const [mod, djMod] = await Promise.all([
+          import(`/static/camp/camp-music-chrome.mjs?v=${CAMP_BUILD}`),
+          import(`/static/camp/camp-dj-radio.mjs?v=${CAMP_BUILD}`),
+        ]);
+        campDjRadio = djMod.createDjRadio({
+          getTracks: () => CAMP_MUSIC_TRACKS,
+          getIndex: () => campMusicTrackIdx % Math.max(1, CAMP_MUSIC_TRACKS.length),
+          getAudio: () => campAudioElement(),
+          isWantedOn: () => !!(campMusicOn && campMusicSource === "telephantix"),
+          playAt: (i, opts = {}) => {
+            campMusicTrackIdx = i % Math.max(1, CAMP_MUSIC_TRACKS.length);
+            campMusicOn = true;
+            campMusicSource = "telephantix";
+            playCampMusicTrack(campMusicTrackIdx, {
+              quiet: true,
+              forceReload: opts.forceReload !== false,
+              seekTime: opts.seekTime ?? 0,
+              soft: !!opts.soft,
+              unmuted: true,
+            });
+          },
+          setStatus: (msg) => {
+            if (msg) setCampLifeStatus(`🎙 ${String(msg).slice(0, 80)}`);
+          },
+          onUi: (st) => {
+            try {
+              campMusicChrome?.setDjOn?.(!!st.enabled);
+              if (st.dropText || st.status) campMusicChrome?.setDjLine?.(st.dropText || st.status);
+            } catch (_) {}
+          },
+        });
         campMusicChrome = mod.mountCampMusicChrome({
           scene: "luna-2d",
+          hideFab: false, // 2D dock may not have topbar — keep one FAB only
+          hideStrip: true, // one panel, not panel + strip
+          djDefault: true,
           getTracks: () => CAMP_MUSIC_TRACKS,
           isPlaying: () => !!(campMusicOn && campMusicSource === "telephantix" && !campMusicMuted),
           getIndex: () => campMusicTrackIdx % Math.max(1, CAMP_MUSIC_TRACKS.length),
           getAudio: () => campAudioElement(),
           getPosition: () => campAudioElement()?.currentTime || 0,
           getDuration: () => campAudioElement()?.duration || 0,
+          isMuted: () => !!(campAudioElement() && campAudioElement().muted),
+          setMuted: (m) => {
+            const a = campAudioElement();
+            if (a) a.muted = !!m;
+            try { campMusicChrome?.refresh?.(); } catch (_) {}
+          },
           seekTo: (t) => seekCampMusicTo(t),
           seekBy: (d) => seekCampMusicBy(d),
           pause: () => {
@@ -11243,23 +11712,101 @@
               forceReload: !same,
             });
           },
-          stop: () => closeAllCampMusic({ quiet: false }),
+          stop: () => {
+            try {
+              campDjRadio?.setEnabled?.(false);
+            } catch (_) {}
+            closeAllCampMusic({ quiet: false });
+          },
+          setDjMode: (on) => {
+            try {
+              campDjRadio?.setEnabled?.(!!on);
+            } catch (_) {}
+            showToast(on ? "🎙 DJ Vox on — free overnight host" : "DJ Vox off");
+          },
           next: () => {
-            campMusicTrackIdx = (campMusicTrackIdx + 1) % Math.max(1, CAMP_MUSIC_TRACKS.length);
-            if (campMusicOn) playCampMusicTrack(campMusicTrackIdx, { quiet: true, forceReload: true, seekTime: 0 });
-            else openCampTelephantix({ forceUser: true, quiet: true, random: false, forceReload: true });
+            const n = Math.max(1, CAMP_MUSIC_TRACKS.length);
+            const prev = CAMP_MUSIC_TRACKS[campMusicTrackIdx];
+            campMusicTrackIdx = (campMusicTrackIdx + 1) % n;
+            campMusicOn = true;
+            campMusicSource = "telephantix";
+            // Song NOW — Vox thinks in background
+            playCampMusicTrack(campMusicTrackIdx, {
+              quiet: true,
+              forceReload: true,
+              hard: true,
+              seekTime: 0,
+              unmuted: true,
+            });
+            showToast(`⏭ ${CAMP_MUSIC_TRACKS[campMusicTrackIdx]?.title || "next"}`);
+            try {
+              campDjRadio?.hush?.();
+              if (campDjRadio?.isEnabled?.()) campDjRadio.onTrackChanged?.(prev);
+            } catch (_) {}
           },
           prev: () => {
             const a = campAudioElement();
-            if (a && a.currentTime > 3 && campMusicOn) {
-              seekCampMusicTo(0);
-              resumeCampMusicPlayback({ quiet: true, soft: true });
+            const n = Math.max(1, CAMP_MUSIC_TRACKS.length);
+            const prev = CAMP_MUSIC_TRACKS[campMusicTrackIdx];
+            if (a && a.currentTime > 2.5 && campMusicOn) {
+              playCampMusicTrack(campMusicTrackIdx, {
+                quiet: true,
+                forceReload: true,
+                hard: true,
+                seekTime: 0,
+                unmuted: true,
+              });
+              showToast(`⏮ ${CAMP_MUSIC_TRACKS[campMusicTrackIdx]?.title || "track"}`);
+              try {
+                campDjRadio?.hush?.();
+                if (campDjRadio?.isEnabled?.()) campDjRadio.onTrackChanged?.(prev);
+              } catch (_) {}
               return;
             }
-            const n = Math.max(1, CAMP_MUSIC_TRACKS.length);
             campMusicTrackIdx = (campMusicTrackIdx - 1 + n) % n;
-            if (campMusicOn) playCampMusicTrack(campMusicTrackIdx, { quiet: true, forceReload: true, seekTime: 0 });
-            else openCampTelephantix({ forceUser: true, quiet: true, random: false, forceReload: true });
+            campMusicOn = true;
+            campMusicSource = "telephantix";
+            playCampMusicTrack(campMusicTrackIdx, {
+              quiet: true,
+              forceReload: true,
+              hard: true,
+              seekTime: 0,
+              unmuted: true,
+            });
+            showToast(`⏮ ${CAMP_MUSIC_TRACKS[campMusicTrackIdx]?.title || "prev"}`);
+            try {
+              campDjRadio?.hush?.();
+              if (campDjRadio?.isEnabled?.()) campDjRadio.onTrackChanged?.(prev);
+            } catch (_) {}
+          },
+          shuffle: () => {
+            (async () => {
+              try {
+                const mm = await import(`/static/camp/camp-music-mobile.mjs?v=${CAMP_BUILD}`);
+                CAMP_MUSIC_TRACKS = mm.reshuffleSession(CAMP_MUSIC_TRACKS);
+              } catch (_) {
+                const a = CAMP_MUSIC_TRACKS.slice();
+                for (let i = a.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  const t = a[i];
+                  a[i] = a[j];
+                  a[j] = t;
+                }
+                CAMP_MUSIC_TRACKS = a;
+              }
+              campMusicTrackIdx = 0;
+              campMusicOn = true;
+              campMusicSource = "telephantix";
+              playCampMusicTrack(0, {
+                quiet: false,
+                forceReload: true,
+                hard: true,
+                seekTime: 0,
+                unmuted: true,
+              });
+              showToast(`🔀 Shuffled ${CAMP_MUSIC_TRACKS.length} tracks`);
+              try { campMusicChrome?.refresh?.(); } catch (_) {}
+            })();
           },
         });
       } catch (e) {
@@ -12488,6 +13035,38 @@
         { top: "#e879f9", side: "#c026d3", stroke: "#fae8ff" });
     }
 
+    /** Daily rotation visitors (gods / demons / angels / wits) — match 3D cast */
+    function drawDailyVisitorFigure(cx, cy, t, n) {
+      const col = n.color || "#a78bfa";
+      const glow = 0.35 + Math.sin(t * 2.4 + (n.id?.charCodeAt?.(0) || 0)) * 0.2;
+      // Soft aura
+      ctx.fillStyle = col.length === 7
+        ? `${col}33`
+        : `rgba(167,139,250,${0.15 + glow * 0.15})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 28, 22, 0, Math.PI * 2);
+      ctx.fill();
+      // Body
+      drawIsoBox(cx, cy, -0.32, -0.32, 0, 0.64, 0.64, 1.05, {
+        top: col,
+        left: col,
+        right: col,
+        stroke: "rgba(255,255,255,0.35)",
+      });
+      // Head
+      drawIsoCylinder(cx, cy, 0, 0.52, 0.2, 0.5, {
+        top: "#f8fafc",
+        side: col,
+        stroke: "rgba(255,255,255,0.4)",
+      });
+      // Faction glyph
+      const g = n.glyph || "✦";
+      ctx.font = "14px Segoe UI Emoji, Segoe UI, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(g, cx, cy - 48 + Math.sin(t * 3) * 2);
+    }
+
     function drawGrokFigure(cx, cy, t, color = "#4ade80", glyph = "G") {
       const pulse = 0.85 + Math.sin(t * 4.2) * 0.15;
       const g = ctx.createRadialGradient(cx, cy - 6, 0, cx, cy - 6, 22 * pulse);
@@ -12916,6 +13495,9 @@
         drawGrokFigure(s.x, cy, t, n.color || "#4ade80", n.id === "mika" ? "M" : "A");
       } else if (n.sprite === "heaven") {
         drawHeavenFigure(s.x, cy, t);
+      } else if (n.sprite === "daily" || n.daily || n.sprite === "guest") {
+        // Rotation cast / guests — colored figure + faction glyph (same meadow as 3D)
+        drawDailyVisitorFigure(s.x, cy, t, n);
       } else {
         drawLunaFigure(s.x, cy, t);
       }
@@ -14977,9 +15559,11 @@
     }
 
     function hitTestSpeechBubble(sx, sy) {
-      // Fat-finger pad — critical on Android / iPhone
-      const pad = isCampMobile() ? 18 : 8;
-      const closePad = isCampMobile() ? 10 : 6;
+      // Mobile: tighter body hit so agents under bubbles remain grab-able;
+      // ✕ still has a fat pad. Desktop keeps comfortable slop.
+      const mobile = isCampMobile();
+      const pad = mobile ? 6 : 8;
+      const closePad = mobile ? 12 : 6;
       // Top-most first (last drawn = selected / front)
       for (let i = speechBubbleRects.length - 1; i >= 0; i--) {
         const r = speechBubbleRects[i];
@@ -15002,10 +15586,10 @@
           return { ...r, hitClose: false };
         }
       }
-      // Nearest bubble within slop if no direct hit (still on meadow)
+      // Nearest bubble within slop — smaller on mobile so we don't steal agent taps
       let best = null;
       let bestD = Infinity;
-      const slop = isCampMobile() ? 36 : 20;
+      const slop = mobile ? 12 : 20;
       for (const r of speechBubbleRects) {
         const cx = r.bx + r.boxW / 2;
         const cy = r.by + r.boxH / 2;
@@ -16203,6 +16787,22 @@
       }
     }
 
+    /** Mobile double-tap tracking for bubble select (single tap = agents/walk win) */
+    let lastBubbleTapSpeaker = "";
+    let lastBubbleTapAt = 0;
+    function isDoubleTapBubble(speaker) {
+      const now = Date.now();
+      const who = String(speaker || "");
+      if (who && who === lastBubbleTapSpeaker && now - lastBubbleTapAt < 480) {
+        lastBubbleTapSpeaker = "";
+        lastBubbleTapAt = 0;
+        return true;
+      }
+      lastBubbleTapSpeaker = who;
+      lastBubbleTapAt = now;
+      return false;
+    }
+
     function onCampPointerDown(ev) {
       if (dragTarget) return;
       if (isCampUiTarget(ev.target)) return;
@@ -16211,20 +16811,62 @@
       hideAgentActionMenu();
       hideCampSpeechPin();
       const { sx, sy } = campPointerPos(ev);
+      const mobile = isCampMobile() || ev.pointerType === "touch";
       const bubbleHit = hitTestSpeechBubble(sx, sy);
-      if (bubbleHit?.speaker) {
-        // ✕ close — 3D parity (don't start drag)
-        if (bubbleHit.hitClose) {
-          closeSpeechBubble(bubbleHit.speaker, { force: true });
-          try { navigator.vibrate?.(10); } catch (_) {}
+      const hit = hitTestCamp(sx, sy);
+
+      // ✕ on a bubble always wins (even under agent)
+      if (bubbleHit?.speaker && bubbleHit.hitClose) {
+        closeSpeechBubble(bubbleHit.speaker, { force: true });
+        try { navigator.vibrate?.(10); } catch (_) {}
+        return;
+      }
+
+      // Mobile: character/prop icons take priority over chat bubbles
+      // so a selected bubble doesn't block moving agents or walking.
+      if (mobile) {
+        if (hit?.kind === "agent" || hit?.kind === "prop" || hit?.kind === "house" || hit?.kind === "structure" || hit?.kind === "cat") {
+          if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref) && !selectedBubbleSpeaker) {
+            startCampDrag(hit, sx, sy, ev.pointerId, { fromPin: true });
+            return;
+          }
+          startCampDrag(hit, sx, sy, ev.pointerId);
           return;
         }
+        // Bubble body: double-tap to select/drag; single-tap falls through to meadow walk
+        if (bubbleHit?.speaker) {
+          const alreadyFront =
+            selectedBubbleSpeaker === bubbleHit.speaker && (bubbleFrontPinned || bubbleHoldLocked);
+          if (alreadyFront || isDoubleTapBubble(bubbleHit.speaker)) {
+            startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
+            return;
+          }
+          // Single tap on non-selected bubble: brief tip once, then walk meadow
+          try {
+            if (!window.__campBubbleDoubleTip) {
+              window.__campBubbleDoubleTip = true;
+              showToast?.("💬 Double-tap a chat bubble to select · single-tap moves you");
+            }
+          } catch (_) {}
+          // fall through to meadow so character can still walk
+        }
+        dragTarget = {
+          kind: "meadow",
+          moved: false,
+          startSx: sx,
+          startSy: sy,
+          pointerId: ev.pointerId,
+        };
+        try { canvas.setPointerCapture(ev.pointerId); } catch (_) {}
+        return;
+      }
+
+      // Desktop: bubble first (precise pointer), then agents/props
+      if (bubbleHit?.speaker) {
         startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
         return;
       }
-      const hit = hitTestCamp(sx, sy);
       if (hit) {
-        // Only true meditation pins — not bubble selection
         if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref) && !selectedBubbleSpeaker) {
           startCampDrag(hit, sx, sy, ev.pointerId, { fromPin: true });
           return;
@@ -16232,7 +16874,7 @@
         startCampDrag(hit, sx, sy, ev.pointerId);
         return;
       }
-      // Tap empty meadow: deselect bubble free-drag (optional soft clear of selection gold only)
+      // Tap empty meadow
       dragTarget = {
         kind: "meadow",
         moved: false,
@@ -16333,6 +16975,7 @@
             front: true,
             holdLocked: bubbleHoldLocked,
           });
+          try { showToast?.("📌 Bubble parked — drag again anytime"); } catch (_) {}
         }
         hideCampSpeechPin();
         return;
@@ -17275,6 +17918,7 @@
             };
             if (mod?.pushDialogueTapeWithEthereal) mod.pushDialogueTapeWithEthereal(row);
             else mod?.pushDialogueTape?.(row);
+            try { refreshEtherealBlock2d(mod); } catch (_) {}
           });
         } catch (_) {}
         renderConvoLog();
@@ -18267,6 +18911,28 @@
         for (const st of campStructures) {
           const sw = layoutCampWorld(st.id, st.x, st.y);
           drawCampStructure(sw.x, sw.y, st);
+        }
+        // Shared-catalog town pins (same landmarks as 3D — square, gates, alleys)
+        if (campMapPins?.length) {
+          for (const pin of campMapPins) {
+            const pw = layoutCampWorld(pin.id, pin.x, pin.y);
+            const px = pw.x;
+            const py = pw.y;
+            ctx.save();
+            ctx.font = "18px system-ui,Segoe UI,sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.globalAlpha = 0.92;
+            ctx.fillText(pin.emoji || "✦", px, py - 6);
+            ctx.font = "bold 10px system-ui,Segoe UI,sans-serif";
+            ctx.fillStyle = "rgba(226,232,240,0.9)";
+            ctx.strokeStyle = "rgba(15,23,42,0.75)";
+            ctx.lineWidth = 3;
+            const label = (pin.name || pin.id).slice(0, 18);
+            ctx.strokeText(label, px, py + 14);
+            ctx.fillText(label, px, py + 14);
+            ctx.restore();
+          }
         }
         drawCampfire(camp.x, camp.y);
         drawCampfireLabel();

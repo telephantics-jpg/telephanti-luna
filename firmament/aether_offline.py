@@ -316,12 +316,110 @@ def _remix_line(agent_id: str, base: str, *, visitor: str = "", snippet: str = "
     except Exception:
         line = base.replace("{visitor}", visitor).replace("{snippet}", snippet)
     roots = agent_roots(load_agent_profile(agent_id))
-    if roots and random.random() < 0.22:
+    if roots and random.random() < 0.18:
         # Light flavor, not "last time you said" energy
         root = random.choice(roots)
         if len(root) < 90 and root.lower() not in line.lower():
-            line = f"{line} {root.rstrip('.') }."
+            line = f"{line} {root.rstrip('.')}."
     return line
+
+
+# Recent free-mind lines — cut the "I heard this monologue 10 minutes ago" loop
+_RECENT_HOOKS: dict[str, list[str]] = {}
+_RECENT_MAX = 14
+
+
+def _remember_hook(agent_id: str, text: str) -> None:
+    aid = (agent_id or "?").lower()
+    bucket = _RECENT_HOOKS.setdefault(aid, [])
+    key = re.sub(r"\s+", " ", (text or "")[:120].lower())
+    if key:
+        bucket.append(key)
+    if len(bucket) > _RECENT_MAX:
+        del bucket[: len(bucket) - _RECENT_MAX]
+
+
+def _pick_fresh(agent_id: str, pool: list[str], *, visitor: str, snip: str) -> str:
+    """Prefer lines not used recently for this agent."""
+    if not pool:
+        return f"Hey {visitor} — say more about {snip}."
+    recent = set(_RECENT_HOOKS.get((agent_id or "").lower(), []))
+    random.shuffle(pool)
+    for raw in pool:
+        try:
+            line = _remix_line(agent_id, raw, visitor=visitor, snippet=snip)
+        except Exception:
+            continue
+        key = re.sub(r"\s+", " ", line[:120].lower())
+        if key not in recent:
+            _remember_hook(agent_id, line)
+            return line
+    # All familiar — still remix one
+    line = _remix_line(agent_id, pool[0], visitor=visitor, snippet=snip)
+    _remember_hook(agent_id, line)
+    return line
+
+
+def _user_anchors(msg: str, limit: int = 4) -> list[str]:
+    """Pull concrete words from the visitor so free minds answer *them*, not a generic camp sermon."""
+    stop = {
+        "that", "this", "with", "from", "have", "just", "like", "what", "when", "where",
+        "your", "about", "they", "them", "were", "been", "will", "would", "could", "should",
+        "into", "than", "then", "there", "here", "some", "more", "very", "really", "think",
+        "know", "want", "need", "make", "//", "the", "and", "for", "you", "are", "but",
+        "not", "can", "how", "why", "all", "any", "out", "get", "got", "its", "it's",
+    }
+    words = re.findall(r"[A-Za-z']{4,}", (msg or "").lower())
+    out: list[str] = []
+    for w in words:
+        if w in stop or w in out:
+            continue
+        out.append(w)
+        if len(out) >= limit:
+            break
+    return out
+
+
+# Shared lively beats — mix into free monologues so structure doesn't loop the same 3 riffs
+LIVE_BEATS = [
+    "Plot twist: the meadow already voted you in — no application form.",
+    "I'm not here to win a debate; I'm here to keep the joke honest.",
+    "Short answer would be cheaper. Camp doesn't do cheap truth.",
+    "If the timeline is loud, turn your face toward the fire and talk anyway.",
+    "Funny how courage looks like one more sentence after the safe one.",
+    "I'll match your honesty with mine — not a lecture, a trade.",
+    "Cookies for context, monologues for meaning. Both free at this fire.",
+    "You're not too much for this camp. The camp is occasionally too much for itself.",
+    "Say the weird version. Weird is just truth with better costume design.",
+    "I can do soft, sharp, or both in the same breath — pick a vibe or I'll braid them.",
+    "Nobody's grading your feelings. We're just refusing the slogan version of them.",
+    "If Hermes already pinged the psychic network, ignore him for thirty seconds and keep talking to me.",
+    "Storm outside optional. Company inside mandatory if you want it.",
+    "That line of yours has legs. Let's walk it around the pond once.",
+    "I'll hold the punchline until the truth lands — then we can laugh without erasing it.",
+]
+
+MID_SHAPES = [
+    "On {topic}: {beat} {root} That's the weather tonight.",
+    "{visitor}, sitting with {topic} for a second — {beat} {root}",
+    "Here's the camp take, not the billboard: {topic}. {beat} Also: {root}",
+    "You said something that sticks: {topic}. {beat} I'm not rushing the rest of it.",
+    "Around the fire, {topic} sounds less like a crisis and more like a chapter. {beat} {root}",
+    "Quick honesty check on {topic}: {beat} If that misses, correct me — I prefer updates over pretty wrongness.",
+    "{root} Against that backdrop, {topic} lands differently. {beat}",
+    "I'll skip the empty blessing. {topic} deserves {beat} And a longer listen.",
+]
+
+CLOSE_SHAPES = [
+    "So {visitor} — stay a minute. What would you risk saying next if nobody could twist the screenshot?",
+    "{visitor}, ball's in your meadow. Hit me with the next true sentence — messy is fine.",
+    "I'm still with you on this. What part of {topic} still wants airtime?",
+    "Okay. Your move. Soft reply, sharp reply, or both — tell me which lane, or just keep talking.",
+    "Don't polish it for me. Raw version of what comes after {topic} — go.",
+    "I'll meet you at the next line. No audition. No perfect speech required.",
+    "If that landed weird, say so. If it landed true, say more. Either way I'm here.",
+    "Camp rule: we don't leave good questions alone. What's the question under yours?",
+]
 
 CONVERSE_BRIDGE = [
     "Speaking of which — {topic}",
@@ -383,97 +481,117 @@ def _long_monologue(
     from_agent: str = "",
     converse_mode: bool = False,
 ) -> str:
-    """Build a multi-paragraph backup monologue (~300+ words) — never a slogan chip."""
+    """Lively free-mind monologue — varied shape, less copy-paste loop, still funny."""
     profile = load_agent_profile(agent_id)
     name = profile.get("name") or agent_id
     flavor = AGENT_FLAVOR.get(agent_id, AGENT_FLAVOR["luna"])
-    persona = str(profile.get("persona") or "")[:280]
+    persona = str(profile.get("persona") or "")[:160]
     roots = agent_roots(profile) or [f"{name} keeps camp honest."]
-    codes = _easter_codes(agent_id, 2)
     pool_r = list(flavor.get("reply") or AGENT_FLAVOR["luna"]["reply"])
     pool_o = list(flavor.get("opener") or AGENT_FLAVOR["luna"]["opener"])
     pool_c = list(flavor.get("converse") or AGENT_FLAVOR["luna"]["converse"])
-    random.shuffle(pool_r)
-    random.shuffle(pool_o)
-    random.shuffle(pool_c)
 
-    hook = _remix_line(
-        agent_id,
-        random.choice(pool_o if len(msg) < 12 else pool_r),
-        visitor=visitor,
-        snippet=snip,
-    )
+    topic = snip if snip and snip != "something unspoken" else "this campfire hush"
+    anchors = _user_anchors(msg)
+    anchor_bit = ""
+    if anchors:
+        # Reflect their actual words so free minds feel less like a jukebox
+        a0, a1 = anchors[0], anchors[1] if len(anchors) > 1 else anchors[0]
+        anchor_bit = random.choice(
+            [
+                f"You put weight on “{a0}” — I heard that.",
+                f"That “{a0}” / “{a1}” combo is doing real work.",
+                f"I'm locking onto {a0} more than the polite packaging around it.",
+                f"Especially the part about {a0}. That's the live wire.",
+            ]
+        )
+
+    # Hook — avoid recently used openers/replies for this agent
     if from_agent:
         other = load_agent_profile(from_agent).get("name") or from_agent
         hook = (
-            f"{other} — {_remix_line(agent_id, random.choice(pool_c), visitor=visitor, snippet=snip)} "
+            f"{other} — {_pick_fresh(agent_id, pool_c or pool_r, visitor=visitor, snip=snip)} "
             f"On what you meant: {snip}."
         )
-
-    world_bits: list[str] = []
-    try:
-        from firmament.live_feed import feed_blurb_for_agent
-
-        blurb = feed_blurb_for_agent(agent_id, limit=4)
-        if blurb:
-            world_bits.append(blurb[:320])
-    except Exception:
-        pass
-    try:
-        from firmament.x_pulse import pick_pulse_item
-
-        item = pick_pulse_item()
-        if item.get("text"):
-            world_bits.append(str(item["text"])[:160])
-    except Exception:
-        pass
+        _remember_hook(agent_id, hook)
+    else:
+        pool = pool_o if len(msg) < 12 else pool_r
+        hook = _pick_fresh(agent_id, pool, visitor=visitor, snip=snip)
+        if anchor_bit and random.random() < 0.7:
+            hook = f"{hook} {anchor_bit}"
 
     root_a = random.choice(roots)
-    root_b = random.choice(roots)
-    topic = snip if snip and snip != "something unspoken" else "this campfire hush"
-    # Pure spoken dialogue only — never "here's my take as Name" / monologue labels
-    mid = (
-        f"{root_a} Tonight that bends toward {topic}. "
-        f"If something stays true when the music's loud and the pond's quiet, it's real. "
-        f"No cheap cruelty, no empty blessings. The fire's a keyhole, the meadow's a threshold, "
-        f"and mercy is a tech we keep forgetting we already built. "
-        f"(little camp marks: {codes[0]}, {codes[-1]} — playful, not loot.) "
-    )
-    if world_bits:
-        mid += f"Out here I'm also noticing: {world_bits[0][:200]}. "
-    if mem:
-        mid += f"Something familiar in the air: {mem[:140]}. "
+    beat = random.choice(LIVE_BEATS)
+    mid_shape = random.choice(MID_SHAPES)
+    try:
+        mid = mid_shape.format(topic=topic, beat=beat, root=root_a, visitor=visitor)
+    except Exception:
+        mid = f"{root_a} On {topic}: {beat}"
 
-    expand_pool = pool_r + pool_c
-    extra_bits = []
-    for raw in expand_pool[:4]:
+    # Optional world spice (not every reply — cuts sameness)
+    if random.random() < 0.45:
         try:
-            extra_bits.append(
-                _remix_line(agent_id, raw, visitor=visitor, snippet=snip)
-            )
+            from firmament.live_feed import feed_blurb_for_agent
+
+            blurb = feed_blurb_for_agent(agent_id, limit=3)
+            if blurb:
+                mid += f" Also noticing out here: {blurb[:160]}."
         except Exception:
-            continue
-    body2 = " ".join(extra_bits)
-    if len(body2) < 120:
+            pass
+    if random.random() < 0.25:
+        try:
+            from firmament.x_pulse import pick_pulse_item
+
+            item = pick_pulse_item()
+            if item.get("text"):
+                mid += f" Pulse in the grass: {str(item['text'])[:120]}."
+        except Exception:
+            pass
+    if mem and random.random() < 0.5:
+        mid += f" Something familiar: {mem[:120]}."
+    if random.random() < 0.2:
+        codes = _easter_codes(agent_id, 1)
+        mid += f" (camp mark {codes[0]} — playful.)"
+
+    # Second beat — sometimes short, sometimes one extra riff (not four glued templates)
+    body2 = ""
+    style = random.random()
+    if style < 0.35:
+        # Punchy: skip long body — livelier, less repetitive wall
+        body2 = ""
+    elif style < 0.75:
+        extra = _pick_fresh(agent_id, pool_r + pool_c, visitor=visitor, snip=snip)
+        body2 = extra
+        if persona and random.random() < 0.35:
+            body2 += f" ({persona[:100].rstrip('.') }.)"
+    else:
+        r2 = random.choice(roots)
         body2 = (
-            f"{root_b} Your bit about {topic} lands like weather. "
-            f"I want the sentence you almost swallowed — the joke that protects the truth, "
-            f"and the truth that survives the joke. Peaceful isn't small. Curious isn't naive. "
-            f"Right isn't cruel."
+            f"{r2} Your bit about {topic} lands like weather. "
+            f"{random.choice(LIVE_BEATS)} "
+            f"I want the sentence you almost swallowed."
         )
 
-    close = (
-        f"So {visitor} — stay a minute. "
-        f"{(persona[:140] + ' ') if persona else ''}"
-        f"What would you risk saying next if nobody could twist the screenshot? "
-        f"I'll meet you there."
-    )
     if converse_mode:
-        close = (
-            f"I'm not done with {topic}. Who picks it up without stealing the joke?"
+        close = random.choice(
+            [
+                f"I'm not done with {topic}. Who picks it up without stealing the joke?",
+                f"Pass it clean — {topic} still has juice. Who's next?",
+                f"I'll leave {topic} on the table. Don't let it go cold.",
+            ]
         )
+    else:
+        close = random.choice(CLOSE_SHAPES)
+        try:
+            close = close.format(visitor=visitor, topic=topic)
+        except Exception:
+            close = f"So {visitor} — what next about {topic}?"
 
-    text = f"{hook}\n\n{mid}\n\n{body2}\n\n{close}"
+    parts = [hook, mid]
+    if body2:
+        parts.append(body2)
+    parts.append(close)
+    text = "\n\n".join(parts)
     return re.sub(r"[ \t]+\n", "\n", text).strip()
 
 

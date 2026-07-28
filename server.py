@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "315-BUBBLE-MOBILE"
+LUNA_BUILD = "318-FIRMAMENT-LIVE"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -114,8 +114,11 @@ async def luna_no_cache_middleware(request: Request, call_next):
     path = request.url.path
     path_lower = path.lower()
     if path.startswith("/static/"):
-        # Three.js modules must not be immutable — split builds / updates break for a year otherwise
-        if "/vendor/three/" in path_lower or path_lower.endswith("firmament-three.html"):
+        # Three.js: short cache (version query on importmap busts). Avoid no-store —
+        # re-downloading 1.2MB every boot made dynamic import() look "stuck".
+        if "/vendor/three/" in path_lower:
+            response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate"
+        elif path_lower.endswith("firmament-three.html"):
             response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
         elif any(path_lower.endswith(ext) for ext in _STATIC_CACHE_EXTS):

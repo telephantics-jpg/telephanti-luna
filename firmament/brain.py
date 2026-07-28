@@ -46,28 +46,59 @@ DEFAULT_FREE_MODELS: dict[str, dict[str, str]] = {
 
 
 def llm_backend() -> str:
-    """Default global preference — Ollama first; never auto-select Grok just because a key exists."""
-    # Hard default: Ollama when forced or when nothing else is set
-    if _truthy("LUNA_FORCE_OLLAMA", "1") or _truthy("PREFER_OLLAMA", "1"):
+    """Free minds first. Never auto-select paid Grok just because a key exists.
+
+    Cloud (Render): Ollama is usually absent — use Groq / OpenRouter free / Gemini free.
+    Local PC: Ollama when forced or available.
+    """
+    cloud = _truthy("LUNA_CLOUD") or _truthy("RENDER")
+    # Local-only force: don't stick on ollama forever on Render when Ollama isn't there
+    if (not cloud) and (_truthy("LUNA_FORCE_OLLAMA", "1") or _truthy("PREFER_OLLAMA", "1")):
         if _ollama_available() or _truthy("LUNA_FORCE_OLLAMA"):
             return "ollama"
-    explicit = (os.getenv("LUNA_LLM_BACKEND") or "ollama").strip().lower()
-    if explicit in ("ollama", "grok", "local", "free", "groq", "gemini"):
+    if cloud and _truthy("LUNA_FORCE_OLLAMA") and not _ollama_available():
+        # Misconfigured cloud force — fall through to free cloud keys
+        pass
+    elif _truthy("LUNA_FORCE_OLLAMA", "1") or _truthy("PREFER_OLLAMA", "1"):
+        if _ollama_available() or _truthy("LUNA_FORCE_OLLAMA"):
+            return "ollama"
+
+    explicit = (os.getenv("LUNA_LLM_BACKEND") or ("free" if cloud else "ollama")).strip().lower()
+    if explicit in ("ollama", "grok", "local", "free", "groq", "gemini", "openrouter"):
         if explicit == "local":
             return "ollama"
         if explicit == "grok" and not _grok_allowed():
             return "free"
         if explicit == "ollama":
-            return "ollama"
-        return explicit
+            if _ollama_available() or not cloud:
+                return "ollama"
+            # Cloud + ollama string but no Ollama → free cloud
+        elif explicit == "free":
+            if _groq_ok():
+                return "groq"
+            if _openrouter_ok():
+                return "openrouter"
+            if _gemini_ok():
+                return "gemini"
+            if _ollama_available():
+                return "ollama"
+            return "free"
+        elif explicit == "groq":
+            return "groq" if _groq_ok() else "free"
+        elif explicit == "openrouter":
+            return "openrouter" if _openrouter_ok() else "free"
+        elif explicit == "gemini":
+            return "gemini" if _gemini_ok() else "free"
+        else:
+            return explicit
     if _ollama_available():
         return "ollama"
     if _groq_ok():
         return "groq"
-    if _gemini_ok():
-        return "gemini"
     if _openrouter_ok():
         return "openrouter"
+    if _gemini_ok():
+        return "gemini"
     if _grok_allowed():
         return "grok"
     return "free"
@@ -174,13 +205,38 @@ def load_agent_profile(agent_id: str) -> dict:
 
     path = AGENTS_DIR / f"{agent_id}.json"
     if not path.is_file():
-        return enrich_profile({
+        profile = {
             "id": agent_id,
             "name": agent_id,
             "role": role_for_agent(agent_id),
             "persona": f"You are {agent_id}, a camp agent with opinions about real life in 2026.",
-        })
-    return enrich_profile(json.loads(path.read_text(encoding="utf-8")))
+        }
+    else:
+        profile = json.loads(path.read_text(encoding="utf-8"))
+    # Merge daily roster flavor (opener / faction / blurb) for witty, efficient Ollama identity
+    try:
+        from firmament.world_catalog import load_roster
+
+        aid = str(agent_id or "").strip().lower()
+        for row in (load_roster().get("agents") or []):
+            if str(row.get("id") or "").strip().lower() != aid:
+                continue
+            profile.setdefault("faction", row.get("faction"))
+            if row.get("blurb"):
+                profile.setdefault("blurb", row.get("blurb"))
+            openers = row.get("openers") if isinstance(row.get("openers"), list) else []
+            roots = row.get("roots") if isinstance(row.get("roots"), list) else []
+            pool = [str(s).strip() for s in (openers or roots) if str(s).strip()]
+            if pool and not profile.get("opener"):
+                import random
+                from datetime import date
+
+                profile["opener"] = random.Random(f"{date.today().isoformat()}:{aid}").choice(pool)
+            profile["daily"] = True
+            break
+    except Exception:
+        pass
+    return enrich_profile(profile)
 
 
 def agent_roots(profile: dict) -> list[str]:
@@ -858,23 +914,34 @@ def _ollama_resolve_model(host: str, preferred: str) -> str:
     return installed[0]
 
 
-def _complete_ollama(messages: list[dict], model: str, max_tokens: int) -> str:
+def _complete_ollama(
+    messages: list[dict],
+    model: str,
+    max_tokens: int,
+    *,
+    num_ctx: int | None = None,
+    temperature: float | None = None,
+) -> str:
     import httpx
 
     host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
     ollama_model = _ollama_resolve_model(host, model or os.getenv("OLLAMA_MODEL", "llama3.2"))
+    # Lean context = faster free local brains (esp. ambient meadow chatter)
+    ctx = int(num_ctx or os.getenv("OLLAMA_NUM_CTX", "3072") or 3072)
+    ctx = max(1024, min(ctx, 8192))
+    temp = 1.05 if temperature is None else float(temperature)
     payload = {
         "model": ollama_model,
         "messages": messages,
         "stream": False,
         "options": {
-            # Higher temp + stronger repeat penalty → less cookie-cutter monologues
-            "temperature": 1.15,
+            "temperature": temp,
             "num_predict": max_tokens,
-            "top_p": 0.92,
-            "repeat_penalty": 1.35,
-            "presence_penalty": 0.4,
-            "frequency_penalty": 0.35,
+            "num_ctx": ctx,
+            "top_p": 0.9,
+            "repeat_penalty": 1.28,
+            "presence_penalty": 0.25,
+            "frequency_penalty": 0.25,
         },
     }
     last_exc: Exception | None = None
@@ -1170,10 +1237,23 @@ def build_backend_chain(
     return out
 
 
-def _run_backend(backend: str, model: str, messages: list[dict], max_tokens: int) -> str:
+def _run_backend(
+    backend: str,
+    model: str,
+    messages: list[dict],
+    max_tokens: int,
+    *,
+    ambient: bool = False,
+) -> str:
     be = backend.lower()
     if be == "ollama":
-        return _complete_ollama(messages, model, max_tokens)
+        return _complete_ollama(
+            messages,
+            model,
+            max_tokens,
+            num_ctx=2048 if ambient else None,
+            temperature=1.0 if ambient else None,
+        )
     if be == "groq":
         return _complete_groq(messages, model, max_tokens)
     if be == "gemini":
@@ -1266,10 +1346,16 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene: ambient camp talk — you are alive at the fire circle. Notice something real "
-            "(a friend, the corona, a snack, the sky) and speak 2–4 lively spoken sentences with spirit, "
-            "wit, and warmth. Sound like you, not a caption. No stage directions, no 'as an AI'."
+            "\nScene: ambient town talk. Notice one real thing; speak 2–3 witty sentences as yourself. "
+            "No stage directions, no 'as an AI', no prompt recap."
         )
+        # Daily rotation visitors: keep system brief + identity sharp for small Ollama ctx
+        if profile.get("faction") or profile.get("daily"):
+            fac = profile.get("faction") or "visitor"
+            opener = (profile.get("opener") or "").strip()
+            if opener:
+                sys_prompt += f"\nToday's vibe line (attitude, never quote verbatim): {opener[:120]}"
+            sys_prompt += f"\nYou are a daily {fac} guest in Luna Town — introduce your flavor without monologuing your lore dump."
     if from_agent:
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
@@ -1293,12 +1379,17 @@ async def agent_chat(
 
     messages = [{"role": "system", "content": sys_prompt}]
     # Cap history so Ollama/Hermes doesn't drown in old turns
-    for turn in history[-min(MAX_MEMORY_TURNS, 8):]:
+    hist_cap = 4 if ambient else min(MAX_MEMORY_TURNS, 8)
+    for turn in history[-hist_cap:]:
         if turn.get("role") in ("user", "assistant") and turn.get("content"):
             content = str(turn["content"])
-            if len(content) > 900:
-                content = content[:897] + "…"
+            cap = 420 if ambient else 900
+            if len(content) > cap:
+                content = content[: cap - 3] + "…"
             messages.append({"role": turn["role"], "content": content})
+    # Ambient user seeds stay short (director notes already reduced)
+    if ambient and len(user_content) > 320:
+        user_content = user_content[:317] + "…"
     messages.append({"role": "user", "content": user_content})
 
     import asyncio
@@ -1310,13 +1401,13 @@ async def agent_chat(
             "or use free Ollama / GROQ_API_KEY / GEMINI_API_KEY"
         )
 
-    # Headroom for natural spoken turns (not mute stubs, not novels)
+    # Headroom for natural spoken turns — ambient stays short for Ollama speed
     if ambient:
-        max_tok = 360
+        max_tok = 180
     elif converse_mode:
-        max_tok = 420
+        max_tok = 320
     else:
-        max_tok = 480
+        max_tok = 400
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""
@@ -1337,7 +1428,8 @@ async def agent_chat(
 
     for backend, model in chain:
         try:
-            max_attempts = 3  # draft → rewrite if echo/similar/short
+            # Ambient: 1–2 attempts only (Ollama-friendly). Direct chat: up to 3.
+            max_attempts = 2 if ambient else 3
             for attempt in range(max_attempts):
                 msgs = list(messages)
                 if attempt == 1:
@@ -1364,7 +1456,9 @@ async def agent_chat(
                             "full thought, then stop. Not mute, not a rant. Just speech."
                         ),
                     }]
-                raw = await asyncio.to_thread(_run_backend, backend, model, msgs, max_tok)
+                raw = await asyncio.to_thread(
+                    _run_backend, backend, model, msgs, max_tok, ambient=ambient,
+                )
                 raw = (raw or "").strip()
                 if not raw:
                     raise RuntimeError(f"{backend}/{model} empty reply")

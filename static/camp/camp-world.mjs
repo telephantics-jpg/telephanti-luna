@@ -22,9 +22,19 @@ const DEFAULT_SCALE_THREE = 0.018;
  * @returns {Promise<object>}
  */
 export async function fetchCampCatalog() {
+  const timedFetch = async (url, ms = 5000) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try {
+      return await fetch(url, { cache: "no-store", signal: ctrl.signal });
+    } finally {
+      clearTimeout(t);
+    }
+  };
+
   // 1) Live API (needs restarted server with world_catalog route)
   try {
-    const res = await fetch("/api/firmament/camp/catalog", { cache: "no-store" });
+    const res = await timedFetch("/api/firmament/camp/catalog", 5000);
     if (res.ok) {
       const data = await res.json();
       const cat = data?.catalog || data;
@@ -37,7 +47,7 @@ export async function fetchCampCatalog() {
 
   // 2) Static file — always available if /static is served
   try {
-    const res = await fetch("/static/camp/camp_catalog.json?v=vc-hub-1", { cache: "no-store" });
+    const res = await timedFetch("/static/camp/camp_catalog.json?v=vc-hub-1", 4000);
     if (res.ok) {
       const cat = await res.json();
       if (cat && (cat.props || cat.agents)) {

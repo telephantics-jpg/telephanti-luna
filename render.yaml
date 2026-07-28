@@ -1,4 +1,4 @@
-# telephanti.com — Luna Camp on Render
+# telephanti.com — Luna Camp on Render (free minds; no paid Grok by default)
 services:
   - type: web
     name: luna
@@ -12,12 +12,35 @@ services:
         value: 0.0.0.0
       - key: LUNA_PUBLIC_URL
         value: https://telephanti.com
+      # Free minds only — Ollama is local-only; live uses free cloud keys below
       - key: LUNA_LLM_BACKEND
-        value: grok
+        value: free
+      - key: LUNA_FREE_BRAINS
+        value: "1"
+      - key: LUNA_FORCE_OLLAMA
+        value: "0"
+      - key: PREFER_OLLAMA
+        value: "0"
+      - key: LUNA_ALLOW_GROK
+        value: "0"
+      - key: LUNA_DISABLE_GROK
+        value: "1"
+      - key: LUNA_GROK_FALLBACK
+        value: "0"
+      # Free open-model hosts (pick one — set the secret in Render dashboard)
+      # Groq free: https://console.groq.com  → Llama 3.1 instant
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: meta-llama/llama-3.1-8b-instruct:free
+      # Optional Gemini free tier (not required)
+      - key: GEMINI_API_KEY
+        sync: false
+      # Paid xAI kept off unless you deliberately re-enable Grok flags above
       - key: XAI_API_KEY
         sync: false
-      - key: GROK_MODEL
-        value: grok-3-mini
       - key: TTS_VOICE
         value: en-US-AriaNeural
       - key: LUNA_LIPSYNC

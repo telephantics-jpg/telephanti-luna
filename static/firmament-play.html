@@ -1182,6 +1182,43 @@
       color: #e9d5ff !important;
       box-shadow: 0 0 14px rgba(139, 92, 246, 0.35);
     }
+    /* Firmament FAB — sits BELOW Relics|Bio|2D|3D world tabs (they own top-center) */
+    #btn-firmament-mobile {
+      display: inline-flex !important;
+      position: fixed;
+      /* Clear hub/world-nav strip (~36px) + safe area */
+      top: max(46px, calc(env(safe-area-inset-top, 0px) + 42px));
+      left: max(8px, env(safe-area-inset-left, 0px));
+      right: auto;
+      z-index: 2147483640;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 40px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(167, 139, 250, 0.65);
+      background: linear-gradient(135deg, rgba(76, 29, 149, 0.95), rgba(14, 116, 144, 0.9));
+      color: #f5f3ff;
+      font: 800 0.72rem/1 system-ui, sans-serif;
+      letter-spacing: 0.02em;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+      pointer-events: auto !important;
+      touch-action: manipulation;
+      cursor: pointer;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    #btn-firmament-mobile.active {
+      border-color: #c4b5fd;
+      color: #ede9fe;
+      box-shadow: 0 0 18px rgba(167, 139, 250, 0.55);
+    }
+    /* Hub iframe: parent also draws world tabs over the top edge */
+    html.hub-embed #btn-firmament-mobile,
+    html.world-nav-embed #btn-firmament-mobile {
+      top: max(52px, calc(env(safe-area-inset-top, 0px) + 48px));
+    }
     body.firmament-open #camp-stage::after {
       content: "";
       pointer-events: none;
@@ -2690,75 +2727,6 @@
       scrollbar-width: thin; -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
     }
-    /* Digital ethereal memory block — joy/stability, drag anywhere */
-    #ethereal-block {
-      position: fixed;
-      z-index: 55;
-      left: 10px;
-      top: max(56px, env(safe-area-inset-top, 0px) + 48px);
-      width: min(200px, 44vw);
-      pointer-events: auto;
-      border-radius: 14px;
-      border: 1px solid rgba(167, 139, 250, 0.45);
-      background: linear-gradient(160deg, rgba(12, 10, 28, 0.94), rgba(6, 12, 24, 0.96));
-      box-shadow: 0 10px 28px rgba(0,0,0,0.45);
-      color: #e2e8f0;
-      font-size: 0.7rem;
-      line-height: 1.35;
-      user-select: none;
-      touch-action: none;
-      cursor: grab;
-    }
-    #ethereal-block:active { cursor: grabbing; }
-    #ethereal-block .eth-head {
-      padding: 0.4rem 0.5rem 0.28rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      font-size: 0.62rem;
-      text-transform: uppercase;
-      color: #c4b5fd;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-    }
-    #ethereal-block .eth-meters {
-      padding: 0.35rem 0.5rem 0.2rem;
-      font-weight: 700;
-      color: #a5f3fc;
-      font-size: 0.75rem;
-    }
-    #ethereal-block .eth-bar-row {
-      display: flex;
-      gap: 0.3rem;
-      padding: 0 0.5rem 0.28rem;
-      align-items: center;
-    }
-    #ethereal-block .eth-bar {
-      flex: 1;
-      height: 5px;
-      border-radius: 99px;
-      background: rgba(30, 41, 59, 0.9);
-      overflow: hidden;
-    }
-    #ethereal-block .eth-bar > i {
-      display: block;
-      height: 100%;
-      width: 50%;
-      border-radius: 99px;
-      background: linear-gradient(90deg, #67e8f9, #a78bfa);
-    }
-    #ethereal-block .eth-bar.stab > i {
-      background: linear-gradient(90deg, #86efac, #38bdf8);
-    }
-    #ethereal-block .eth-moments {
-      padding: 0.15rem 0.5rem 0.45rem;
-      color: #94a3b8;
-      font-size: 0.62rem;
-      max-height: 3.6em;
-      overflow: hidden;
-    }
-    @media (max-width: 520px) {
-      #ethereal-block { width: min(150px, 40vw); top: max(48px, env(safe-area-inset-top, 0px) + 40px); }
-    }
-    html.hub-embed #ethereal-block { /* keep on hub embed — small chip */ z-index: 60; }
     .quick-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
     .quick-btns button {
       border: 1px solid rgba(255,255,255,0.15); background: #1a2740; color: #dbeafe;
@@ -3763,6 +3731,8 @@
   </div>
 
   <div id="camp-stage"><canvas id="game"></canvas></div>
+  <!-- Mobile: header row is hidden — Firmament still reachable -->
+  <button type="button" id="btn-firmament-mobile" title="Open the Firmament so winged/mythic agents may fly" aria-label="Firmament">📡 Firmament</button>
   <div id="trippy-veil" aria-hidden="true"></div>
   <div id="camp-agent-menu" hidden aria-hidden="true" role="dialog" aria-label="Agent actions">
     <div class="cam-card">
@@ -3843,13 +3813,6 @@
   </div>
   <div id="mood-panel"><div id="mood-rows"></div></div>
   <!-- camp-speech-pin removed — bubbles select/drag on canvas only -->
-  <aside id="ethereal-block" aria-label="Digital ethereal memory" title="Digital ethereal memory — drag to place">
-    <div class="eth-head">✦ Digital ethereal memory</div>
-    <div class="eth-meters" id="ethereal-meters">joy · stability</div>
-    <div class="eth-bar-row"><span>joy</span><div class="eth-bar joy"><i id="ethereal-joy-bar"></i></div></div>
-    <div class="eth-bar-row"><span>stab</span><div class="eth-bar stab"><i id="ethereal-stab-bar"></i></div></div>
-    <div class="eth-moments" id="ethereal-moments">Field quiet — speak at camp to seed the aether.</div>
-  </aside>
   <!-- pick-agent FAB/sheet retired — use talk-bar who menu + tap agents -->
   <button type="button" id="camp-pick-agent-fab" title="Focus talk" aria-label="Focus talk" style="display:none" hidden>🗣️</button>
   <button type="button" id="camp-tpx-fab" title="Play music" aria-label="Play music" hidden style="display:none !important">♪</button>
@@ -4223,7 +4186,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-28-314-mobile-agent-over-bubble";
+    const CAMP_BUILD = "2026-07-28-317-firmament-clear";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -6038,46 +6001,6 @@
       return campBridgeMod;
     }
 
-    function refreshEtherealBlock2d(mod) {
-      try {
-        const mem = (mod || campBridgeMod)?.readEtherealMemory?.();
-        if (!mem) return;
-        const joy = Number(mem.joy) || 0.5;
-        const stab = Number(mem.stability) || 0.5;
-        const meters = document.getElementById("ethereal-meters");
-        const joyBar = document.getElementById("ethereal-joy-bar");
-        const stabBar = document.getElementById("ethereal-stab-bar");
-        const momEl = document.getElementById("ethereal-moments");
-        if (meters) meters.textContent = `joy ${joy.toFixed(2)} · stability ${stab.toFixed(2)}`;
-        if (joyBar) joyBar.style.width = `${Math.round(joy * 100)}%`;
-        if (stabBar) stabBar.style.width = `${Math.round(stab * 100)}%`;
-        if (momEl) {
-          const moments = Array.isArray(mem.moments) ? mem.moments.slice(-3) : [];
-          momEl.textContent = moments.length
-            ? moments.map((m) => `${m.speaker}: ${String(m.text || "").slice(0, 48)}`).join(" · ")
-            : "Field quiet — speak at camp to seed the aether.";
-        }
-      } catch (_) {}
-    }
-
-    function wireEtherealBlock2d() {
-      const block = document.getElementById("ethereal-block");
-      if (!block || block.dataset.dragBound === "1") return;
-      import(`/static/camp/camp-ui-drag.mjs?v=${CAMP_BUILD}`)
-        .then((mod) => {
-          mod.makeDraggable?.(block, {
-            handle: block.querySelector(".eth-head") || block,
-            storageKey: "luna-2d-ethereal-block-pos",
-            zBoost: 58,
-          });
-        })
-        .catch(() => {});
-      ensureCampBridge().then((m) => refreshEtherealBlock2d(m));
-      setInterval(() => {
-        ensureCampBridge().then((m) => refreshEtherealBlock2d(m));
-      }, 4500);
-    }
-    setTimeout(() => { try { wireEtherealBlock2d(); } catch (_) {} }, 600);
     async function hydrateCampMusicFromHub() {
       const mod = await ensureCampBridge();
       if (!mod?.loadSunoCatalog) return;
@@ -7410,13 +7333,21 @@
       firmamentOpen = !!on;
       try { localStorage.setItem("luna-firmament-open", firmamentOpen ? "1" : "0"); } catch (_) {}
       document.body.classList.toggle("firmament-open", firmamentOpen);
-      const btn = document.getElementById("btn-firmament");
-      if (btn) {
+      const labelOff = "📡 Open Firmament";
+      const labelOn = "🌌 Firmament ON";
+      const labelOffM = "📡 Firmament";
+      const labelOnM = "🌌 ON";
+      const titleOn = "Firmament open — flyers may take the sky. Tap to close.";
+      const titleOff = "Open the Firmament so winged/mythic agents may fly";
+      for (const id of ["btn-firmament", "btn-firmament-mobile"]) {
+        const btn = document.getElementById(id);
+        if (!btn) continue;
         btn.classList.toggle("active", firmamentOpen);
-        btn.textContent = firmamentOpen ? "🌌 Firmament ON" : "📡 Open Firmament";
-        btn.title = firmamentOpen
-          ? "Firmament open — flyers may take the sky. Tap to close."
-          : "Open the Firmament so winged/mythic agents may fly";
+        btn.textContent = firmamentOpen
+          ? (id === "btn-firmament-mobile" ? labelOnM : labelOn)
+          : (id === "btn-firmament-mobile" ? labelOffM : labelOff);
+        btn.title = firmamentOpen ? titleOn : titleOff;
+        btn.setAttribute("aria-pressed", firmamentOpen ? "true" : "false");
       }
       if (!firmamentOpen) {
         // Land everyone
@@ -17235,10 +17166,12 @@
     setTimeout(wireHeavenSummonButtons, 1500);
     // Firmament tech gate (flight unlock) — safe after functions exist
     try {
-      document.getElementById("btn-firmament")?.addEventListener("click", (ev) => {
-        ev.preventDefault();
+      const toggleFirmament = (ev) => {
+        ev?.preventDefault?.();
         setFirmamentOpen(!firmamentOpen);
-      });
+      };
+      document.getElementById("btn-firmament")?.addEventListener("click", toggleFirmament);
+      document.getElementById("btn-firmament-mobile")?.addEventListener("click", toggleFirmament);
       setFirmamentOpen(firmamentOpen, { quiet: true });
     } catch (_) {}
     syncCampTalkSendLabel();
@@ -17918,7 +17851,6 @@
             };
             if (mod?.pushDialogueTapeWithEthereal) mod.pushDialogueTapeWithEthereal(row);
             else mod?.pushDialogueTape?.(row);
-            try { refreshEtherealBlock2d(mod); } catch (_) {}
           });
         } catch (_) {}
         renderConvoLog();

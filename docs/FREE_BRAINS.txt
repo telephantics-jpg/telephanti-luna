@@ -29,18 +29,27 @@ LUNA_LLM_BACKEND=ollama
 OLLAMA_HOST=http://127.0.0.1:11434
 OLLAMA_MODEL=llama3.2
 
-Env (Render / telephanti.com later)
------------------------------------
-Ollama is NOT on Render. For free live talk set one of:
-  GROQ_API_KEY=...
-  GEMINI_API_KEY=...
-Do NOT set LUNA_ALLOW_GROK / XAI unless you want paid Grok again.
+Env (Render / telephanti.com)
+-----------------------------
+Ollama is NOT on Render free. Live free talk needs ONE free cloud key:
+
+  Recommended: GROQ_API_KEY from https://console.groq.com (free tier, Llama models)
+  Or: OPENROUTER_API_KEY + free model meta-llama/llama-3.1-8b-instruct:free
+
+Paste the key in Render → luna service → Environment → Save (redeploy).
+
+Also force free (already in render.yaml):
   LUNA_FORCE_OLLAMA=0
   LUNA_ALLOW_GROK=0
   LUNA_DISABLE_GROK=1
   LUNA_GROK_FALLBACK=0
   LUNA_FREE_BRAINS=1
   LUNA_LLM_BACKEND=free
+
+Without any free key, live uses aether offline templates (no bill, weaker replies).
+
+Check: https://telephanti.com/api/health
+  free_minds=true and free_cloud.groq=true  → real free LLM live
 
 Ollama setup
 ------------

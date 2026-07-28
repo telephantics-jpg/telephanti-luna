@@ -1121,7 +1121,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-27-three-v85-music-mobile";
+    const BUILD = "2026-07-27-three-v86-radio";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -8593,7 +8593,7 @@
       return {
         title: t?.title || "Telephantix",
         artist: t?.artist || "Telephantix",
-        album: "Luna Camp",
+        album: "Luna Camp Radio",
         playing: !!(albumOn && albumAudio && !albumAudio.paused),
       };
     }
@@ -8605,27 +8605,75 @@
           ...albumTrackMeta(t),
           playing: playing ?? !!(albumOn && albumAudio && !albumAudio.paused),
         });
+        if (albumAudio) {
+          albumMediaSession?.setPosition?.({
+            duration: albumAudio.duration || 0,
+            position: albumAudio.currentTime || 0,
+            playbackRate: albumAudio.playbackRate || 1,
+          });
+        }
+      } catch (_) {}
+    }
+
+    function persistAlbumState(extra = {}) {
+      try {
+        musicMobile3d?.saveMusicPersist?.({
+          index: albumIndex,
+          time: albumAudio?.currentTime || 0,
+          title: ALBUM_TRACKS[albumIndex]?.title || "",
+          scene: "luna-3d",
+          on: albumOn,
+          ...extra,
+        });
+      } catch (_) {}
+    }
+
+    function seekAlbumBy(deltaSec) {
+      const a = ensureAlbumAudio();
+      if (!a) return;
+      try {
+        const d = Number(a.duration) || 0;
+        const next = Math.max(0, (a.currentTime || 0) + Number(deltaSec || 0));
+        a.currentTime = d > 0 ? Math.min(next, Math.max(0, d - 0.25)) : next;
+        persistAlbumState({ time: a.currentTime });
+        updateAlbumMediaSession(!a.paused);
+        try { musicChrome3d?.refresh?.(); } catch (_) {}
+      } catch (_) {}
+    }
+
+    function seekAlbumTo(timeSec) {
+      const a = ensureAlbumAudio();
+      if (!a) return;
+      try {
+        const d = Number(a.duration) || 0;
+        const t = Math.max(0, Number(timeSec) || 0);
+        a.currentTime = d > 0 ? Math.min(t, Math.max(0, d - 0.25)) : t;
+        persistAlbumState({ time: a.currentTime });
+        updateAlbumMediaSession(!a.paused);
+        try { musicChrome3d?.refresh?.(); } catch (_) {}
       } catch (_) {}
     }
 
     function advanceAlbumTrack(why = "") {
       if (!albumOn || !ALBUM_TRACKS.length) return;
       albumIndex = (albumIndex + 1) % ALBUM_TRACKS.length;
-      playAlbumTrack(albumIndex, { quiet: true, reason: why || "advance" });
+      // New track — force load from start
+      playAlbumTrack(albumIndex, { quiet: true, reason: why || "advance", forceReload: true, seekTime: 0 });
     }
 
     function wireAlbumMobileKeepAlive() {
       if (!musicMobile3d || albumKeepAlive) return;
       albumMediaSession = musicMobile3d.installMediaSession({
         play: () => {
-          if (!albumOn) albumOn = true;
-          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-play" });
+          albumOn = true;
+          // Soft resume — same index + saved position, never randomize
+          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-play", soft: true });
         },
         pause: () => {
-          // Soft pause only — keep albumOn so unlock can resume
           try {
             albumAudio?.pause();
           } catch (_) {}
+          persistAlbumState();
           updateAlbumMediaSession(false);
           try { musicChrome3d?.refresh?.(); } catch (_) {}
         },
@@ -8634,20 +8682,29 @@
           if (!ALBUM_TRACKS.length) return;
           albumOn = true;
           albumIndex = (albumIndex + 1) % ALBUM_TRACKS.length;
-          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-next" });
+          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-next", forceReload: true, seekTime: 0 });
         },
         prev: () => {
           if (!ALBUM_TRACKS.length) return;
           albumOn = true;
+          // Car-style: if >3s into song, restart; else previous track
+          if (albumAudio && albumAudio.currentTime > 3) {
+            seekAlbumTo(0);
+            playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-restart", soft: true });
+            return;
+          }
           const n = Math.max(1, ALBUM_TRACKS.length);
           albumIndex = (albumIndex - 1 + n) % n;
-          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-prev" });
+          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-prev", forceReload: true, seekTime: 0 });
         },
+        seekBy: (d) => seekAlbumBy(d),
+        seekTo: (t) => seekAlbumTo(t),
       });
       albumKeepAlive = musicMobile3d.installMusicKeepAlive({
         isWantedPlaying: () => !!albumOn,
         getAudio: () => albumAudio,
-        resume: (why) => playAlbumTrack(albumIndex, { quiet: true, reason: why || "resume" }),
+        resume: (why) =>
+          playAlbumTrack(albumIndex, { quiet: true, reason: why || "resume", soft: true }),
         advance: (why) => advanceAlbumTrack(why || "keep-alive"),
         log: (m) => {
           try {
@@ -8655,6 +8712,23 @@
           } catch (_) {}
         },
       });
+      try {
+        const a = ensureAlbumAudio();
+        musicMobile3d?.bindPositionBroadcast?.(a, {
+          getIndex: () => albumIndex,
+          getTitle: () => ALBUM_TRACKS[albumIndex]?.title || "",
+          scene: "luna-3d",
+          mediaSession: albumMediaSession,
+          isOn: () => albumOn,
+        });
+      } catch (_) {}
+      // Restore last track index from this session (no random reshuffle)
+      try {
+        const saved = musicMobile3d.loadMusicPersist?.();
+        if (saved && typeof saved.index === "number" && ALBUM_TRACKS.length) {
+          albumIndex = saved.index % ALBUM_TRACKS.length;
+        }
+      } catch (_) {}
     }
 
     function ensureAlbumAudio() {
@@ -8683,17 +8757,20 @@
         albumAudio.addEventListener("play", () => {
           albumPlayPending = false;
           updateAlbumMediaSession(true);
+          try { musicChrome3d?.refresh?.(); } catch (_) {}
         });
         albumAudio.addEventListener("pause", () => {
-          // Don't clear albumOn — lock screen pauses are temporary
-          if (albumOn) updateAlbumMediaSession(false);
+          if (albumOn) {
+            persistAlbumState();
+            updateAlbumMediaSession(false);
+            try { musicChrome3d?.refresh?.(); } catch (_) {}
+          }
         });
-        // Near-end: only kick if stuck paused at end (ended event sometimes drops on Android)
         try {
           albumNearEndUnbind?.();
           albumNearEndUnbind = musicMobile3d?.bindNearEndAdvance?.(albumAudio, () => {
             if (!albumOn || !albumAudio) return;
-            if (albumAudio.ended || albumAudio.paused) {
+            if (albumAudio.ended || (albumAudio.paused && albumAudio.currentTime > 1)) {
               advanceAlbumTrack("near-end-stuck");
             }
           });
@@ -8713,47 +8790,58 @@
       const t = ALBUM_TRACKS[albumIndex];
       const a = ensureAlbumAudio();
       wireAlbumMobileKeepAlive();
-      // Keep same element; only reload when src actually changes (iOS-friendly)
-      const nextSrc = t.src || "";
-      const file = (nextSrc.split("/").pop() || "").split("?")[0];
-      const cur = a.currentSrc || a.src || "";
-      const needsSrc = !cur || !file || !cur.includes(file) || !!a.ended;
-      if (needsSrc) {
-        a.src = nextSrc;
+
+      // Soft unlock/resume: keep currentTime; optional restore from session
+      let seekTime = opts.seekTime;
+      if (opts.soft && seekTime == null) {
         try {
-          a.load();
+          const saved = musicMobile3d?.loadMusicPersist?.();
+          if (saved && saved.index === albumIndex && saved.time > 0.5) {
+            // Only apply saved seek if audio is at start or empty (don't jump if already mid-play)
+            if (!a.currentSrc || a.currentTime < 0.4 || a.paused) {
+              seekTime = saved.time;
+            }
+          }
         } catch (_) {}
       }
-      a.loop = false;
-      a.volume = 0.55;
-      a.muted = false;
-      const start = () => {
-        const attempt = a.play();
-        if (!attempt || typeof attempt.then !== "function") {
-          albumOn = true;
-          albumPlayPending = false;
-          onAlbumPlayingUi(t, opts);
-          return;
-        }
-        attempt
+      if (opts.forceReload) seekTime = opts.seekTime ?? 0;
+
+      const run = () => {
+        const playFn =
+          musicMobile3d?.softPlayAudio ||
+          ((audio, o) => {
+            if (o.forceReload || !audio.src) {
+              audio.src = o.src;
+              audio.load();
+            }
+            audio.volume = o.volume ?? 0.55;
+            return audio.play();
+          });
+        Promise.resolve(
+          playFn(a, {
+            src: t.src || "",
+            volume: 0.55,
+            seekTime: seekTime,
+            forceReload: !!opts.forceReload,
+          }),
+        )
           .then(() => {
             albumOn = true;
             albumPlayPending = false;
             onAlbumPlayingUi(t, opts);
           })
           .catch((err) => {
-            // Background/lock: mark pending — keep-alive resumes on unlock (Android next-track)
             albumOn = true;
             albumPlayPending = true;
             updateAlbumMediaSession(false);
+            persistAlbumState({ on: true });
             if (!opts.quiet && !document.hidden) {
               showToast("Tap Play music again if blocked");
             }
             logLine("Telephantix", err?.message || "play blocked (will retry on unlock)");
           });
       };
-      if (a.readyState >= 2) start();
-      else a.addEventListener("canplay", start, { once: true });
+      run();
     }
 
     function onAlbumPlayingUi(t, opts = {}) {
@@ -8768,6 +8856,7 @@
       logLine("Telephantix", `Playing: ${t.title}`);
       statusEl.textContent = `♪ ${t.title}`;
       updateAlbumMediaSession(true);
+      persistAlbumState({ title: t.title, on: true });
       try {
         campBridge3d?.writeMusicState?.({
           trackIndex: albumIndex,
@@ -8791,6 +8880,9 @@
       }
       try {
         albumMediaSession?.clear?.();
+      } catch (_) {}
+      try {
+        musicMobile3d?.clearMusicPersist?.();
       } catch (_) {}
       albumBtn?.classList.remove("playing");
       if (albumBtn) albumBtn.textContent = "♪ Play music";
@@ -8822,18 +8914,43 @@
           musicChrome3d = mod.mountCampMusicChrome({
             scene: "luna-3d",
             getTracks: () => ALBUM_TRACKS,
-            isPlaying: () => !!(albumOn && albumAudio && !albumAudio.paused),
+            // Wanted-on (includes OS pause) so unlock does not re-start / re-roll
+            isPlaying: () => !!albumOn,
             getIndex: () => albumIndex % Math.max(1, ALBUM_TRACKS.length),
-            playAt: (i) => playAlbumTrack(i, { quiet: true }),
+            getAudio: () => albumAudio,
+            getPosition: () => albumAudio?.currentTime || 0,
+            getDuration: () => albumAudio?.duration || 0,
+            seekTo: (t) => seekAlbumTo(t),
+            seekBy: (d) => seekAlbumBy(d),
+            pause: () => {
+              try {
+                albumAudio?.pause();
+              } catch (_) {}
+              persistAlbumState();
+              updateAlbumMediaSession(false);
+            },
+            playAt: (i) => {
+              const same = i === albumIndex && albumOn;
+              playAlbumTrack(i, {
+                quiet: true,
+                soft: same || (albumOn && i === albumIndex),
+                forceReload: !same && i !== albumIndex,
+              });
+            },
             stop: () => stopAlbum({ quiet: false }),
             next: () => {
               albumIndex = (albumIndex + 1) % Math.max(1, ALBUM_TRACKS.length);
-              playAlbumTrack(albumIndex, { quiet: true });
+              playAlbumTrack(albumIndex, { quiet: true, forceReload: true, seekTime: 0 });
             },
             prev: () => {
+              if (albumAudio && albumAudio.currentTime > 3) {
+                seekAlbumTo(0);
+                playAlbumTrack(albumIndex, { quiet: true, soft: true });
+                return;
+              }
               const n = Math.max(1, ALBUM_TRACKS.length);
               albumIndex = (albumIndex - 1 + n) % n;
-              playAlbumTrack(albumIndex, { quiet: true });
+              playAlbumTrack(albumIndex, { quiet: true, forceReload: true, seekTime: 0 });
             },
           });
         })

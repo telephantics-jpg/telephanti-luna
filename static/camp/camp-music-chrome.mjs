@@ -1,21 +1,12 @@
 /**
- * Telephantix music chrome for Luna Camp 2D / 3D — same spirit as Relics hub player.
- * Big Play music chip · panel with prev/next/stop · scrollable track list · no autoplay.
+ * Telephantix music chrome — car-radio / phone now-playing face for Luna Camp.
+ * Title + artist on an LCD strip, seek bar, prev/next/±10s, stop.
+ * Background: minimize / close keeps audio; no re-roll on unlock (soft resume via host).
  *
- * Usage:
- *   import { mountCampMusicChrome } from "/static/camp/camp-music-chrome.mjs?v=1";
- *   const ui = mountCampMusicChrome({
- *     scene: "luna-2d",
- *     getTracks: () => tracks,           // [{ id, title, src }]
- *     isPlaying: () => bool,
- *     getIndex: () => number,
- *     playAt: (i) => {},                 // start track i (user gesture)
- *     stop: () => {},                    // hard stop / off
- *     pause: () => {},                   // optional soft pause
- *     next: () => {},
- *     prev: () => {},
- *   });
- *   ui.refresh(); // after catalog hydrate / play state change
+ *   mountCampMusicChrome({
+ *     scene, getTracks, isPlaying, getIndex, playAt, stop, next, prev,
+ *     pause?, getAudio?, seekTo?, seekBy?, getPosition?, getDuration?
+ *   })
  */
 
 const STYLE_ID = "camp-music-chrome-css";
@@ -74,6 +65,50 @@ function injectStyles() {
     padding: 0.55rem 0.9rem;
     font-size: 0.78rem;
   }
+
+  /* Slim car-radio strip — always on while music is wanted (even panel closed) */
+  .cmc-radio-strip {
+    pointer-events: auto;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(142px + env(safe-area-inset-bottom, 0px));
+    z-index: 48;
+    width: min(420px, calc(100vw - 1rem));
+    display: none;
+    border-radius: 12px;
+    border: 1px solid rgba(52, 211, 153, 0.45);
+    background: linear-gradient(180deg, #0c1220 0%, #060a12 100%);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.04);
+    padding: 0.45rem 0.65rem 0.5rem;
+    color: #e2e8f0;
+    cursor: pointer;
+  }
+  .cmc-radio-strip.show { display: block; }
+  body.cmc-panel-open .cmc-radio-strip { display: none !important; }
+  .cmc-radio-strip .rs-brand {
+    font-size: 0.58rem; font-weight: 800; letter-spacing: 0.14em;
+    color: #6ee7b7; text-transform: uppercase;
+  }
+  .cmc-radio-strip .rs-title {
+    margin: 2px 0 0; font-size: 0.82rem; font-weight: 800; color: #f0fdf4;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, monospace;
+  }
+  .cmc-radio-strip .rs-meta {
+    font-size: 0.65rem; color: #94a3b8; margin-top: 1px;
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .cmc-radio-strip .rs-bar {
+    margin-top: 6px; height: 4px; border-radius: 99px;
+    background: rgba(30,41,59,0.95); overflow: hidden;
+  }
+  .cmc-radio-strip .rs-bar > i {
+    display: block; height: 100%; width: 0%;
+    background: linear-gradient(90deg, #34d399, #38bdf8);
+    border-radius: 99px;
+  }
+
   .cmc-panel {
     pointer-events: none;
     position: fixed;
@@ -92,12 +127,12 @@ function injectStyles() {
   }
   .cmc-panel:not(.open) { display: none !important; }
   .cmc-panel.open { display: block !important; }
-  .cmc-panel.is-min { width: min(280px, calc(100vw - 1rem)); }
+  .cmc-panel.is-min { width: min(300px, calc(100vw - 1rem)); }
   .cmc-panel.is-min .cmc-body { display: none; }
   .cmc-inner {
     border-radius: 16px;
     border: 1px solid rgba(167, 139, 250, 0.5);
-    background: rgba(8, 12, 28, 0.96);
+    background: rgba(8, 12, 28, 0.97);
     box-shadow: 0 14px 40px rgba(0,0,0,0.55);
     padding: 0.75rem 0.8rem 0.7rem;
     backdrop-filter: blur(12px);
@@ -106,10 +141,10 @@ function injectStyles() {
   }
   .cmc-head {
     display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
-    margin-bottom: 0.55rem;
+    margin-bottom: 0.45rem;
   }
-  .cmc-brand { display: block; font-size: 0.72rem; font-weight: 800; color: #c4b5fd; letter-spacing: 0.04em; text-transform: uppercase; }
-  .cmc-now { margin: 0.2rem 0 0; font-size: 0.88rem; font-weight: 700; color: #f8fafc; line-height: 1.25; }
+  .cmc-brand { display: block; font-size: 0.68rem; font-weight: 800; color: #6ee7b7; letter-spacing: 0.12em; text-transform: uppercase; }
+  .cmc-now { margin: 0.15rem 0 0; font-size: 0.95rem; font-weight: 800; color: #f8fafc; line-height: 1.25; }
   .cmc-sub { font-size: 0.72rem; font-weight: 500; color: #94a3b8; }
   .cmc-head-actions { display: flex; gap: 4px; flex-shrink: 0; }
   .cmc-icon {
@@ -118,6 +153,39 @@ function injectStyles() {
     cursor: pointer; line-height: 1;
   }
   .cmc-icon:active { transform: scale(0.95); }
+
+  /* Phone / car radio LCD */
+  .cmc-lcd {
+    border-radius: 12px;
+    border: 1px solid rgba(52, 211, 153, 0.35);
+    background: linear-gradient(180deg, #04140f 0%, #02080a 100%);
+    box-shadow: inset 0 0 24px rgba(16, 185, 129, 0.12);
+    padding: 0.65rem 0.75rem 0.55rem;
+    margin-bottom: 0.55rem;
+  }
+  .cmc-lcd-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    font-size: 0.62rem; font-weight: 700; color: #34d399; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .cmc-lcd-title {
+    font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, monospace;
+    font-size: 1.02rem; font-weight: 800; color: #ecfdf5;
+    line-height: 1.25; word-break: break-word;
+  }
+  .cmc-lcd-artist {
+    margin-top: 2px; font-size: 0.75rem; color: #6ee7b7; opacity: 0.9;
+  }
+  .cmc-lcd-times {
+    display: flex; justify-content: space-between;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 0.68rem; color: #86efac; margin-top: 8px;
+  }
+  .cmc-seek {
+    width: 100%; margin: 6px 0 0; accent-color: #34d399; height: 1.35rem;
+    cursor: pointer;
+  }
+
   .cmc-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0.55rem; }
   .cmc-chip {
     border-radius: 999px; border: 1px solid rgba(125,211,252,0.4);
@@ -128,7 +196,7 @@ function injectStyles() {
   .cmc-chip.stop { border-color: rgba(248,113,113,0.5); background: rgba(127,29,29,0.4); color: #fecaca; }
   .cmc-chip:active { transform: scale(0.96); }
   .cmc-list {
-    max-height: min(38vh, 260px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+    max-height: min(32vh, 220px); overflow-y: auto; -webkit-overflow-scrolling: touch;
     display: flex; flex-direction: column; gap: 4px;
     padding-right: 2px;
   }
@@ -153,13 +221,16 @@ function injectStyles() {
   @media (max-width: 640px) {
     .cmc-fab { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); font-size: 0.82rem; }
     .cmc-panel { bottom: calc(156px + env(safe-area-inset-bottom, 0px)); }
+    .cmc-radio-strip { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
   }
-  /* 3D: sit higher so it clears the bottom dock / Talk / quick-bar */
   .cmc-root[data-scene="luna-3d"] .cmc-fab {
     bottom: calc(188px + env(safe-area-inset-bottom, 0px));
   }
   .cmc-root[data-scene="luna-3d"] .cmc-panel {
     bottom: calc(248px + env(safe-area-inset-bottom, 0px));
+  }
+  .cmc-root[data-scene="luna-3d"] .cmc-radio-strip {
+    bottom: calc(242px + env(safe-area-inset-bottom, 0px));
   }
   @media (max-width: 640px) {
     .cmc-root[data-scene="luna-3d"] .cmc-fab {
@@ -167,6 +238,9 @@ function injectStyles() {
     }
     .cmc-root[data-scene="luna-3d"] .cmc-panel {
       bottom: calc(258px + env(safe-area-inset-bottom, 0px));
+    }
+    .cmc-root[data-scene="luna-3d"] .cmc-radio-strip {
+      bottom: calc(252px + env(safe-area-inset-bottom, 0px));
     }
   }
   `;
@@ -180,15 +254,20 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+function fmtTime(sec) {
+  const n = Math.max(0, Math.floor(Number(sec) || 0));
+  const m = Math.floor(n / 60);
+  const s = n % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 /**
  * @param {object} api
- * @returns {{ refresh: Function, openPanel: Function, closePanel: Function, setPlaying: Function }}
  */
 export function mountCampMusicChrome(api = {}) {
   injectStyles();
   const scene = api.scene || "camp";
 
-  // Remove prior instance if hot-reloaded
   document.getElementById("camp-music-chrome")?.remove();
 
   const root = document.createElement("div");
@@ -199,7 +278,16 @@ export function mountCampMusicChrome(api = {}) {
     <button type="button" class="cmc-fab" id="cmc-fab" aria-expanded="false" title="Play Telephantix music">
       <span id="cmc-fab-label">♪ Play music</span>
     </button>
-    <div class="cmc-panel" id="cmc-panel" aria-label="Telephantix music player" hidden>
+    <div class="cmc-radio-strip" id="cmc-radio-strip" title="Open player" hidden>
+      <div class="rs-brand">Telephantix · car radio</div>
+      <div class="rs-title" id="cmc-strip-title">—</div>
+      <div class="rs-meta">
+        <span id="cmc-strip-artist">Telephantix</span>
+        <span id="cmc-strip-time">0:00</span>
+      </div>
+      <div class="rs-bar" aria-hidden="true"><i id="cmc-strip-fill"></i></div>
+    </div>
+    <div class="cmc-panel" id="cmc-panel" aria-label="Telephantix radio" hidden>
       <div class="cmc-inner">
         <div class="cmc-head">
           <div>
@@ -213,13 +301,29 @@ export function mountCampMusicChrome(api = {}) {
           </div>
         </div>
         <div class="cmc-body" id="cmc-body">
+          <div class="cmc-lcd" id="cmc-lcd" aria-live="polite">
+            <div class="cmc-lcd-row">
+              <span id="cmc-lcd-station">FM · Luna Camp</span>
+              <span id="cmc-lcd-state">STANDBY</span>
+            </div>
+            <div class="cmc-lcd-title" id="cmc-lcd-title">No track</div>
+            <div class="cmc-lcd-artist" id="cmc-lcd-artist">Telephantix</div>
+            <div class="cmc-lcd-times">
+              <span id="cmc-t-cur">0:00</span>
+              <span id="cmc-t-dur">0:00</span>
+            </div>
+            <input type="range" class="cmc-seek" id="cmc-seek" min="0" max="1000" value="0" step="1" aria-label="Seek" />
+          </div>
           <div class="cmc-controls">
+            <button type="button" class="cmc-chip" id="cmc-back" title="Back 10s">−10s</button>
             <button type="button" class="cmc-chip" id="cmc-prev">Prev</button>
+            <button type="button" class="cmc-chip" id="cmc-playpause">Play</button>
             <button type="button" class="cmc-chip" id="cmc-next">Next</button>
+            <button type="button" class="cmc-chip" id="cmc-fwd" title="Forward 10s">+10s</button>
             <button type="button" class="cmc-chip stop" id="cmc-stop">Stop</button>
           </div>
           <div class="cmc-list" id="cmc-list"></div>
-          <p class="cmc-hint" id="cmc-hint">Full Telephantix queue · same player on Relics · 2D · 3D · never auto-starts</p>
+          <p class="cmc-hint" id="cmc-hint">Lock screen / car: title + seek · unlock keeps this song · Stop ends</p>
         </div>
       </div>
     </div>
@@ -228,6 +332,8 @@ export function mountCampMusicChrome(api = {}) {
 
   let panelOpen = false;
   let minimized = false;
+  let seekDragging = false;
+  let tickTimer = null;
 
   const fab = root.querySelector("#cmc-fab");
   const fabLabel = root.querySelector("#cmc-fab-label");
@@ -239,6 +345,18 @@ export function mountCampMusicChrome(api = {}) {
   const minBtn = root.querySelector("#cmc-min");
   const maxBtn = root.querySelector("#cmc-max");
   const hintEl = root.querySelector("#cmc-hint");
+  const strip = root.querySelector("#cmc-radio-strip");
+  const stripTitle = root.querySelector("#cmc-strip-title");
+  const stripArtist = root.querySelector("#cmc-strip-artist");
+  const stripTime = root.querySelector("#cmc-strip-time");
+  const stripFill = root.querySelector("#cmc-strip-fill");
+  const lcdTitle = root.querySelector("#cmc-lcd-title");
+  const lcdArtist = root.querySelector("#cmc-lcd-artist");
+  const lcdState = root.querySelector("#cmc-lcd-state");
+  const tCur = root.querySelector("#cmc-t-cur");
+  const tDur = root.querySelector("#cmc-t-dur");
+  const seekEl = root.querySelector("#cmc-seek");
+  const playPauseBtn = root.querySelector("#cmc-playpause");
 
   function tracks() {
     try {
@@ -249,7 +367,8 @@ export function mountCampMusicChrome(api = {}) {
     }
   }
 
-  function playing() {
+  /** User wants music on (may be paused by OS) */
+  function wantedOn() {
     try {
       return !!api.isPlaying?.();
     } catch {
@@ -263,6 +382,38 @@ export function mountCampMusicChrome(api = {}) {
     } catch {
       return 0;
     }
+  }
+
+  function pos() {
+    try {
+      if (typeof api.getPosition === "function") return Number(api.getPosition()) || 0;
+      const a = api.getAudio?.();
+      return Number(a?.currentTime) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function dur() {
+    try {
+      if (typeof api.getDuration === "function") {
+        const d = Number(api.getDuration()) || 0;
+        if (d > 0) return d;
+      }
+      const a = api.getAudio?.();
+      const d = Number(a?.duration) || 0;
+      return Number.isFinite(d) ? d : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function audioPaused() {
+    try {
+      const a = api.getAudio?.();
+      if (a) return !!a.paused;
+    } catch (_) {}
+    return !wantedOn();
   }
 
   function renderList() {
@@ -289,30 +440,70 @@ export function mountCampMusicChrome(api = {}) {
     });
     if (hintEl) {
       hintEl.textContent = ts.length
-        ? `${ts.length} songs · Play / Stop · minimize keeps sound · ${scene}`
+        ? `${ts.length} songs · car/phone lock shows title · unlock keeps place · ${scene}`
         : "Catalog loading…";
     }
   }
 
-  function refresh() {
+  function updateProgressUi() {
     const ts = tracks();
     const idx = index();
     const t = ts[idx] || null;
-    const on = playing();
+    const on = wantedOn();
+    const p = pos();
+    const d = dur();
+    const paused = audioPaused();
 
-    if (titleEl) titleEl.textContent = t?.title || (ts.length ? "Ready" : "No tracks");
+    const title = t?.title || (ts.length ? "Ready" : "No tracks");
+    const artist = t?.artist || "Telephantix";
+
+    if (titleEl) titleEl.textContent = title;
+    if (lcdTitle) lcdTitle.textContent = title;
+    if (lcdArtist) lcdArtist.textContent = artist;
+    if (lcdState) {
+      lcdState.textContent = !on ? "STANDBY" : paused ? "PAUSED" : "ON AIR";
+    }
     if (subEl) {
       subEl.textContent = on
-        ? `${idx + 1} / ${ts.length || "?"} · playing`
+        ? `${idx + 1} / ${ts.length || "?"} · ${paused ? "paused — same song" : "playing"} · ${fmtTime(p)}`
         : ts.length
           ? `${ts.length} songs ready · tap Play music`
           : "Tap Play music when ready";
     }
+    if (tCur) tCur.textContent = fmtTime(p);
+    if (tDur) tDur.textContent = d > 0 ? fmtTime(d) : "—:——";
+    if (seekEl && !seekDragging) {
+      const max = 1000;
+      seekEl.max = String(max);
+      const pct = d > 0 ? Math.min(1, p / d) : 0;
+      seekEl.value = String(Math.round(pct * max));
+    }
+    if (playPauseBtn) {
+      playPauseBtn.textContent = !on || paused ? "Play" : "Pause";
+    }
+
+    // Strip (mini radio) when on and panel not fully open
+    if (strip) {
+      const showStrip = on && !(panelOpen && !minimized);
+      strip.hidden = !showStrip;
+      strip.classList.toggle("show", showStrip);
+      if (stripTitle) stripTitle.textContent = title;
+      if (stripArtist) stripArtist.textContent = artist;
+      if (stripTime) stripTime.textContent = d > 0 ? `${fmtTime(p)} / ${fmtTime(d)}` : fmtTime(p);
+      if (stripFill) {
+        const pct = d > 0 ? Math.min(100, (p / d) * 100) : 0;
+        stripFill.style.width = `${pct}%`;
+      }
+    }
+  }
+
+  function refresh() {
+    const on = wantedOn();
 
     if (fabLabel) {
       if (panelOpen && !minimized) fabLabel.textContent = "Hide music";
       else if (panelOpen && minimized) fabLabel.textContent = "Expand music";
-      else if (on) fabLabel.textContent = "Show music";
+      else if (on) fabLabel.textContent = "Show radio";
       else fabLabel.textContent = "♪ Play music";
     }
     if (fab) {
@@ -322,8 +513,8 @@ export function mountCampMusicChrome(api = {}) {
       fab.title = on
         ? panelOpen && !minimized
           ? "Hide player (music keeps playing)"
-          : "Show music player · tap Stop inside to end"
-        : "Play Telephantix music — opens player";
+          : "Show radio · same song · Stop to end"
+        : "Play Telephantix music — opens radio";
     }
     if (panel) {
       panel.hidden = !panelOpen;
@@ -336,12 +527,23 @@ export function mountCampMusicChrome(api = {}) {
     document.body.classList.toggle("cmc-panel-open", panelOpen);
     document.body.classList.toggle("cmc-playing", on);
     renderList();
+    updateProgressUi();
+    ensureTick();
+  }
+
+  function ensureTick() {
+    if (tickTimer) return;
+    tickTimer = setInterval(() => {
+      if (!wantedOn() && !panelOpen) return;
+      updateProgressUi();
+    }, 400);
   }
 
   function openPanel(opts = {}) {
     panelOpen = true;
     minimized = false;
-    if (opts.play !== false && !playing()) {
+    // Only start if fully off — never re-roll when already on / paused mid-song
+    if (opts.play !== false && !wantedOn()) {
       api.playAt?.(index());
     }
     refresh();
@@ -354,8 +556,6 @@ export function mountCampMusicChrome(api = {}) {
   }
 
   fab?.addEventListener("click", () => {
-    // Relics-style: first tap opens + plays; if open → hide panel (keep playing);
-    // if playing & closed → show panel; long path uses Stop inside to kill sound.
     if (!panelOpen) {
       openPanel({ play: true });
       return;
@@ -365,15 +565,17 @@ export function mountCampMusicChrome(api = {}) {
       refresh();
       return;
     }
-    // Hide panel; keep audio. Second intent to stop = Stop chip.
     panelOpen = false;
     refresh();
   });
 
-  // Double-click / long-press alternative: stop entirely when holding fab while playing
+  strip?.addEventListener("click", () => {
+    openPanel({ play: false });
+  });
+
   let holdT = null;
   fab?.addEventListener("pointerdown", () => {
-    if (!playing()) return;
+    if (!wantedOn()) return;
     holdT = setTimeout(() => {
       api.stop?.();
       panelOpen = false;
@@ -412,6 +614,59 @@ export function mountCampMusicChrome(api = {}) {
   root.querySelector("#cmc-stop")?.addEventListener("click", () => {
     api.stop?.();
     refresh();
+  });
+  root.querySelector("#cmc-back")?.addEventListener("click", () => {
+    if (typeof api.seekBy === "function") api.seekBy(-10);
+    else if (typeof api.seekTo === "function") api.seekTo(Math.max(0, pos() - 10));
+    refresh();
+  });
+  root.querySelector("#cmc-fwd")?.addEventListener("click", () => {
+    if (typeof api.seekBy === "function") api.seekBy(10);
+    else if (typeof api.seekTo === "function") api.seekTo(pos() + 10);
+    refresh();
+  });
+  playPauseBtn?.addEventListener("click", () => {
+    if (!wantedOn()) {
+      api.playAt?.(index());
+    } else if (audioPaused()) {
+      api.playAt?.(index()); // soft resume same index
+    } else if (typeof api.pause === "function") {
+      api.pause();
+    } else {
+      try {
+        api.getAudio?.()?.pause();
+      } catch (_) {}
+    }
+    refresh();
+  });
+
+  seekEl?.addEventListener("pointerdown", () => {
+    seekDragging = true;
+  });
+  seekEl?.addEventListener("pointerup", () => {
+    seekDragging = false;
+  });
+  seekEl?.addEventListener("change", () => {
+    const d = dur();
+    if (!(d > 0) || !seekEl) return;
+    const pct = Number(seekEl.value) / Number(seekEl.max || 1000);
+    const t = pct * d;
+    if (typeof api.seekTo === "function") api.seekTo(t);
+    else {
+      try {
+        const a = api.getAudio?.();
+        if (a) a.currentTime = t;
+      } catch (_) {}
+    }
+    seekDragging = false;
+    refresh();
+  });
+  seekEl?.addEventListener("input", () => {
+    // Live preview of time while dragging
+    const d = dur();
+    if (!(d > 0) || !seekEl || !tCur) return;
+    const pct = Number(seekEl.value) / Number(seekEl.max || 1000);
+    tCur.textContent = fmtTime(pct * d);
   });
 
   refresh();

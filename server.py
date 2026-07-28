@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "313-MOBILE-CLEAN"
+LUNA_BUILD = "314-MJOLNIR"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2027,6 +2027,13 @@ VOICE_CHOICES = {
     "sara": "en-US-SaraNeural",
     "michelle": "en-US-MichelleNeural",
     "ana": "en-GB-AnaNeural",
+    # DJ / car radio (male neural — free edge-tts)
+    "guy": "en-US-GuyNeural",
+    "dj": "en-US-GuyNeural",
+    "vox": "en-US-GuyNeural",  # DJ Vox character (free)
+    "chris": "en-US-ChristopherNeural",
+    "davis": "en-US-DavisNeural",
+    "tony": "en-US-TonyNeural",
 }
 
 
@@ -2778,6 +2785,92 @@ async def firmament_camp_catalog_api():
     from firmament.world_catalog import catalog_public
 
     return catalog_public()
+
+
+class FirmamentDjDropBody(BaseModel):
+    next_title: str = ""
+    prev_title: str = ""
+    artist: str = "Telephantix"
+    station: str = "Telephantix Radio"
+    voice: str = "vox"
+    use_llm: bool = True
+    mood: str = "happy"
+    rate: int = 10
+    pitch: int = -3
+    kind: str = "bridge"  # bridge | id
+
+
+@app.post("/api/firmament/dj/drop")
+async def firmament_dj_drop_api(body: FirmamentDjDropBody):
+    """Live DJ Vox drop: free Ollama script (fallback templates) + free edge-tts voice."""
+    from firmament.dj_radio import craft_dj_line
+
+    next_title = (body.next_title or "").strip() or "the next track"
+    kind = (body.kind or "bridge").strip().lower() or "bridge"
+    crafted = craft_dj_line(
+        next_title=next_title,
+        prev_title=(body.prev_title or "").strip(),
+        artist=(body.artist or "Telephantix").strip() or "Telephantix",
+        station=(body.station or "Telephantix Radio").strip() or "Telephantix Radio",
+        use_llm=bool(body.use_llm),
+        kind=kind,
+    )
+    voice_key = (body.voice or crafted.get("dj", {}).get("voice_key") or "vox").strip().lower() or "vox"
+    try:
+        spoken = await synthesize_speech(
+            crafted["text"],
+            voice_key,
+            int(body.rate if body.rate is not None else 10),
+            int(body.pitch if body.pitch is not None else -3),
+            body.mood or "happy",
+            fast=True,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"DJ TTS failed: {exc}") from exc
+    return {
+        "ok": True,
+        "text": crafted["text"],
+        "source": crafted.get("source") or "template",
+        "next_title": crafted.get("next_title"),
+        "prev_title": crafted.get("prev_title"),
+        "artist": crafted.get("artist"),
+        "station": crafted.get("station"),
+        "dj": crafted.get("dj"),
+        "audio_b64": spoken.get("audio_b64"),
+        "voice": spoken.get("voice") or voice_key,
+        "words": spoken.get("words") or [],
+    }
+
+
+@app.get("/api/firmament/dj/status")
+async def firmament_dj_status_api():
+    """DJ Vox capability probe for the client chip."""
+    from firmament.brain import free_backends_status, llm_backend
+    from firmament.dj_radio import dj_public_profile
+
+    free = free_backends_status() if callable(free_backends_status) else {}
+    ollama_ok = False
+    try:
+        host = free.get("ollama_host") or "http://127.0.0.1:11434"
+        with httpx.Client(timeout=2.0) as client:
+            ollama_ok = client.get(f"{str(host).rstrip('/')}/api/tags").status_code == 200
+    except Exception:
+        ollama_ok = False
+    profile = dj_public_profile()
+    return {
+        "ok": True,
+        "station": profile.get("station") or "Telephantix Radio",
+        "tts": "edge-tts",
+        "free": True,
+        "default_on": True,
+        "dj": profile,
+        "voices": ["vox", "dj", "guy", "chris", "davis", "tony"],
+        "llm_backend": llm_backend() if callable(llm_backend) else "unknown",
+        "ollama_ok": ollama_ok,
+        "script": "ollama+templates" if ollama_ok else "templates",
+    }
 
 
 @app.get("/api/firmament/camp/protocol")

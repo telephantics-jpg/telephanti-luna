@@ -121,7 +121,10 @@
       transition: opacity 0.35s ease, visibility 0.35s;
     }
     #boot-overlay.done {
-      opacity: 0; visibility: hidden;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      display: none !important;
+      pointer-events: none !important;
     }
     #boot-overlay .boot-card {
       max-width: min(420px, 90vw);
@@ -635,6 +638,27 @@
     body.chat3d-open .bubble3d .bubble-x {
       pointer-events: none !important;
     }
+    /* Selected / FRONT bubble stays readable + on top while Talk is open */
+    body.chat3d-open .bubble3d.front,
+    body.chat3d-open .bubble3d.locked {
+      opacity: 1 !important;
+      filter: none !important;
+      pointer-events: auto !important;
+      z-index: 2750 !important;
+    }
+    body.chat3d-open .bubble3d.front .bubble-x,
+    body.chat3d-open .bubble3d.locked .bubble-x {
+      pointer-events: auto !important;
+    }
+    .drag-handle, #chat3d-panel .c3-head, #place-interior .pi-head {
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    .drag-handle:active, #chat3d-panel .c3-head:active, #place-interior .pi-head:active {
+      cursor: grabbing;
+    }
     #btn-clear-bubbles {
       position: fixed;
       z-index: 2550;
@@ -1121,7 +1145,7 @@
   </div>
 
   <script type="module">
-    const BUILD = "2026-07-27-three-v86-radio";
+    const BUILD = "2026-07-27-three-v100-mjolnir-prop";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -1158,8 +1182,10 @@
       console.info("[camp3d]", t);
     }
     function finishBoot(ok = true) {
-      if (bootFinished && ok) return;
-      bootFinished = true;
+      // Allow success to override a prior fail / stuck "loading" card
+      if (bootFinished && ok && bootOverlay?.classList.contains("done")) return;
+      if (ok) bootFinished = true;
+      else if (!bootFinished) bootFinished = true;
       if (bootOverlay) {
         if (ok) {
           bootOverlay.classList.add("done");
@@ -1168,20 +1194,39 @@
           bootOverlay.style.opacity = "0";
           bootOverlay.style.visibility = "hidden";
           bootOverlay.style.pointerEvents = "none";
+          bootOverlay.style.display = "none";
+          try {
+            bootOverlay.setAttribute("aria-hidden", "true");
+          } catch (_) {}
         } else {
           bootOverlay.classList.remove("done");
           bootOverlay.classList.add("fail");
           bootOverlay.style.opacity = "";
           bootOverlay.style.visibility = "";
+          bootOverlay.style.display = "";
         }
       }
       if (ok && statusEl) {
         statusEl.hidden = true;
         statusEl.textContent = "Free Ollama meadow";
       }
+      if (ok) console.info("[camp3d] boot cleared — meadow playable");
     }
+    // Local free town URL (not telephanti.com / not https)
+    function localTownUrl() {
+      try {
+        const u = new URL(location.href);
+        // Prefer whatever port this page was served from
+        if (u.hostname === "127.0.0.1" || u.hostname === "localhost") {
+          return `${u.protocol}//${u.host}/firmament/3d`;
+        }
+      } catch (_) {}
+      return "http://127.0.0.1:8767/firmament/3d";
+    }
+    const LOCAL_TOWN = localTownUrl();
+
     // Never leave user staring at boot forever (server drop / hung GLB)
-    function forceBootClear(reason) {
+    async function forceBootClear(reason) {
       if (bootFinished) return;
       const hasCanvas = !!document.querySelector("#canvas-host canvas");
       if (hasCanvas) {
@@ -1189,26 +1234,79 @@
         finishBoot(true);
         return;
       }
-      // No canvas = usually dead server or blocked Three.js
+      // Probe local health before blaming Three.js
+      let healthOk = false;
+      try {
+        const hr = await fetch("/api/health", { cache: "no-store" });
+        if (hr.ok) {
+          const h = await hr.json();
+          healthOk = !!h.ok;
+          if (healthOk && h.ollama_ok) {
+            setBootStep("Server OK · free Ollama — still building meadow…");
+            // Give catalog / WebGL more time if brains are up
+            return;
+          }
+        }
+      } catch (_) {
+        healthOk = false;
+      }
+      if (healthOk) {
+        // Server alive but no canvas yet — keep waiting a bit more (don't hard-fail)
+        setBootStep(reason || "Server OK · still painting meadow…");
+        // Only hard-fail from the 30s last-resort timer
+        if (reason && String(reason).includes("last-resort")) {
+          showBootError(
+            "Server is up but WebGL meadow never painted. Try Ctrl+Shift+R, disable extensions, or another browser. " +
+              LOCAL_TOWN,
+          );
+          finishBoot(false);
+        }
+        return;
+      }
       showBootError(
-        "Server not answering or Three.js never started. " +
-          "Run START_TOWN_LOCAL.bat and keep the black window open, then open " +
-          "http://127.0.0.1:8767/firmament/3d — use http not https.",
+        "Can't reach the local Luna town server. " +
+          "Double-click START_TOWN_LOCAL.bat (keep the black window open), then open " +
+          LOCAL_TOWN +
+          " — use http not https. Free Ollama only works on local, not telephanti.com.",
       );
       finishBoot(false);
     }
+    // Poll: as soon as canvas exists, kill the boot card (don't wait for GLB finish)
+    const bootPoll = setInterval(() => {
+      if (bootFinished) {
+        clearInterval(bootPoll);
+        return;
+      }
+      if (document.querySelector("#canvas-host canvas")) {
+        setBootStep("Meadow is up");
+        finishBoot(true);
+        clearInterval(bootPoll);
+      }
+    }, 400);
     setTimeout(() => {
       if (bootFinished) return;
-      const hasCanvas = !!document.querySelector("#canvas-host canvas");
-      if (hasCanvas) {
-        setBootStep("Meadow is up — clearing boot card…");
+      if (document.querySelector("#canvas-host canvas")) {
         finishBoot(true);
       } else {
-        setBootStep("Still loading… checking server…");
+        setBootStep("Still loading meadow… (server should be on :8767)");
       }
-    }, 5000);
-    setTimeout(() => forceBootClear("Taking too long — opening meadow anyway"), 10000);
-    setTimeout(() => forceBootClear(), 16000);
+    }, 6000);
+    setTimeout(() => forceBootClear("Taking a bit — waiting on WebGL…"), 14000);
+    setTimeout(() => forceBootClear(), 22000);
+    setTimeout(() => {
+      if (bootFinished) return;
+      if (document.querySelector("#canvas-host canvas")) finishBoot(true);
+      else forceBootClear("last-resort");
+    }, 30000);
+    // Surface silent module errors on the boot card
+    window.addEventListener("unhandledrejection", (ev) => {
+      if (bootFinished) return;
+      const msg = ev?.reason?.message || String(ev?.reason || "unknown");
+      console.error("[camp3d] unhandledrejection", ev?.reason);
+      if (/fetch|network|failed to fetch|load/i.test(msg)) {
+        showBootError(msg);
+      }
+    });
     function showBootError(msg) {
       console.error(msg);
       const text = String(msg && msg.message ? msg.message : msg);
@@ -1218,22 +1316,24 @@
         bootOverlay.classList.remove("done");
         if (bootStepEl) {
           bootStepEl.innerHTML =
-            `<b>Camp didn't start</b><br>${text.replace(/</g, "&lt;")}` +
-            `<br><br>1) Keep Luna server window open<br>2) Open <code>http://127.0.0.1:8767/firmament/3d</code>` +
-            `<br>3) Ctrl+Shift+R hard refresh<br>4) Don't use telephanti.com if you want free Ollama`;
+            `<b>Local camp didn't start</b><br>${text.replace(/</g, "&lt;")}` +
+            `<br><br><b>Free Ollama path (what you want):</b>` +
+            `<br>1) Run <code>START_TOWN_LOCAL.bat</code> — leave black window open` +
+            `<br>2) Open <code>${LOCAL_TOWN}</code> (http only)` +
+            `<br>3) Ctrl+Shift+R hard refresh` +
+            `<br>4) Not telephanti.com — live has no free Ollama`;
         }
       }
       if (statusEl) {
         statusEl.hidden = true;
-        statusEl.textContent = "3D failed to load — see center card";
+        statusEl.textContent = "3D failed — local server?";
       }
       if (bootErr) {
         bootErr.hidden = false;
         bootErr.innerHTML =
           `<b>Three.js camp failed to start</b><br>${text.replace(/</g, "&lt;")}` +
-          `<br><br>Try: <b>Ctrl+Shift+R</b> · only ` +
-          `<code>http://127.0.0.1:8767/firmament/3d</code> with server running.` +
-          `<br>Clear site data if still stuck. Free brains = local Ollama, not xAI.`;
+          `<br><br>Free brains = <b>local Ollama</b> via <code>${LOCAL_TOWN}</code>` +
+          `<br>Keep START_TOWN_LOCAL.bat open · Ctrl+Shift+R · http not https.`;
       }
     }
 
@@ -1253,13 +1353,17 @@
       } catch (fe) {
         clearTimeout(headTimer);
         throw new Error(
-          "Can't reach Luna server (Three.js fetch failed). " +
+          "Can't reach local Luna server (Three.js fetch failed). " +
             "Double-click START_TOWN_LOCAL.bat and leave it open. " +
-            "Then use http://127.0.0.1:8767/firmament/3d",
+            "Then open " + LOCAL_TOWN + " (http, not https).",
         );
       }
       clearTimeout(headTimer);
-      if (!head.ok) throw new Error(`three.module.js HTTP ${head.status} — is the Luna server running on :8767?`);
+      if (!head.ok) {
+        throw new Error(
+          `three.module.js HTTP ${head.status} — is START_TOWN_LOCAL.bat running? Open ${LOCAL_TOWN}`,
+        );
+      }
       THREE = await import(THREE_URL);
       setBootStep("Loading camera controls…");
       ({ OrbitControls } = await import(ORBIT_URL));
@@ -1381,6 +1485,36 @@
       blurb: a.blurb || a.persona_hint || "",
     }));
     let AGENTS = ALL_AGENT_DEFS.filter((a) => a.base || !a.summon);
+    // Mjolnir needs Thor on the meadow (usually Heaven-summon) — always include him in 3D
+    if (!AGENTS.some((a) => a.id === "thor")) {
+      const thorDef =
+        ALL_AGENT_DEFS.find((a) => a.id === "thor") ||
+        {
+          id: "thor",
+          name: "Thor",
+          color: 0x38bdf8,
+          accent: 0xf97316,
+          x: 200,
+          y: 200,
+          visual: { archetype: "thunder", primary: "#38bdf8", accent: "#f97316" },
+          base: true,
+          summon: "",
+          mood: "happy",
+          faction: "heaven",
+        };
+      AGENTS = [
+        ...AGENTS,
+        {
+          ...thorDef,
+          base: true,
+          summon: "",
+          name: thorDef.name || "Thor",
+          color: thorDef.color || 0x38bdf8,
+          mood: thorDef.mood || "happy",
+        },
+      ];
+      console.info("[camp3d] Thor forced onto meadow for Mjolnir");
+    }
     // Never boot with empty talk roster
     if (!AGENTS.length) {
       const fb = campWorld.fallbackCatalog();
@@ -1439,6 +1573,7 @@
       flamingo: { tint: 0xf472b6, glow: 0.4, mood: "flirt" },
       parrot: { tint: 0x22c55e, glow: 0.4, mood: "happy" },
       duck: { tint: 0xfbbf24, glow: 0.35, mood: "love" },
+      mjolnir: { tint: 0x38bdf8, glow: 0.75, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
     };
 
     /** Props you + agents can pick up and tote (X to drop · tap a friend to gift). */
@@ -1449,12 +1584,14 @@
     ]);
     const NOT_PICKABLE = new Set([
       "trex", "t-rex", "horse", "flamingo", "parrot", "duck", "stereo",
+      "mjolnir", // only Thor can wield — others interact, cannot lift
     ]);
     const WILDLIFE_PROPS = new Set(["trex", "t-rex", "horse", "flamingo", "parrot", "duck"]);
     function isPickableProp(id) {
       const k = String(id || "").toLowerCase();
       if (!k || NOT_PICKABLE.has(k) || WILDLIFE_PROPS.has(k)) return false;
       if (k === "ouija") return false; // opens spirit chat, not carry
+      if (k === "mjolnir") return false;
       if (PICKABLE_PROPS.has(k)) return true;
       // Default: most camp props are grab-able for fun
       return true;
@@ -1489,6 +1626,10 @@
     renderer.toneMappingExposure = 1.28;
     host.appendChild(renderer.domElement);
     setBootStep("Meadow canvas ready — placing camp…");
+    // Clear boot card the moment WebGL exists (don't wait for props/agents/music)
+    try {
+      finishBoot(true);
+    } catch (_) {}
 
     const scene = new THREE.Scene();
     // Lighter, teal-violet fog so color pops (2D neon night)
@@ -1585,7 +1726,8 @@
 
     // Lights — vivid 2D-style aurora night
     scene.add(new THREE.AmbientLight(0xb8c8ff, 0.62));
-    const hemi = new THREE.HemisphereLight(0x7dd3fc, 0x22c55e, 0.95);
+    // Cool sky / dark ground so video floor isn’t washed green
+    const hemi = new THREE.HemisphereLight(0x7dd3fc, 0x1a1528, 0.72);
     scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffe4c4, 1.25);
     sun.position.set(28, 40, 18);
@@ -1694,34 +1836,127 @@
       }
     }
 
-    // Ground — richer greens with teal / violet tint patches
+    // Ground — Mjolnir relic loop (video floor). Sticky: no green grass mesh, keep video alive.
+    let groundVideoTex = null;
+    let groundVideoEl = null;
+    let groundFloorMesh = null;
+    let groundVideoLastKeepAlive = 0;
     {
-      const g = new THREE.CircleGeometry(95, 96);
-      const pos = g.attributes.position;
-      const colors = [];
-      const c1 = new THREE.Color(0x166534);
-      const c2 = new THREE.Color(0x22c55e);
-      const c3 = new THREE.Color(0x0f766e);
-      const c4 = new THREE.Color(0x4c1d95);
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i), z = pos.getY(i);
-        const n = Math.sin(x * 0.35) * Math.cos(z * 0.28) * 0.5 + 0.5;
-        const m = Math.abs(Math.sin(x * 0.12 + z * 0.09));
-        const c = c1.clone().lerp(c2, n).lerp(c3, m * 0.35).lerp(c4, m * m * 0.12);
-        colors.push(c.r, c.g, c.b);
+      const FLOOR_VIDEO = `/static/camp/mjolnir_loop_60s.mp4?v=${BUILD}`;
+      // Dark underlay — never neon green if video stalls
+      const under = new THREE.Mesh(
+        new THREE.PlaneGeometry(240, 240),
+        new THREE.MeshStandardMaterial({
+          color: 0x0a0c14,
+          roughness: 0.95,
+          metalness: 0.05,
+          emissive: 0x05070f,
+          emissiveIntensity: 0.25,
+        }),
+      );
+      under.rotation.x = -Math.PI / 2;
+      under.position.y = -0.04;
+      under.receiveShadow = true;
+      under.name = "groundUnderlay";
+      scene.add(under);
+
+      try {
+        const vid = document.createElement("video");
+        vid.src = FLOOR_VIDEO;
+        vid.crossOrigin = "anonymous";
+        vid.loop = true;
+        vid.muted = true;
+        vid.defaultMuted = true;
+        vid.volume = 0;
+        vid.playsInline = true;
+        vid.setAttribute("playsinline", "");
+        vid.setAttribute("webkit-playsinline", "");
+        vid.setAttribute("muted", "");
+        vid.preload = "auto";
+        // Keep element in DOM (hidden) so browsers don't GC the decoder
+        vid.style.cssText =
+          "position:fixed;width:2px;height:2px;opacity:0.01;pointer-events:none;left:0;top:0;z-index:-1;";
+        document.body.appendChild(vid);
+        groundVideoEl = vid;
+
+        const tex = new THREE.VideoTexture(vid);
+        if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.minFilter = THREE.LinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.generateMipmaps = false;
+        // Force GPU upload every frame (some drivers drop stalled VideoTextures)
+        tex.needsUpdate = true;
+        groundVideoTex = tex;
+
+        // Square plane (stable UVs) — video fills meadow; no green grass plane above it
+        const g = new THREE.PlaneGeometry(200, 200, 1, 1);
+        const mat = new THREE.MeshBasicMaterial({
+          map: tex,
+          side: THREE.FrontSide,
+          toneMapped: false,
+        });
+        const mesh = new THREE.Mesh(g, mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.y = 0.012;
+        mesh.receiveShadow = true;
+        mesh.name = "mjolnirFloor";
+        mesh.renderOrder = -1;
+        scene.add(mesh);
+        groundFloorMesh = mesh;
+
+        const tryPlay = () => {
+          const p = vid.play();
+          if (p && typeof p.catch === "function") {
+            p.catch(() => {
+              const unlock = () => {
+                vid.muted = true;
+                vid.play().catch(() => {});
+                window.removeEventListener("pointerdown", unlock);
+                window.removeEventListener("keydown", unlock);
+                window.removeEventListener("touchstart", unlock);
+              };
+              window.addEventListener("pointerdown", unlock, { once: true, passive: true });
+              window.addEventListener("keydown", unlock, { once: true });
+              window.addEventListener("touchstart", unlock, { once: true, passive: true });
+            });
+          }
+        };
+        const kick = () => {
+          tryPlay();
+          if (groundVideoTex) groundVideoTex.needsUpdate = true;
+        };
+        if (vid.readyState >= 2) kick();
+        else {
+          vid.addEventListener("canplay", kick, { once: true });
+          vid.addEventListener("loadeddata", kick, { once: true });
+        }
+        // Stickiness: if the loop ends or stalls, restart — never leave a dead first frame
+        vid.addEventListener("ended", () => {
+          try {
+            vid.currentTime = 0;
+            vid.play().catch(() => {});
+          } catch (_) {}
+        });
+        vid.addEventListener("pause", () => {
+          // User gesture / tab return — resume unless page hidden
+          if (!document.hidden) {
+            setTimeout(() => {
+              if (vid.paused && !document.hidden) vid.play().catch(() => {});
+            }, 120);
+          }
+        });
+        vid.addEventListener("error", () => {
+          console.warn("[camp3d] video floor error", vid.error);
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden && vid.paused) vid.play().catch(() => {});
+        });
+        console.info("[camp3d] Mjolnir video floor (sticky)", FLOOR_VIDEO);
+      } catch (err) {
+        console.warn("[camp3d] video floor failed, dark underlay only", err);
       }
-      g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-      const mat = new THREE.MeshStandardMaterial({
-        vertexColors: true,
-        roughness: 0.88,
-        metalness: 0.04,
-        emissive: new THREE.Color(0x0a2a18),
-        emissiveIntensity: 0.08,
-      });
-      const mesh = new THREE.Mesh(g, mat);
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.receiveShadow = true;
-      scene.add(mesh);
     }
 
     // Meadow ring path — glowing path like 2D camp circle
@@ -1873,38 +2108,8 @@
       scene.add(fireflies);
     }
 
-    // Soft grass blades (instanced) — brighter multi-green
+    // No digital grass — floor is the Mjolnir relic video
     let grassMesh = null;
-    {
-      const blade = new THREE.ConeGeometry(0.045, 0.52, 3);
-      blade.translate(0, 0.26, 0);
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0x4ade80,
-        roughness: 0.75,
-        metalness: 0.05,
-        emissive: 0x14532d,
-        emissiveIntensity: 0.15,
-      });
-      const count = 1200;
-      const mesh = new THREE.InstancedMesh(blade, mat, count);
-      const dummy = new THREE.Object3D();
-      let n = 0;
-      for (let i = 0; i < count; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const r = 2.2 + Math.random() * 24;
-        if (r < 3.5) continue;
-        dummy.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
-        dummy.rotation.y = Math.random() * Math.PI;
-        dummy.rotation.z = (Math.random() - 0.5) * 0.25;
-        dummy.scale.setScalar(0.65 + Math.random() * 1.05);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(n++, dummy.matrix);
-      }
-      mesh.count = n;
-      grassMesh = mesh;
-      mesh.castShadow = true;
-      scene.add(mesh);
-    }
 
     // Simple trees
     function makeTree(x, z, h = 1) {
@@ -2364,6 +2569,58 @@
         g.add(tail);
         g.userData.trex = true;
         g.userData.interactKind = "wildlife";
+      } else if (kit === "mjolnir" || prop.id === "mjolnir") {
+        // Mjolnir — short handle + block head + storm glow (only Thor lifts)
+        const steel = mat(0xb8c4d4, 0.32, 0.88, 0.18);
+        steel.emissive = new THREE.Color(0x38bdf8);
+        steel.emissiveIntensity = 0.22;
+        const wood = mat(0x5c3a1e, 0.88, 0.05, 0.04);
+        const leather = mat(0x3f2a14, 0.9, 0.02, 0);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.058, 0.92, 12), wood), 0.52);
+        for (let i = 0; i < 5; i++) {
+          const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.016, 6, 14), leather);
+          wrap.rotation.x = Math.PI / 2;
+          wrap.position.y = 0.22 + i * 0.1;
+          wrap.castShadow = true;
+          g.add(wrap);
+        }
+        const head = add(new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.34, 0.34), steel), 1.08);
+        head.castShadow = true;
+        // short side peens
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.28), steel), 1.08).position.x = 0.32;
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.28), steel), 1.08).position.x = -0.32;
+        const rune = new THREE.Mesh(
+          new THREE.BoxGeometry(0.42, 0.05, 0.06),
+          new THREE.MeshStandardMaterial({
+            color: 0x67e8f9,
+            emissive: 0x0ea5e9,
+            emissiveIntensity: 1.1,
+            metalness: 0.4,
+            roughness: 0.25,
+          }),
+        );
+        rune.position.set(0, 1.08, 0.18);
+        g.add(rune);
+        const pommel = add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), steel), 0.06);
+        pommel.material = steel;
+        // lightning aura disc
+        const aura = new THREE.Mesh(
+          new THREE.RingGeometry(0.35, 0.72, 32),
+          new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.45,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          }),
+        );
+        aura.rotation.x = -Math.PI / 2;
+        aura.position.y = 0.04;
+        aura.name = "mjolnirAura";
+        g.add(aura);
+        g.userData.mjolnir = true;
+        g.userData.interactKind = "mjolnir";
+        g.userData.hot = true;
       } else {
         add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.55, 0.8), mat(col, 0.5, 0.12, 0.06)), 0.35);
       }
@@ -2399,15 +2656,243 @@
       group.userData = { ...group.userData, kind: "prop", ...prop };
       scene.add(group);
       propMeshes.push(group);
+      if (prop.id === "mjolnir" || group.userData.mjolnir) {
+        mjolnirState.mesh = group;
+        group.userData.mjolnir = true;
+        group.userData.interact = "mjolnir";
+      }
       return group;
     }
-    // Catalog toys + free wildlife accents (T-Rex replaces the runaway horse GLB)
+    // Catalog toys + free wildlife accents + Mjolnir (Thor-only lift)
     const EXTRA_SCENERY = [
       { id: "flamingo", name: "Flamingo", emoji: "🦩", x: -180, y: 300, color: 0xf472b6, visual: { kit: "flamingo" }, interact: "pet" },
       { id: "parrot", name: "Parrot", emoji: "🦜", x: 120, y: 280, color: 0x22c55e, visual: { kit: "parrot" }, interact: "pet" },
       { id: "trex", name: "Camp T-Rex", emoji: "🦖", x: 520, y: -120, color: 0x3f7a3a, visual: { kit: "trex" }, interact: "roar" },
       { id: "duck", name: "Pond duck", emoji: "🦆", x: -200, y: 340, color: 0xfbbf24, visual: { kit: "duck" }, interact: "pet" },
+      {
+        id: "mjolnir",
+        name: "Mjolnir",
+        emoji: "🔨",
+        x: 80,
+        y: 40,
+        color: 0x38bdf8,
+        visual: { kit: "mjolnir" },
+        interact: "mjolnir",
+        use: "Only the worthy may lift the hammer — Thor already knows the answer.",
+      },
     ];
+
+    /** Live Mjolnir — world prop, Thor carry, flight throws */
+    const mjolnirState = {
+      mesh: null,
+      ownerId: null, // "thor" when wielded
+      flying: false,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      spin: 0,
+      landAt: 0,
+      nextThorSeekAt: 0,
+      nextThorThrowAt: 0,
+    };
+    function findMjolnirMesh() {
+      if (mjolnirState.mesh?.parent) return mjolnirState.mesh;
+      const m = propMeshes.find((g) => g.userData?.mjolnir || g.userData?.id === "mjolnir") || null;
+      if (m) mjolnirState.mesh = m;
+      return m;
+    }
+    function worldPosOfMjolnir() {
+      const m = findMjolnirMesh();
+      if (!m) return new THREE.Vector3(2, 0, 1);
+      const p = new THREE.Vector3();
+      m.getWorldPosition(p);
+      return p;
+    }
+    function placeMjolnirOnGround(wx, wz, opts = {}) {
+      const mesh = findMjolnirMesh();
+      if (!mesh) return;
+      // Detach from any agent hand
+      if (mesh.parent && mesh.parent !== scene) {
+        mesh.parent.remove(mesh);
+        scene.add(mesh);
+      }
+      const solid = resolveSolidXZ(wx, wz, 0.45, {});
+      mesh.position.set(solid.x, 0, solid.z);
+      mesh.rotation.set(0, opts.yaw != null ? opts.yaw : Math.random() * Math.PI * 2, 0);
+      mesh.scale.setScalar(1);
+      mesh.visible = true;
+      mesh.userData.kind = "prop";
+      mesh.userData.id = "mjolnir";
+      mesh.userData.name = "Mjolnir";
+      mesh.userData.emoji = "🔨";
+      mesh.userData.mjolnir = true;
+      if (!propMeshes.includes(mesh)) propMeshes.push(mesh);
+      mjolnirState.ownerId = null;
+      mjolnirState.flying = false;
+      mjolnirState.vx = 0;
+      mjolnirState.vy = 0;
+      mjolnirState.vz = 0;
+    }
+    function thorClaimMjolnir(st) {
+      if (!st || st.def?.id !== "thor") return false;
+      const mesh = findMjolnirMesh();
+      if (!mesh || mjolnirState.flying) return false;
+      // Parent hammer to Thor's hand
+      if (mesh.parent) mesh.parent.remove(mesh);
+      st.mesh.add(mesh);
+      mesh.position.set(0.42, 1.15, 0.28);
+      mesh.rotation.set(0.35, 0.4, 0.9);
+      mesh.scale.setScalar(0.72);
+      mesh.visible = true;
+      mjolnirState.ownerId = "thor";
+      mjolnirState.flying = false;
+      setAgentCarry(st, { id: "mjolnir", name: "Mjolnir", emoji: "🔨", color: 0x38bdf8 });
+      // Hide emoji sprite — real mesh is the carry
+      clearCarryOn(st.mesh);
+      st.carried = { id: "mjolnir", name: "Mjolnir", emoji: "🔨", color: 0x38bdf8 };
+      st.nextThrowAt = performance.now() + 3500 + Math.random() * 4000;
+      mjolnirState.nextThorThrowAt = st.nextThrowAt;
+      return true;
+    }
+    function thorThrowMjolnir(st, aim = null) {
+      if (!st || st.def?.id !== "thor") return false;
+      const mesh = findMjolnirMesh();
+      if (!mesh || mjolnirState.ownerId !== "thor") return false;
+      // World-space launch from hand
+      const origin = new THREE.Vector3();
+      mesh.getWorldPosition(origin);
+      if (mesh.parent) mesh.parent.remove(mesh);
+      scene.add(mesh);
+      mesh.position.copy(origin);
+      mesh.scale.setScalar(0.85);
+      if (!propMeshes.includes(mesh)) propMeshes.push(mesh);
+
+      let tx, tz;
+      if (aim && Number.isFinite(aim.x) && Number.isFinite(aim.z)) {
+        tx = aim.x;
+        tz = aim.z;
+      } else if (Math.random() < 0.35 && typeof visitor !== "undefined" && visitor) {
+        tx = visitor.position.x + (Math.random() - 0.5) * 6;
+        tz = visitor.position.z + (Math.random() - 0.5) * 6;
+      } else if (Math.random() < 0.5 && agentState.length > 1) {
+        const prey = agentState.filter((a) => a.def.id !== "thor")[Math.floor(Math.random() * Math.max(1, agentState.length - 1))];
+        if (prey) {
+          tx = prey.mesh.position.x + (Math.random() - 0.5) * 4;
+          tz = prey.mesh.position.z + (Math.random() - 0.5) * 4;
+        }
+      }
+      if (tx == null) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 8 + Math.random() * 22;
+        tx = Math.cos(a) * r;
+        tz = Math.sin(a) * r;
+      }
+      const solid = resolveSolidXZ(tx, tz, 0.5, {});
+      tx = solid.x;
+      tz = solid.z;
+      const dx = tx - origin.x;
+      const dz = tz - origin.z;
+      const dist = Math.hypot(dx, dz) || 1;
+      const flightT = Math.min(1.6, Math.max(0.55, dist / 22));
+      const speed = dist / flightT;
+      mjolnirState.flying = true;
+      mjolnirState.ownerId = null;
+      mjolnirState.vx = (dx / dist) * speed;
+      mjolnirState.vz = (dz / dist) * speed;
+      mjolnirState.vy = 6.5 + Math.random() * 3.5; // arc
+      mjolnirState.spin = 14 + Math.random() * 10;
+      mjolnirState.landAt = performance.now() + flightT * 1000 + 200;
+      mesh.position.y = Math.max(origin.y, 1.2);
+      st.carried = null;
+      clearCarryOn(st.mesh);
+      st.action = "throw_mjolnir";
+      st.nextDecideAt = performance.now() + 2000 + Math.random() * 1500;
+      // After landing, Thor will seek again
+      mjolnirState.nextThorSeekAt = performance.now() + flightT * 1000 + 800;
+      showToast("⚡ Thor hurls Mjolnir");
+      logLine("Thor", "Mjolnir flies — worthy or not, the meadow feels it.");
+      showSpeech3d(
+        "thor",
+        [
+          "Hammer — fly true!",
+          "Mjolnir, clear a path!",
+          "Catch this, meadow!",
+          "Thunder follows the throw!",
+        ][Math.floor(Math.random() * 4)],
+        9000,
+        { compact: true },
+      );
+      // Nearby agents flinch
+      for (const o of agentState) {
+        if (o === st) continue;
+        const d = o.mesh.position.distanceTo(origin);
+        if (d < 10 && Math.random() < 0.55) {
+          const away = o.mesh.position.clone().sub(origin);
+          away.y = 0;
+          if (away.lengthSq() < 0.01) away.set(1, 0, 0);
+          away.normalize();
+          o.target.copy(o.mesh.position).addScaledVector(away, 1.4 + Math.random());
+          o.moving = true;
+          if (Math.random() < 0.4) {
+            showSpeech3d(o.def.id, ["Heads up!", "That's not a frisbee!", "…okay then."][Math.floor(Math.random() * 3)], 6000, { compact: true });
+          }
+        }
+      }
+      return true;
+    }
+    function seekMjolnir(st) {
+      if (!st) return false;
+      const mesh = findMjolnirMesh();
+      if (!mesh || mjolnirState.flying) return false;
+      if (mjolnirState.ownerId === "thor" && st.def?.id === "thor") return false;
+      const p = worldPosOfMjolnir();
+      const ang = Math.random() * Math.PI * 2;
+      st.target.set(p.x + Math.cos(ang) * 0.9, 0, p.z + Math.sin(ang) * 0.9);
+      st.moving = true;
+      st.flying = false;
+      st.action = "prop";
+      st.propTarget = "mjolnir";
+      st.pendingProp = true;
+      st.ignoreAgentPush = true;
+      st.nextDecideAt = performance.now() + 14000 + Math.random() * 6000;
+      return true;
+    }
+    function updateMjolnirFlight(dt) {
+      if (!mjolnirState.flying) return;
+      const mesh = findMjolnirMesh();
+      if (!mesh) {
+        mjolnirState.flying = false;
+        return;
+      }
+      mesh.position.x += mjolnirState.vx * dt;
+      mesh.position.z += mjolnirState.vz * dt;
+      mesh.position.y += mjolnirState.vy * dt;
+      mjolnirState.vy -= 18 * dt; // gravity
+      mesh.rotation.x += mjolnirState.spin * dt;
+      mesh.rotation.z += mjolnirState.spin * 0.6 * dt;
+      // Soft field bounds
+      const FIELD_R = typeof FIELD === "number" ? FIELD * 0.85 : 48;
+      const d0 = Math.hypot(mesh.position.x, mesh.position.z);
+      if (d0 > FIELD_R) {
+        mesh.position.x = (mesh.position.x / d0) * FIELD_R;
+        mesh.position.z = (mesh.position.z / d0) * FIELD_R;
+        mjolnirState.vx *= -0.3;
+        mjolnirState.vz *= -0.3;
+      }
+      // Land
+      if (mesh.position.y <= 0.05 || performance.now() > mjolnirState.landAt) {
+        placeMjolnirOnGround(mesh.position.x, mesh.position.z);
+        showToast("🔨 Mjolnir lands");
+        // Lightning pulse on aura
+        const aura = mesh.getObjectByName("mjolnirAura");
+        if (aura?.material) {
+          aura.material.opacity = 0.85;
+          setTimeout(() => {
+            if (aura?.material) aura.material.opacity = 0.45;
+          }, 600);
+        }
+      }
+    }
     setBootStep("Placing props (won't block boot)…");
     // GLB fetches can hang if server dies mid-load — never block the meadow forever
     const propJobs = [...PROPS, ...EXTRA_SCENERY].map((prop) =>
@@ -2938,6 +3423,10 @@
         st.persona.mood = "alert";
         st.persona.curiosity = Math.min(0.95, (st.persona.curiosity || 0.5) + 0.08);
         st.energyNow = Math.min(1, st.energyNow + 0.08);
+      } else if (propId === "mjolnir") {
+        st.persona.mood = "alert";
+        st.persona.energy = Math.min(0.95, (st.persona.energy || 0.5) + 0.1);
+        st.energyNow = Math.min(1, st.energyNow + 0.12);
       }
       applyLook(st);
       applyPosture(st);
@@ -3134,6 +3623,64 @@
       if (!propId || st.propUsedAt === propId && performance.now() - (st.propUsedTime || 0) < 8000) return;
       st.propUsedAt = propId;
       st.propUsedTime = performance.now();
+      // Mjolnir — only Thor can lift; others interact / fail worthiness
+      if (propId === "mjolnir" || String(propId).includes("mjolnir")) {
+        if (st.def?.id === "thor") {
+          if (mjolnirState.flying) {
+            pickRoamTarget(st);
+            return;
+          }
+          if (mjolnirState.ownerId === "thor") {
+            // Already wielding — throw soon
+            if (performance.now() >= (st.nextThrowAt || 0)) thorThrowMjolnir(st);
+            else pickRoamTarget(st);
+            return;
+          }
+          const ok = thorClaimMjolnir(st);
+          if (ok) {
+            logLine("Thor", "Mjolnir answers — the hammer is home.");
+            showToast("⚡ Thor lifts Mjolnir");
+            showSpeech3d(
+              "thor",
+              [
+                "Mjolnir. Still mine. Still loud.",
+                "Worthy? Always was. Let's throw.",
+                "The hammer missed me. I fixed that.",
+              ][Math.floor(Math.random() * 3)],
+              12000,
+            );
+            st.nextThrowAt = performance.now() + 2800 + Math.random() * 3500;
+            st.nextDecideAt = st.nextThrowAt;
+            // Strut a bit while holding
+            pickRoamTarget(st);
+            st.action = "wield_mjolnir";
+          }
+          return;
+        }
+        // Non-Thor: try, fail, react
+        shiftFromProp(st, "mjolnir");
+        const mesh = findMjolnirMesh();
+        if (mesh) mesh.userData.pulseUntil = performance.now() + 1600;
+        logLine(st.def.name, "tries the hammer — it does not move");
+        showToast(`🔨 ${st.def.name} can't lift Mjolnir`);
+        const fails = [
+          "Nope. Stuck like a joke with gravity.",
+          "I pulled. The hammer laughed.",
+          "Worthiness check: pending. Forever.",
+          "Cool hammer. Not mine. Respect.",
+        ];
+        showSpeech3d(st.def.id, fails[Math.floor(Math.random() * fails.length)], 10000, { compact: true });
+        // Nudge Thor to come claim it
+        const thor = agentState.find((a) => a.def?.id === "thor");
+        if (thor && mjolnirState.ownerId !== "thor" && !mjolnirState.flying) {
+          seekMjolnir(thor);
+          if (Math.random() < 0.5) {
+            showSpeech3d("thor", "Hands off — that's my weather tool.", 9000, { compact: true });
+          }
+        }
+        pickRoamTarget(st);
+        return;
+      }
       // T-Rex is special play, not a snack carry
       if (propId === "trex" || propId === "horse") {
         await agentInteractTrex(st);
@@ -3820,6 +4367,32 @@
         // Let approach/exit finish
         st.nextDecideAt = performance.now() + 3000;
         return st.housePhase;
+      }
+
+      // Thor + Mjolnir: seek when free, throw when wielding
+      if (st.def?.id === "thor" && !st.powWow) {
+        const nowT = performance.now();
+        if (mjolnirState.ownerId === "thor" && !mjolnirState.flying) {
+          if (nowT >= (st.nextThrowAt || mjolnirState.nextThorThrowAt || 0)) {
+            if (thorThrowMjolnir(st)) return "throw_mjolnir";
+          }
+          // Parade with hammer — short roam then throw
+          if (Math.random() < 0.45) {
+            pickRoamTarget(st);
+            st.action = "wield_mjolnir";
+            st.nextDecideAt = nowT + 2500 + Math.random() * 2500;
+            return "wield_mjolnir";
+          }
+        } else if (!mjolnirState.flying && nowT >= (mjolnirState.nextThorSeekAt || 0)) {
+          if (Math.random() < 0.72 || st.boredom > 0.25) {
+            if (seekMjolnir(st)) {
+              if (Math.random() < 0.35) {
+                showSpeech3d("thor", "Where's my hammer?", 7000, { compact: true });
+              }
+              return "seek_mjolnir";
+            }
+          }
+        }
       }
 
       const p = st.persona;
@@ -4909,19 +5482,31 @@
       if (whoEl && chat3dWho.value) whoEl.value = chat3dWho.value;
     });
 
-    function appendChat3dMsg(who, text, isYou) {
+    function appendChat3dMsg(who, text, isYou, opts = {}) {
       if (!chat3dThread) return;
-      const speaker = String(who || "Camp").trim();
+      const speaker = displayAgentName(who);
       const clean = String(text || "").trim();
       if (!clean) return;
       // Capture before DOM grows — if you scrolled up, stay put
-      const stick = chat3dNearBottom();
+      const stick = opts.forceScroll || chat3dNearBottom();
       const prevTop = chat3dThread.scrollTop;
       const kind = isYou ? "you" : (speaker.toLowerCase() === "camp" ? "camp" : "agent");
-      chat3dLines.push({ who: speaker, text: clean, you: !!isYou });
+      // Dedup rapid double-writes (logLine + chatAgent used to both append)
+      const last = chat3dLines[chat3dLines.length - 1];
+      if (
+        last &&
+        last.who === speaker &&
+        last.you === !!isYou &&
+        last.text === clean &&
+        Date.now() - (last.at || 0) < 800
+      ) {
+        return;
+      }
+      chat3dLines.push({ who: speaker, text: clean, you: !!isYou, at: Date.now() });
       while (chat3dLines.length > CHAT3D_MAX) chat3dLines.shift();
       const row = document.createElement("div");
       row.className = `c3-msg ${kind}`;
+      row.dataset.who = speaker;
       row.innerHTML =
         `<span class="c3-who">${escapeHtml(speaker)}</span>` +
         `<div class="c3-bubble" tabindex="0">${escapeHtml(clean)}</div>`;
@@ -4931,22 +5516,22 @@
       }
       if (stick) chat3dThread.scrollTop = chat3dThread.scrollHeight;
       else chat3dThread.scrollTop = prevTop;
-      // New bubble starts at top of its own monologue (not the thread)
       const bub = row.querySelector(".c3-bubble");
       if (bub) bub.scrollTop = 0;
     }
 
     function logLine(who, text, _you = false) {
-      const speaker = String(who || "Camp").trim();
+      const speaker = displayAgentName(who);
       const clean = String(text || "").trim();
       if (!speaker || !clean) return;
-      appendChat3dMsg(speaker, clean, _you);
+      // Always land full lines in the Talk dialogue box (not only world bubbles)
+      appendChat3dMsg(speaker, clean, _you, { forceScroll: !!_you });
       refreshEtherealHud();
       try {
         const agentId = AGENTS.find((a) => a.name === speaker || a.id === speaker)?.id || "";
         const entry = {
           speaker,
-          text: clean.slice(0, 480),
+          text: clean.slice(0, 900),
           mood: _you ? "you" : "neutral",
           scene: "luna-3d",
           agentId,
@@ -4975,6 +5560,57 @@
       }
       refreshEtherealHud();
     } catch (_) {}
+
+    // Grab-and-drop menus (Talk, interiors, radio, features)
+    import(`/static/camp/camp-ui-drag.mjs?v=${BUILD}`)
+      .then((mod) => {
+        const pi = document.getElementById("place-interior");
+        const cmc = document.getElementById("camp-music-chrome");
+        const cmcPanel = cmc?.querySelector?.("#cmc-panel") || document.getElementById("cmc-panel");
+        const feat = document.getElementById("feature-panel") || document.querySelector(".feat-panel, #camp-feature-panel");
+        mod.wireCampDraggables([
+          {
+            el: chat3dPanel,
+            handle: chat3dPanel?.querySelector?.(".c3-head"),
+            key: "luna-drag-chat3d",
+            z: 2800,
+          },
+          {
+            el: pi,
+            handle: pi?.querySelector?.(".pi-head") || pi,
+            key: "luna-drag-interior",
+            z: 2700,
+          },
+          {
+            el: cmcPanel,
+            handle: cmcPanel?.querySelector?.(".cmc-head") || cmcPanel,
+            key: "luna-drag-radio",
+            z: 2900,
+          },
+          {
+            el: feat,
+            handle: feat?.querySelector?.(".drag-handle, .head, h2") || feat,
+            key: "luna-drag-features",
+            z: 2650,
+          },
+        ]);
+        // Late-mounted radio: re-wire when chrome appears
+        const obs = new MutationObserver(() => {
+          const p = document.getElementById("cmc-panel");
+          if (p && p.dataset.dragBound !== "1") {
+            mod.makeDraggable(p, {
+              handle: p.querySelector(".cmc-head") || p,
+              storageKey: "luna-drag-radio",
+              zBoost: 2900,
+            });
+          }
+        });
+        try {
+          obs.observe(document.body, { childList: true, subtree: true });
+        } catch (_) {}
+      })
+      .catch((e) => console.warn("ui-drag", e));
+
     function escapeHtml(s) {
       return String(s)
         .replace(/&/g, "&amp;")
@@ -4985,7 +5621,7 @@
 
     const activeBubbles = [];
     /** Soft cap — free speech can rotate; still avoids total chaos. */
-    const MAX_ACTIVE_BUBBLES = 4;
+    const MAX_ACTIVE_BUBBLES = 8;
     /** Keep each thought readable — mobile was flipping too fast. */
     const MIN_SPEECH_MS = 10000;
     /** After visitor hits ×, hush ambient for that agent so a box doesn't respawn instantly. */
@@ -5148,6 +5784,15 @@
           setTalkWho(selectedSpeechAgentId);
           const nm = target.el.querySelector?.(".who")?.textContent || selectedSpeechAgentId;
           if (msgEl) msgEl.placeholder = `Talk to ${nm}…`;
+          // Open Talk panel on that character so bubble + dialogue match
+          openChat3d(selectedSpeechAgentId);
+          // Scroll Talk to their latest line
+          try {
+            const rows = [...(chat3dThread?.querySelectorAll(".c3-msg") || [])];
+            const mine = rows.filter((r) => r.dataset.who === nm || r.querySelector(".c3-who")?.textContent === nm);
+            const last = mine[mine.length - 1];
+            if (last) last.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          } catch (_) {}
         }
       } catch (_) {}
 
@@ -5157,7 +5802,8 @@
       } catch (_) {}
 
       bubbleFrontZ = Math.min((bubbleFrontZ || 220) + 1, 980);
-      const rank = target.holdLocked || opts.lock ? 990 : 850 + (bubbleFrontZ % 80);
+      // Selected bubble sits high so it wins over other chat boxes
+      const rank = target.holdLocked || opts.lock ? 990 : 920 + (bubbleFrontZ % 50);
 
       for (const b of activeBubbles) {
         const isFront = b.el === el;
@@ -5548,7 +6194,7 @@
       const compact = !!(opts && opts.compact);
       // Compact greets still stay long enough to read on mobile
       const floorMs = MIN_SPEECH_MS;
-      const capMs = compact ? 22000 : 60000;
+      const capMs = compact ? 28000 : 90000;
       ms = Math.max(Number(ms) || floorMs, compact ? Math.max(floorMs, 12000) : speechReadMs(body, floorMs), floorMs);
       ms = Math.min(ms, capMs);
       const st = agentState.find((a) => a.def.id === agentId);
@@ -5948,7 +6594,7 @@
       });
       const buzzBit = buzzPromptBit(st);
       // Lean seeds for Ollama (short user msg → faster, less prompt-echo)
-      const freeTail = " 2–3 witty spoken sentences. Stay in character. No meta.";
+      const freeTail = " 5–8 witty spoken sentences when inspired (or 3–5 for a quick beat). Stay in character. No meta.";
       const dailyBit = st.def?.daily
         ? ` Daily ${st.def.faction || "guest"} visitor.${st.def.opener ? ` Vibe: ${String(st.def.opener).slice(0, 90)}` : ""}`
         : "";
@@ -6203,7 +6849,7 @@
               // Real AI greet when you tap them
               chatAgent(
                 u.id,
-                `The visitor just walked up and selected you. Greet them in character in 2–4 sentences — your own vibe, warm and specific, joy ${joy}, stability ${stab}. ${eth} No meta.`,
+                `The visitor just walked up and selected you. Greet them in character in 5–8 sentences (or 3–5 if short fits) — your own vibe, warm and specific, joy ${joy}, stability ${stab}. ${eth} No meta.`,
                 true,
               );
             }
@@ -6353,6 +6999,56 @@
       const name = u.name || propId;
       const emoji = u.emoji || "✦";
       approachProp(mesh);
+
+      // Mjolnir — everyone can interact; only Thor lifts
+      if (
+        propId === "mjolnir" ||
+        u.interact === "mjolnir" ||
+        u.mjolnir ||
+        mesh.userData?.mjolnir ||
+        String(propId).includes("mjolnir")
+      ) {
+        mesh.userData.pulseUntil = performance.now() + 2200;
+        const aura = mesh.getObjectByName("mjolnirAura");
+        if (aura?.material) {
+          aura.material.opacity = 0.9;
+          setTimeout(() => { if (aura?.material) aura.material.opacity = 0.45; }, 900);
+        }
+        if (mjolnirState.flying) {
+          showToast("🔨 Mjolnir is mid-flight");
+          logLine("You", "Tried to grab Mjolnir mid-throw — bold.", true);
+          return;
+        }
+        if (mjolnirState.ownerId === "thor") {
+          showToast("⚡ Thor already holds Mjolnir");
+          logLine("You", "Poked at Mjolnir — Thor has it.", true);
+          const thor = agentState.find((a) => a.def?.id === "thor");
+          if (thor && Math.random() < 0.6) {
+            showSpeech3d("thor", "Ask first. Or don't — still mine.", 8000, { compact: true });
+          }
+          agentsNoticeProp(mesh, "mjolnir", "Visitor tried to take Mjolnir from Thor. React short.");
+          return;
+        }
+        // Visitor cannot lift — dramatic fail + call Thor
+        showToast("⚡ Only Thor can lift Mjolnir");
+        logLine("You", "Pulled on Mjolnir — it stays planted. Worthiness pending.", true);
+        agentsNoticeProp(
+          mesh,
+          "mjolnir",
+          "Visitor just tried (and failed) to lift Mjolnir. React with awe or comedy, 1–2 sentences.",
+        );
+        const thor = agentState.find((a) => a.def?.id === "thor");
+        if (thor) {
+          seekMjolnir(thor);
+          setTimeout(() => {
+            if (mjolnirState.ownerId !== "thor" && !mjolnirState.flying) {
+              showSpeech3d("thor", "Leave it. I'll show you how the throw works.", 10000, { compact: true });
+            }
+          }, 900);
+        }
+        try { campClient.useProp("mjolnir", { speak: false }).catch(() => {}); } catch (_) {}
+        return;
+      }
 
       // T-Rex — multi-mode play (roar / feed / dance if buzzed)
       if (propId === "trex" || propId === "horse" || u.interact === "roar" || mesh.userData.trex) {
@@ -7154,18 +7850,21 @@
         const eth = etherealSeedFor(talkTo);
         const data = await campClient.agentChat(
           talkTo,
-          `Visitor is INSIDE ${playerInsidePlace.name || "this place"} speaking to you (${talkTo}). ${homeBit} They said: "${text}". Reply in character, 2–5 sentences, warm and specific. ${eth} No meta.`,
+          `Visitor is INSIDE ${playerInsidePlace.name || "this place"} speaking to you (${talkTo}). ${homeBit} They said: "${text}". Reply in character, 5–8 sentences when full, or 3–5 for a short beat — warm and specific. ${eth} No meta.`,
           { ambient: false },
         );
         const reply = spokenOnly3d(data.reply || data.text || "", text) || localBark(talkTo);
         if (bubble) bubble.textContent = reply;
         showSpeech3d(talkTo, reply, speechReadMs(reply), { force: true });
-        logLine(talkTo, reply);
+        openChat3d(talkTo);
+        logLine(displayAgentName(talkTo), reply);
         refreshInteriorGuestStrip();
       } catch (err) {
         const fallback = localBark(talkTo) || "Come sit. The walls hold stories.";
         if (bubble) bubble.textContent = fallback;
         showSpeech3d(talkTo, fallback, 16000, { force: true });
+        openChat3d(talkTo);
+        logLine(displayAgentName(talkTo), fallback);
       }
     }
 
@@ -7238,7 +7937,7 @@
             : " The room is quiet until you arrive.";
           const data = await campClient.agentChat(
             talkTo,
-            `The visitor just walked INSIDE ${house.name}.${guestBit} Welcome them at home — warm, specific, 2–5 sentences. ${eth} No meta.`,
+            `The visitor just walked INSIDE ${house.name}.${guestBit} Welcome them at home — warm, specific, 5–8 sentences when full. ${eth} No meta.`,
             { ambient: false },
           );
           const reply =
@@ -7968,7 +8667,21 @@
       if (t.split(/\s+/).length < 4 && rawKeep.split(/\s+/).length >= 6) {
         t = rawKeep.replace(/\s{2,}/g, " ").trim();
       }
-      return t.slice(0, 1600);
+      return t.slice(0, 3200);
+    }
+
+    /** Display name for chat thread (id → nice name). */
+    function displayAgentName(idOrName) {
+      const s = String(idOrName || "").trim();
+      if (!s) return "Camp";
+      if (s === "You" || s === "Camp") return s;
+      const byId = AGENTS.find((a) => a.id === s);
+      if (byId?.name) return byId.name;
+      const byName = AGENTS.find((a) => a.name === s);
+      if (byName?.name) return byName.name;
+      const house = HOUSES.find((h) => h.id === s || h.catalogId === s || h.name === s);
+      if (house?.name) return house.name;
+      return s;
     }
 
     /** Shared witty-direct prompt for visitor chat (single or all). */
@@ -7985,7 +8698,7 @@
           ? `The visitor is addressing EVERYONE at camp, including you (${agentName}). `
           : `The visitor is talking directly to you (${agentName}). `) +
         `Their words: "${String(userText).slice(0, 500)}"\n` +
-        `Answer them NOW as ${agentName} — witty, warm, specific, 2–5 spoken sentences. ` +
+        `Answer them NOW as ${agentName} — witty, warm, specific, 5–8 spoken sentences when you have something to say (or 3–5 if a short beat fits). ` +
         `Actually respond to what they said (question → answer, joke → riff, greeting → greet). ` +
         `Camp comedy welcome; not mean. No meta, no stage directions, no "as an AI".` +
         buzz +
@@ -8061,11 +8774,10 @@
         statusEl.hidden = true;
         statusEl.textContent = `${name} · thinking…`;
       }
-      // Only log visitor text for real visitor turns — never ambient director seeds
+      // Visitor turns: open Talk + log once (logLine → dialogue box)
       if (!ambient) {
-        logLine("You", message, true);
-        appendChat3dMsg("You", message, true);
         openChat3d(targetId);
+        logLine("You", message, true);
         showToast(`✦ ${name} is answering…`);
       }
       // Visitor direct talk = non-ambient so brains treat it as real chat + witty reply
@@ -8079,18 +8791,23 @@
         const raw = data.reply || data.text || "";
         let reply = spokenOnly3d(raw, message) || spokenOnly3d(raw, "") || String(raw || "").trim();
         if (!reply || reply.length < 3) reply = localBark(targetId, { world: true });
+        // Full reply always lands in Talk dialogue under their name
+        openChat3d(targetId);
         logLine(name, reply);
-        if (!ambient) appendChat3dMsg(name, reply, false);
         // Always show a bubble when the agent is on the meadow
         const hasBody = agentState.some((a) => a.def.id === targetId);
         if (hasBody) {
-          const bub = reply.length > 360 ? bubblePreview(reply, 320) : reply;
-          showSpeech3d(targetId, bub, speechReadMs(bub), {
+          const bub = reply.length > 420 ? bubblePreview(reply, 380) : reply;
+          showSpeech3d(targetId, bub, speechReadMs(reply), {
             force: true,
-            compact: reply.length > 480,
+            compact: reply.length > 600,
           });
+          // Bring that character's bubble to FRONT so it matches the Talk selection
+          try {
+            const bEl = activeBubbles.find((b) => b.agentId === targetId)?.el;
+            if (bEl) bringBubbleFront(bEl, { quiet: true });
+          } catch (_) {}
         } else if (!ambient) {
-          // Still feedback even if agent not spawned
           showToast(`${name}: ${bubblePreview(reply, 80)}`);
         }
         if (statusEl) {
@@ -8099,11 +8816,11 @@
         }
       } catch (err) {
         const fallback = localBark(targetId, { world: true });
+        openChat3d(targetId);
         if (agentState.some((a) => a.def.id === targetId)) {
           showSpeech3d(targetId, fallback, speechReadMs(fallback), { force: true, compact: true });
         }
         logLine(name, fallback);
-        if (!ambient) appendChat3dMsg(name, fallback, false);
         if (statusEl) {
           statusEl.hidden = true;
           statusEl.textContent = "Brains offline — start server / Ollama";
@@ -8177,11 +8894,10 @@
             reply = localBark(def.id, { world: true });
           }
           logLine(def.name, reply);
-          appendChat3dMsg(def.name, reply, false);
-          const bub = bubblePreview(reply, 280);
-          showSpeech3d(def.id, bub, Math.max(MIN_SPEECH_MS, speechReadMs(bub, MIN_SPEECH_MS)), {
+          const bub = reply.length > 420 ? bubblePreview(reply, 380) : reply;
+          showSpeech3d(def.id, bub, Math.max(MIN_SPEECH_MS, speechReadMs(reply, MIN_SPEECH_MS)), {
             force: true,
-            compact: reply.length > 400,
+            compact: reply.length > 600,
           });
           // Face visitor while answering
           if (st) {
@@ -8548,6 +9264,9 @@
       .then((mod) => {
         musicMobile3d = mod;
         try {
+          // Session shuffle for fallback/camp list until full catalog hydrates
+          ALBUM_TRACKS = mod.applySessionShuffle(ALBUM_TRACKS);
+          albumIndex = 0;
           ensureAlbumAudio();
           wireAlbumMobileKeepAlive();
         } catch (e) {
@@ -8563,16 +9282,27 @@
         try {
           const tracks = await mod.loadSunoCatalog();
           if (tracks?.length) {
-            ALBUM_TRACKS = tracks.map((t) => ({
+            let mapped = tracks.map((t) => ({
               id: t.id,
               title: t.title,
               src: t.src || t.audio_url,
+              artist: t.artist || "Telephantix",
             }));
-            const st = mod.readMusicState?.() || {};
-            if (typeof st.trackIndex === "number" && st.trackIndex < ALBUM_TRACKS.length) {
-              albumIndex = st.trackIndex;
+            // New browser session → fresh shuffle so open isn't always the same order
+            try {
+              if (musicMobile3d?.applySessionShuffle) {
+                mapped = musicMobile3d.applySessionShuffle(mapped);
+              } else {
+                const modM = await import(`/static/camp/camp-music-mobile.mjs?v=${BUILD}`);
+                musicMobile3d = modM;
+                mapped = modM.applySessionShuffle(mapped);
+              }
+            } catch (e) {
+              console.warn("shuffle", e);
             }
-            if (albumBtn) albumBtn.title = `♪ Play music — ${ALBUM_TRACKS.length} songs`;
+            ALBUM_TRACKS = mapped;
+            albumIndex = 0;
+            if (albumBtn) albumBtn.title = `♪ Play music — ${ALBUM_TRACKS.length} songs (shuffled)`;
             try { musicChrome3d?.refresh?.(); } catch (_) {}
           }
           // Continuity toast: last dialogue from 2D
@@ -8656,9 +9386,7 @@
 
     function advanceAlbumTrack(why = "") {
       if (!albumOn || !ALBUM_TRACKS.length) return;
-      albumIndex = (albumIndex + 1) % ALBUM_TRACKS.length;
-      // New track — force load from start
-      playAlbumTrack(albumIndex, { quiet: true, reason: why || "advance", forceReload: true, seekTime: 0 });
+      skipAlbum(1, { quiet: true, forceTrack: true });
     }
 
     function wireAlbumMobileKeepAlive() {
@@ -8678,25 +9406,8 @@
           try { musicChrome3d?.refresh?.(); } catch (_) {}
         },
         stop: () => stopAlbum({ quiet: true }),
-        next: () => {
-          if (!ALBUM_TRACKS.length) return;
-          albumOn = true;
-          albumIndex = (albumIndex + 1) % ALBUM_TRACKS.length;
-          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-next", forceReload: true, seekTime: 0 });
-        },
-        prev: () => {
-          if (!ALBUM_TRACKS.length) return;
-          albumOn = true;
-          // Car-style: if >3s into song, restart; else previous track
-          if (albumAudio && albumAudio.currentTime > 3) {
-            seekAlbumTo(0);
-            playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-restart", soft: true });
-            return;
-          }
-          const n = Math.max(1, ALBUM_TRACKS.length);
-          albumIndex = (albumIndex - 1 + n) % n;
-          playAlbumTrack(albumIndex, { quiet: true, reason: "mediasession-prev", forceReload: true, seekTime: 0 });
-        },
+        next: () => skipAlbum(1, { quiet: true }),
+        prev: () => skipAlbum(-1, { quiet: true }),
         seekBy: (d) => seekAlbumBy(d),
         seekTo: (t) => seekAlbumTo(t),
       });
@@ -8748,6 +9459,8 @@
         albumAudio.preload = "auto";
         albumAudio.addEventListener("ended", () => {
           if (!albumOn) return;
+          // DJ Radio owns the handoff (talk → next track)
+          if (djRadio3d?.isEnabled?.()) return;
           advanceAlbumTrack("ended");
         });
         albumAudio.addEventListener("error", () => {
@@ -8781,6 +9494,78 @@
       return albumAudio;
     }
 
+    /** Hard skip prev/next — song changes NOW; Vox comments in background if on */
+    function skipAlbum(delta, opts = {}) {
+      if (!ALBUM_TRACKS.length) {
+        showToast("No tracks loaded");
+        return;
+      }
+      const n = ALBUM_TRACKS.length;
+      const prevTrack = ALBUM_TRACKS[albumIndex];
+      // Car-style prev: >2.5s into song → restart current
+      if (delta < 0 && !opts.forceTrack && albumAudio && !albumAudio.paused && albumAudio.currentTime > 2.5) {
+        playAlbumTrack(albumIndex, {
+          quiet: true,
+          forceReload: true,
+          hard: true,
+          seekTime: 0,
+        });
+        showToast(`⏮ ${ALBUM_TRACKS[albumIndex]?.title || "track"}`);
+        try {
+          djRadio3d?.hush?.();
+          if (djRadio3d?.isEnabled?.()) djRadio3d.onTrackChanged?.(prevTrack);
+        } catch (_) {}
+        return;
+      }
+      albumIndex = (albumIndex + delta + n * 50) % n;
+      albumOn = true;
+      // IMMEDIATE play — never await Vox
+      playAlbumTrack(albumIndex, {
+        quiet: true,
+        forceReload: true,
+        hard: true,
+        seekTime: 0,
+      });
+      showToast(`${delta > 0 ? "⏭" : "⏮"} ${ALBUM_TRACKS[albumIndex]?.title || "track"}`);
+      try {
+        djRadio3d?.hush?.(); // kill mid-rant
+        if (djRadio3d?.isEnabled?.() && !opts.noVox) {
+          djRadio3d.onTrackChanged?.(prevTrack);
+        }
+      } catch (_) {}
+    }
+
+    function reshuffleAlbum(opts = {}) {
+      if (!ALBUM_TRACKS.length) return;
+      try {
+        if (musicMobile3d?.reshuffleSession) {
+          ALBUM_TRACKS = musicMobile3d.reshuffleSession(ALBUM_TRACKS);
+        } else {
+          // local fallback
+          const a = ALBUM_TRACKS.slice();
+          for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = a[i];
+            a[i] = a[j];
+            a[j] = t;
+          }
+          ALBUM_TRACKS = a;
+        }
+      } catch (_) {}
+      albumIndex = 0;
+      try {
+        djRadio3d?.rewarm?.();
+      } catch (_) {}
+      if (opts.play !== false) {
+        playAlbumTrack(0, { quiet: false, forceReload: true, hard: true, seekTime: 0 });
+        try {
+          if (djRadio3d?.isEnabled?.()) djRadio3d.onTrackChanged?.(null);
+        } catch (_) {}
+      }
+      showToast(`🔀 Shuffled ${ALBUM_TRACKS.length} tracks`);
+      try { musicChrome3d?.refresh?.(); } catch (_) {}
+    }
+
     function playAlbumTrack(i, opts = {}) {
       if (!ALBUM_TRACKS.length) {
         showToast("No Telephantix tracks found");
@@ -8791,30 +9576,34 @@
       const a = ensureAlbumAudio();
       wireAlbumMobileKeepAlive();
 
+      const hard = !!(opts.hard || opts.forceReload);
       // Soft unlock/resume: keep currentTime; optional restore from session
       let seekTime = opts.seekTime;
-      if (opts.soft && seekTime == null) {
+      if (!hard && opts.soft && seekTime == null) {
         try {
           const saved = musicMobile3d?.loadMusicPersist?.();
           if (saved && saved.index === albumIndex && saved.time > 0.5) {
-            // Only apply saved seek if audio is at start or empty (don't jump if already mid-play)
             if (!a.currentSrc || a.currentTime < 0.4 || a.paused) {
               seekTime = saved.time;
             }
           }
         } catch (_) {}
       }
-      if (opts.forceReload) seekTime = opts.seekTime ?? 0;
+      if (hard) seekTime = 0;
 
       const run = () => {
         const playFn =
           musicMobile3d?.softPlayAudio ||
           ((audio, o) => {
-            if (o.forceReload || !audio.src) {
+            if (o.forceReload || o.hard || !audio.src) {
+              try { audio.pause(); } catch (_) {}
               audio.src = o.src;
               audio.load();
             }
             audio.volume = o.volume ?? 0.55;
+            try {
+              if (o.hard || o.forceReload) audio.currentTime = 0;
+            } catch (_) {}
             return audio.play();
           });
         Promise.resolve(
@@ -8822,7 +9611,8 @@
             src: t.src || "",
             volume: 0.55,
             seekTime: seekTime,
-            forceReload: !!opts.forceReload,
+            forceReload: hard,
+            hard,
           }),
         )
           .then(() => {
@@ -8900,6 +9690,7 @@
     }
 
     let musicChrome3d = null;
+    let djRadio3d = null;
     const isHubEmbed3d = () => {
       try {
         return document.documentElement.classList.contains("hub-embed")
@@ -8909,10 +9700,45 @@
       }
     };
     if (!isHubEmbed3d()) {
-      import(`/static/camp/camp-music-chrome.mjs?v=${BUILD}`)
-        .then((mod) => {
-          musicChrome3d = mod.mountCampMusicChrome({
+      Promise.all([
+        import(`/static/camp/camp-music-chrome.mjs?v=${BUILD}`),
+        import(`/static/camp/camp-dj-radio.mjs?v=${BUILD}`),
+      ])
+        .then(([chromeMod, djMod]) => {
+          djRadio3d = djMod.createDjRadio({
+            getTracks: () => ALBUM_TRACKS,
+            getIndex: () => albumIndex % Math.max(1, ALBUM_TRACKS.length),
+            getAudio: () => albumAudio,
+            isWantedOn: () => !!albumOn,
+            playAt: (i, opts = {}) => {
+              playAlbumTrack(i, {
+                quiet: true,
+                forceReload: opts.forceReload !== false,
+                seekTime: opts.seekTime ?? 0,
+                soft: !!opts.soft,
+              });
+            },
+            setStatus: (msg) => {
+              if (msg) {
+                try {
+                  statusEl.textContent = `🎙 ${String(msg).slice(0, 96)}`;
+                } catch (_) {}
+              }
+            },
+            onUi: (st) => {
+              try {
+                musicChrome3d?.setDjOn?.(!!st.enabled);
+                if (st.dropText || st.status) {
+                  musicChrome3d?.setDjLine?.(st.dropText || st.status);
+                }
+              } catch (_) {}
+            },
+          });
+          musicChrome3d = chromeMod.mountCampMusicChrome({
             scene: "luna-3d",
+            hideFab: true, // topbar ♪ Play music is the only trigger — no second floating button
+            hideStrip: true, // one radio panel only (no mini strip clone)
+            djDefault: true, // DJ Vox on by default
             getTracks: () => ALBUM_TRACKS,
             // Wanted-on (includes OS pause) so unlock does not re-start / re-roll
             isPlaying: () => !!albumOn,
@@ -8920,6 +9746,12 @@
             getAudio: () => albumAudio,
             getPosition: () => albumAudio?.currentTime || 0,
             getDuration: () => albumAudio?.duration || 0,
+            isMuted: () => !!(albumAudio && albumAudio.muted),
+            setMuted: (m) => {
+              const a = ensureAlbumAudio();
+              if (a) a.muted = !!m;
+              try { musicChrome3d?.refresh?.(); } catch (_) {}
+            },
             seekTo: (t) => seekAlbumTo(t),
             seekBy: (d) => seekAlbumBy(d),
             pause: () => {
@@ -8937,24 +9769,38 @@
                 forceReload: !same && i !== albumIndex,
               });
             },
-            stop: () => stopAlbum({ quiet: false }),
+            stop: () => {
+              try {
+                djRadio3d?.setEnabled?.(false);
+              } catch (_) {}
+              stopAlbum({ quiet: false });
+            },
+            setDjMode: (on) => {
+              try {
+                djRadio3d?.setEnabled?.(!!on);
+              } catch (_) {}
+              if (on) {
+                showToast("🎙 DJ Vox on — comments every track");
+                try {
+                  musicChrome3d?.setDjLine?.("DJ Vox · Spotify-style intros on each song");
+                  djRadio3d?.rewarm?.();
+                  if (albumOn) djRadio3d?.onTrackChanged?.(null);
+                } catch (_) {}
+              } else {
+                showToast("DJ Vox off");
+              }
+            },
             next: () => {
-              albumIndex = (albumIndex + 1) % Math.max(1, ALBUM_TRACKS.length);
-              playAlbumTrack(albumIndex, { quiet: true, forceReload: true, seekTime: 0 });
+              // Always skip song first (Vox is background only)
+              skipAlbum(1);
             },
             prev: () => {
-              if (albumAudio && albumAudio.currentTime > 3) {
-                seekAlbumTo(0);
-                playAlbumTrack(albumIndex, { quiet: true, soft: true });
-                return;
-              }
-              const n = Math.max(1, ALBUM_TRACKS.length);
-              albumIndex = (albumIndex - 1 + n) % n;
-              playAlbumTrack(albumIndex, { quiet: true, forceReload: true, seekTime: 0 });
+              skipAlbum(-1);
             },
+            shuffle: () => reshuffleAlbum({ play: true }),
           });
         })
-        .catch((e) => console.warn("3d music chrome", e));
+        .catch((e) => console.warn("3d music chrome / dj", e));
     } else {
       try { stopAlbum({ quiet: true }); } catch (_) {}
     }
@@ -8966,15 +9812,27 @@
 
     albumBtn?.addEventListener("click", () => {
       if (isHubEmbed3d()) return;
-      // Open Relics-style panel + play (or show panel if already playing)
-      if (albumOn && albumAudio && !albumAudio.paused) {
-        try { musicChrome3d?.openPanel?.({ play: false }); } catch (_) {}
-        try { musicChrome3d?.refresh?.(); } catch (_) {}
+      // Single player: topbar opens the one radio panel (no second window)
+      if (albumOn) {
+        try {
+          musicChrome3d?.openPanel?.({ play: false });
+          musicChrome3d?.refresh?.();
+        } catch (_) {}
       } else {
         playAlbumTrack(albumIndex);
-        try { musicChrome3d?.openPanel?.({ play: false }); } catch (_) {}
+        try {
+          musicChrome3d?.openPanel?.({ play: false });
+          musicChrome3d?.refresh?.();
+        } catch (_) {}
       }
     });
+    // Hide legacy now-playing chip — chrome LCD owns the title
+    if (albumNow) {
+      try {
+        albumNow.hidden = true;
+        albumNow.style.display = "none";
+      } catch (_) {}
+    }
     // Also wire stereo prop to album if featureApi music used
     window.__lunaPlayAlbum = () => playAlbumTrack(albumIndex);
     document.getElementById("btn-reset-cam").addEventListener("click", () => {
@@ -9109,10 +9967,26 @@
           if (now >= (st.nextDecideAt || 0)) decideAction(st);
           continue;
         }
+        // Thor holding hammer — throw on timer even while strolling
+        if (
+          st.def?.id === "thor" &&
+          mjolnirState.ownerId === "thor" &&
+          !mjolnirState.flying &&
+          now >= (st.nextThrowAt || 0) &&
+          Math.random() < 0.55
+        ) {
+          thorThrowMjolnir(st);
+          continue;
+        }
         if (now >= (st.nextDecideAt || 0) && !st.moving) {
           // Organic mix: talk / sit / interact / stroll
           const talkChance = hushMode3d ? 0.06 : (freeSpeech3d ? 0.14 : 0.1);
           const you = st.def?.id === "telephantix" || st.id === "telephantix";
+          // Thor bias: often go get / throw hammer
+          if (st.def?.id === "thor" && Math.random() < 0.4) {
+            decideAction(st);
+            continue;
+          }
           const roll = Math.random();
           if (roll < talkChance) agentOwnTake(st);
           else if (roll < talkChance + 0.22) decideAction(st); // often picks sit/prop/fire
@@ -9159,6 +10033,27 @@
       }
     }, 400);
     setTimeout(() => { scatterAll(); }, 700);
+    // Thor finds Mjolnir soon after boot — seek + throw loop begins
+    setTimeout(() => {
+      try {
+        const thor = agentState.find((a) => a.def?.id === "thor");
+        if (thor && findMjolnirMesh() && mjolnirState.ownerId !== "thor") {
+          seekMjolnir(thor);
+          showToast("⚡ Thor seeks Mjolnir");
+          logLine("Thor", "The hammer calls. I'm answering.");
+        }
+      } catch (_) {}
+    }, 3200);
+    setTimeout(() => {
+      try {
+        const thor = agentState.find((a) => a.def?.id === "thor");
+        if (thor && mjolnirState.ownerId === "thor" && !mjolnirState.flying) {
+          thorThrowMjolnir(thor);
+        } else if (thor && !mjolnirState.flying) {
+          seekMjolnir(thor);
+        }
+      } catch (_) {}
+    }, 9000);
     // Free speech first so camp doesn't open in silence
     setTimeout(() => { if (!document.hidden) freeWillWave(); }, 2800);
     setTimeout(() => { if (!document.hidden) freeWillWave(); }, 9000);
@@ -9402,6 +10297,32 @@
       try {
         const dt = Math.min(Math.max(clock.getDelta(), 0), 0.05);
         const t = clock.elapsedTime;
+
+        // Sticky video floor — keep decoder alive, force texture refresh
+        try {
+          if (groundVideoEl && groundVideoTex) {
+            if (!document.hidden && groundVideoEl.paused && groundVideoEl.readyState >= 2) {
+              if (performance.now() - (groundVideoLastKeepAlive || 0) > 1500) {
+                groundVideoLastKeepAlive = performance.now();
+                groundVideoEl.muted = true;
+                groundVideoEl.play().catch(() => {});
+              }
+            }
+            // If loop stalled near end, wrap early
+            if (
+              groundVideoEl.duration &&
+              Number.isFinite(groundVideoEl.duration) &&
+              groundVideoEl.currentTime > groundVideoEl.duration - 0.15
+            ) {
+              try { groundVideoEl.currentTime = 0.01; } catch (_) {}
+            }
+            groundVideoTex.needsUpdate = true;
+            if (groundFloorMesh && !groundFloorMesh.visible) groundFloorMesh.visible = true;
+          }
+        } catch (_) {}
+
+        // Mjolnir flight physics
+        try { updateMjolnirFlight(dt); } catch (_) {}
 
         // Living fire + aurora sky + fireflies (2D energy)
         fireLight.intensity = 3.2 + Math.sin(t * 7) * 0.85 + Math.sin(t * 13) * 0.4;
@@ -9853,6 +10774,18 @@
         // Prop life — procedural bob + free GLB mixers / spin / T-Rex walk
         for (let i = 0; i < propMeshes.length; i++) {
           const g = propMeshes[i];
+          // Mjolnir: no bob when flying/carried; soft aura pulse on ground
+          if (g.userData?.mjolnir || g.userData?.id === "mjolnir") {
+            if (mjolnirState.flying) continue;
+            if (mjolnirState.ownerId === "thor") continue; // parented to Thor
+            const aura = g.getObjectByName("mjolnirAura");
+            if (aura?.material) {
+              aura.material.opacity = 0.35 + Math.sin(t * 3.2) * 0.18;
+              aura.rotation.z = t * 0.6;
+            }
+            g.position.y = 0.02 + Math.sin(t * 2.1) * 0.012;
+            continue;
+          }
           const phase = (g.userData.propBob || 0) + i * 0.7;
           if (propSystem?.updateProp) {
             try { propSystem.updateProp(g, dt, t); } catch (_) {}

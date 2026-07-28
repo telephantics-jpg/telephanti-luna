@@ -120,11 +120,17 @@ export function softPlayAudio(audio, opts = {}) {
   if (!audio) return Promise.reject(new Error("no audio"));
   hardenAudioEl(audio);
   const nextSrc = opts.src || "";
-  const needs = opts.forceReload || audioNeedsNewSrc(audio, nextSrc);
+  const hard = !!(opts.forceReload || opts.hard);
+  const needs = hard || audioNeedsNewSrc(audio, nextSrc);
   const savedSeek =
-    typeof opts.seekTime === "number" && opts.seekTime > 0.5 ? opts.seekTime : null;
+    !hard && typeof opts.seekTime === "number" && opts.seekTime > 0.5
+      ? opts.seekTime
+      : null;
 
   if (needs && nextSrc) {
+    try {
+      audio.pause();
+    } catch (_) {}
     audio.src = nextSrc;
     try {
       audio.load();
@@ -132,15 +138,21 @@ export function softPlayAudio(audio, opts = {}) {
   }
   audio.loop = false;
   if (typeof opts.volume === "number") audio.volume = opts.volume;
-  audio.muted = false;
+  // Don't force-unmute on soft resume (respect Mute button)
+  if (opts.unmute === true) audio.muted = false;
 
   const applySeekThenPlay = () => {
-    if (savedSeek != null && Number.isFinite(audio.duration) && audio.duration > 1) {
-      try {
+    try {
+      if (hard) {
+        // Prev/next / hard skip — always start of track
+        if (Number.isFinite(audio.currentTime) && audio.currentTime !== 0) {
+          audio.currentTime = 0;
+        }
+      } else if (savedSeek != null && Number.isFinite(audio.duration) && audio.duration > 1) {
         audio.currentTime = Math.min(savedSeek, Math.max(0, audio.duration - 0.35));
-      } catch (_) {}
-    } else if (savedSeek != null && needs) {
-      // duration not ready — set after loadedmetadata
+      }
+    } catch (_) {}
+    if (savedSeek != null && needs && !hard) {
       const onMeta = () => {
         try {
           if (Number.isFinite(audio.duration) && audio.duration > 1) {
@@ -154,22 +166,100 @@ export function softPlayAudio(audio, opts = {}) {
     return p && typeof p.then === "function" ? p : Promise.resolve();
   };
 
-  if (!needs && !audio.paused && !audio.ended) {
+  if (!needs && !hard && !audio.paused && !audio.ended) {
     // Already playing same track — do not restart
     return Promise.resolve();
   }
 
   if (audio.readyState >= 2) return applySeekThenPlay();
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (fn) => (v) => {
+      if (settled) return;
+      settled = true;
+      fn(v);
+    };
     const go = () => {
-      applySeekThenPlay().then(resolve).catch(reject);
+      applySeekThenPlay().then(finish(resolve)).catch(finish(reject));
     };
     audio.addEventListener("canplay", go, { once: true });
-    // Fallback if canplay already fired
+    // Fallback — canplay is flaky after rapid next/prev on mobile
     setTimeout(() => {
-      if (audio.readyState >= 2) go();
-    }, 80);
+      if (!settled) go();
+    }, 350);
   });
+}
+
+const SHUFFLE_KEY = "luna-camp-shuffle-order-v1";
+
+function trackKey(t) {
+  return String(t?.id || t?.src || t?.audio_url || t?.title || "").trim();
+}
+
+/**
+ * Fisher–Yates shuffle of a track list.
+ * Persists order in sessionStorage so one browser session keeps the same shuffle,
+ * but a new session (new tab/window after close) gets a fresh random order.
+ * @param {object[]} tracks
+ * @param {{ reshuffle?: boolean }} [opts]
+ * @returns {object[]}
+ */
+export function applySessionShuffle(tracks, opts = {}) {
+  const list = Array.isArray(tracks) ? tracks.slice() : [];
+  if (list.length < 2) return list;
+
+  const keys = list.map(trackKey);
+  let orderKeys = null;
+  if (!opts.reshuffle) {
+    try {
+      const raw = sessionStorage.getItem(SHUFFLE_KEY);
+      if (raw) orderKeys = JSON.parse(raw);
+    } catch (_) {
+      orderKeys = null;
+    }
+  }
+
+  const sameSet =
+    Array.isArray(orderKeys) &&
+    orderKeys.length === keys.length &&
+    keys.every((k) => orderKeys.includes(k));
+
+  if (!sameSet) {
+    const idx = keys.map((_, i) => i);
+    for (let i = idx.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = idx[i];
+      idx[i] = idx[j];
+      idx[j] = tmp;
+    }
+    orderKeys = idx.map((i) => keys[i]);
+    try {
+      sessionStorage.setItem(SHUFFLE_KEY, JSON.stringify(orderKeys));
+    } catch (_) {}
+  }
+
+  const byKey = new Map();
+  for (const t of list) {
+    const k = trackKey(t);
+    if (k && !byKey.has(k)) byKey.set(k, t);
+  }
+  const out = [];
+  for (const k of orderKeys) {
+    if (byKey.has(k)) {
+      out.push(byKey.get(k));
+      byKey.delete(k);
+    }
+  }
+  for (const t of byKey.values()) out.push(t);
+  return out;
+}
+
+/** Force a new shuffle order for this session (Shuffle button). */
+export function reshuffleSession(tracks) {
+  try {
+    sessionStorage.removeItem(SHUFFLE_KEY);
+  } catch (_) {}
+  return applySessionShuffle(tracks, { reshuffle: true });
 }
 
 /**

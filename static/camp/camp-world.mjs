@@ -3,6 +3,13 @@
  * Catalog truth: GET /api/firmament/camp/catalog
  *                 firmament/world/camp_catalog.json
  *
+ * Map correlation:
+ * - Meadow units = catalog `x` / `y` for houses, landmarks, agents (2D canvas).
+ * - Three.js: meadowToThree(x, y, scale) → { x: x*scale, z: y*scale } with
+ *   scale = catalog.scale.three (town ~0.015).
+ * - 2D play hydrates campHouses / structures / NPC_ANCHORS from the same catalog
+ *   so Luna’s house etc. sit in the same relative town layout as 3D.
+ *
  * IMPORTANT: fallbackCatalog must stay rich — if the API 404s (old server),
  * Three.js still shows props/chairs/crew from this fallback.
  */

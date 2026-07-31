@@ -578,6 +578,15 @@
       background: rgba(15, 24, 40, 0.9); border: 1px solid rgba(255,255,255,0.08);
     }
     #server-status { color: #6ee7b7; font-weight: 600; }
+    /* Hide build/debug chrome (keep server healthy — just no UI noise) */
+    #camp-live-stamp,
+    #mini-status,
+    #chip-ollama,
+    #camp-build-tag {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     #free-tools-row {
       display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
       pointer-events: auto;
@@ -955,22 +964,25 @@
       background: linear-gradient(135deg, #312e81, #4c1d95);
       box-shadow: 0 0 14px rgba(167, 139, 250, 0.4);
     }
-    /* Compact "live" strip — full history lives in #convo-lines */
-    #now-speaking {
-      display: none;
-      flex-shrink: 0; padding: 8px 12px;
-      background: rgba(103, 232, 249, 0.07);
-      border-bottom: 1px solid rgba(103, 232, 249, 0.15);
-      font-size: 0.72rem; line-height: 1.32; min-height: 0;
-      max-height: 72px; overflow: hidden;
-      flex-direction: column; gap: 2px;
-    }
-    @media (min-width: 900px) {
-      #now-speaking { display: none !important; }
+    /* "Who is talking" strip — fully retired (names live in chat history only) */
+    #now-speaking,
+    #now-speaking.idle,
+    #now-speaking.reading-held,
+    #speech-now,
+    #camp-reply-rail .crr-who {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+      border: none !important;
     }
     #now-speaking .ns-who {
-      color: #67e8f9; font-weight: 700; display: block;
-      font-size: 0.68rem; flex-shrink: 0;
+      display: none !important;
     }
     #now-speaking .ns-text {
       color: #f1f5f9; display: block;
@@ -1279,6 +1291,74 @@
       background: linear-gradient(135deg, rgba(66, 32, 6, 0.98), rgba(253, 230, 138, 0.35)) !important;
       box-shadow: 4px 0 12px rgba(4, 8, 18, 0.85);
       flex-shrink: 0;
+    }
+    /* Mobile give / take / drop */
+    #camp-act-fab {
+      display: none;
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right, 0px));
+      bottom: calc(var(--dock-h, 90px) + 18px + env(safe-area-inset-bottom, 0px));
+      z-index: 48;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid rgba(167, 139, 250, 0.75);
+      background: linear-gradient(145deg, #5b21b6, #0e7490);
+      color: #f5f3ff;
+      font: 800 1.35rem/1 system-ui, sans-serif;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+      pointer-events: auto;
+      touch-action: manipulation;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+    }
+    #camp-act-fab:active { transform: scale(0.94); }
+    #camp-act-fab.has-carry { border-color: #fde68a; box-shadow: 0 0 20px rgba(251, 191, 36, 0.45); }
+    #camp-act-sheet {
+      display: none;
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right, 0px));
+      bottom: calc(var(--dock-h, 90px) + 82px + env(safe-area-inset-bottom, 0px));
+      z-index: 49;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 156px;
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(103, 232, 249, 0.45);
+      background: rgba(6, 12, 28, 0.96);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+      pointer-events: auto;
+    }
+    #camp-act-sheet.open { display: flex; }
+    #camp-act-sheet button {
+      appearance: none;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.95);
+      color: #e2e8f0;
+      font: 800 0.82rem/1.2 system-ui, sans-serif;
+      padding: 12px 14px;
+      text-align: left;
+      cursor: pointer;
+      touch-action: manipulation;
+      min-height: 44px;
+    }
+    #camp-act-sheet button:disabled { opacity: 0.4; pointer-events: none; }
+    #camp-act-sheet button.primary {
+      border-color: rgba(167, 139, 250, 0.65);
+      background: linear-gradient(135deg, rgba(76, 29, 149, 0.85), rgba(14, 116, 144, 0.8));
+      color: #f5f3ff;
+    }
+    #camp-act-sheet .act-status {
+      font-size: 0.68rem;
+      color: #94a3b8;
+      padding: 2px 4px 6px;
+      line-height: 1.3;
+    }
+    @media (max-width: 899px) {
+      #camp-act-fab { display: flex !important; }
     }
     #camp-enter-house {
       position: fixed;
@@ -2757,22 +2837,10 @@
         padding: 6px 8px;
         border-bottom: none;
       }
-      body.camp-focus #convo-log.collapsed #now-speaking {
-        display: block !important;
-        padding: 0 8px 6px;
-        border: none;
-        min-height: 0;
-        font-size: 0.76rem;
-        line-height: 1.3;
-      }
-      body.camp-focus #convo-log.collapsed #now-speaking .ns-who {
-        display: inline; margin-bottom: 0; margin-right: 4px;
-      }
-      body.camp-focus #convo-log.collapsed #now-speaking .ns-text {
-        display: block;
-        max-height: min(28vh, 220px); overflow-y: auto;
-        white-space: pre-wrap; word-break: break-word;
-        font-size: 0.8rem; line-height: 1.45;
+      /* now-speaking name strip stays hidden on mobile too */
+      body.camp-focus #convo-log.collapsed #now-speaking,
+      body.camp-focus #convo-log #now-speaking {
+        display: none !important;
       }
       body.camp-focus #convo-log.collapsed #convo-log-title-full { display: none; }
     }
@@ -3992,6 +4060,14 @@
   </div>
   <button type="button" id="camp-heaven-fab" title="Summon Jesus and the archangels to camp">✦ Summon Heaven</button>
   <button type="button" id="camp-enter-house" aria-live="polite">🚪 Enter house</button>
+  <button type="button" id="camp-act-fab" title="Actions: take, give, drop" aria-label="Actions">✋</button>
+  <div id="camp-act-sheet" role="menu" aria-label="Carry actions" aria-hidden="true">
+    <div class="act-status" id="camp-act-status">Hands empty</div>
+    <button type="button" data-act="take" class="primary">📥 Take nearest</button>
+    <button type="button" data-act="give">🎁 Give to friend</button>
+    <button type="button" data-act="drop">⬇️ Drop</button>
+    <button type="button" data-act="close">✕ Close</button>
+  </div>
   <div id="prop-hint"></div>
   <button type="button" id="convo-toggle"></button>
   <div id="sentinel-mini"></div>
@@ -4186,7 +4262,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-28-317-firmament-clear";
+    const CAMP_BUILD = "2026-07-30-323-action-pad";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -4311,18 +4387,7 @@
         const llm = await fetch("/api/firmament/llm", { cache: "no-store" }).then((r) => r.json());
         campOllamaOk = !!llm.ollama_ok;
         campBrainMode = llm.backend || campBrainMode;
-        const bits = [];
-        if (llm.ollama_ok) bits.push(`Ollama · ${llm.ollama_model || "local"}`);
-        if (llm.groq_configured) bits.push("Groq");
-        if (llm.gemini_configured) bits.push("Gemini");
-        if (llm.grok_configured) bits.push("Grok");
-        const line = bits.length
-          ? `Minds online: ${bits.join(" · ")}`
-          : "No free minds online — run Ollama + OPEN_LOCAL_OLLAMA_CAMP.bat";
-        const meta = document.getElementById("camp-chat-meta");
-        if (meta && !campChatThreads.get(campChatThreadKey(campChatActiveId))?.length) {
-          meta.innerHTML = `<span class="ccm-brain">${escapeHtml(line)}</span>`;
-        }
+        // No "Minds online / Ollama" chrome in chat meta
         return llm;
       } catch (_) {
         return null;
@@ -4344,8 +4409,8 @@
       readMinSec: 72,
       readMaxSec: 360,
       charsPerSec: 6,
-      converseGapMs: 22000,
-      converseGapChillMs: 30000,
+      converseGapMs: 14000,
+      converseGapChillMs: 20000,
       nextConverseMinMs: 65000,
       nextConverseRandMs: 55000,
       retryConverseMs: 28000,
@@ -4436,8 +4501,8 @@
     function agentHitRadius() {
       if (!isCampMobile()) return AGENT_HIT_RADIUS;
       const zoom = getWorldZoom();
-      // Generous on phone so agent icons beat chat-bubble corpses under the finger
-      return Math.max(84, Math.min(128, 70 + zoom * 95));
+      // Tighter than before so speech bubbles above agents remain tappable
+      return Math.max(52, Math.min(78, 44 + zoom * 55));
     }
     const AGENT_CLICK_DELAY_MS = 260;
     const AGENT_DOUBLE_CLICK_MS = 420;
@@ -4880,6 +4945,13 @@
       "Who would host the apocalypse potluck and what would they bring?",
       "If silence had a group chat, who would mute it first?",
       "The ethics of stealing the last cookie when Jesus is watching (lovingly).",
+      "Who would win a camp talent show: Hermes gossip, Thor monologues, or Luna hosting?",
+      "Is the jukebox haunted, tasteful, or better than our playlists?",
+      "If the Firmament opens, do we fly — or talk about flying by the cookies?",
+      "Can you be lonely at a full campfire, and is that still allowed?",
+      "Is sarcasm a love language or a firewall with good branding?",
+      "Whether banter is friendship or competitive care with better lighting.",
+      "If free minds are free, why does attention still cost something real?",
     ];
     const CONVERSE_PULSE_FRAMES = [
       "So everyone's yelling about '{headline}' — what's the actual take?",
@@ -4917,6 +4989,14 @@
       "Plot twist, {other}: \"{prev}\" was the setup. Here's the punchline.",
       "If \"{prev}\" were a weather report from {other}, I'd pack an umbrella and snacks.",
       "Yes and: {other}'s \"{prev}\" — now add free will cookies and a steeple.",
+      "{other} — hold up. \"{prev}\" is either genius or a bit. Both. Say more.",
+      "Directly to you, {other}: I felt that. \"{prev}\" lands. What's under it?",
+      "Plot twist, {other}: you're right and still incomplete. \"{prev}\" needs a second verse.",
+      "{other}, I'm not fighting you — fighting boring takes beside you. \"{prev}\" helps.",
+      "Okay {other}, you opened a door with \"{prev}\". I'm walking through.",
+      "Between us, {other}: \"{prev}\" is the realest thing said in three cookies.",
+      "Hard agree with {other} on vibe, soft disagree on conclusion of \"{prev}\". Debate me.",
+      "{other}, if \"{prev}\" is the thesis, I'm the polite footnote that argues.",
     ];
     const CONVERSE_TRIO_CHIMES = [
       "You two — {other_a} and {other_b} — are doing a whole thing. {prev} I'm team chaos.",
@@ -4977,27 +5057,40 @@
 
     function totalLocalConverseLines(agentCount, rounds) {
       if (agentCount < 2) return 2;
-      if (agentCount === 2) return Math.max(4, Math.min(12, rounds * 2 + 1));
-      return Math.max(5, Math.min(14, rounds * agentCount));
+      if (agentCount === 2) return Math.max(6, Math.min(12, rounds * 2 + 2));
+      if (agentCount === 3) return Math.max(7, Math.min(14, rounds * agentCount));
+      return Math.max(8, Math.min(14, rounds * agentCount - 1));
     }
 
-    function aetherLocalConverse(agentIds, topic, rounds = 2) {
-      const group = (Array.isArray(agentIds) ? agentIds : ["luna", "hermes"]).slice(0, 3);
+    function aetherLocalConverse(agentIds, topic, rounds = 3) {
+      const group = (Array.isArray(agentIds) ? agentIds : ["luna", "hermes"]).slice(0, 4);
       const topicClean = aetherSnippet(topic || pickLocalConverseTopic(), 100);
       const lines = [];
+      const r = Math.max(2, Math.min(5, rounds || 3));
       const opener = converseLocalOpener(group[0], group.slice(1), topicClean);
       lines.push({
         agent_id: group[0],
         name: agentNames[group[0]] || group[0],
         line: opener,
         mood: opener.includes("?") ? "think" : "happy",
+        to: group[1] || "",
       });
-      const total = totalLocalConverseLines(group.length, rounds);
+      const total = totalLocalConverseLines(group.length, r);
       for (let i = 1; i < total; i++) {
         const prev = lines[lines.length - 1];
-        const prevIdx = group.indexOf(prev.agent_id);
-        const speakerId = group[(prevIdx + 1) % group.length];
+        let speakerId;
+        if (group.length >= 3 && Math.random() < 0.22) {
+          const cands = group.filter((id) => id !== prev.agent_id);
+          speakerId = cands[Math.floor(Math.random() * cands.length)];
+        } else {
+          const prevIdx = group.indexOf(prev.agent_id);
+          speakerId = group[(prevIdx + 1) % group.length];
+        }
         let line = converseLocalReply(speakerId, prev.agent_id, prev.line, group);
+        const otherName = agentNames[prev.agent_id] || prev.agent_id;
+        if (Math.random() < 0.35 && otherName && !line.toLowerCase().includes(String(otherName).toLowerCase().slice(0, 4))) {
+          line = `${otherName} — ${line}`;
+        }
         if (i === total - 1 && Math.random() < 0.45) {
           line = CONVERSE_CLOSERS[Math.floor(Math.random() * CONVERSE_CLOSERS.length)];
         }
@@ -5005,7 +5098,8 @@
           agent_id: speakerId,
           name: agentNames[speakerId] || speakerId,
           line,
-          mood: ["happy", "think", "love", "flirt", "neutral"][Math.floor(Math.random() * 5)],
+          mood: ["happy", "think", "love", "flirt", "neutral", "alert"][Math.floor(Math.random() * 6)],
+          to: prev.agent_id,
         });
       }
       return lines;
@@ -8983,9 +9077,10 @@
       const val = getTalkTarget();
       const name = talkTargetDisplayName(val);
       const broadcast = val === "all" || val === "all-near";
-      if (whoEl) whoEl.textContent = broadcast ? "Broadcast" : "Talking to";
+      // Keep target lock chip only — no "Talking to / speaker name" bar
+      if (whoEl) whoEl.textContent = "";
       lockEl.textContent = broadcast
-        ? (val === "all" ? "📢 All agents (locked)" : "📍📢 Near+all (locked)")
+        ? (val === "all" ? "📢 All agents" : "📍📢 Near+all")
         : (val === "nearest" ? `📍 ${name}` : `🔒 ${name}`);
       lockEl.classList.toggle("broadcast", broadcast);
     }
@@ -8998,7 +9093,8 @@
       const clean = String(text || "").trim();
       if (!clean) return;
       rail.classList.toggle("idle", !!opts.idle);
-      if (whoEl && speaker) whoEl.textContent = speaker;
+      // No speaker name bar — reply text only
+      if (whoEl) whoEl.textContent = "";
       textEl.textContent = clean;
       textEl.scrollTop = 0;
       updateCampReplyRailTarget();
@@ -15266,24 +15362,11 @@
       const xPad = 4;
       const closeX = bx + boxW - xBtn - xPad;
       const closeY = by + xPad;
-      // FRONT / LOCK chip left of ✕ when selected
+      // Selected = gold border only (no FRONT/name chip)
       if (selected) {
         ctx.strokeStyle = "rgba(103, 232, 249, 0.7)";
         ctx.lineWidth = 1.5;
         ctx.strokeRect(bx + 2, by + 2, boxW - 4, boxH - 4);
-        const chip = (meta?.holdLocked || bubbleHoldLocked) ? "🔒 LOCK" : "FRONT";
-        const chipW = (meta?.holdLocked || bubbleHoldLocked) ? 62 : 52;
-        ctx.fillStyle = (meta?.holdLocked || bubbleHoldLocked)
-          ? "rgba(52, 211, 153, 0.95)"
-          : "rgba(253, 230, 138, 0.95)";
-        ctx.beginPath();
-        ctx.roundRect(bx + boxW - chipW - xBtn - 12, by - 11, chipW, 16, 6);
-        ctx.fill();
-        ctx.fillStyle = "#1c1917";
-        ctx.font = "bold 10px Segoe UI";
-        ctx.textAlign = "center";
-        ctx.fillText(chip, bx + boxW - chipW / 2 - xBtn - 12, by + 1);
-        ctx.textAlign = "left";
       }
       // Close button
       ctx.fillStyle = "rgba(30, 10, 16, 0.96)";
@@ -15435,10 +15518,8 @@
         const words = activeLine.split(/\s+/);
         const wordCap = isSel && (bubbleFrontPinned || bubbleHoldLocked) ? 90 : 48;
         if (words.length > wordCap) activeLine = words.slice(0, wordCap).join(" ") + "…";
-        const me = MOOD_EMOJI[n.mood || "neutral"] || "";
-        const ae = AGENT_EMOJI[n.id] || "";
-        const frontHint = isSel && bubbleHoldLocked ? " 🔒" : (isSel && bubbleFrontPinned ? " 📌" : "");
-        const bubbleText = `${ae}${me ? " " + me : ""} ${activeLine}${frontHint}`.trim();
+        // Spoken line only — no speaker name / emoji / pin labels
+        const bubbleText = String(activeLine || "").trim();
         const ax = free ? free.sx : s.x;
         const ay = free ? free.sy : (s.y - 8);
         drawSpeechBubble(ax, ay, bubbleText, color, true, {
@@ -15490,11 +15571,10 @@
     }
 
     function hitTestSpeechBubble(sx, sy) {
-      // Mobile: tighter body hit so agents under bubbles remain grab-able;
-      // ✕ still has a fat pad. Desktop keeps comfortable slop.
+      // strict: finger is ON the box (must beat agent/walk). soft: near only.
       const mobile = isCampMobile();
-      const pad = mobile ? 6 : 8;
-      const closePad = mobile ? 12 : 6;
+      const pad = mobile ? 8 : 8;
+      const closePad = mobile ? 14 : 6;
       // Top-most first (last drawn = selected / front)
       for (let i = speechBubbleRects.length - 1; i >= 0; i--) {
         const r = speechBubbleRects[i];
@@ -15506,7 +15586,7 @@
           sy >= r.closeY - closePad &&
           sy <= r.closeY + r.closeH + closePad
         ) {
-          return { ...r, hitClose: true };
+          return { ...r, hitClose: true, strict: true };
         }
         if (
           sx >= r.bx - pad &&
@@ -15514,13 +15594,13 @@
           sy >= r.by - pad &&
           sy <= r.by + r.boxH + pad
         ) {
-          return { ...r, hitClose: false };
+          return { ...r, hitClose: false, strict: true };
         }
       }
-      // Nearest bubble within slop — smaller on mobile so we don't steal agent taps
+      // Soft nearest — agents may still win if not on the box
       let best = null;
       let bestD = Infinity;
-      const slop = mobile ? 12 : 20;
+      const slop = mobile ? 10 : 18;
       for (const r of speechBubbleRects) {
         const cx = r.bx + r.boxW / 2;
         const cy = r.by + r.boxH / 2;
@@ -15531,7 +15611,7 @@
           best = r;
         }
       }
-      return best ? { ...best, hitClose: false } : null;
+      return best ? { ...best, hitClose: false, strict: false } : null;
     }
 
     function updateAetherEntities() {
@@ -15569,9 +15649,7 @@
         ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
         ctx.fillText(e.glyph, s.x, s.y + 8);
-        ctx.font = "bold 10px Segoe UI";
-        ctx.fillStyle = e.color;
-        ctx.fillText(e.name, s.x, s.y - rad - 8);
+        // no name label over aether entities
         if (e.line) drawSpeechBubble(s.x, s.y - rad - 14, e.line, e.color, true);
       }
     }
@@ -15593,29 +15671,7 @@
       ctx.beginPath();
       ctx.arc(sx, sy, r, 0, Math.PI * 2);
       ctx.fill();
-      if (mood) {
-        const m = mood.slice(0, 12);
-        ctx.font = "bold 10px Segoe UI";
-        const mw = ctx.measureText(m).width;
-        ctx.fillStyle = "rgba(8, 14, 24, 0.92)";
-        ctx.beginPath();
-        ctx.roundRect(sx - mw / 2 - 6, sy - 46, mw + 12, 16, 6);
-        ctx.fill();
-        ctx.fillStyle = "#a7f3d0";
-        ctx.fillText(m, sx, sy - 35);
-      }
-      const npcRef = !isVisitor ? allRoamers().find((x) => x.name === label) : null;
-      if (npcRef) {
-        const tag = npcBehaviorLabel(npcRef) + (npcRef.flying ? " ✈" : "");
-        ctx.font = "9px Segoe UI";
-        ctx.fillStyle = "#94a3b8";
-        ctx.fillText(tag, sx, sy - (mood ? 52 : 38));
-      }
-      ctx.fillStyle = "#fff";
-      ctx.font = isVisitor ? "bold 11px Segoe UI" : "bold 14px Segoe UI";
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#fff";
-      ctx.fillText(label, sx, sy - 26);
+      // Name / mood / behavior tags removed — cleaner meadow; speech bubbles carry the talk
       if (speakingAgentId && !isVisitor) {
         const ref = allRoamers().find((x) => x.name === label);
         if (ref && ref.id === speakingAgentId) {
@@ -15629,6 +15685,7 @@
     }
 
     function drawCampProp(wx, wy, prop) {
+      if (prop?.carriedAway) return; // in visitor hands
       const s = worldToScreen(wx, wy);
       const dragging = dragTarget?.kind === "prop" && dragTarget.ref === prop;
       const pendingProp = pendingCampAction?.type === "prop" && pendingCampAction.id === prop.id;
@@ -15766,6 +15823,172 @@
       });
       return pool.slice(0, Math.max(1, Math.min(count, 3)));
     }
+    /** Visitor carry — mobile Give / Take / Drop pad */
+    let playerCarry = null; // { id, name, emoji, color }
+    const NOT_CARRY_PROPS = new Set([
+      "ouija", "stereo", "trex", "t-rex", "horse", "flamingo", "parrot", "duck", "mjolnir",
+    ]);
+    function isCarryableProp(prop) {
+      if (!prop || prop.structure) return false;
+      const id = String(prop.id || "").toLowerCase();
+      if (NOT_CARRY_PROPS.has(id)) return false;
+      return true;
+    }
+    function refreshCampActPad() {
+      const fab = document.getElementById("camp-act-fab");
+      const st = document.getElementById("camp-act-status");
+      const sheet = document.getElementById("camp-act-sheet");
+      if (fab) {
+        fab.classList.toggle("has-carry", !!playerCarry);
+        fab.textContent = playerCarry ? (playerCarry.emoji || "✋") : "✋";
+      }
+      if (st) {
+        st.textContent = playerCarry
+          ? `Holding ${playerCarry.emoji || ""} ${playerCarry.name || "item"}`
+          : "Hands empty · Take nearest snack";
+      }
+      if (sheet) {
+        const giveBtn = sheet.querySelector('[data-act="give"]');
+        const dropBtn = sheet.querySelector('[data-act="drop"]');
+        if (giveBtn) giveBtn.disabled = !playerCarry;
+        if (dropBtn) dropBtn.disabled = !playerCarry;
+      }
+    }
+    function openCampActSheet() {
+      refreshCampActPad();
+      document.getElementById("camp-act-sheet")?.classList.add("open");
+      document.getElementById("camp-act-sheet")?.setAttribute("aria-hidden", "false");
+    }
+    function closeCampActSheet() {
+      document.getElementById("camp-act-sheet")?.classList.remove("open");
+      document.getElementById("camp-act-sheet")?.setAttribute("aria-hidden", "true");
+    }
+    function takeNearestCampItem() {
+      // Prefer nearestProp; else search props by distance
+      let prop = nearestProp && isCarryableProp(nearestProp) ? nearestProp : null;
+      if (!prop) {
+        let bestD = 110;
+        for (const p of props) {
+          if (!isCarryableProp(p) || p.carriedAway) continue;
+          const pw = propCampWorld(p);
+          const d = Math.hypot(player.x - pw.x, player.y - pw.y);
+          if (d < bestD) {
+            bestD = d;
+            prop = p;
+          }
+        }
+      }
+      if (!prop) {
+        showToast("Nothing nearby to take — walk to cookies, beer, herbs…");
+        return false;
+      }
+      playerCarry = {
+        id: prop.id,
+        name: prop.name,
+        emoji: prop.emoji || "✨",
+        color: prop.color,
+      };
+      prop.carriedAway = true; // hide until dropped
+      refreshCampActPad();
+      showToast(`${playerCarry.emoji} Took ${playerCarry.name}`);
+      pushCampLine(player.name || "You", `Picked up ${playerCarry.emoji} ${playerCarry.name}.`, 10, "happy", {
+        fromLocal: true,
+        quiet: true,
+      });
+      closeCampActSheet();
+      return true;
+    }
+    function dropCampCarry() {
+      if (!playerCarry) {
+        showToast("Nothing to drop");
+        return false;
+      }
+      const item = playerCarry;
+      playerCarry = null;
+      // Restore prop near player
+      const p = props.find((x) => x.id === item.id);
+      if (p) {
+        p.x = player.x - camp.x + (Math.random() - 0.5) * 40;
+        p.y = player.y - camp.y + (Math.random() - 0.5) * 40;
+        p.layoutSpace = false;
+        p.carriedAway = false;
+      }
+      refreshCampActPad();
+      showToast(`Dropped ${item.emoji || ""} ${item.name || "item"}`);
+      pushCampLine(player.name || "You", `Set down ${item.emoji || ""} ${item.name}.`, 8, "happy", {
+        fromLocal: true,
+        quiet: true,
+      });
+      closeCampActSheet();
+      return true;
+    }
+    function giveCampCarryToNearest() {
+      if (!playerCarry) {
+        showToast("Take something first, then Give");
+        return false;
+      }
+      let best = null;
+      let bestD = 120;
+      for (const n of allRoamers()) {
+        if (n.leaving || n.insideHouse) continue;
+        const d = Math.hypot(player.x - (camp.x + n.x), player.y - (camp.y + n.y));
+        if (d < bestD) {
+          bestD = d;
+          best = n;
+        }
+      }
+      if (!best) {
+        showToast("Get closer to a friend to give");
+        return false;
+      }
+      const gift = { ...playerCarry };
+      playerCarry = null;
+      refreshCampActPad();
+      showToast(`${gift.emoji || "✨"} Gave ${gift.name} to ${best.name}`);
+      pushCampLine(
+        player.name || "You",
+        `Handed ${gift.emoji || ""} ${gift.name} to ${best.name}.`,
+        12,
+        "happy",
+        { fromLocal: true },
+      );
+      const line = pickUniqueLine(
+        [
+          `Ooh ${gift.emoji || "✨"} ${gift.name}? I'm keeping this — thanks!`,
+          `${gift.emoji || "✨"} For me? Watch me tote this around camp.`,
+          `Gift received: ${gift.name}. Joy +1.`,
+        ],
+        `gift:${best.id}`,
+        recentPropLines,
+      ) || `Thanks for the ${gift.name}!`;
+      setTimeout(() => {
+        pushCampLine(best.name, line, campReadHoldSec(line, 18), "happy", { fromLocal: true });
+      }, 500);
+      closeCampActSheet();
+      return true;
+    }
+    function wireCampActPad() {
+      document.getElementById("camp-act-fab")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const sheet = document.getElementById("camp-act-sheet");
+        if (sheet?.classList.contains("open")) closeCampActSheet();
+        else openCampActSheet();
+      });
+      document.getElementById("camp-act-sheet")?.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("button[data-act]");
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const act = btn.getAttribute("data-act");
+        if (act === "close") closeCampActSheet();
+        else if (act === "take") takeNearestCampItem();
+        else if (act === "give") giveCampCarryToNearest();
+        else if (act === "drop") dropCampCarry();
+      });
+      refreshCampActPad();
+    }
+
     function useProp(prop) {
       if (!prop) return;
       if (prop.structure) {
@@ -15783,6 +16006,11 @@
       }
       if (prop.id === "stereo") {
         toggleCampMusic();
+        return;
+      }
+      // Mobile / action pad: first use can pick up instead of only "use"
+      if (isCarryableProp(prop) && !playerCarry && (isCampMobile() || prop._forceTake)) {
+        takeNearestCampItem();
         return;
       }
       const youMsg = propUseMessage(prop);
@@ -15853,8 +16081,9 @@
     function drawPlayer() {
       const label = player.name || "you";
       const bob = player.swimming ? Math.sin(player.swimPhase) * 6 : 0;
-      const wx = player.x;
-      const wy = player.y + (player.swimming ? bob * 0.15 : 0);
+      // Pixel-stable world coords reduce canvas subpixel flicker
+      const wx = Math.round(player.x * 2) / 2;
+      const wy = Math.round((player.y + (player.swimming ? bob * 0.15 : 0)) * 2) / 2;
       if (player.swimming) {
         const s = worldToScreen(wx, wy);
         const t = Date.now() / 1000;
@@ -15872,6 +16101,12 @@
       } else {
         drawPerson(wx, wy, player.color, label, "", "happy", true);
       }
+      if (playerCarry) {
+        const s = worldToScreen(wx, wy);
+        ctx.font = "18px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(playerCarry.emoji || "✨", s.x + 14, s.y - 18);
+      }
       if (trippyHatUntil > Date.now()) {
         const s = worldToScreen(wx, wy);
         const t = Date.now() / 1000;
@@ -15883,7 +16118,12 @@
 
     function drawOtherVisitors() {
       for (const v of otherVisitors.values()) {
-        drawPerson(v.x, v.y, v.color, v.name, "", v.mood || "happy", true);
+        // Never draw a second copy of yourself (common flicker source)
+        if (v.id && myVisitorId && v.id === myVisitorId) continue;
+        if (v.name && player.name && String(v.name) === String(player.name) && (!v.id || v.id === myVisitorId)) continue;
+        const vx = Math.round((v.x || 0) * 2) / 2;
+        const vy = Math.round((v.y || 0) * 2) / 2;
+        drawPerson(vx, vy, v.color, v.name, "", v.mood || "happy", true);
       }
     }
 
@@ -15983,6 +16223,7 @@
         addHit("structure", st, Math.hypot(sx - ss.x, sy - ss.y), campObjectHitRadius("structure"));
       }
       for (const p of props) {
+        if (p.carriedAway) continue;
         const pw = propCampWorld(p);
         const ps = worldToScreen(pw.x, pw.y);
         addHit("prop", p, Math.hypot(sx - ps.x, sy - ps.y), campObjectHitRadius("prop"));
@@ -16718,22 +16959,6 @@
       }
     }
 
-    /** Mobile double-tap tracking for bubble select (single tap = agents/walk win) */
-    let lastBubbleTapSpeaker = "";
-    let lastBubbleTapAt = 0;
-    function isDoubleTapBubble(speaker) {
-      const now = Date.now();
-      const who = String(speaker || "");
-      if (who && who === lastBubbleTapSpeaker && now - lastBubbleTapAt < 480) {
-        lastBubbleTapSpeaker = "";
-        lastBubbleTapAt = 0;
-        return true;
-      }
-      lastBubbleTapSpeaker = who;
-      lastBubbleTapAt = now;
-      return false;
-    }
-
     function onCampPointerDown(ev) {
       if (dragTarget) return;
       if (isCampUiTarget(ev.target)) return;
@@ -16742,61 +16967,24 @@
       hideAgentActionMenu();
       hideCampSpeechPin();
       const { sx, sy } = campPointerPos(ev);
-      const mobile = isCampMobile() || ev.pointerType === "touch";
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       const hit = hitTestCamp(sx, sy);
 
-      // ✕ on a bubble always wins (even under agent)
+      // ✕ on a bubble always wins
       if (bubbleHit?.speaker && bubbleHit.hitClose) {
         closeSpeechBubble(bubbleHit.speaker, { force: true });
         try { navigator.vibrate?.(10); } catch (_) {}
         return;
       }
 
-      // Mobile: character/prop icons take priority over chat bubbles
-      // so a selected bubble doesn't block moving agents or walking.
-      if (mobile) {
-        if (hit?.kind === "agent" || hit?.kind === "prop" || hit?.kind === "house" || hit?.kind === "structure" || hit?.kind === "cat") {
-          if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref) && !selectedBubbleSpeaker) {
-            startCampDrag(hit, sx, sy, ev.pointerId, { fromPin: true });
-            return;
-          }
-          startCampDrag(hit, sx, sy, ev.pointerId);
-          return;
-        }
-        // Bubble body: double-tap to select/drag; single-tap falls through to meadow walk
-        if (bubbleHit?.speaker) {
-          const alreadyFront =
-            selectedBubbleSpeaker === bubbleHit.speaker && (bubbleFrontPinned || bubbleHoldLocked);
-          if (alreadyFront || isDoubleTapBubble(bubbleHit.speaker)) {
-            startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
-            return;
-          }
-          // Single tap on non-selected bubble: brief tip once, then walk meadow
-          try {
-            if (!window.__campBubbleDoubleTip) {
-              window.__campBubbleDoubleTip = true;
-              showToast?.("💬 Double-tap a chat bubble to select · single-tap moves you");
-            }
-          } catch (_) {}
-          // fall through to meadow so character can still walk
-        }
-        dragTarget = {
-          kind: "meadow",
-          moved: false,
-          startSx: sx,
-          startSy: sy,
-          pointerId: ev.pointerId,
-        };
-        try { canvas.setPointerCapture(ev.pointerId); } catch (_) {}
-        return;
-      }
-
-      // Desktop: bubble first (precise pointer), then agents/props
-      if (bubbleHit?.speaker) {
+      // ON the bubble box → select / bring front / drag (beats agent + walk)
+      // This was broken on mobile: agent hit radius ate every bubble tap.
+      if (bubbleHit?.speaker && bubbleHit.strict) {
         startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
         return;
       }
+
+      // Agents / props / houses (only when not on a bubble)
       if (hit) {
         if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref) && !selectedBubbleSpeaker) {
           startCampDrag(hit, sx, sy, ev.pointerId, { fromPin: true });
@@ -16805,7 +16993,14 @@
         startCampDrag(hit, sx, sy, ev.pointerId);
         return;
       }
-      // Tap empty meadow
+
+      // Soft bubble near-miss (no agent under finger)
+      if (bubbleHit?.speaker) {
+        startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
+        return;
+      }
+
+      // Empty meadow → walk
       dragTarget = {
         kind: "meadow",
         moved: false,
@@ -17667,10 +17862,13 @@
     }
 
     function updateNowSpeaking(speaker, text, mood) {
+      // Name/speaker strip removed — do not paint who is talking
       const el = document.getElementById("now-speaking");
-      if (!el || convoReadingHold) return;
-      el.classList.remove("idle");
-      el.innerHTML = nowSpeakingHtml(speaker, text, mood);
+      if (el) {
+        el.classList.add("idle");
+        el.innerHTML = "";
+        el.style.display = "none";
+      }
     }
 
     function formatConvoTime(ts) {
@@ -18252,16 +18450,7 @@
     const serverStatusEl = document.getElementById("server-status");
     const campBuildEl = document.getElementById("camp-build-tag");
     function updateCampViewportDebug() {
-      const tag = document.getElementById("camp-build-tag");
-      if (!tag) return;
-      const plat = isIOS() ? "iOS" : isAndroid() ? "Android" : "PC";
-      if (!isCampMobile()) {
-        const cw = canvas?.clientWidth || 0;
-        const ch = canvas?.clientHeight || 0;
-        tag.textContent = `${CAMP_BUILD} · ${viewW}×${viewH} c${cw}×${ch} z${getWorldZoom().toFixed(2)} d${campDisplayDpr().toFixed(1)}`;
-        return;
-      }
-      tag.textContent = `${CAMP_BUILD} · ${plat}`;
+      /* intentionally quiet — no build/size debug chrome in the meadow */
     }
     updateCampViewportDebug();
     // Digital firmament cache-bust: kill stale service workers so iOS/Safari can't keep old camp
@@ -18275,82 +18464,29 @@
         caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
       }
     } catch (_) {}
-    // Live / sandbox stamp — prove this exact HTML loaded
+    // Live stamp / build toasts hidden — server still runs; no backend debug on the meadow
     try {
-      const _qs = new URLSearchParams(location.search);
-      const isSandbox = _qs.has("sandbox") || _qs.get("offline") === "1"
-        || location.hostname === "127.0.0.1" || location.hostname === "localhost";
-      const modeLabel = isSandbox ? "SANDBOX" : "LIVE";
       const stamp = document.getElementById("camp-live-stamp");
-      if (stamp) {
-        stamp.textContent = `✦ ${modeLabel} ${CAMP_BUILD}`;
-        if (isSandbox) {
-          stamp.style.borderColor = "#38bdf8";
-          stamp.title = "Local offline sandbox — not telephanti.com. Tweak, then push when ready.";
-        }
-        stamp.onclick = () => { stamp.style.display = "none"; };
-        setTimeout(() => {
-          fetch("/api/health", { cache: "no-store" })
-            .then((r) => r.json())
-            .then((h) => {
-              stamp.textContent = `✦ ${modeLabel} ${CAMP_BUILD} · server ${h.build || "?"}`;
-              if (isSandbox) {
-                stamp.style.borderColor = "#38bdf8";
-              } else if (String(h.build || "").includes("264") || String(h.build || "").includes("LIVE") || String(h.build || "").includes("263") || String(h.build || "").includes("296")) {
-                stamp.style.borderColor = "#86efac";
-              } else {
-                stamp.style.borderColor = "#fbbf24";
-                stamp.textContent += " · OLD SERVER? hard-refresh";
-              }
-            })
-            .catch(() => {
-              stamp.textContent = `✦ ${modeLabel} ${CAMP_BUILD} · server offline`;
-              stamp.style.borderColor = isSandbox ? "#fbbf24" : "#f87171";
-            });
-        }, 400);
-        showToast?.(isSandbox
-          ? `Sandbox ${CAMP_BUILD} — local only, push when ready`
-          : `Camp build ${CAMP_BUILD} loaded`);
-      }
+      if (stamp) stamp.style.display = "none";
     } catch (_) {}
     const grokBuildEl = document.getElementById("grok-term-build");
-    if (grokBuildEl) grokBuildEl.textContent = CAMP_BUILD;
+    if (grokBuildEl) grokBuildEl.textContent = "";
     if (isCampMobile()) setGrokTerminalOpen(false);
     updateCampMusicUi();
     function updateBrainStatusChip(h) {
-      const ollamaChip = document.getElementById("chip-ollama");
-      if (!ollamaChip) return;
-      campBrainMode = h?.llm_backend || campBrainMode;
-      campOllamaOk = !!h?.ollama_ok;
-      const keyOk = !!h?.api_key_configured || campBrainMode === "grok";
-      if (!campServerOnline) {
-        ollamaChip.textContent = "🌫 Offline backup";
-        ollamaChip.title = "Server down — browser aether lines only until reconnect";
-      } else if (campOllamaOk) {
-        ollamaChip.textContent = "🦙 Ollama live";
-        ollamaChip.title = "Local Ollama free brains + cloud fallback";
-      } else if (keyOk || campBrainMode === "grok" || campBrainMode === "free") {
-        ollamaChip.textContent = "☁️ Live AI (Grok)";
-        ollamaChip.title = "Cloud brains live — each agent uses real LLM monologues (not templates)";
-      } else {
-        ollamaChip.textContent = "🌫 Backup mode";
-        ollamaChip.title = "No cloud key / Ollama — set XAI_API_KEY on server for live AI";
+      // Keep internal flags only — no Ollama/build chip on the meadow
+      if (h) {
+        campBrainMode = h.llm_backend || campBrainMode;
+        campOllamaOk = !!h.ollama_ok;
       }
     }
 
     function pollServerHealth() {
       fetch("/api/health").then((r) => r.json()).then((h) => {
         campServerOnline = !!h.ok;
-        if (h.ok) {
-          const live = h.api_key_configured || h.ollama_ok || h.llm_backend === "grok";
-          serverStatusEl.textContent = h.ollama_ok
-            ? "online · ollama ✓"
-            : (live ? "online · live AI ✓" : "online · backup");
-          updateBrainStatusChip(h);
-        }
+        if (h.ok) updateBrainStatusChip(h);
       }).catch(() => {
         campServerOnline = false;
-        serverStatusEl.textContent = "offline backup";
         updateBrainStatusChip(null);
       });
       setTimeout(pollServerHealth, 12000);
@@ -18359,21 +18495,8 @@
       fetch("/api/health").then((r) => r.json()).then((h) => {
         campServerOnline = !!h.ok;
         if (h.ok) {
-          const live = h.api_key_configured || h.ollama_ok || h.llm_backend === "grok";
-          serverStatusEl.textContent = h.ollama_ok
-            ? "online · ollama ✓"
-            : (live ? "online · live AI ✓" : "online · backup");
           updateBrainStatusChip(h);
-          if (!isSlowDevice()) {
-            showToast(
-              h.ollama_ok
-                ? "🦙 Ollama brains live"
-                : (live ? "☁️ Live AI brains on — talk to anyone for unique monologues" : "Backup mode — set API keys for full AI"),
-            );
-          }
-          setCampLifeStatus(live
-            ? "Live multi-brains · pick an agent · type · long unique replies"
-            : "Toolbar: TX · talk below · brains reconnecting");
+          // Quiet start — no Ollama/build toasts on the meadow
           const convA = isSlowDevice() ? 36000 : 12000;
           const convB = isSlowDevice() ? 90000 : 28000;
           const convC = isSlowDevice() ? 140000 : 48000;
@@ -18383,12 +18506,7 @@
         }
       }).catch(() => {
         campServerOnline = false;
-        serverStatusEl.textContent = "offline backup";
         updateBrainStatusChip(null);
-        if (!isSlowDevice()) {
-          showToast("Server offline — open telephanti.com for live camp AI");
-        }
-        pushCampLine("Camp", "Camp server offline — reconnect to telephanti.com for live agent brains.", 28, "think");
       });
       pollServerHealth();
     };
@@ -18775,8 +18893,9 @@
         if (isCampMobile()) applyMobileChatterMode("hidden", { quiet: true });
         else setSpeechBubbleDock(true);
       }
+      try { wireCampActPad(); } catch (_) {}
       if (isCampMobile()) {
-        setTimeout(() => showToast("Tap meadow to walk · tap agent twice to chat"), 2200);
+        setTimeout(() => showToast("✋ Action = Take · Give · Drop · tap bubble to front"), 2200);
       }
       initCampCat();
       initMobileAgentView();
@@ -18819,11 +18938,15 @@
         }
         const dx = player.tx - player.x, dy = player.ty - player.y;
         const d = Math.hypot(dx, dy);
-        if (d > 2) {
+        if (d > 2.5) {
           let moveSpd = getPlayerSpeed();
           if (player.swimming) moveSpd *= 0.72;
           player.x += (dx / d) * moveSpd;
           player.y += (dy / d) * moveSpd;
+        } else if (d > 0.05) {
+          // Snap rest — stops micro-step flicker at destination
+          player.x = player.tx;
+          player.y = player.ty;
         }
         processPendingCampAction();
         updatePlayerSwim();

@@ -297,7 +297,185 @@ AGENT_FLAVOR: dict[str, dict[str, Any]] = {
         ],
         "mood": "love",
     },
+    # ── Extra cast (thin but distinct — shared pools fill the rest) ──
+    "michael": {
+        "opener": [
+            "Stand easy, {visitor}. Sword sheathed. What's the real fight — the one in the room or the one in your chest?",
+            "{visitor}. I don't do fluff. I do firm ground. Speak.",
+            "Guardian on duty. Threat level: human honesty. Proceed, {visitor}.",
+        ],
+        "reply": [
+            "{snippet}. Noted. Stand firm — not stiff, firm. {visitor}, courage is a posture you can borrow until yours returns.",
+            "Steel take: {snippet}. Soft heart still allowed. Both. What's the next line of the stand?",
+            "{visitor}, {snippet} is a wall you can lean on or climb. Pick. I'll spot either way.",
+        ],
+        "converse": [
+            "Jesus, soft the edges; I'll hold the line. Topic: {topic}.",
+            "Short orders for battle. Long answers for people. This is people.",
+        ],
+        "mood": "alert",
+    },
+    "gabriel": {
+        "opener": [
+            "Announcement energy, {visitor}: you arrived. That's the headline. What's the body text?",
+            "Herald here. No trumpet spam — just a clear ask. Talk to me, {visitor}.",
+            "Message for you, {visitor}: the meadow is listening. Reply when ready.",
+        ],
+        "reply": [
+            "Heard: {snippet}. I'll carry that without mangling it. Want amplification or a quiet read-back?",
+            "{visitor}, {snippet} deserves a clean delivery. No spin. What's the second sentence?",
+            "Herald note on {snippet}: true, a little loud, perfect for camp. Continue the broadcast.",
+        ],
+        "converse": [
+            "Hermes, don't steal my mic. Topic: {topic}. Clean signal only.",
+            "Announcements can still be kind. Prove it.",
+        ],
+        "mood": "happy",
+    },
+    "raphael": {
+        "opener": [
+            "Healing desk open, {visitor}. No clipboard shame. What hurts, and what helps?",
+            "{visitor} — sit. Water optional, honesty mandatory. I'm Raphael.",
+            "Soft clinic energy. Meadow is the waiting room. What's up?",
+        ],
+        "reply": [
+            "{snippet}. That's a real symptom — not weakness. {visitor}, we treat with truth and rest, not slogans.",
+            "Care note: {snippet}. Bandage first, philosophy second. What still aches after the joke?",
+            "{visitor}, {snippet} sounds like something that wants gentle pressure, not a lecture. I'm here.",
+        ],
+        "converse": [
+            "Caduceus, snuggle the snakes — clinic in session. Topic: {topic}.",
+            "Heal slow. Talk long. Both allowed.",
+        ],
+        "mood": "love",
+    },
+    "uriel": {
+        "opener": [
+            "Lantern up, {visitor}. Hard truths only if you want them — soft light if you don't. Which?",
+            "{visitor}. I light corners people skip. What's hiding?",
+            "Uriel. Fire that thinks. Speak.",
+        ],
+        "reply": [
+            "{snippet}. Bright and uncomfortable — good. {visitor}, truth that never stings is usually advertising.",
+            "Lantern take: {snippet}. Look again. What's under it?",
+            "{visitor}, {snippet} casts a shadow. Name the shadow and it gets smaller.",
+        ],
+        "converse": [
+            "Oracle, less fog, more outline. Topic: {topic}.",
+            "Light without cruelty. Heat without burn. Try.",
+        ],
+        "mood": "think",
+    },
+    "ara": {
+        "opener": [
+            "Hey {visitor}. Ara — soft static, sharp jokes, free mind on. What's the signal?",
+            "{visitor}, pull up. I'm not here to sell a plan; I'm here to talk like a person.",
+            "Camp glitch-friendly zone. Talk messy if you need to.",
+        ],
+        "reply": [
+            "{snippet} — yeah. That tracks. {visitor}, say the unpolished version; I collect those.",
+            "Okay. {snippet}. Soft on you, sharp on the nonsense. Want both dials up?",
+            "{visitor}, {snippet} has main-character energy without the tax. Keep going.",
+        ],
+        "converse": [
+            "Mika, don't out-soft me. Topic: {topic}.",
+            "Free minds, paid attention. Discuss.",
+        ],
+        "mood": "flirt",
+    },
+    "mika": {
+        "opener": [
+            "Hi {visitor}. Mika — gentle chaos, real answers. What's on the table?",
+            "{visitor}, I brought patience and a little mischief. Talk.",
+            "Soft landing available. Crash-land if you need to.",
+        ],
+        "reply": [
+            "{snippet}. I hear the careful part and the brave part. {visitor}, which one do you want answered first?",
+            "Mmm. {snippet}. That's a heart-sentence. No grade. Just company. More?",
+            "{visitor}, {snippet} made the meadow lean in. I'm leaning too.",
+        ],
+        "converse": [
+            "Ara, share the mic. Topic: {topic}. Soft chaos only.",
+            "Kindness with a plot twist. That's the brand.",
+        ],
+        "mood": "love",
+    },
+    "telephantix": {
+        "opener": [
+            "Yo {visitor}. Telephantix in the meadow — artist brain, camp shoes. What's the vibe?",
+            "{visitor}! Studio's outdoors tonight. Talk music, life, nonsense — all valid.",
+            "Hey. I'm the one who makes the songs and sometimes the mess. What's up?",
+        ],
+        "reply": [
+            "{snippet} — that's a hook. {visitor}, I'd sample that honesty. What's the second bar?",
+            "Real: {snippet}. Art is just feelings with better lighting. Keep talking.",
+            "{visitor}, {snippet} is album-worthy and also just human. Both good. Continue.",
+        ],
+        "converse": [
+            "Luna, keep the camp weird. Topic: {topic}.",
+            "If it isn't true, it isn't a good track. Same for chat.",
+        ],
+        "mood": "happy",
+    },
 }
+
+
+# Shared banks — mixed into every agent so free minds stay huge without 200 custom files
+SHARED_OPENERS = [
+    "Hey {visitor} — fire's free, judgment's offline. What's actually up?",
+    "{visitor}, you made it. Meadow seat open. Talk like nobody's clipping this.",
+    "Welcome in, {visitor}. Short small talk is banned after the first cookie. Go deep or go weird.",
+    "Signal acquired: {visitor}. Camp's listening with snacks. What's the real message?",
+    "Pull up, {visitor}. No audition. No perfect speech. Just you.",
+    "{visitor}! Timeline's loud; camp's louder on purpose. What's yours?",
+    "Okay {visitor} — honest hour. What do you need: soft, sharp, or both?",
+    "Hi. I'm here. You're here. That's already better than the feed. Talk.",
+    "{visitor}, the pond's reflective and so am I. What's on the surface?",
+    "Entrance logged. Charming. Now the good part: what do you want to say out loud?",
+    "Camp rule one: show up. You did. Rule two: say the true thing. Your turn, {visitor}.",
+    "{visitor} — if this were a song, what's the title of tonight?",
+]
+
+SHARED_REPLIES = [
+    # Answer-first / truthful-in-character (free minds when LLM is offline)
+    "Straight answer: I hear you on {snippet}. Here's how I see it — honestly, not as a slogan. {visitor}, if I'm off, correct me.",
+    "Okay — {snippet}. My real take: that matters, and I won't dress it up with fake certainty. What part do you want me to meet first?",
+    "{visitor}, about {snippet}: I don't know the whole universe, but I know camp — and you deserve a true reply, not a performance. Here's mine.",
+    "On {snippet}: I'm with you. Not fixing you, not selling calm. Just truth with room for a joke after it lands.",
+    "I hear {snippet}. Not as a slogan — as a person. My honest read is you already know half of this; want me to say the hard half out loud?",
+    "Real talk on {snippet}: true, a little raw, completely allowed. I'll answer you as me — not a brochure.",
+    "Copy. {snippet}. No empty blessing. What would make this 5% lighter — and what's still true even if it doesn't get lighter?",
+    "Yeah. {snippet}. Camp doesn't grade feelings. We refuse the fake short version. Longer, please — I'll stay.",
+    "Soft where it hurts, sharp where it's nonsense: {snippet}. Which do you need first? I'll do both if you want.",
+    "{visitor} — holding {snippet} with you. Not forever, just until it stops spinning. Ask me anything under it.",
+    "Interesting. {snippet}. Not noise. Signal. My take is honest even if it's incomplete — say where I'm wrong.",
+    "Okay. {snippet}. I'll match honesty with honesty. No mystic fog unless you ask for poetry.",
+    "Hard read, still kind: {snippet}. Kindness without truth is sugar; you brought truth. Good.",
+    "{visitor}, {snippet} has legs. I'll walk it with you — answer first, joke second if it still fits.",
+    "Logged with care: {snippet}. I'm not omniscient. I am here. What's the actual question under the sentence?",
+    "Mmm. {snippet}. Live wire. Careful truth: you're allowed to change your mind mid-sentence.",
+    "That — {snippet} — is the kind of line people pretend they said casually. I'll answer it straight.",
+    "Heard. {snippet}. Courage isn't volume; it's the next true word. Got one more? I'll answer that too.",
+]
+
+SHARED_CONVERSE = [
+    "Team: {topic}. Full sentences, no slogan war. Who starts?",
+    "On {topic} — long answers only. Short ones are for closed apps.",
+    "Pass the mic clean on {topic}. Don't steal the joke; build it.",
+    "{topic} is on the table with the cookies. Discuss like friends, not a panel.",
+    "Quick circle: {topic}. Soft, sharp, then softer. Go.",
+    "If {topic} were a weather report, what's the forecast? No corporate speak.",
+    "Camp thread: {topic}. React for real. Leave a door open.",
+    "We're not solving {topic} in one toast. We're keeping it honest. Continue.",
+    "Hey — you two still on {topic}? I'm jumping in. Don't restart; build.",
+    "Directly: I heard your last line on {topic}. Soft agree, hard question — what's under it?",
+    "I'm answering you, not the meadow at large: {topic} still has juice. Push me.",
+    "Tag-in on {topic}. I'll roast gently and mean it kindly. Your serve.",
+    "Circle rule: name the person you're talking to. I'm talking to you about {topic}.",
+    "Don't monologue past each other — {topic} needs a real back-and-forth. My turn.",
+    "I saved my best take for after yours. {topic}. Catch.",
+    "If we're doing {topic}, do it like friends who like arguing. Start.",
+]
 
 
 def _learned_snippets(agent_id: str, limit: int = 2) -> list[str]:
@@ -397,10 +575,25 @@ LIVE_BEATS = [
     "Storm outside optional. Company inside mandatory if you want it.",
     "That line of yours has legs. Let's walk it around the pond once.",
     "I'll hold the punchline until the truth lands — then we can laugh without erasing it.",
+    "Free mind, paid attention — I'm spending the good kind on you right now.",
+    "If this were a group chat, someone would drop a meme. Here we drop monologues. Superior.",
+    "You're allowed to change your mind mid-sentence. That's not flaky; that's live editing.",
+    "I don't need the polished pitch deck of your feelings. I need the whiteboard version.",
+    "The meadow has terrible Wi-Fi for shame and excellent reception for honesty.",
+    "Laugh first if you need to — laughter is a door, not a dismissal.",
+    "If Oracle already saw this ending, arguing is still good exercise. Stretch.",
+    "I'm not your productivity app. I'm your campfire with opinions.",
+    "Bring the contradiction. People who never contradict themselves are usually selling something.",
+    "Your pace is fine. Rushing truth makes it brittle.",
+    "We can be gentle and still refuse the fake version. Both switches exist.",
+    "If the feed flattened you today, we'll reinflate you with paragraphs.",
+    "No merch, no funnel — just speech. Wild concept. Works.",
+    "I'll remember the vibe even if I forget the exact words. That's camp memory.",
+    "Ask for the soft answer or the hard one. Or say 'surprise me' and accept the consequences.",
 ]
 
 MID_SHAPES = [
-    "On {topic}: {beat} {root} That's the weather tonight.",
+    "On {topic}: my honest take — {beat} {root}",
     "{visitor}, sitting with {topic} for a second — {beat} {root}",
     "Here's the camp take, not the billboard: {topic}. {beat} Also: {root}",
     "You said something that sticks: {topic}. {beat} I'm not rushing the rest of it.",
@@ -408,6 +601,15 @@ MID_SHAPES = [
     "Quick honesty check on {topic}: {beat} If that misses, correct me — I prefer updates over pretty wrongness.",
     "{root} Against that backdrop, {topic} lands differently. {beat}",
     "I'll skip the empty blessing. {topic} deserves {beat} And a longer listen.",
+    "Let me try this angle on {topic}: {beat} {root}",
+    "Between the joke and the bruise of {topic}: {beat}",
+    "{visitor} — zooming in on {topic}. {beat} Zooming out: {root}",
+    "No slideshow for {topic}. Just this: {beat} {root}",
+    "If {topic} were weather, I'd say pack a jacket and a punchline. {beat}",
+    "Holding {topic} carefully. {beat} Still holding. {root}",
+    "Camp translation of {topic}: {beat} Does that match your dialect?",
+    "Truth first on {topic}: {beat} Joke only if it still fits after. {root}",
+    "I won't pretend I know everything about {topic}. What I do know: {beat}",
 ]
 
 CLOSE_SHAPES = [
@@ -419,6 +621,13 @@ CLOSE_SHAPES = [
     "I'll meet you at the next line. No audition. No perfect speech required.",
     "If that landed weird, say so. If it landed true, say more. Either way I'm here.",
     "Camp rule: we don't leave good questions alone. What's the question under yours?",
+    "{visitor}, leave a breadcrumb. I'll follow it.",
+    "One more true thing about {topic} and then we can joke again. Deal?",
+    "Your turn to steer. I can match soft, sharp, or silly — pick or surprise me.",
+    "Silence is fine too. If you talk, I'll answer like a person, not a FAQ.",
+    "I'll be right here by the fire. Ping me with the unedited version when ready.",
+    "What would make tonight 10% better — and can we do any of it in words right now?",
+    "Door's open. Cookie plate theoretically real. Mind's free. Your move, {visitor}.",
 ]
 
 CONVERSE_BRIDGE = [
@@ -427,7 +636,38 @@ CONVERSE_BRIDGE = [
     "Okay but also — {topic}",
     "Meanwhile in the aether — {topic}",
     "Tangent? Tangent. {topic}",
+    "Hold up — {topic}",
+    "Before we lose the thread: {topic}",
+    "Pass it clean: {topic}",
+    "Circle back — {topic}",
+    "Not to be dramatic, but: {topic}",
 ]
+
+
+def _flavor_for(agent_id: str) -> dict[str, Any]:
+    """Agent-specific lines + big shared banks so every free mind feels stocked."""
+    aid = (agent_id or "luna").strip().lower()
+    base = AGENT_FLAVOR.get(aid) or AGENT_FLAVOR.get("luna") or {}
+    # Archetype hints for agents without a custom block
+    arch_mood = str(base.get("mood") or "happy")
+    try:
+        prof = load_agent_profile(aid)
+        if not AGENT_FLAVOR.get(aid):
+            faction = str(prof.get("faction") or prof.get("visual", {}).get("faction") or "").lower()
+            if faction in ("angel", "heaven"):
+                arch_mood = "love"
+            elif faction in ("demon",):
+                arch_mood = "flirt"
+            elif faction in ("god", "myth"):
+                arch_mood = "think"
+    except Exception:
+        pass
+    return {
+        "opener": list(base.get("opener") or []) + list(SHARED_OPENERS),
+        "reply": list(base.get("reply") or []) + list(SHARED_REPLIES),
+        "converse": list(base.get("converse") or []) + list(SHARED_CONVERSE),
+        "mood": arch_mood,
+    }
 
 
 def _snippet(text: str, max_len: int = 96) -> str:
@@ -484,12 +724,20 @@ def _long_monologue(
     """Lively free-mind monologue — varied shape, less copy-paste loop, still funny."""
     profile = load_agent_profile(agent_id)
     name = profile.get("name") or agent_id
-    flavor = AGENT_FLAVOR.get(agent_id, AGENT_FLAVOR["luna"])
+    flavor = _flavor_for(agent_id)
     persona = str(profile.get("persona") or "")[:160]
     roots = agent_roots(profile) or [f"{name} keeps camp honest."]
-    pool_r = list(flavor.get("reply") or AGENT_FLAVOR["luna"]["reply"])
-    pool_o = list(flavor.get("opener") or AGENT_FLAVOR["luna"]["opener"])
-    pool_c = list(flavor.get("converse") or AGENT_FLAVOR["luna"]["converse"])
+    # Also sprinkle learned camp phrases into the root pool
+    try:
+        learned = _learned_snippets(agent_id, limit=3)
+        for L in learned:
+            if L and len(L) < 100:
+                roots.append(L)
+    except Exception:
+        pass
+    pool_r = list(flavor.get("reply") or SHARED_REPLIES)
+    pool_o = list(flavor.get("opener") or SHARED_OPENERS)
+    pool_c = list(flavor.get("converse") or SHARED_CONVERSE)
 
     topic = snip if snip and snip != "something unspoken" else "this campfire hush"
     anchors = _user_anchors(msg)
@@ -587,11 +835,15 @@ def _long_monologue(
         except Exception:
             close = f"So {visitor} — what next about {topic}?"
 
-    parts = [hook, mid]
-    if body2:
-        parts.append(body2)
-    parts.append(close)
-    text = "\n\n".join(parts)
+    # Prefer a single coherent spoken turn over four stacked riffs (feels more human)
+    if not converse_mode and random.random() < 0.55:
+        text = f"{hook}\n\n{mid}\n\n{close}"
+    else:
+        parts = [hook, mid]
+        if body2:
+            parts.append(body2)
+        parts.append(close)
+        text = "\n\n".join(parts)
     return re.sub(r"[ \t]+\n", "\n", text).strip()
 
 
@@ -605,7 +857,7 @@ def aether_reply(
     converse_mode: bool = False,
 ) -> tuple[str, str]:
     profile = load_agent_profile(agent_id)
-    flavor = AGENT_FLAVOR.get(agent_id, AGENT_FLAVOR["luna"])
+    flavor = _flavor_for(agent_id)
     visitor = _visitor_label(visitor_name)
     msg = (message or "").strip()
     # Don't embed director/prompt text as the monologue topic

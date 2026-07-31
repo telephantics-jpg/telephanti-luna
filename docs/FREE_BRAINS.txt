@@ -1,22 +1,48 @@
 Luna Camp — free brains only (Grok off by default)
 ====================================================
 
+Can Grok-in-chat give you a free API key?
+-----------------------------------------
+No. The assistant cannot attach its own xAI/Grok key to your PC or Render.
+That would still be “your account” billing or simply isn’t shareable.
+Use free compute instead (below).
+
+Most efficient free stack
+-------------------------
+1) Ollama on YOUR PC (best) — electricity only, no API tokens
+     ollama serve
+     ollama pull llama3.2
+2) Groq free tier — fast cloud Llama, free quota (you sign up)
+     https://console.groq.com → API key → GROQ_API_KEY in .env
+3) OpenRouter free models — models ending in :free
+     https://openrouter.ai → key → OPENROUTER_API_KEY
+     OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
+4) Gemini free (optional) — GEMINI_API_KEY
+5) Aether templates — last resort monologues (no LLM bill)
+
 Priority chain (per agent)
 --------------------------
-1) Ollama (local, free) — primary on your PC
-     hermes3 / llama3.2
-2) Groq free tier       — GROQ_API_KEY
-3) Google Gemini free   — GEMINI_API_KEY or GOOGLE_API_KEY
-4) OpenRouter free      — OPENROUTER_API_KEY
-5) Aether templates     — offline last resort (no paid bill)
+1) Ollama (if up)
+2) Groq free
+3) OpenRouter :free
+4) Gemini free
+5) Aether
 
-Grok (xAI) is OFF unless you deliberately opt in:
+Grok (xAI) is OFF unless you deliberately opt in (costs YOUR credits):
   LUNA_ALLOW_GROK=1
   LUNA_DISABLE_GROK=0
   LUNA_GROK_FALLBACK=1
   XAI_API_KEY=...
 
 @a Ara / @m Mika use the same free chain (not Grok-only).
+
+Efficiency knobs (.env)
+-----------------------
+  FREE_MAX_TOKENS=360
+  FREE_MAX_TOKENS_AMBIENT=160
+  FREE_MAX_TOKENS_CONVERSE=280
+  GROQ_MODEL=llama-3.1-8b-instant
+  OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
 
 Env (local PC)
 --------------

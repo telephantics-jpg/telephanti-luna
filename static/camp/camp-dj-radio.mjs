@@ -1,9 +1,10 @@
 /**
- * Telephantix DJ Vox — Spotify-style: every track gets a short comment.
+ * Telephantix DJ Vox — Spotify-style: every track gets a witty comment.
  *
  * - Song always changes instantly on Next (never waits on TTS).
- * - Prefetch + cache drops for upcoming songs so Vox is ready when they start.
- * - Each song you land on gets its own intro (about THAT title) over the bed.
+ * - Prefetch + cache bridge drops for upcoming songs so Vox is ready.
+ * - Most songs: slightly longer witty bridge naming the track.
+ * - Every 3–4 songs: "truth from today's world" then land on the title.
  * - Spam-skip cancels the old rant and starts the new track's intro ASAP.
  */
 
@@ -20,8 +21,8 @@ const SETTLE_MS = 180; // after skip storm, announce the track you stayed on
 export function createDjRadio(api = {}) {
   let enabled = false;
   let micBusy = false;
-  let dropCache = new Map(); // trackKey -> { text, audio_b64, source, dj, at }
-  let inflight = new Map(); // trackKey -> Promise<data>
+  let dropCache = new Map(); // cacheKey (track|kind) -> drop
+  let inflight = new Map();
   let micAudio = null;
   let savedMusicVol = null;
   let tick = null;
@@ -31,6 +32,8 @@ export function createDjRadio(api = {}) {
   let announceGen = 0;
   let settleTimer = null;
   let lastAnnouncedKey = "";
+  let songsSinceTruth = 0;
+  let truthInterval = 3 + Math.floor(Math.random() * 2);
 
   function status(msg) {
     lastStatus = msg || "";
@@ -62,6 +65,23 @@ export function createDjRadio(api = {}) {
   function trackKey(t) {
     if (!t) return "";
     return String(t.id || t.src || t.title || "").trim().toLowerCase();
+  }
+
+  function cacheKey(t, kind = "bridge") {
+    const k = trackKey(t);
+    if (!k) return "";
+    const kindNorm = (kind || "bridge").toLowerCase() === "truth" ? "truth" : "bridge";
+    return `${k}|${kindNorm}`;
+  }
+
+  function pickDropKind() {
+    songsSinceTruth += 1;
+    if (songsSinceTruth >= truthInterval) {
+      songsSinceTruth = 0;
+      truthInterval = 3 + Math.floor(Math.random() * 2);
+      return "truth";
+    }
+    return "bridge";
   }
 
   function trackAt(i) {
@@ -180,6 +200,7 @@ export function createDjRadio(api = {}) {
   }
 
   async function fetchDrop(prevTrack, nextTrack, kind = "bridge") {
+    const kindNorm = (kind || "bridge").toLowerCase() === "truth" ? "truth" : kind || "bridge";
     const body = {
       prev_title: prevTrack?.title || "",
       next_title: nextTrack?.title || "the next track",
@@ -187,10 +208,10 @@ export function createDjRadio(api = {}) {
       station: "Telephantix Radio",
       voice: "vox",
       use_llm: true,
-      mood: "happy",
-      rate: 14,
+      mood: kindNorm === "truth" ? "thoughtful" : "happy",
+      rate: kindNorm === "truth" ? 10 : 12,
       pitch: -2,
-      kind: kind || "bridge",
+      kind: kindNorm,
     };
     const res = await fetch("/api/firmament/dj/drop", {
       method: "POST",
@@ -202,24 +223,20 @@ export function createDjRadio(api = {}) {
     return res.json();
   }
 
-  /**
-   * Ensure we have (or are fetching) a drop for this track.
-   * Spotify-style: warm cache so intros land with the song.
-   */
   function ensureDrop(track, prevTrack, kind = "bridge") {
-    const key = trackKey(track);
+    const kindNorm = (kind || "bridge").toLowerCase() === "truth" ? "truth" : "bridge";
+    const key = cacheKey(track, kindNorm);
     if (!key) return Promise.resolve(null);
-    if (dropCache.has(key) && kind !== "id") {
+    if (dropCache.has(key)) {
       return Promise.resolve(dropCache.get(key));
     }
     if (inflight.has(key)) return inflight.get(key);
 
-    const p = fetchDrop(prevTrack, track, kind)
+    const p = fetchDrop(prevTrack, track, kindNorm)
       .then((data) => {
         if (data?.audio_b64) {
-          dropCache.set(key, { ...data, at: Date.now() });
-          // Cap cache size
-          if (dropCache.size > 40) {
+          dropCache.set(key, { ...data, at: Date.now(), kind: kindNorm });
+          if (dropCache.size > 48) {
             const oldest = [...dropCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
             if (oldest) dropCache.delete(oldest[0]);
           }
@@ -236,7 +253,6 @@ export function createDjRadio(api = {}) {
     return p;
   }
 
-  /** Prefetch next few tracks in the playlist (Spotify DJ style). */
   function warmAhead() {
     if (!enabled) return;
     const ts = tracks();
@@ -245,16 +261,12 @@ export function createDjRadio(api = {}) {
     const prev = ts[i];
     for (let k = 1; k <= PREFETCH_AHEAD; k++) {
       const t = ts[(i + k) % ts.length];
-      const key = trackKey(t);
+      const key = cacheKey(t, "bridge");
       if (!key || dropCache.has(key) || inflight.has(key)) continue;
       ensureDrop(t, k === 1 ? prev : ts[(i + k - 1) % ts.length], "bridge");
     }
   }
 
-  /**
-   * Speak about track at forIndex if still current when audio is ready.
-   * Uses cache first for near-instant Spotify-like intros.
-   */
   async function announceTrack(forIndex, prevTrack, opts = {}) {
     if (!enabled) return;
     const gen = ++announceGen;
@@ -265,26 +277,29 @@ export function createDjRadio(api = {}) {
     const next = ts[ni];
     const key = trackKey(next);
     const title = next?.title || "this track";
+    const kind = opts.kind || pickDropKind();
 
-    // New song's turn — kill previous rant mid-sentence
     cancelMic();
 
     if (key && key === lastAnnouncedKey && !opts.force) {
-      // Already said something for this exact play? Allow force re-announce
       warmAhead();
       return;
     }
 
-    status(`Vox · ${title}…`);
+    status(kind === "truth" ? `Vox · truth · ${title}…` : `Vox · ${title}…`);
 
-    // Prefer cache (instant); else wait for fetch while song already plays
-    let data = key && dropCache.has(key) ? dropCache.get(key) : null;
+    const ck = cacheKey(next, kind);
+    let data = ck && dropCache.has(ck) ? dropCache.get(ck) : null;
+    if (!data?.audio_b64 && kind === "bridge") {
+      const bridgeCk = cacheKey(next, "bridge");
+      if (dropCache.has(bridgeCk)) data = dropCache.get(bridgeCk);
+    }
     if (!data?.audio_b64) {
-      data = await ensureDrop(next, prevTrack, opts.kind || "bridge");
+      data = await ensureDrop(next, prevTrack, kind);
     }
 
-    if (gen !== announceGen) return; // skipped again
-    if (index() !== ni) return; // not this song anymore
+    if (gen !== announceGen) return;
+    if (index() !== ni) return;
     if (!data?.audio_b64) {
       status(`♫ ${title}`);
       warmAhead();
@@ -308,6 +323,7 @@ export function createDjRadio(api = {}) {
         status: data.text,
         dropText: data.text,
         source: data.source,
+        kind,
         dj: data.dj,
       });
       status(data.text || `Vox · ${title}`);
@@ -327,11 +343,6 @@ export function createDjRadio(api = {}) {
     }
   }
 
-  /**
-   * After a skip/play: schedule comment for the track we landed on.
-   * Debounced slightly so triple-Next only intros the final song — but that song ALWAYS gets a comment.
-   * If drop is already cached, fire almost immediately.
-   */
   function scheduleAnnounceForCurrent(prevTrack) {
     if (!enabled) return;
     if (settleTimer) {
@@ -340,11 +351,10 @@ export function createDjRadio(api = {}) {
     }
     const ni = index();
     const next = trackAt(ni);
-    const key = trackKey(next);
+    const key = cacheKey(next, "bridge");
     const cached = key && dropCache.has(key);
     const delay = cached ? 40 : SETTLE_MS;
 
-    // Kick fetch immediately (don't wait for settle)
     if (next) ensureDrop(next, prevTrack, "bridge");
     warmAhead();
 
@@ -418,7 +428,9 @@ export function createDjRadio(api = {}) {
     if (enabled) {
       startWatch();
       bindEnded(getMusic());
-      status("DJ Vox · every track gets a line");
+      status("DJ Vox · witty lines · truth every 3–4 songs");
+      songsSinceTruth = 0;
+      truthInterval = 3 + Math.floor(Math.random() * 2);
       warmAhead();
       // Comment on whatever is already playing
       if (api.isWantedOn?.()) {

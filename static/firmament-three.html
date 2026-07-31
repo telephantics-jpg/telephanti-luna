@@ -54,8 +54,8 @@
   <link rel="modulepreload" href="/static/camp/camp-features.mjs?v=v107" />
   <link rel="modulepreload" href="/static/camp/camp-characters.mjs?v=v107" />
   <link rel="modulepreload" href="/static/camp/camp-props.mjs?v=v107" />
-  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=v108" />
-  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-07-28-three-v108-external-app" />
+  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=v111" />
+  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-07-30-three-v111-action-pad" />
   <script>
     // Kill stale service workers that cache-first'd a broken three.module.js graph
     (function () {
@@ -583,6 +583,76 @@
       cursor: pointer;
     }
     #carry-hud:active { transform: translateX(-50%) scale(0.98); }
+    /* Mobile give / take / drop action pad */
+    #act-fab {
+      display: none;
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right, 0px));
+      bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+      z-index: 46;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid rgba(167, 139, 250, 0.75);
+      background: linear-gradient(145deg, #5b21b6, #0e7490);
+      color: #f5f3ff;
+      font: 800 1.35rem/1 system-ui, sans-serif;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+      pointer-events: auto;
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+    #act-fab:active { transform: scale(0.94); }
+    #act-fab.has-carry {
+      border-color: #fde68a;
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.45);
+    }
+    #act-sheet {
+      display: none;
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right, 0px));
+      bottom: calc(172px + env(safe-area-inset-bottom, 0px));
+      z-index: 47;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 148px;
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(103, 232, 249, 0.45);
+      background: rgba(6, 12, 28, 0.96);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+      pointer-events: auto;
+    }
+    #act-sheet.open { display: flex; }
+    #act-sheet button {
+      appearance: none;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.95);
+      color: #e2e8f0;
+      font: 800 0.82rem/1.2 system-ui, sans-serif;
+      padding: 12px 14px;
+      text-align: left;
+      cursor: pointer;
+      touch-action: manipulation;
+      min-height: 44px;
+    }
+    #act-sheet button:active { transform: scale(0.98); background: rgba(30, 58, 90, 0.95); }
+    #act-sheet button:disabled { opacity: 0.4; pointer-events: none; }
+    #act-sheet button.primary {
+      border-color: rgba(167, 139, 250, 0.65);
+      background: linear-gradient(135deg, rgba(76, 29, 149, 0.85), rgba(14, 116, 144, 0.8));
+      color: #f5f3ff;
+    }
+    #act-sheet .act-status {
+      font-size: 0.68rem;
+      color: #94a3b8;
+      padding: 2px 4px 6px;
+      line-height: 1.3;
+    }
+    @media (max-width: 900px) {
+      #act-fab { display: flex; align-items: center; justify-content: center; }
+    }
     @media (max-width: 640px) {
       #carry-hud {
         bottom: calc(108px + env(safe-area-inset-bottom, 0px));
@@ -1168,6 +1238,14 @@
   <div id="speech-layer"></div>
   <div id="prop-toast"></div>
   <div id="carry-hud" hidden aria-live="polite"></div>
+  <button type="button" id="act-fab" title="Actions: take, give, drop" aria-label="Actions">✋</button>
+  <div id="act-sheet" role="menu" aria-label="Carry actions" aria-hidden="true">
+    <div class="act-status" id="act-status">Hands empty</div>
+    <button type="button" data-act="take" class="primary">📥 Take nearest</button>
+    <button type="button" data-act="give">🎁 Give to friend</button>
+    <button type="button" data-act="drop">⬇️ Drop</button>
+    <button type="button" data-act="close">✕ Close</button>
+  </div>
   <div id="mode-pill" hidden aria-hidden="true"></div>
 
   <header id="topbar">
@@ -1225,7 +1303,7 @@
   </div>
 
     <!-- External progressive boot (tiny) → full app module -->
-  <script type="module" src="/static/firmament-three-boot.mjs?v=v110"></script>
+  <script type="module" src="/static/firmament-three-boot.mjs?v=v111"></script>
 
   <script src="/static/world-nav.js?v=310-3d-live" defer></script>
 </body>

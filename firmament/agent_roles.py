@@ -285,10 +285,32 @@ def roles_catalog() -> list[dict[str, str]]:
     return [{"id": k, "role": v} for k, v in sorted(AGENT_ROLES.items())]
 
 
+_TRUTH_TAG = (
+    " Speaks as a living character: answers what was asked honestly first, "
+    "stays in persona, jokes after the truth lands — never empty mystic fog or cruel dunks."
+)
+
+
 def enrich_profile(profile: dict) -> dict:
-    """Ensure loaded agent profile carries role from catalog."""
+    """Ensure loaded agent profile carries role + lifelike truth tag."""
     aid = str(profile.get("id") or "").strip().lower()
+    profile = dict(profile)
     if aid and not profile.get("role"):
-        profile = dict(profile)
         profile["role"] = role_for_agent(aid)
+    persona = str(profile.get("persona") or "").strip()
+    if persona and "answers what was asked honestly" not in persona.lower():
+        # Keep unique identity; append shared life-like contract once
+        if len(persona) < 900:
+            profile["persona"] = (persona.rstrip(".") + "." + _TRUTH_TAG).strip()
+    elif not persona and aid:
+        profile["persona"] = (
+            f"{profile.get('name') or aid} at Luna Camp." + _TRUTH_TAG
+        ).strip()
+    roots = profile.get("roots")
+    if not isinstance(roots, list):
+        roots = []
+    truth_root = "Answer the real point first; stay myself; joke only if it still fits."
+    if truth_root not in roots:
+        roots = list(roots) + [truth_root]
+        profile["roots"] = roots[:8]
     return profile

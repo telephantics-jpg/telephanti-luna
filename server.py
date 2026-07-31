@@ -2800,7 +2800,7 @@ class FirmamentDjDropBody(BaseModel):
     mood: str = "happy"
     rate: int = 10
     pitch: int = -3
-    kind: str = "bridge"  # bridge | id
+    kind: str = "bridge"  # bridge | id | truth (world-truth every few songs)
 
 
 @app.post("/api/firmament/dj/drop")

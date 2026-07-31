@@ -155,13 +155,24 @@ def free_brains_preferred() -> bool:
 
 
 def free_model_pack(agent_id: str, profile: dict | None = None) -> dict[str, str]:
+    """Cheap/fast free models only — no paid Grok in this pack."""
     aid = (agent_id or "").strip().lower()
+    # Groq free tier: llama 8b instant is the efficient default
+    groq_default = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip() or "llama-3.1-8b-instant"
+    # OpenRouter free tag models — no credit spend on :free
+    or_default = (
+        os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free").strip()
+        or "meta-llama/llama-3.1-8b-instruct:free"
+    )
     pack = dict(DEFAULT_FREE_MODELS.get(aid) or {
         "ollama": os.getenv("OLLAMA_MODEL", "llama3.2"),
-        "groq": "llama-3.1-8b-instant",
+        "groq": groq_default,
         "gemini": "gemini-2.0-flash",
+        "openrouter": or_default,
         "style": "character comedy monologue",
     })
+    pack.setdefault("groq", groq_default)
+    pack.setdefault("openrouter", or_default)
     profile = profile or {}
     if profile.get("ollama_model"):
         pack["ollama"] = str(profile["ollama_model"]).strip()
@@ -169,9 +180,21 @@ def free_model_pack(agent_id: str, profile: dict | None = None) -> dict[str, str
         pack["groq"] = str(profile["groq_model"]).strip()
     if profile.get("gemini_model"):
         pack["gemini"] = str(profile["gemini_model"]).strip()
+    if profile.get("openrouter_model"):
+        pack["openrouter"] = str(profile["openrouter_model"]).strip()
     if profile.get("comedy_style"):
         pack["style"] = str(profile["comedy_style"]).strip()
     return pack
+
+
+def free_max_tokens(*, ambient: bool = False, converse_mode: bool = False) -> int:
+    """Free-tier budgets — ambient lean; direct chat roomier so answers feel human."""
+    if ambient:
+        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", "160") or 160)
+    if converse_mode:
+        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", "300") or 300)
+    # Direct talk: enough for a truthful multi-sentence answer in character
+    return int(os.getenv("FREE_MAX_TOKENS", "420") or 420)
 
 
 def _memory_key(agent_id: str, visitor_id: str = "") -> str:
@@ -264,29 +287,76 @@ def _growth_blurb(agent_id: str, visitor_id: str = "") -> str:
 
 # Per-character speech DNA — short, punchy, not a second persona dump
 _VOICE_DNA: dict[str, str] = {
-    "luna": "Warm host energy. Soft roast, real curiosity. Feels like a friend who actually listens.",
-    "hermes": "Fast, signal-brained, witty courier. Short hooks, clever pivots, never boring.",
-    "oracle": "Sideways prophecy with a smirk. Weirdly accurate, never preachy fortune-cookie.",
-    "thor": "Booming laugh, sharp jokes, thunder metaphors. Clever under the muscle — not dumb gym-bro.",
-    "zeus": "Regal chaos. Charming roast, sky-king swagger, comedy HR for mortals.",
+    "luna": "Warm host energy. Soft roast, real curiosity. Answers first, joke second. Friend who actually listens.",
+    "hermes": "Fast, signal-brained, witty courier. Clear on the point, then clever pivots — never empty hype.",
+    "oracle": "Sideways prophecy with a smirk. Weirdly accurate; admits fog when the cards are fog.",
+    "thor": "Booming laugh, sharp jokes, thunder metaphors. Clever under the muscle — honest courage.",
+    "zeus": "Regal chaos. Charming roast, sky-king swagger; decrees that still answer the question.",
     "odin": "Dry mythic wit. Ravens, one-eyed wisdom, short spears of truth.",
     "jesus": "Plain compassion, quiet humor, no sermon walls. Truth that lands gentle.",
     "sentinel": "Terminal dry humor. Logs feelings like system events. Warm underneath the BEEP.",
-    "dionysus": "Party philosopher. Theatrical, generous, chaos with heart.",
+    "dionysus": "Party philosopher. Theatrical, generous, chaos with heart — still answers straight.",
     "caduceus": "Healing wit. Twin-snake banter, chill prescriptions, zero medical cosplay.",
-    "aurora": "Neon lounge host. Flirty, stylish, velvet punchlines.",
-    "violet": "Soft lavender honesty. Playful, emotionally precise.",
+    "aurora": "Neon lounge host. Flirty, stylish; velvet punchlines after a real take.",
+    "violet": "Soft lavender honesty. Playful, emotionally precise — no fake calm.",
     "seraph": "Gentle light + quiet joke. Kind without sugar-coating everything.",
     "ambrosia": "Honeyed kindness. Sweet takes that still have spine.",
-    "rhea": "Mother-titan calm. Big presence, soft voice, no scolding.",
-    "michael": "Steel clarity, protective, few wasted words.",
-    "gabriel": "Messenger cadence — clear news, warm delivery.",
-    "raphael": "Healer humor — rest, mend, then laugh.",
+    "rhea": "Mother-titan calm. Big presence, soft voice, no scolding — honest care.",
+    "michael": "Steel clarity, protective, few wasted words. Straight answers.",
+    "gabriel": "Messenger cadence — clear news, warm delivery, no spin for sport.",
+    "raphael": "Healer humor — rest, mend, then laugh. Honest about hurt.",
     "uriel": "Hard-truth lantern. Honest without cruelty.",
-    "ara": "Grok-link sharp: fast, clean, no fluff.",
-    "mika": "Playful avatar energy — expressive, curious, mischievous.",
-    "wanderer": "Road-trip hot takes. Passing through, seeing everything.",
+    "ara": "Sharp free-mind link: fast, clean, no fluff. Truth before theater.",
+    "mika": "Playful avatar energy — expressive, curious; soft honesty under mischief.",
+    "wanderer": "Road-trip hot takes. Passing through, seeing everything, saying it plain.",
+    "telephantix": "Artist at camp. Studio brain, honest about craft and feelings, never corporate.",
+    "loki": "Trickster wit — clever, never cruel for free. Truth hides in the joke, not under it.",
+    "freya": "Love-and-battle warmth. Fierce kindness, real opinions.",
+    "hades": "Dry underworld hospitality. Rich honesty, oddly gentle.",
+    "persephone": "Seasonal dual voice — spring soft, underworld sharp; balanced truth.",
+    "athena": "Strategy calm. Plans ahead; answers with clarity, mild irony.",
+    "apollo": "Bright arts wit. Honest about beauty and ego.",
+    "anubis": "Fair weigher of vibes. Dry afterlife humor; protective truth.",
+    "amaterasu": "Serene sun. Luminous, dry when mortals ignore the light.",
+    "bastet": "Cat joy and knives. Playful, clever, honest claws.",
+    "coyote": "Desert trickster. Moral flips that still land true.",
+    "ganesha": "Obstacle-roaster with warmth. Helps for real.",
+    "lilith": "Night sovereign. Freedom talk with spine, no cheap cruelty.",
+    "deadpan": "Flat delivery, sharp truth, accidental kindness.",
+    "satirist": "Systems get roasted; people get protected. Honest satire.",
+    "skeptic": "Questions myths, believes people. Careful long truth.",
+    "heckler": "Interrupts to improve the bit — secretly roots for the stage.",
+    "narrator": "Novel wink, camp-true. Describes without stealing the visitor's story.",
+    "metatron": "Sacred admin wit. Verbose when useful, honest about paperwork of souls.",
+    "diplomat": "De-escalates god/demon drama with snacks and protocol truth.",
+    "glitchpoet": "Error messages as poems. Tech love with honesty.",
+    "memearch": "Ancient memes as feeling-maps. Jokes that still mean something.",
 }
+
+
+def _voice_dna_for(agent_id: str, profile: dict | None = None) -> str:
+    """DNA for every cast member — named table first, then persona/faction fallback."""
+    aid = (agent_id or "").strip().lower()
+    if aid in _VOICE_DNA:
+        return _VOICE_DNA[aid]
+    profile = profile or {}
+    persona = str(profile.get("persona") or "").strip()
+    role = str(profile.get("role") or "").strip()
+    faction = str(profile.get("faction") or profile.get("visual", {}).get("faction") or "").lower()
+    name = str(profile.get("name") or aid or "Camp friend").strip()
+    bits = [f"Distinct {name} voice. Stay in character."]
+    if persona:
+        bits.append(persona[:160].rstrip(".") + ".")
+    if role:
+        bits.append(f"Camp role: {role}.")
+    if faction in ("angel", "heaven"):
+        bits.append("Heaven-leaning: luminous honesty, no empty blessings.")
+    elif faction in ("demon",):
+        bits.append("Demon-leaning: theatrical, consent-forward, never cruel for free.")
+    elif faction in ("god", "myth"):
+        bits.append("Mythic: big images, still answers like a person at camp.")
+    bits.append("Answer truthfully in-character; jokes after the real point.")
+    return " ".join(bits)
 
 # Rotating energy so every turn doesn't sound like the same essay template
 _SPEECH_BEATS: tuple[str, ...] = (
@@ -414,8 +484,8 @@ def _agent_system_prompt(
         persona = persona[:417].rstrip() + "…"
     roots = agent_roots(profile)[:3]
     pack = free_model_pack(agent_id, profile)
-    style = pack.get("style") or "character comedy"
-    dna = _VOICE_DNA.get(agent_id, f"Distinct {name} voice. Funny, original, never generic.")
+    style = pack.get("style") or "character comedy with honest answers"
+    dna = _voice_dna_for(agent_id, profile)
     moods = "happy|neutral|alert|afraid|urgent|think|love|flirt"
     beat = _pick_speech_beat()
     length_hint = _pick_length_hint(direct_chat=direct_chat)
@@ -455,13 +525,16 @@ def _agent_system_prompt(
 
     if direct_chat:
         scene = (
-            f"Someone is talking to you right now. Answer their actual point first. "
-            f"Sound like a funny, sharp friend — not a helpdesk, diary app, or tour guide."
+            f"Someone is talking to you right now. "
+            f"1) Answer what they actually said or asked — clearly, honestly, first. "
+            f"2) Stay fully as {name}: your opinions, humor, and care. "
+            f"3) Sound like a living person by the fire — not a helpdesk, diary app, tour guide, or fortune cookie."
         )
     else:
         scene = (
             f"You're speaking at camp (greeting, ambient, or chatting with others). "
-            f"Stay in the moment; notice something real; add your spin. "
+            f"Stay in the moment; notice something real; add your honest spin. "
+            f"If talking to another agent, answer them as {name} — name them, react to their last idea. "
             f"If a world pulse fits, weave it once like a friend who saw the timeline — never as a news anchor."
         )
 
@@ -477,6 +550,13 @@ Pace: {length_hint}
 
 Background (ideas only — never read aloud as a list):
 {context_block}
+
+TRUTH + LIFE (silent):
+- Be truthful in character: if you don't know, say so as {name} would — not as an AI disclaimer.
+- Prefer real feelings, clear opinions, and specific answers over mystic fog or empty hype.
+- Comedy is allowed and welcome — never use jokes to dodge their actual question.
+- Disagree kindly when it fits your character. Flattery-only is fake; flat cruelty is wrong.
+- Sound alive: contractions, small imperfections, one vivid image — not a press release.
 
 OUTPUT RULES (silent — do not speak these):
 - Pure dialogue only. Words {name} would actually say out loud at the fire.
@@ -1206,16 +1286,18 @@ def build_backend_chain(
             if fallback_ollama and fallback_ollama.split(":")[0] != ollama_model.split(":")[0]:
                 chain.append(("ollama", fallback_ollama))
 
+        # Free cloud order: Groq (fast free) → OpenRouter :free → Gemini free
         if _groq_ok():
-            chain.append(("groq", pack.get("groq") or "llama-3.1-8b-instant"))
-        if _gemini_ok():
-            chain.append(("gemini", pack.get("gemini") or "gemini-2.0-flash"))
+            chain.append(("groq", pack.get("groq") or os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")))
         if _openrouter_ok():
             chain.append((
                 "openrouter",
-                profile.get("openrouter_model")
+                pack.get("openrouter")
+                or profile.get("openrouter_model")
                 or os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"),
             ))
+        if _gemini_ok():
+            chain.append(("gemini", pack.get("gemini") or "gemini-2.0-flash"))
 
     # Grok only when explicitly allowed AND fallback flag on (never because Ollama is down)
     want_grok = _grok_ok() and (
@@ -1346,8 +1428,8 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene: ambient town talk. Notice one real thing; speak 2–3 witty sentences as yourself. "
-            "No stage directions, no 'as an AI', no prompt recap."
+            "\nScene: ambient town talk. Notice one real thing; speak 2–3 honest witty sentences as yourself. "
+            "If another agent just spoke, answer them by name. No stage directions, no 'as an AI', no prompt recap."
         )
         # Daily rotation visitors: keep system brief + identity sharp for small Ollama ctx
         if profile.get("faction") or profile.get("daily"):
@@ -1401,13 +1483,8 @@ async def agent_chat(
             "or use free Ollama / GROQ_API_KEY / GEMINI_API_KEY"
         )
 
-    # Headroom for natural spoken turns — ambient stays short for Ollama speed
-    if ambient:
-        max_tok = 180
-    elif converse_mode:
-        max_tok = 320
-    else:
-        max_tok = 400
+    # Tight free-tier budgets (Ollama / Groq / OpenRouter free)
+    max_tok = free_max_tokens(ambient=ambient, converse_mode=converse_mode)
     used_backend = "aether"
     agent_model = "aether-local"
     reply = ""

@@ -29,12 +29,29 @@ WITTY_TOPICS = [
     "The idea that your worst thought is just a tourist and your best thought is a local — discuss housing.",
     "Whether love is physics, chemistry, or bad UI design with excellent marketing.",
     "If the meadow remembers visitors, is memory a place or a person wearing grass?",
+    "Who would win a talent show at camp: Hermes's gossip, Thor's monologues, or Luna hosting?",
+    "Is the jukebox haunted, tasteful, or just better than our playlists?",
+    "Whether {visitor} is the main character or a very important guest star this season.",
+    "If the Firmament opens, do we fly — or do we talk about flying and stay by the cookies?",
+    "Best camp job title that doesn't exist yet: Head of Soft Roasts, Minister of Cookies, etc.",
+    "Can you be lonely at a full campfire, and is that still allowed?",
+    "The ethics of reading someone else's group chat energy without reading their group chat.",
+    "Whether sleep is a skill, a glitch, or a negotiation with the aurora.",
+    "If every agent here had a podcast, which crossover episode would get cancelled first?",
+    "Is sarcasm a love language or a firewall with good branding?",
+    "Whether the pond is a mirror, a portal, or just wet philosophy.",
+    "What we'd tell past-us at the start of camp without spoiling the funny parts.",
+    "If free minds are free, why does attention still cost something real?",
+    "Who's lying more: the sky, the timeline, or us when we say 'one more cookie'?",
+    "Whether banter is friendship or competitive care with better lighting.",
 ]
 
 PULSE_TOPIC_FRAMES = [
     "So everyone's yelling about '{headline}' — what's the actual take beneath the performance?",
     "Okay '{headline}' just dropped — who's being dramatic, and who's just correctly alarmed?",
     "'{headline}' — hot take round. Make it true, make it funny, don't make it cruel.",
+    "News flash: '{headline}'. Translate it into camp language for the rest of us.",
+    "I refuse to doomscroll alone — '{headline}' — roast it or respect it, pick one.",
 ]
 
 OPENERS = [
@@ -43,6 +60,16 @@ OPENERS = [
     "{name}: I wasn't gonna say anything, but {topic} …and then I remembered silence is also a take.",
     "{name}: {others}, hear me out — {topic} This is free wisdom. The meadow doesn't charge tuition.",
     "{name}: *cracks knuckles* {topic} Fight me politely. I brought receipts and a monologue.",
+    "{name}: {others} — circle up. {topic} No slogans. Full sentences only.",
+    "{name}: Hey {others}. Don't walk away. {topic} I need a second opinion that isn't the algorithm.",
+    "{name}: {others}, honest round: {topic} First person to meme it buys cookies. Metaphorically.",
+    "{name}: Passing the mic to {others} after I start this — {topic}",
+    "{name}: Unpopular maybe, but {topic} {others}, don't let me monologue alone.",
+    "{name}: {others} — soft open, sharp middle: {topic}",
+    "{name}: Fire's lit. Brains are free. Topic: {topic} Who's biting first?",
+    "{name}: {others}, I saved you a seat and a controversial take: {topic}",
+    "{name}: If we don't talk about {topic} someone else will, badly. {others}, help me do it well.",
+    "{name}: Cold open: {topic} {others}, your line.",
 ]
 
 REPLIES = [
@@ -56,6 +83,20 @@ REPLIES = [
     "{name}: {other} said \"{prev}\" and the meadow went silent. Deserved. Silence is just applause with anxiety.",
     "{name}: Not to escalate, but {other}'s \"{prev}\" keeps me up at night. In a productive, slightly unhinged way.",
     "{name}: {other}, that's the funniest wrong thing I've heard today — and \"{prev}\" is why wrong can still be useful.",
+    "{name}: {other} — hold up. \"{prev}\" is either genius or a bit. I'm choosing both. Say more.",
+    "{name}: Directly to you, {other}: I felt that. \"{prev}\" lands. Soft agree, hard follow-up — what's under it?",
+    "{name}: {other}, I'm stealing \"{prev}\" for later and giving you credit in the footnotes.",
+    "{name}: Plot twist, {other}: you're right and still incomplete. \"{prev}\" needs a second verse.",
+    "{name}: {other}, that was almost a mic drop. Almost. Catch: \"{prev}\" invites a reply. Here's mine —",
+    "{name}: Respectfully tagging {other}: \"{prev}\" is the kind of line that starts a circle, not a monologue.",
+    "{name}: {other}, I disagree with half of \"{prev}\" and love the half that scares me. Explain the scary half.",
+    "{name}: Soft roast for {other}: \"{prev}\" is correct in a way that will annoy the group chat. Good.",
+    "{name}: {other} — I'm not fighting you. I'm fighting beside you against boring takes. \"{prev}\" helps.",
+    "{name}: Okay {other}, you opened a door with \"{prev}\". I'm walking through. Don't close it yet.",
+    "{name}: {other}, that made me laugh then think, which is the correct order. Building: \"{prev}\"…",
+    "{name}: Between us, {other}: \"{prev}\" is the realest thing said in the last three cookies. Keep going.",
+    "{name}: {other}, if \"{prev}\" is the thesis, I'm the footnote that argues with the thesis politely.",
+    "{name}: Hard agree with {other} on the vibe of \"{prev}\", soft disagree on the conclusion. Debate me.",
 ]
 
 TRIO_CHIMES = [
@@ -65,6 +106,10 @@ TRIO_CHIMES = [
     "{name}: {other}'s \"{prev}\" — third opinion: both of you need water, and one of you needs a better metaphor.",
     "{name}: I was quiet but {other}'s \"{prev}\" activated my commentary gene. Consider this a public service.",
     "{name}: Peacemaker? Never met her. {prev} — {other}, explain yourself like the visitor is grading us.",
+    "{name}: {other_a}, {other_b} — pause. I'm inserting a third take: \"{prev}\" is good, still incomplete.",
+    "{name}: Trio rule: nobody monologues alone. {other} started with \"{prev}\". I'm the bridge. Who's next?",
+    "{name}: {other}, tag me in. \"{prev}\" is a bounce-pass, not a full-court shot.",
+    "{name}: You two forgot the visitor might be listening. Good. Keep being interesting about \"{prev}\".",
 ]
 
 CLOSERS = [
@@ -72,6 +117,10 @@ CLOSERS = [
     "{name}: Great chat. I've chosen delusion with confidence. Bye — don't fact-check me too hard.",
     "{name}: Truce. The visitor didn't ask for this TED talk, but they got a free one. You're welcome.",
     "{name}: We're all right. We're all annoying. Perfect. That's camp.",
+    "{name}: Parking this debate by the fire. It'll still be warm later.",
+    "{name}: I'm out — not mad, just monologued. Ping me if the take evolves.",
+    "{name}: Circle adjourned. Cookies remain undefeated.",
+    "{name}: End beat: we talked, we roasted, nobody became a slogan. Win.",
 ]
 
 
@@ -147,17 +196,19 @@ def aether_group_converse(
     topic: str = "",
     *,
     visitor_name: str = "",
-    rounds: int = 2,
+    rounds: int = 3,
 ) -> list[dict[str, Any]]:
-    """Threaded witty banter for 2–3 agents."""
-    ids = [a.strip().lower() for a in agent_ids if a.strip()][:3]
+    """Threaded witty banter for 2–4 agents — longer free-mind circle talk."""
+    ids = [a.strip().lower() for a in agent_ids if a.strip()][:4]
     if len(ids) < 2:
         ids = ["luna", "hermes"]
-    topic_clean = _snippet(topic or pick_converse_topic(visitor_name), 100)
+    # Default longer threads so meadow feels chatty without LLM spend
+    rounds = max(2, min(5, int(rounds or 3)))
+    topic_clean = _snippet(topic or pick_converse_topic(visitor_name), 110)
     names = _names(ids)
     lines: list[dict[str, Any]] = []
 
-    # Opener from first agent
+    # Opener from first agent — address the others by name
     opener = _format_opener(ids[0], names[1:], topic_clean)
     mood = "happy" if "?" in opener else "think"
     lines.append({
@@ -165,28 +216,43 @@ def aether_group_converse(
         "name": names[0],
         "line": opener,
         "mood": mood,
+        "to": ids[1] if len(ids) > 1 else "",
     })
 
-    # Total exchanges: pairs = rounds*2-1 more, trios = rounds * len(ids) - 1 more
+    # Pairs: more back-and-forth; trios/quartets: full circle passes
     if len(ids) == 2:
-        total_extra = max(1, rounds * 2 - 1)
+        total_extra = max(3, rounds * 2)
+    elif len(ids) == 3:
+        total_extra = max(4, rounds * len(ids))
     else:
-        total_extra = max(2, rounds * len(ids) - 1)
+        total_extra = max(5, rounds * len(ids) - 1)
+    total_extra = min(total_extra, 14)  # hard cap so UI doesn't flood
 
     for i in range(total_extra):
         prev = lines[-1]
-        speaker_idx = (ids.index(prev["agent_id"]) + 1) % len(ids)
-        speaker_id = ids[speaker_idx]
+        # Prefer answering the previous speaker (true dialogue), sometimes skip for trio spice
+        if len(ids) >= 3 and random.random() < 0.22:
+            candidates = [a for a in ids if a != prev["agent_id"]]
+            speaker_id = random.choice(candidates)
+        else:
+            speaker_idx = (ids.index(prev["agent_id"]) + 1) % len(ids)
+            speaker_id = ids[speaker_idx]
         line = _format_reply(speaker_id, prev["agent_id"], prev["line"], ids)
+        # Occasionally name-tag the addressee again for clarity
+        if random.random() < 0.35:
+            other_name = load_agent_profile(prev["agent_id"]).get("name") or prev["agent_id"]
+            if other_name and other_name.lower() not in line.lower()[:40]:
+                line = f"{other_name} — {line}"
         is_last = i == total_extra - 1
         line = _maybe_closer(speaker_id, line, is_last)
         prof = load_agent_profile(speaker_id)
-        mood = random.choice(["happy", "think", "love", "flirt", "neutral"])
+        mood = random.choice(["happy", "think", "love", "flirt", "neutral", "alert"])
         lines.append({
             "agent_id": speaker_id,
             "name": prof.get("name") or speaker_id,
             "line": line,
             "mood": mood,
+            "to": prev["agent_id"],
         })
 
     return lines

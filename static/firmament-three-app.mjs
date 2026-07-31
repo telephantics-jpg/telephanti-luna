@@ -4096,13 +4096,145 @@
     }
     function refreshCarryHud() {
       const hud = document.getElementById("carry-hud");
-      if (!hud) return;
-      if (carriedItem) {
-        hud.hidden = false;
-        hud.textContent = `${carriedItem.emoji || "✨"} ${carriedItem.name || "item"} · tap friend to gift · X drop`;
-      } else {
-        hud.hidden = true;
+      if (hud) {
+        if (carriedItem) {
+          hud.hidden = false;
+          hud.textContent = `${carriedItem.emoji || "✨"} ${carriedItem.name || "item"} · Give / Drop`;
+        } else {
+          hud.hidden = true;
+        }
       }
+      const fab = document.getElementById("act-fab");
+      if (fab) {
+        fab.classList.toggle("has-carry", !!carriedItem);
+        fab.textContent = carriedItem ? (carriedItem.emoji || "✋") : "✋";
+        fab.title = carriedItem
+          ? `Holding ${carriedItem.name || "item"} — open actions`
+          : "Actions: take, give, drop";
+      }
+      const st = document.getElementById("act-status");
+      if (st) {
+        st.textContent = carriedItem
+          ? `Holding ${carriedItem.emoji || ""} ${carriedItem.name || "item"}`
+          : "Hands empty · Take nearest snack/loot";
+      }
+      const sheet = document.getElementById("act-sheet");
+      if (sheet) {
+        const giveBtn = sheet.querySelector('[data-act="give"]');
+        const dropBtn = sheet.querySelector('[data-act="drop"]');
+        if (giveBtn) giveBtn.disabled = !carriedItem;
+        if (dropBtn) dropBtn.disabled = !carriedItem;
+      }
+    }
+
+    function nearestCarryTarget(maxD = 5.5) {
+      let best = null;
+      let bestD = maxD;
+      // Ground loot first
+      for (const L of groundLoot) {
+        if (!L?.mesh) continue;
+        const d = Math.hypot(L.mesh.position.x - visitor.position.x, L.mesh.position.z - visitor.position.z);
+        if (d < bestD) {
+          bestD = d;
+          best = { kind: "loot", loot: L, mesh: L.mesh, d };
+        }
+      }
+      // Catalog props
+      for (const mesh of propMeshes) {
+        const u = mesh.userData || {};
+        if (u.loot || u.dropped) continue;
+        const pid = u.baseId || u.id;
+        if (!isPickableProp(pid) && !isPickableProp(u.id)) continue;
+        if (String(u.id || "").includes("mjolnir") || pid === "mjolnir") continue;
+        if (pid === "ouija" || pid === "stereo" || u.feature === "music") continue;
+        const d = Math.hypot(mesh.position.x - visitor.position.x, mesh.position.z - visitor.position.z);
+        if (d < bestD) {
+          bestD = d;
+          best = { kind: "prop", mesh, d, pid };
+        }
+      }
+      return best;
+    }
+
+    function takeNearestCarryable() {
+      const t = nearestCarryTarget(6.2);
+      if (!t) {
+        showToast("Nothing to take — walk nearer a snack or dropped item");
+        return false;
+      }
+      if (carriedItem) {
+        spawnGroundLoot(carriedItem, visitor.position.x - 0.4, visitor.position.z - 0.2, {
+          inviteAgents: true,
+          inviteChance: 0.35,
+        });
+      }
+      if (t.kind === "loot") {
+        const item = {
+          id: t.loot.baseId || t.loot.id,
+          name: t.loot.name,
+          emoji: t.loot.emoji,
+          color: t.loot.color,
+        };
+        removeGroundLoot(t.mesh);
+        setCarriedItem(item);
+        showToast(`${item.emoji || "✨"} Picked up ${item.name || "item"}`);
+        logLine("You", `Picked up ${item.name || "something"} from the ground.`, true);
+      } else {
+        const u = t.mesh.userData || {};
+        const baseId = u.baseId || u.id;
+        const emoji = u.emoji || "✨";
+        const name = u.name || baseId;
+        t.mesh.userData.pulseUntil = performance.now() + 1200;
+        setCarriedItem({ id: baseId, name, emoji, color: u.color });
+        showToast(`${emoji} Took ${name}`);
+        logLine("You", `Took ${name}.`, true);
+      }
+      closeActionSheet();
+      return true;
+    }
+
+    function giveToNearestFriend() {
+      if (!carriedItem) {
+        showToast("Take something first, then Give");
+        return false;
+      }
+      let best = null;
+      let bestD = 5.5;
+      for (const st of agentState) {
+        if (!st?.mesh || st.insideHouse) continue;
+        const d = st.mesh.position.distanceTo(visitor.position);
+        if (d < bestD) {
+          bestD = d;
+          best = st;
+        }
+      }
+      if (!best) {
+        showToast("Get closer to a friend to give");
+        return false;
+      }
+      giftCarriedToAgent(best);
+      closeActionSheet();
+      return true;
+    }
+
+    function openActionSheet() {
+      const sheet = document.getElementById("act-sheet");
+      if (!sheet) return;
+      refreshCarryHud();
+      sheet.classList.add("open");
+      sheet.setAttribute("aria-hidden", "false");
+    }
+    function closeActionSheet() {
+      const sheet = document.getElementById("act-sheet");
+      if (!sheet) return;
+      sheet.classList.remove("open");
+      sheet.setAttribute("aria-hidden", "true");
+    }
+    function toggleActionSheet() {
+      const sheet = document.getElementById("act-sheet");
+      if (!sheet) return;
+      if (sheet.classList.contains("open")) closeActionSheet();
+      else openActionSheet();
     }
     // Restore last carried shop goodie
     try {
@@ -4163,12 +4295,34 @@
         leavePlaceInterior();
       }
     });
-    // Tap carry HUD to drop (mobile-friendly)
+    // Tap carry HUD → open action sheet (mobile give/take/drop)
     document.getElementById("carry-hud")?.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (carriedItem) dropCarriedItem();
+      openActionSheet();
     });
+    document.getElementById("act-fab")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleActionSheet();
+    });
+    document.getElementById("act-sheet")?.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.("button[data-act]");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const act = btn.getAttribute("data-act");
+      if (act === "close") closeActionSheet();
+      else if (act === "take") takeNearestCarryable();
+      else if (act === "give") giveToNearestFriend();
+      else if (act === "drop") {
+        if (carriedItem) {
+          dropCarriedItem();
+          closeActionSheet();
+        } else showToast("Nothing to drop");
+      }
+    });
+    refreshCarryHud();
     const visitorTarget = visitor.position.clone();
     const groundMarker = new THREE.Mesh(
       new THREE.RingGeometry(0.25, 0.4, 32),
@@ -5994,12 +6148,12 @@
         return;
       }
 
-      // World-event circle / pair banter (more often)
-      if (!powWowBusy && !ambientBusy && Math.random() < 0.34) {
-        runPowWow({ continue: !!(lastPowWow && Math.random() < 0.45), world: true });
+      // World-event circle / pair banter — free minds talk to each other often
+      if (!powWowBusy && !ambientBusy && Math.random() < 0.44) {
+        runPowWow({ continue: !!(lastPowWow && Math.random() < 0.5), world: true });
         return;
       }
-      if (!powWowBusy && !ambientBusy && Math.random() < 0.26) {
+      if (!powWowBusy && !ambientBusy && Math.random() < 0.4) {
         runBanter(false, { world: true });
         return;
       }

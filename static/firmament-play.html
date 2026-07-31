@@ -4262,7 +4262,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-31-324-map-over-bubble";
+    const CAMP_BUILD = "2026-07-31-325-bubble-vs-map";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
@@ -15571,12 +15571,11 @@
     }
 
     function hitTestSpeechBubble(sx, sy) {
-      // strict: finger is ON the drawn box (or ✕). soft near-miss is kept for
-      // diagnostics only — pointerdown does NOT select from soft (map walk wins).
+      // Only the drawn box (and ✕) count — no soft near-miss.
+      // Camp / meadow presses must never select a bubble by proximity alone.
       const mobile = isCampMobile();
-      // Tighter pad on mobile so fat-finger doesn't eat meadow/character moves
-      const pad = mobile ? 2 : 6;
-      const closePad = mobile ? 12 : 6;
+      const pad = 0; // exact box only
+      const closePad = mobile ? 10 : 6;
       // Top-most first (last drawn = selected / front)
       for (let i = speechBubbleRects.length - 1; i >= 0; i--) {
         const r = speechBubbleRects[i];
@@ -15599,21 +15598,7 @@
           return { ...r, hitClose: false, strict: true };
         }
       }
-      // Soft nearest — not used to steal walk/agent; only returned as non-strict
-      let best = null;
-      let bestD = Infinity;
-      const slop = mobile ? 4 : 12;
-      for (const r of speechBubbleRects) {
-        const cx = r.bx + r.boxW / 2;
-        const cy = r.by + r.boxH / 2;
-        const d = Math.hypot(sx - cx, sy - cy);
-        const reach = Math.hypot(r.boxW / 2, r.boxH / 2) + slop;
-        if (d < reach && d < bestD) {
-          bestD = d;
-          best = r;
-        }
-      }
-      return best ? { ...best, hitClose: false, strict: false } : null;
+      return null;
     }
 
     function updateAetherEntities() {
@@ -16972,44 +16957,43 @@
       const bubbleHit = hitTestSpeechBubble(sx, sy);
       const hit = hitTestCamp(sx, sy);
 
-      // ✕ on a bubble always wins
+      // 1) ✕ on a bubble always closes
       if (bubbleHit?.speaker && bubbleHit.hitClose) {
         closeSpeechBubble(bubbleHit.speaker, { force: true });
         try { navigator.vibrate?.(10); } catch (_) {}
         return;
       }
 
-      // Already-FRONT / selected bubble: single-tap drag/park (even over agent)
-      const bubbleIsFront = !!(
-        bubbleHit?.speaker &&
-        bubbleHit.strict &&
-        (bubbleHit.speaker === selectedBubbleSpeaker || bubbleHit.selected)
-      );
-      if (bubbleIsFront) {
+      // 2) Finger ON the text bubble box → select / front / drag that bubble
+      //    (only the drawn rect — never steals empty camp presses)
+      if (bubbleHit?.speaker && bubbleHit.strict) {
         startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
         return;
       }
 
-      // Map / characters first: agent · prop · house · pond beat non-front bubbles
-      // so meadow presses move people instead of stealing focus onto chatter boxes.
+      // 3) Camp press: agents / props / houses, else walk the player
       if (hit) {
         if (hit.kind === "agent" && isAgentSpeechPinned(hit.ref) && !selectedBubbleSpeaker) {
           startCampDrag(hit, sx, sy, ev.pointerId, { fromPin: true });
+          return;
+        }
+        // Pond = walk-to (treat as meadow destination), not a grab
+        if (hit.kind === "pond") {
+          dragTarget = {
+            kind: "meadow",
+            moved: false,
+            startSx: sx,
+            startSy: sy,
+            pointerId: ev.pointerId,
+          };
+          try { canvas.setPointerCapture(ev.pointerId); } catch (_) {}
           return;
         }
         startCampDrag(hit, sx, sy, ev.pointerId);
         return;
       }
 
-      // Pure bubble body (no agent/map object under finger) → select on mobile + desktop
-      if (bubbleHit?.speaker && bubbleHit.strict) {
-        startBubbleDrag(bubbleHit, sx, sy, ev.pointerId);
-        return;
-      }
-
-      // Soft near-miss intentionally ignored — empty meadow must walk
-
-      // Empty meadow → walk
+      // 4) Empty meadow → walk player there
       dragTarget = {
         kind: "meadow",
         moved: false,

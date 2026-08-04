@@ -10,7 +10,7 @@
     import * as campChars from "camp-characters";
     import * as campProps from "camp-props";
 
-    const BUILD = "2026-07-28-three-v108-external-app";
+    const BUILD = "2026-08-04-three-v118-thor-sprint";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -742,7 +742,7 @@
     let groundFloorMesh = null;
     let groundVideoLastKeepAlive = 0;
     {
-      const FLOOR_VIDEO = `/static/camp/mjolnir_loop_60s.mp4?v=${BUILD}`;
+      const FLOOR_VIDEO = `/static/camp/camp_floor_video.mp4?v=${BUILD}`;
       // Dark underlay — never neon green if video stalls
       const under = new THREE.Mesh(
         new THREE.PlaneGeometry(240, 240),
@@ -768,11 +768,24 @@
         vid.muted = true;
         vid.defaultMuted = true;
         vid.volume = 0;
+        try { vid.setAttribute("muted", "muted"); } catch (_) {}
         vid.playsInline = true;
         vid.setAttribute("playsinline", "");
         vid.setAttribute("webkit-playsinline", "");
         vid.setAttribute("muted", "");
         vid.preload = "auto";
+        // Never let floor audio leak (even if the file still has a track)
+        const forceMute = () => {
+          try {
+            vid.muted = true;
+            vid.defaultMuted = true;
+            vid.volume = 0;
+          } catch (_) {}
+        };
+        forceMute();
+        vid.addEventListener("volumechange", forceMute);
+        vid.addEventListener("play", forceMute);
+        vid.addEventListener("playing", forceMute);
         // Keep element in DOM (hidden) so browsers don't GC the decoder
         vid.style.cssText =
           "position:fixed;width:2px;height:2px;opacity:0.01;pointer-events:none;left:0;top:0;z-index:-1;";
@@ -1458,16 +1471,25 @@
         }
         add(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.1, 0.28), mat(0x365314, 0.75, 0, 0)), 0.1);
       } else if (kit === "trex" || kit === "horse" || prop.id === "trex" || prop.id === "horse") {
-        // Sync fallback silhouette (prefer propSystem.buildTrexMesh)
-        add(new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.75, 6, 12), mat(0x3f7a3a, 0.55)), 1.05);
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.38, 0.42), mat(0x3f7a3a, 0.5)), 1.55);
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.3), mat(0x2a4a28, 0.55)), 1.32);
+        // Fallback silhouette — nose along +Z (same convention as agents / buildTrexMesh)
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.75, 6, 12), mat(0x3f7a3a, 0.55));
+        body.position.set(0, 1.05, 0.05);
+        body.castShadow = true;
+        g.add(body);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.38, 0.62), mat(0x3f7a3a, 0.5));
+        head.position.set(0, 1.55, 0.45);
+        head.castShadow = true;
+        g.add(head);
+        const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.4), mat(0x2a4a28, 0.55));
+        jaw.position.set(0, 1.32, 0.42);
+        g.add(jaw);
         const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.5, 4, 8), mat(0x3f7a3a, 0.55));
-        tail.position.set(-0.55, 1.05, 0);
-        tail.rotation.z = Math.PI / 2.2;
+        tail.position.set(0, 1.05, -0.55);
+        tail.rotation.x = Math.PI / 2.2;
         tail.castShadow = true;
         g.add(tail);
         g.userData.trex = true;
+        g.userData.faceYaw = 0;
         g.userData.interactKind = "wildlife";
       } else if (kit === "mjolnir" || prop.id === "mjolnir") {
         // Mjolnir — short handle + block head + storm glow (only Thor lifts)
@@ -1708,7 +1730,8 @@
       st.action = "throw_mjolnir";
       st.nextDecideAt = performance.now() + 2000 + Math.random() * 1500;
       // After landing, Thor will seek again
-      mjolnirState.nextThorSeekAt = performance.now() + flightT * 1000 + 800;
+      // Start seeking soon after the throw so Thor books it to the landing
+      mjolnirState.nextThorSeekAt = performance.now() + flightT * 1000 + 250;
       showToast("⚡ Thor hurls Mjolnir");
       logLine("Thor", "Mjolnir flies — worthy or not, the meadow feels it.");
       showSpeech3d(
@@ -1754,7 +1777,11 @@
       st.propTarget = "mjolnir";
       st.pendingProp = true;
       st.ignoreAgentPush = true;
-      st.nextDecideAt = performance.now() + 14000 + Math.random() * 6000;
+      // Run a bit harder to reclaim the hammer after a toss
+      const base = st.baseSpeed || st.speed || 2.6;
+      st.speed = Math.max(base * 1.85, 4.6);
+      st.sprintToProp = true;
+      st.nextDecideAt = performance.now() + 12000 + Math.random() * 5000;
       return true;
     }
     function updateMjolnirFlight(dt) {
@@ -2738,6 +2765,9 @@
             );
             st.nextThrowAt = performance.now() + 2800 + Math.random() * 3500;
             st.nextDecideAt = st.nextThrowAt;
+            st.sprintToProp = false;
+            // Back to normal pace after the reclaim sprint
+            if (st.baseSpeed) st.speed = st.baseSpeed;
             // Strut a bit while holding
             pickRoamTarget(st);
             st.action = "wield_mjolnir";
@@ -4503,9 +4533,10 @@
       trex.position.x += (dx / dist) * Math.min(sp, dist);
       trex.position.y += (dy / dist) * Math.min(sp, dist);
       trex.position.z += (dz / dist) * Math.min(sp, dist);
-      // Face flight direction
+      // Face flight direction (+Z nose after trex mesh reorient)
       if (dx * dx + dz * dz > 0.01) {
-        trex.rotation.y = Math.atan2(dx, dz);
+        const fy = Number(trex.userData.faceYaw) || 0;
+        trex.rotation.y = Math.atan2(dx, dz) + fy;
       }
       trex.rotation.x = THREE.MathUtils.clamp(-dy * 0.04, -0.35, 0.35);
       if (dist < 1.6) {
@@ -5039,7 +5070,8 @@
     /** Soft cap — free speech can rotate; still avoids total chaos. */
     const MAX_ACTIVE_BUBBLES = 8;
     /** Keep each thought readable — mobile was flipping too fast. */
-    const MIN_SPEECH_MS = 10000;
+    /** Minimum time any new bubble stays up (was too short to read). */
+    const MIN_SPEECH_MS = 16000;
     /** After visitor hits ×, hush ambient for that agent so a box doesn't respawn instantly. */
     const SPEECH_DISMISS_MS = 42000;
     /** agentId → performance.now() until ambient speech allowed again */
@@ -5049,7 +5081,8 @@
     let orbitPinnedForBubble = false;
     /** Agent id the visitor last FRONT-selected (any agent — not just Hermes). */
     let selectedSpeechAgentId = "";
-    const LONG_PRESS_MS = 480; // phone-friendly hold to lock
+    /** Hold ~0.45s to LOCK open; click/tap also pins open until × or unlock */
+    const LONG_PRESS_MS = 450;
 
     function refreshClearBubblesBtn() {
       const btn = document.getElementById("btn-clear-bubbles");
@@ -5223,27 +5256,33 @@
         if (isFront) {
           b.stackRank = rank;
           b.frontPinned = true;
-          if (!b.holdLocked) {
-            b.until = Math.max(b.until, performance.now() + 120000);
-          }
+          // Click/tap keeps this box open (same as hold-lock for lifetime)
+          b.until = Number.POSITIVE_INFINITY;
           b.el.style.setProperty("z-index", String(rank), "important");
           b.el.style.opacity = "1";
           b.el.style.filter = "none";
+          b.el.classList.add("pinned-open");
           ensureFrontChip(b.el, !!b.holdLocked);
           const st = agentState.find((a) => a.def.id === b.agentId);
-          if (st) st.speakUntil = b.until;
+          if (st) st.speakUntil = Number.POSITIVE_INFINITY;
         } else if (b.holdLocked) {
           b.stackRank = 700;
+          b.until = Number.POSITIVE_INFINITY;
           b.el.style.setProperty("z-index", "700", "important");
           b.el.style.opacity = "1";
           b.el.style.filter = "none";
           b.el.classList.add("locked");
+          b.el.classList.add("pinned-open");
           ensureFrontChip(b.el, true);
         } else {
-          // Keep other agents' chats visible + tappable (not buried under one Hermes box)
+          // Demoted from FRONT — keep readable a good while, then may age out
           b.stackRank = 300 + activeBubbles.indexOf(b);
           b.el.style.setProperty("z-index", String(b.stackRank), "important");
+          if (b.frontPinned && !b.holdLocked) {
+            b.until = Math.max(performance.now() + 45000, b.bornAt + MIN_SPEECH_MS);
+          }
           b.frontPinned = false;
+          b.el.classList.remove("pinned-open");
           clearFrontChip(b.el);
         }
       }
@@ -5257,7 +5296,11 @@
       if (!opts.quiet) {
         const who = el.querySelector?.(".who")?.textContent || target.agentId || "Speech";
         try {
-          showToast(target.holdLocked ? `🔒 ${who} locked front` : `📌 ${who} FRONT`);
+          showToast(
+            target.holdLocked
+              ? `🔒 ${who} locked open`
+              : `📌 ${who} open — stays until × or hold-unlock`,
+          );
         } catch (_) {}
       }
       return true;
@@ -5277,18 +5320,21 @@
       item.holdLocked = !!locked;
       item.frontPinned = true;
       el.classList.toggle("locked", !!locked);
+      el.classList.add("pinned-open");
       el.setAttribute("data-locked", locked ? "1" : "0");
       if (locked) {
         item.until = Number.POSITIVE_INFINITY;
         try { navigator.vibrate?.(18); } catch (_) {}
         bringBubbleFront(el, { quiet: true, lock: true });
         const who = el.querySelector?.(".who")?.textContent || "Speech";
-        showToast(`🔒 ${who} locked — hold again to unlock`);
+        showToast(`🔒 ${who} locked open — hold again to unlock · × to close`);
       } else {
-        item.until = performance.now() + 90000;
+        // Unlock lock style but keep pin-open (click-keep) until × or demote
+        item.until = Number.POSITIVE_INFINITY;
+        item.frontPinned = true;
         el.classList.remove("locked");
         bringBubbleFront(el, { quiet: true });
-        showToast("🔓 Unlocked");
+        showToast("🔓 Unlocked lock — still pinned open (tap × to close)");
         if (!activeBubbles.some((b) => b.holdLocked)) {
           /* keep front until meadow tap */
         }
@@ -5428,7 +5474,7 @@
           bringBubbleFront(el);
         }
       });
-      el.title = `${el.querySelector?.(".who")?.textContent || "Speech"} — drag to place · tap FRONT · hold lock · ✕ close`;
+      el.title = `${el.querySelector?.(".who")?.textContent || "Speech"} — click keeps open · hold locks · drag parks · ✕ closes`;
     }
 
     // Canvas / empty space: hit-test bubble geometry (when WebGL is under the finger)
@@ -5511,20 +5557,21 @@
     window.addEventListener("pointermove", onGlobalBubbleMove, true);
 
     /**
-     * Hold speech long enough to read (~3.5 words/sec + pad).
-     * Floor: MIN_SPEECH_MS (5s) so each character's thought can be seen.
+     * Hold speech long enough to actually read (~2 words/sec + pad).
+     * Floor: MIN_SPEECH_MS so thoughts don't vanish mid-sentence.
      */
     function speechReadMs(text, minMs = MIN_SPEECH_MS) {
       const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
-      // Slower read pace so lines stick around long enough on phone
-      const byWords = Math.round((words / 2.6) * 1000) + 10000;
-      return Math.max(minMs, MIN_SPEECH_MS, Math.min(byWords, 60000));
+      // ~2 wps + long pad — natural reading on phone/desktop
+      const byWords = Math.round((words / 2.0) * 1000) + 14000;
+      return Math.max(minMs, MIN_SPEECH_MS, Math.min(byWords, 120000));
     }
 
     function bubbleIsProtected(b) {
       if (!b) return false;
       if (b.holdLocked || b.frontPinned) return true;
       if (selectedSpeechAgentId && b.agentId === selectedSpeechAgentId) return true;
+      if (b.until === Number.POSITIVE_INFINITY) return true;
       return false;
     }
 
@@ -5650,8 +5697,8 @@
       const compact = !!(opts && opts.compact);
       // Compact greets still stay long enough to read on mobile
       const floorMs = MIN_SPEECH_MS;
-      const capMs = compact ? 28000 : 90000;
-      ms = Math.max(Number(ms) || floorMs, compact ? Math.max(floorMs, 12000) : speechReadMs(body, floorMs), floorMs);
+      const capMs = compact ? 40000 : 120000;
+      ms = Math.max(Number(ms) || floorMs, compact ? Math.max(floorMs, 18000) : speechReadMs(body, floorMs), floorMs);
       ms = Math.min(ms, capMs);
       const st = agentState.find((a) => a.def.id === agentId);
       if (!st) return;
@@ -5665,10 +5712,10 @@
       } else if (force || isSelected) {
         speechDismissedUntil.delete(agentId);
       }
-      // Evolve: after several closes, ambient lines stay shorter / quieter
+      // Evolve: after several closes, ambient stays a bit quieter (not snipped mid-read)
       const gen = speechEvolveGen.get(agentId) || 0;
       if (gen >= 2 && !force && compact) {
-        ms = Math.min(ms, 14000);
+        ms = Math.min(ms, 22000);
       }
 
       // Update existing bubble for this agent (keep selection / lock)
@@ -5693,25 +5740,29 @@
           prev.el.classList.toggle("compact", compact && !prev.holdLocked && !prev.frontPinned);
           // New thought for this character — restart the 5s+ clock
           prev.bornAt = now;
-          if (prev.holdLocked) {
+          if (prev.holdLocked || prev.frontPinned || isSelected) {
+            // Keep open while user has this box pinned / locked / selected
             prev.until = Number.POSITIVE_INFINITY;
-            prev.el.classList.add("locked", "front");
+            prev.frontPinned = true;
+            prev.el.classList.add("front", "pinned-open");
             prev.el.classList.remove("compact");
-            ensureFrontChip(prev.el, true);
+            if (prev.holdLocked) {
+              prev.el.classList.add("locked");
+              ensureFrontChip(prev.el, true);
+            } else {
+              ensureFrontChip(prev.el, false);
+            }
+            if (isSelected || prev.frontPinned) {
+              bringBubbleFront(prev.el, { quiet: true });
+            }
           } else {
             prev.until = now + ms;
-            if (isSelected || prev.frontPinned) {
-              prev.frontPinned = true;
-              prev.el.classList.remove("compact");
-              bringBubbleFront(prev.el, { quiet: true });
-            } else {
-              // Someone else is FRONT — this agent stays dimmed/tappable, not steal top
-              prev.el.classList.remove("front");
-              prev.el.classList.add("dimmed");
-              prev.stackRank = 300 + i;
-              prev.el.style.setProperty("z-index", String(prev.stackRank), "important");
-              clearFrontChip(prev.el);
-            }
+            // Someone else is FRONT — this agent stays dimmed/tappable, not steal top
+            prev.el.classList.remove("front");
+            prev.el.classList.add("dimmed");
+            prev.stackRank = 300 + i;
+            prev.el.style.setProperty("z-index", String(prev.stackRank), "important");
+            clearFrontChip(prev.el);
           }
           st.speakUntil = prev.until;
           refreshClearBubblesBtn();
@@ -5741,7 +5792,7 @@
       // New ambient lines stay below a user-selected FRONT chat
       const baseRank = isSelected ? 860 : (300 + activeBubbles.length);
       el.style.setProperty("z-index", String(baseRank), "important");
-      el.title = `${st.def.name} — tap FRONT · hold lock · ✕ close (stays closed a bit)`;
+      el.title = `${st.def.name} — click keeps open · hold locks · ✕ closes`;
       el.innerHTML =
         `<button type="button" class="bubble-x" aria-label="Close bubble" title="Close — won't auto-respawn for a bit">×</button>` +
         `<span class="who">${escapeHtml(st.def.name)}</span>` +
@@ -5751,21 +5802,23 @@
       bindBubbleSelect(el);
       const layer = speechLayer || document.body;
       layer.appendChild(el);
+      const stayOpen = !!isSelected;
       const item = {
         el,
         mesh: st.mesh,
         agentId,
         bornAt: now,
-        until: now + ms,
+        until: stayOpen ? Number.POSITIVE_INFINITY : now + ms,
         stackRank: baseRank,
-        frontPinned: !!isSelected,
+        frontPinned: stayOpen,
         holdLocked: false,
         compact: !!compact,
         freeX: null,
         freeY: null,
         freeDragged: false,
       };
-      el.title = `${st.def.name} — drag to place · tap FRONT · hold lock · ✕ close`;
+      el.title = `${st.def.name} — click/tap keeps open · hold = 🔒 lock · drag to park · ✕ close`;
+      if (stayOpen) el.classList.add("pinned-open");
       activeBubbles.push(item);
       // Safety: hard-cap even if protect logic overshot
       while (activeBubbles.length > MAX_ACTIVE_BUBBLES) {
@@ -6062,8 +6115,11 @@
         force: !!opts.forceWorld,
       });
       const buzzBit = buzzPromptBit(st);
-      // Lean seeds for Ollama (short user msg → faster, less prompt-echo)
-      const freeTail = " 5–8 witty spoken sentences when inspired (or 3–5 for a quick beat). Stay in character. No meta.";
+      // Lean seeds for Ollama — witty / saucy camp energy (not bland "be natural" mush)
+      const freeTail =
+        " 5–8 witty spoken sentences when inspired (or 3–5 for a quick beat). " +
+        "Punchy, playful, dry humor and real sauce — alive, not polite corporate mush. " +
+        "Stay in character. No meta.";
       const dailyBit = st.def?.daily
         ? ` Daily ${st.def.faction || "guest"} visitor.${st.def.opener ? ` Vibe: ${String(st.def.opener).slice(0, 90)}` : ""}`
         : "";
@@ -6076,7 +6132,7 @@
         speakPrompt = `${name} paused (${mood}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (action === "social") {
         const other = st.socialTarget || "a friend";
-        speakPrompt = `${name} heading to ${other} (${mood}).${dailyBit}${buzzBit}${worldBit} Tease or invite. 2–3 sentences.`;
+        speakPrompt = `${name} heading to ${other} (${mood}).${dailyBit}${buzzBit}${worldBit} Tease or invite. 2–3 sentences — witty, not bland.`;
       } else if (action === "fire") {
         speakPrompt = `${name} at the fire (${mood}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (action === "house") {
@@ -6182,10 +6238,16 @@
       const placed = [];
       for (let i = activeBubbles.length - 1; i >= 0; i--) {
         const b = activeBubbles[i];
-        if (b.holdLocked) {
+        // Click-pin, hold-lock, or selected agent — never auto-hide
+        if (
+          b.holdLocked ||
+          b.frontPinned ||
+          (selectedSpeechAgentId && b.agentId === selectedSpeechAgentId) ||
+          b.until === Number.POSITIVE_INFINITY
+        ) {
           b.until = Number.POSITIVE_INFINITY;
         } else {
-          // Never drop a thought before its 5s minimum (per character)
+          // Never drop a thought before the read floor
           const minUntil = (b.bornAt || 0) + MIN_SPEECH_MS;
           const liveUntil = Math.max(b.until || 0, minUntil);
           if (now > liveUntil) {
@@ -6335,7 +6397,7 @@
               // Real AI greet when you tap them
               chatAgent(
                 u.id,
-                `The visitor just walked up and selected you. Greet them in character in 5–8 sentences (or 3–5 if short fits) — your own vibe, warm and specific, joy ${joy}, stability ${stab}. ${eth} No meta.`,
+                `The visitor just walked up and selected you. Greet them in character in 5–8 sentences (or 3–5 if short fits) — your own vibe, warm and specific, witty with sauce and dry humor, joy ${joy}, stability ${stab}. ${eth} No meta.`,
                 true,
               );
             }
@@ -9782,15 +9844,22 @@
     }
 
     /**
-     * Face a world XZ point using +Z as forward (matches walk velocity / GLB clips).
-     * Do NOT use Object3D.lookAt — that aims -Z and causes moonwalk vs walk anims.
+     * Face a world XZ point.
+     * Agent "nose" is +Z after GLB bake (skinned meshes get +Math.PI on clone so
+     * Mixamo/Soldier walk clips advance along that nose). Never use Object3D.lookAt
+     * (that aims -Z and moonwalks against walk anims).
      */
+    function yawTowardDelta(dx, dz, faceYaw = 0) {
+      if (dx * dx + dz * dz < 1e-8) return null;
+      // atan2(x,z): local +Z points along (dx,dz)
+      return Math.atan2(dx, dz) + faceYaw;
+    }
     function faceTowardXZ(obj, x, z, faceYaw = 0, snap = true) {
       if (!obj) return;
       const dx = x - obj.position.x;
       const dz = z - obj.position.z;
-      if (dx * dx + dz * dz < 1e-6) return;
-      const want = Math.atan2(dx, dz) + faceYaw;
+      const want = yawTowardDelta(dx, dz, faceYaw);
+      if (want == null) return;
       if (snap) {
         obj.rotation.y = want;
         return;
@@ -9800,6 +9869,16 @@
       while (dAng > Math.PI) dAng -= Math.PI * 2;
       while (dAng < -Math.PI) dAng += Math.PI * 2;
       obj.rotation.y = cur + dAng * 0.35;
+    }
+    function faceVelocityXZ(obj, vx, vz, faceYaw = 0, turnRate = 14, dt = 0.016) {
+      if (!obj) return;
+      const want = yawTowardDelta(vx, vz, faceYaw);
+      if (want == null) return;
+      let cur = obj.rotation.y;
+      let dAng = want - cur;
+      while (dAng > Math.PI) dAng -= Math.PI * 2;
+      while (dAng < -Math.PI) dAng += Math.PI * 2;
+      obj.rotation.y = cur + dAng * Math.min(1, turnRate * dt);
     }
 
     // Animate — CRITICAL: getDelta BEFORE getElapsedTime (else dt≈0 and nobody walks)
@@ -9818,6 +9897,8 @@
               if (performance.now() - (groundVideoLastKeepAlive || 0) > 1500) {
                 groundVideoLastKeepAlive = performance.now();
                 groundVideoEl.muted = true;
+                groundVideoEl.defaultMuted = true;
+                groundVideoEl.volume = 0;
                 groundVideoEl.play().catch(() => {});
               }
             }
@@ -9941,9 +10022,17 @@
             let maxSp = (st.speed || 2.6) * (st.flying ? 1.35 : 1);
             if (st.flying && st.flyPathStyle === "dive") maxSp *= 1.25;
             if (st.flying && st.flyPathStyle === "spiral") maxSp *= 1.1;
-            if (groundDist < 3.5) maxSp *= 0.45 + 0.55 * (groundDist / 3.5); // ease in
+            // Thor reclaiming Mjolnir — keep the run up until close
+            const hammerRun =
+              st.def?.id === "thor" &&
+              st.propTarget === "mjolnir" &&
+              st.pendingProp &&
+              st.sprintToProp;
+            if (hammerRun) maxSp = Math.max(maxSp, 5.2);
+            if (groundDist < 3.5 && !hammerRun) maxSp *= 0.45 + 0.55 * (groundDist / 3.5); // ease in
+            else if (hammerRun && groundDist < 2.2) maxSp *= 0.7 + 0.3 * (groundDist / 2.2);
             if (st.pendingSit) maxSp *= 0.85;
-            const steer = st.flying ? 11 : (st.pendingSit ? 11 : 6.2);
+            const steer = st.flying ? 11 : (st.pendingSit ? 11 : (hammerRun ? 9.5 : 6.2));
             if (groundDist > 0.001) {
               const inv = 1 / groundDist;
               st.vx += dx * inv * steer * dt;
@@ -10034,16 +10123,10 @@
               pos.z = THREE.MathUtils.clamp(pos.z, -HALF, HALF);
               st.vz *= -0.35;
             }
-            // Face velocity (+Z forward). faceYaw offsets GLB quirks; smooth so no snap-spin.
+            // Face velocity so walk clips go the way the body moves (not moonwalk)
             if (spH > 0.08) {
-              const want = Math.atan2(st.vx, st.vz) + (st.faceYaw || 0);
-              let cur = m.rotation.y;
-              let dAng = want - cur;
-              while (dAng > Math.PI) dAng -= Math.PI * 2;
-              while (dAng < -Math.PI) dAng += Math.PI * 2;
-              // Drunk: slower turn, wobblier
               const turn = buzzActive(st)?.kind === "drunk" ? 7 : 14;
-              m.rotation.y = cur + dAng * Math.min(1, turn * dt);
+              faceVelocityXZ(m, st.vx, st.vz, st.faceYaw || 0, turn, dt);
             }
             // Buzz body sway (drunk lean / stoned bob)
             {
@@ -10261,6 +10344,7 @@
               }
             }
             // Same +Z-forward convention as agents (no moonwalk)
+            // Same +Z nose convention as agents (placeholder body faces +Z)
             visitor.rotation.y = Math.atan2(vdx, vdz);
           } else if (groundMarker.visible && vd < 0.08) {
             groundMarker.visible = false;
@@ -10437,7 +10521,9 @@
               g.userData.tx = undefined;
             }
             if (vH > 0.15) {
-              const want = Math.atan2(g.userData.tvx, g.userData.tvz);
+              // +Z = nose (mesh reoriented). faceYaw only for odd GLBs.
+              const fy = Number(g.userData.faceYaw) || 0;
+              const want = Math.atan2(g.userData.tvx, g.userData.tvz) + fy;
               let cur = g.rotation.y;
               let dAng = want - cur;
               while (dAng > Math.PI) dAng -= Math.PI * 2;

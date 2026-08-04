@@ -23,24 +23,35 @@ services:
         value: "0"
       - key: LUNA_ALLOW_GROK
         value: "0"
-      - key: LUNA_DISABLE_GROK
+      - key: LUNA_USER_GROK
         value: "1"
+      - key: LUNA_DISABLE_GROK
+        value: "0"
+      - key: LUNA_DISABLE_USER_GROK
+        value: "0"
       - key: LUNA_GROK_FALLBACK
         value: "0"
-      # Free open-model hosts (pick one — set the secret in Render dashboard)
-      # Groq free: https://console.groq.com  → Llama 3.1 instant
+      # Optional: paid Grok for *user chat only* (ambient stays free/Ollama)
+      - key: XAI_API_KEY
+        sync: false
+      - key: GROK_MODEL
+        value: grok-4-fast-non-reasoning
+      # Free open-model hosts (set secrets in Render dashboard)
+      # Google Gemini free (AI Studio) — preferred for camp comedy + chill truth
+      # https://aistudio.google.com/apikey
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-flash-lite-latest
+      - key: LUNA_PREFER_GEMINI
+        value: "1"
+      # Groq free: https://console.groq.com
       - key: GROQ_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
       - key: OPENROUTER_MODEL
         value: meta-llama/llama-3.1-8b-instruct:free
-      # Optional Gemini free tier (not required)
-      - key: GEMINI_API_KEY
-        sync: false
-      # Paid xAI kept off unless you deliberately re-enable Grok flags above
-      - key: XAI_API_KEY
-        sync: false
       - key: TTS_VOICE
         value: en-US-AriaNeural
       - key: LUNA_LIPSYNC

@@ -5,7 +5,7 @@
  */
 import * as THREE from "three";
 
-const BUILD = "2026-07-30-three-v111-action-pad";
+const BUILD = "2026-08-04-three-v118-thor-sprint";
 
 function $(id) {
   return document.getElementById(id);

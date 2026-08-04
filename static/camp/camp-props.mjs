@@ -148,8 +148,16 @@ export function buildTrexMesh(THREE) {
     g.add(plate);
   }
 
+  // Built along +X (head +X, tail -X). Camp faces velocity on +Z — reorient nose to +Z.
+  const orient = new THREE.Group();
+  orient.name = "trex_orient";
+  while (g.children.length) orient.add(g.children[0]);
+  orient.rotation.y = -Math.PI / 2; // +X nose → +Z forward
+  g.add(orient);
+
   g.userData.trex = true;
   g.userData.trexParts = { headRoot, jaw, legL, legR, tail, armL, armR };
+  g.userData.faceYaw = 0; // mesh already +Z forward
   g.userData.walkSpeed = 2.0; // base run gait (sprint bumps this higher in 3D loop)
   g.userData.roarUntil = 0;
   g.userData.pulseUntil = 0;

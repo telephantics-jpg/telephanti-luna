@@ -118,8 +118,9 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
     // Box is already in scaled space — do NOT multiply by s again (that buried/hid custom GLBs)
     const box = new THREE.Box3().setFromObject(clone);
     clone.position.y = -box.min.y;
-    // Keep model local +Z as "forward" so walk clips match group facing.
-    // (Math.PI here used to flip them — they moonwalked: feet one way, body the other.)
+    // Mixamo / Soldier / Xbot / Robot walk along model +Z.
+    // Camp faces velocity with +Z as nose (atan2(vx,vz)) — do NOT bake 180°
+    // (that made feet fight the body = moonwalk).
     clone.rotation.y = 0;
     clone.name = "skinned";
 
@@ -204,10 +205,43 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
     function pickAction(kind) {
       const keys = Object.keys(actions);
       if (!keys.length) return null;
+      const lowKey = (k) =>
+        String(k)
+          .toLowerCase()
+          .replace(/^armature\|/, "")
+          .replace(/mixamo\.com\|?/g, "")
+          .replace(/\|/g, " ")
+          .trim();
       const find = (...needles) =>
-        keys.find((k) => needles.some((n) => k.toLowerCase().includes(n)));
+        keys.find((k) => needles.some((n) => lowKey(k).includes(n)));
+      // Prefer exact locomotion names; never pick reverse/back/strafe as "walk"
+      const findWalkLike = (wantRun) => {
+        const scored = keys
+          .map((k) => {
+            const l = lowKey(k);
+            if (/back|backward|reverse|retreat|strafe|left|right|side/.test(l)) return null;
+            let score = 0;
+            if (wantRun) {
+              if (l === "run" || l === "running") score = 100;
+              else if (/\brun\b|\brunning\b/.test(l)) score = 80;
+              else if (/\bjog\b/.test(l)) score = 60;
+              else if (l === "walk" || l === "walking") score = 40;
+            } else {
+              if (l === "walk" || l === "walking") score = 100;
+              else if (/\bwalk\b|\bwalking\b/.test(l)) score = 80;
+              else if (/\bjog\b|\btrot\b/.test(l)) score = 60;
+              else if (l === "run" || l === "running" || /\brun\b/.test(l)) score = 30;
+            }
+            if (/\blocomotion\b/.test(l)) score = Math.max(score, 50);
+            return score > 0 ? { k, score } : null;
+          })
+          .filter(Boolean)
+          .sort((a, b) => b.score - a.score);
+        return scored[0]?.k || null;
+      };
       if (kind === "walk" || kind === "run") {
         return (
+          findWalkLike(kind === "run") ||
           find("walk", "walking", "run", "running", "jog", "trot") ||
           find("locomotion") ||
           keys[0]
@@ -369,7 +403,10 @@ export function createCharacterSystem(THREE, GLTFLoader, SkeletonUtils) {
       update,
       height: targetH,
       hasClips: entry.animations.length > 0,
-      /** Added to mesh.rotation.y so +Z faces velocity (0 = walk forward correctly) */
+      /**
+       * Extra yaw on agent mesh (baked 180° is already on skinned clone).
+       * Placeholders use faceYaw 0; leave 0 here so we don't double-flip.
+       */
       faceYaw: 0,
     };
   }

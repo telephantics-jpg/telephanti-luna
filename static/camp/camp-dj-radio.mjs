@@ -428,7 +428,7 @@ export function createDjRadio(api = {}) {
     if (enabled) {
       startWatch();
       bindEnded(getMusic());
-      status("DJ Vox · witty lines · truth every 3–4 songs");
+      status("DJ Vox · funny true lines · truth every 3–4 songs");
       songsSinceTruth = 0;
       truthInterval = 3 + Math.floor(Math.random() * 2);
       warmAhead();

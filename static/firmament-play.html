@@ -162,7 +162,7 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
-      background: #050b14 url("/static/camp/aurora-corona-sky.jpg") center center / cover no-repeat;
+      background: #050810 url("/static/camp/aurora-corona-sky.jpg") center center / cover no-repeat;
     }
     #camp-stage {
       user-select: none;
@@ -4262,10 +4262,12 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-07-31-325-bubble-vs-map";
+    const CAMP_BUILD = "2026-08-04-2d-video-bg";
     let campWeather = "aurora";
     const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
+    /** Same loop as 3D meadow floor — living backdrop for 2D canvas */
+    const CAMP_BG_VIDEO_URL = `/static/camp/camp_floor_video.mp4?v=${CAMP_BUILD}`;
     let campCryptoOn = false;
 
     /** Load LUNA1 transit crypto (matches server firmament/crypto_box.py). */
@@ -8274,10 +8276,12 @@
     let groundPattern = null;
     let campBgImage = null;
     let campBgReady = false;
+    let campBgVideo = null;
+    let campBgVideoReady = false;
     const campBgImg = new Image();
     campBgImg.onload = () => {
       campBgImage = campBgImg;
-      campBgReady = true;
+      if (!campBgVideoReady) campBgReady = true;
     };
     campBgImg.onerror = () => {
       if (campBgImg.dataset.fallback !== "1" && isSlowDevice()) {
@@ -8285,10 +8289,69 @@
         campBgImg.src = CAMP_BG_URL;
         return;
       }
-      campBgReady = false;
+      if (!campBgVideoReady) campBgReady = false;
     };
+    function forceMuteBgVideo(vid) {
+      if (!vid) return;
+      try {
+        vid.muted = true;
+        vid.defaultMuted = true;
+        vid.volume = 0;
+        vid.setAttribute("muted", "muted");
+      } catch (_) {}
+    }
+    function loadCampBackgroundVideo() {
+      if (isSlowDevice()) return; // stills only on weak phones
+      try {
+        const vid = document.createElement("video");
+        vid.src = CAMP_BG_VIDEO_URL;
+        vid.muted = true;
+        vid.defaultMuted = true;
+        vid.volume = 0;
+        vid.loop = true;
+        vid.playsInline = true;
+        vid.setAttribute("playsinline", "");
+        vid.setAttribute("webkit-playsinline", "");
+        vid.setAttribute("muted", "muted");
+        vid.preload = "auto";
+        vid.style.cssText =
+          "position:fixed;width:2px;height:2px;opacity:0.01;pointer-events:none;left:0;top:0;z-index:-1;";
+        document.body.appendChild(vid);
+        campBgVideo = vid;
+        forceMuteBgVideo(vid);
+        vid.addEventListener("volumechange", () => forceMuteBgVideo(vid));
+        vid.addEventListener("play", () => forceMuteBgVideo(vid));
+        const markReady = () => {
+          if (vid.videoWidth > 0) {
+            campBgVideoReady = true;
+            campBgReady = true;
+            forceMuteBgVideo(vid);
+            vid.play().catch(() => {});
+          }
+        };
+        vid.addEventListener("loadeddata", markReady, { once: true });
+        vid.addEventListener("canplay", markReady, { once: true });
+        vid.addEventListener("error", () => {
+          campBgVideoReady = false;
+          campBgVideo = null;
+          try { vid.remove(); } catch (_) {}
+        });
+        // Autoplay unlock if blocked
+        const unlock = () => {
+          forceMuteBgVideo(vid);
+          vid.play().catch(() => {});
+        };
+        window.addEventListener("pointerdown", unlock, { once: true, passive: true });
+        window.addEventListener("keydown", unlock, { once: true });
+        vid.play().catch(() => {});
+      } catch (err) {
+        console.warn("[camp2d] bg video failed", err);
+      }
+    }
     function loadCampBackground() {
+      // Still image always as fallback / first paint
       campBgImg.src = isSlowDevice() ? CAMP_BG_MOBILE_URL : CAMP_BG_URL;
+      loadCampBackgroundVideo();
     }
     if (isSlowDevice()) {
       const deferBg = () => loadCampBackground();
@@ -8646,16 +8709,36 @@
     }
 
     function drawCampBackgroundImage() {
-      if (!campBgImage || !campBgReady) return false;
-      const iw = campBgImage.width;
-      const ih = campBgImage.height;
-      if (!iw || !ih) return false;
+      // Prefer live video (same asset as 3D floor); fall back to still sky
+      let src = null;
+      let iw = 0;
+      let ih = 0;
+      if (
+        campBgVideo &&
+        campBgVideoReady &&
+        campBgVideo.readyState >= 2 &&
+        campBgVideo.videoWidth > 0
+      ) {
+        src = campBgVideo;
+        iw = campBgVideo.videoWidth;
+        ih = campBgVideo.videoHeight;
+        // Keep decoder alive
+        if (campBgVideo.paused && !document.hidden) {
+          forceMuteBgVideo(campBgVideo);
+          campBgVideo.play().catch(() => {});
+        }
+      } else if (campBgImage && campBgReady) {
+        src = campBgImage;
+        iw = campBgImage.width;
+        ih = campBgImage.height;
+      }
+      if (!src || !iw || !ih) return false;
       const scale = Math.max(viewW / iw, viewH / ih);
       const sw = iw * scale;
       const sh = ih * scale;
       const ox = (viewW - sw) * 0.5;
       const oy = (viewH - sh) * 0.5;
-      ctx.drawImage(campBgImage, ox, oy, sw, sh);
+      ctx.drawImage(src, ox, oy, sw, sh);
       return true;
     }
 
@@ -8698,6 +8781,7 @@
     }
 
     function drawGround() {
+      const hasVideoBg = !!(campBgVideo && campBgVideoReady);
       if (!drawCampBackgroundImage()) {
         const sky = ctx.createLinearGradient(0, 0, 0, viewH);
         sky.addColorStop(0, "#050b14");
@@ -8709,40 +8793,67 @@
         ctx.fillRect(0, 0, viewW, viewH);
         drawAuroraBands();
       } else {
+        // Light aurora wash only — let the video art read
         ctx.save();
-        ctx.globalAlpha = 0.22 + Math.sin(Date.now() / 2400) * 0.04;
+        ctx.globalAlpha = hasVideoBg
+          ? 0.08 + Math.sin(Date.now() / 2800) * 0.03
+          : 0.22 + Math.sin(Date.now() / 2400) * 0.04;
         drawAuroraBands();
         ctx.restore();
-        const veil = ctx.createLinearGradient(0, viewH * 0.18, 0, viewH);
-        veil.addColorStop(0, "rgba(5, 11, 20, 0)");
-        veil.addColorStop(0.45, "rgba(8, 22, 18, 0.28)");
-        veil.addColorStop(1, "rgba(6, 18, 14, 0.72)");
+        const veil = ctx.createLinearGradient(0, viewH * 0.12, 0, viewH);
+        if (hasVideoBg) {
+          // Cool dark underlay (matches 3D floor) — less green wash
+          veil.addColorStop(0, "rgba(5, 8, 18, 0.05)");
+          veil.addColorStop(0.4, "rgba(8, 12, 28, 0.35)");
+          veil.addColorStop(1, "rgba(4, 8, 16, 0.78)");
+        } else {
+          veil.addColorStop(0, "rgba(5, 11, 20, 0)");
+          veil.addColorStop(0.45, "rgba(8, 22, 18, 0.28)");
+          veil.addColorStop(1, "rgba(6, 18, 14, 0.72)");
+        }
         ctx.fillStyle = veil;
-        ctx.fillRect(0, viewH * 0.14, viewW, viewH * 0.86);
+        ctx.fillRect(0, viewH * 0.1, viewW, viewH * 0.9);
       }
 
-      const fieldTop = viewH * (campBgReady ? 0.1 : 0.08);
+      const fieldTop = viewH * (campBgReady ? 0.12 : 0.08);
       const meadow = ctx.createLinearGradient(0, fieldTop, 0, viewH);
-      meadow.addColorStop(0, "rgba(20, 48, 36, 0.55)");
-      meadow.addColorStop(0.35, "rgba(16, 40, 32, 0.78)");
-      meadow.addColorStop(1, "rgba(10, 28, 22, 0.92)");
+      if (hasVideoBg) {
+        meadow.addColorStop(0, "rgba(8, 12, 24, 0.15)");
+        meadow.addColorStop(0.4, "rgba(6, 10, 20, 0.42)");
+        meadow.addColorStop(1, "rgba(4, 8, 16, 0.72)");
+      } else {
+        meadow.addColorStop(0, "rgba(20, 48, 36, 0.55)");
+        meadow.addColorStop(0.35, "rgba(16, 40, 32, 0.78)");
+        meadow.addColorStop(1, "rgba(10, 28, 22, 0.92)");
+      }
       ctx.fillStyle = meadow;
       ctx.fillRect(0, fieldTop, viewW, viewH - fieldTop);
 
-      if (groundPattern) {
+      if (groundPattern && !hasVideoBg) {
         ctx.save();
         ctx.fillStyle = groundPattern;
         ctx.globalAlpha = campBgReady ? 0.58 : 0.82;
         ctx.fillRect(0, fieldTop, viewW, viewH - fieldTop);
         ctx.restore();
+      } else if (groundPattern && hasVideoBg) {
+        // Soft grain only — video is the graphic
+        ctx.save();
+        ctx.fillStyle = groundPattern;
+        ctx.globalAlpha = 0.12;
+        ctx.fillRect(0, fieldTop, viewW, viewH - fieldTop);
+        ctx.restore();
       }
 
       const t = Date.now() / 1000;
-      for (let i = 0; i < (isSlowDevice() ? 18 : 42); i++) {
+      const bladeN = hasVideoBg ? (isSlowDevice() ? 8 : 18) : (isSlowDevice() ? 18 : 42);
+      for (let i = 0; i < bladeN; i++) {
         const fx = ((i * 173) % 1000) / 1000 * viewW;
         const fy = fieldTop + ((i * 97) % 1000) / 1000 * (viewH - fieldTop);
         const sway = Math.sin(t * 1.4 + i) * 2;
-        ctx.fillStyle = `rgba(${120 + (i % 3) * 30}, ${180 + (i % 2) * 20}, ${90 + (i % 4) * 15}, 0.22)`;
+        const a = hasVideoBg ? 0.1 : 0.22;
+        ctx.fillStyle = hasVideoBg
+          ? `rgba(${80 + (i % 3) * 20}, ${100 + (i % 2) * 25}, ${140 + (i % 4) * 20}, ${a})`
+          : `rgba(${120 + (i % 3) * 30}, ${180 + (i % 2) * 20}, ${90 + (i % 4) * 15}, ${a})`;
         ctx.beginPath();
         ctx.ellipse(fx, fy + sway, 3 + (i % 3), 6 + (i % 4), 0, 0, Math.PI * 2);
         ctx.fill();

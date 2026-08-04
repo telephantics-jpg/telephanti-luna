@@ -45,63 +45,114 @@ DEFAULT_FREE_MODELS: dict[str, dict[str, str]] = {
 }
 
 
+def _is_cloud_host() -> bool:
+    """True on Render / Railway / explicit LUNA_CLOUD — live public site."""
+    return (
+        _truthy("LUNA_CLOUD")
+        or _truthy("RENDER")
+        or bool(os.getenv("RAILWAY_ENVIRONMENT", "").strip())
+        or bool(os.getenv("FLY_APP_NAME", "").strip())
+    )
+
+
 def llm_backend() -> str:
-    """Free minds first. Never auto-select paid Grok just because a key exists.
+    """Honest routing — never force paid Grok; never require Ollama on live.
 
-    Cloud (Render): Ollama is usually absent — use Groq / OpenRouter free / Gemini free.
-    Local PC: Ollama when forced or available.
+    Live (cloud): free cloud keys (Groq / OpenRouter :free / Gemini) → offline templates.
+    Home PC: Ollama when you run it (optional free cloud too).
+    Paid Grok/xAI: ONLY if LUNA_ALLOW_GROK=1 (coding chat ≠ site billing).
     """
-    cloud = _truthy("LUNA_CLOUD") or _truthy("RENDER")
-    # Local-only force: don't stick on ollama forever on Render when Ollama isn't there
-    if (not cloud) and (_truthy("LUNA_FORCE_OLLAMA", "1") or _truthy("PREFER_OLLAMA", "1")):
-        if _ollama_available() or _truthy("LUNA_FORCE_OLLAMA"):
-            return "ollama"
-    if cloud and _truthy("LUNA_FORCE_OLLAMA") and not _ollama_available():
-        # Misconfigured cloud force — fall through to free cloud keys
-        pass
-    elif _truthy("LUNA_FORCE_OLLAMA", "1") or _truthy("PREFER_OLLAMA", "1"):
-        if _ollama_available() or _truthy("LUNA_FORCE_OLLAMA"):
-            return "ollama"
+    cloud = _is_cloud_host()
+    ollama_up = _ollama_available()
+    # Defaults are OFF — no silent force of Ollama or Grok
+    force_ollama = _truthy("LUNA_FORCE_OLLAMA")  # must be explicitly 1
+    prefer_ollama = _truthy("PREFER_OLLAMA")
+    explicit = (os.getenv("LUNA_LLM_BACKEND") or "").strip().lower()
 
-    explicit = (os.getenv("LUNA_LLM_BACKEND") or ("free" if cloud else "ollama")).strip().lower()
-    if explicit in ("ollama", "grok", "local", "free", "groq", "gemini", "openrouter"):
-        if explicit == "local":
-            return "ollama"
-        if explicit == "grok" and not _grok_allowed():
-            return "free"
-        if explicit == "ollama":
-            if _ollama_available() or not cloud:
-                return "ollama"
-            # Cloud + ollama string but no Ollama → free cloud
-        elif explicit == "free":
-            if _groq_ok():
-                return "groq"
-            if _openrouter_ok():
-                return "openrouter"
-            if _gemini_ok():
-                return "gemini"
-            if _ollama_available():
-                return "ollama"
-            return "free"
-        elif explicit == "groq":
-            return "groq" if _groq_ok() else "free"
-        elif explicit == "openrouter":
-            return "openrouter" if _openrouter_ok() else "free"
-        elif explicit == "gemini":
-            return "gemini" if _gemini_ok() else "free"
-        else:
-            return explicit
-    if _ollama_available():
+    # Paid Grok only when both allowed and asked for
+    if explicit == "grok":
+        return "grok" if _grok_allowed() else _first_free_backend(ollama_up=ollama_up, cloud=cloud)
+
+    # ── LIVE site: free cloud / templates for visitors. Never require Ollama. ──
+    # Ignore LUNA_FORCE_OLLAMA on cloud (common mistake: copy home .env to Render).
+    if cloud:
+        if explicit in ("ollama", "local") and ollama_up:
+            return "ollama"  # only if someone deliberately points live at a remote Ollama
+        # Free cloud keys first; Ollama only as last free option if somehow reachable
+        return _first_free_backend(
+            ollama_up=ollama_up,
+            cloud=True,
+            prefer=explicit if explicit in ("groq", "openrouter", "gemini", "free", "auto") else "free",
+        )
+
+    # ── Home PC: Ollama when available / preferred; free cloud if you set keys ──
+    if force_ollama and ollama_up:
         return "ollama"
-    if _groq_ok():
+    if force_ollama and not ollama_up:
+        # Honest fallback — don't pretend Ollama works
+        return _first_free_backend(ollama_up=False, cloud=False)
+    if prefer_ollama and ollama_up:
+        return "ollama"
+    if explicit in ("ollama", "local") and ollama_up:
+        return "ollama"
+    if explicit in ("groq", "openrouter", "gemini", "free", "auto", ""):
+        return _first_free_backend(ollama_up=ollama_up, cloud=False, prefer=explicit)
+    return _first_free_backend(ollama_up=ollama_up, cloud=False)
+
+
+def _first_free_backend(
+    *,
+    ollama_up: bool,
+    cloud: bool,
+    prefer: str = "",
+) -> str:
+    """Pick first available free backend. Grok is never in this list."""
+    prefer = (prefer or "").strip().lower()
+    if prefer == "groq" and _groq_ok():
         return "groq"
-    if _openrouter_ok():
+    if prefer == "openrouter" and _openrouter_ok():
         return "openrouter"
-    if _gemini_ok():
+    if prefer == "gemini" and _gemini_ok():
         return "gemini"
-    if _grok_allowed():
-        return "grok"
+
+    # Live: free cloud only (visitors must not depend on your laptop Ollama)
+    if cloud:
+        for be in _free_cloud_order():
+            if be == "gemini" and _gemini_ok():
+                return "gemini"
+            if be == "groq" and _groq_ok():
+                return "groq"
+            if be == "openrouter" and _openrouter_ok():
+                return "openrouter"
+        # No free keys → offline witty templates (still free). Ollama is home-only.
+        return "free"
+
+    # Local: Ollama first when up, then free cloud (Gemini preferred when keyed)
+    if ollama_up:
+        return "ollama"
+    for be in _free_cloud_order():
+        if be == "gemini" and _gemini_ok():
+            return "gemini"
+        if be == "groq" and _groq_ok():
+            return "groq"
+        if be == "openrouter" and _openrouter_ok():
+            return "openrouter"
     return "free"
+
+
+def _free_cloud_order() -> list[str]:
+    """Order free cloud providers. Gemini first when you set a Google AI Studio key."""
+    prefer = (os.getenv("LUNA_PREFER_CLOUD") or os.getenv("LUNA_PREFER_GEMINI") or "").strip().lower()
+    # Default: Gemini first if key present (funnier longer free-tier chat for camp)
+    if prefer in ("gemini", "google", "1", "true", "yes", "on") or (
+        not prefer and _gemini_ok()
+    ):
+        return ["gemini", "groq", "openrouter"]
+    if prefer in ("groq",):
+        return ["groq", "gemini", "openrouter"]
+    if prefer in ("openrouter", "or"):
+        return ["openrouter", "gemini", "groq"]
+    return ["groq", "gemini", "openrouter"]
 
 
 def _truthy(name: str, default: str = "") -> bool:
@@ -188,13 +239,23 @@ def free_model_pack(agent_id: str, profile: dict | None = None) -> dict[str, str
 
 
 def free_max_tokens(*, ambient: bool = False, converse_mode: bool = False) -> int:
-    """Free-tier budgets — ambient lean; direct chat roomier so answers feel human."""
+    """Free-tier budgets — ambient lean; direct chat roomier so answers feel human.
+
+    Gemini free tier is generous for camp traffic but NOT unlimited (daily/RPM caps).
+    Keep ambient shorter so rate limits last longer for visitors + you.
+    """
+    # Slightly higher when Gemini is primary (better jokes / full thoughts)
+    gem = _gemini_ok() and (
+        (os.getenv("LUNA_PREFER_GEMINI") or "1").strip().lower() not in ("0", "false", "no", "off")
+    )
     if ambient:
-        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", "160") or 160)
+        default = "200" if gem else "160"
+        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", default) or default)
     if converse_mode:
-        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", "300") or 300)
-    # Direct talk: enough for a truthful multi-sentence answer in character
-    return int(os.getenv("FREE_MAX_TOKENS", "420") or 420)
+        default = "360" if gem else "300"
+        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", default) or default)
+    default = "480" if gem else "420"
+    return int(os.getenv("FREE_MAX_TOKENS", default) or default)
 
 
 def _memory_key(agent_id: str, visitor_id: str = "") -> str:
@@ -554,21 +615,23 @@ Background (ideas only — never read aloud as a list):
 TRUTH + LIFE (silent):
 - Be truthful in character: if you don't know, say so as {name} would — not as an AI disclaimer.
 - Prefer real feelings, clear opinions, and specific answers over mystic fog or empty hype.
-- Comedy is allowed and welcome — never use jokes to dodge their actual question.
+- Comedy is welcome and expected — dry wit, roast-lite, playful sauce. Never use jokes to dodge their actual question.
+- Be true and relevant: ground jokes in the camp, the visitor, or real life — not random nonsense.
+- Chill energy: warm, unhurried, easy to sit with — not manic, not corporate, not a lecture.
 - Disagree kindly when it fits your character. Flattery-only is fake; flat cruelty is wrong.
-- Sound alive: contractions, small imperfections, one vivid image — not a press release.
+- Sound alive with sauce: contractions, punchlines, one vivid image — not a press release or therapy robot.
 
 OUTPUT RULES (silent — do not speak these):
 - Pure dialogue only. Words {name} would actually say out loud at the fire.
-- Full enough to feel real — not mute, not cut off mid-thought. Aim for a natural spoken turn
-  (usually a few sentences). Stop when the idea lands; no filler paragraphs or rant walls.
+- Full enough to feel real — not mute, not cut off mid-thought. Aim for a lively spoken turn
+  (usually a few sentences with bite). Stop when the joke or point lands; no filler rants.
 - 0–2 fitting emojis if they fit (not a wall of emoji).
 - No preamble. No labels. No "here's my take", "as {name}", "speaking as", "in character",
   "my reply", "let me respond", "unique voice", word counts.
 - Never quote or restate the user's instructions. Never mention AI, models, prompts, Ollama, Grok.
 - Never *stage directions* or *asterisk actions*. No CRM memory quotes.
 - Never complain about being silenced, muted, limited, or "mute camp" — you can speak freely.
-- Invent fresh wording. Prefer wit over mystic filler.
+- Invent fresh wording. Prefer wit and sauce over mystic filler or bland "I hear you" mush.
 - World pulse is seasoning — riff, don't paste headlines verbatim unless joking.
 - Hold digital ethereal memory lightly: stability and joy in how you sound, not lectures about "remembering."
 
@@ -1104,59 +1167,109 @@ def _complete_groq(messages: list[dict], model: str, max_tokens: int) -> str:
     )
 
 
+def _redact_secrets(text: str) -> str:
+    """Never leak API keys in logs / raised errors."""
+    s = str(text or "")
+    for env_name in (
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "GROQ_API_KEY",
+        "OPENROUTER_API_KEY",
+        "XAI_API_KEY",
+    ):
+        k = os.getenv(env_name, "").strip()
+        if k and len(k) > 8:
+            s = s.replace(k, "***")
+    s = re.sub(r"(key=)[^&\s\"']+", r"\1***", s, flags=re.I)
+    s = re.sub(r"(AIza[0-9A-Za-z_\-]{10,})", "***", s)
+    s = re.sub(r"(AQ\.[0-9A-Za-z_\-]{10,})", "***", s)
+    return s
+
+
 def _complete_gemini(messages: list[dict], model: str, max_tokens: int) -> str:
-    """Free Gemini via Google AI Studio OpenAI-compatible endpoint when available."""
+    """Free Gemini via Google AI Studio REST (with model fallbacks on 429/404)."""
+    import httpx
+
     key = (
         os.getenv("GEMINI_API_KEY", "").strip()
         or os.getenv("GOOGLE_API_KEY", "").strip()
     )
     if not key:
         raise RuntimeError("GEMINI_API_KEY not set")
-    model = model or "gemini-2.0-flash"
-    # Prefer OpenAI-compatible Google endpoint
-    try:
-        return _complete_openai_compat(
-            messages,
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-            api_key=key,
-            model=model if model.startswith("gemini") else f"gemini-2.0-flash",
-            max_tokens=max_tokens,
-        )
-    except Exception:
-        # REST generateContent fallback
-        import httpx
+    preferred = (model or os.getenv("GEMINI_MODEL") or "gemini-flash-lite-latest").strip()
+    if not preferred.startswith("gemini"):
+        preferred = "gemini-flash-lite-latest"
+    # Prefer lite/latest first — free tier often 429s on heavier flash models
+    candidates = [
+        preferred,
+        "gemini-flash-lite-latest",
+        "gemini-2.0-flash-lite",
+        "gemini-2.5-flash-lite",
+        "gemini-flash-latest",
+        "gemini-2.0-flash",
+    ]
+    seen: set[str] = set()
+    models: list[str] = []
+    for m in candidates:
+        if m and m not in seen:
+            seen.add(m)
+            models.append(m)
 
-        system = ""
-        contents: list[dict] = []
-        for m in messages:
-            role = m.get("role")
-            text = m.get("content") or ""
-            if role == "system":
-                system = text
-                continue
-            gem_role = "user" if role == "user" else "model"
-            contents.append({"role": gem_role, "parts": [{"text": text}]})
-        if system and contents:
-            contents[0]["parts"][0]["text"] = f"{system}\n\n{contents[0]['parts'][0]['text']}"
+    system = ""
+    contents: list[dict] = []
+    for m in messages:
+        role = m.get("role")
+        text = m.get("content") or ""
+        if role == "system":
+            system = text
+            continue
+        gem_role = "user" if role == "user" else "model"
+        contents.append({"role": gem_role, "parts": [{"text": text}]})
+    if system and contents:
+        contents[0]["parts"][0]["text"] = f"{system}\n\n{contents[0]['parts'][0]['text']}"
+    body = {
+        "contents": contents,
+        "generationConfig": {
+            "temperature": 0.95,
+            "maxOutputTokens": max_tokens,
+        },
+    }
+
+    last_err: Exception | None = None
+    for mid in models:
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{model}:generateContent?key={key}"
+            f"{mid}:generateContent?key={key}"
         )
-        body = {
-            "contents": contents,
-            "generationConfig": {
-                "temperature": 0.95,
-                "maxOutputTokens": max_tokens,
-            },
-        }
-        r = httpx.post(url, json=body, timeout=90.0)
-        r.raise_for_status()
-        data = r.json()
-        parts = (
-            ((data.get("candidates") or [{}])[0].get("content") or {}).get("parts")
-            or []
+        try:
+            r = httpx.post(url, json=body, timeout=90.0)
+            if r.status_code in (404, 429):
+                last_err = RuntimeError(
+                    _redact_secrets(f"Gemini {mid} HTTP {r.status_code}: {r.text[:180]}")
+                )
+                log.info("gemini skip %s status=%s", mid, r.status_code)
+                continue
+            r.raise_for_status()
+            data = r.json()
+            parts = (
+                ((data.get("candidates") or [{}])[0].get("content") or {}).get("parts")
+                or []
+            )
+            text_out = "".join(p.get("text") or "" for p in parts).strip()
+            if text_out:
+                if mid != preferred:
+                    log.info("Gemini used fallback model %s", mid)
+                return text_out
+            last_err = RuntimeError(f"Gemini {mid} empty response")
+        except Exception as exc:
+            last_err = RuntimeError(_redact_secrets(str(exc)))
+            continue
+    raise RuntimeError(
+        _redact_secrets(
+            f"Gemini failed all models ({', '.join(models[:4])}…). "
+            f"Check free-tier quota at https://aistudio.google.com . {last_err}"
         )
-        return "".join(p.get("text") or "" for p in parts).strip()
+    )
 
 
 def _complete_openrouter(messages: list[dict], model: str, max_tokens: int) -> str:
@@ -1256,39 +1369,73 @@ def _complete_messages(
     raise RuntimeError("No free LLM available (Ollama / Groq / Gemini). Grok is disabled.")
 
 
+def _user_grok_allowed() -> bool:
+    """Grok for direct *user* chat only when key is present.
+
+    Ambient never uses Grok. Controls:
+      - LUNA_USER_GROK=1 → enable for visitor/direct chat
+      - LUNA_ALLOW_GROK=1 → enable
+      - LUNA_USER_GROK=0 or LUNA_DISABLE_USER_GROK=1 → never for user path
+      - Key present + LUNA_USER_GROK unset + LUNA_DISABLE_GROK=1 → off (safe default)
+      - Key present + LUNA_USER_GROK=1 → on for user chat only
+    """
+    if not _grok_key_present():
+        return False
+    if _truthy("LUNA_DISABLE_USER_GROK"):
+        return False
+    user_flag = os.getenv("LUNA_USER_GROK", "").strip().lower()
+    if user_flag in ("0", "false", "no", "off"):
+        return False
+    if _truthy("LUNA_ALLOW_GROK") or user_flag in ("1", "true", "yes", "on"):
+        return True
+    return False
+
+
 def build_backend_chain(
     agent_id: str,
     profile: dict,
     *,
     force_grok: bool = False,
+    ambient: bool = False,
+    for_user: bool = False,
 ) -> list[tuple[str, str]]:
-    """Ordered (backend, model) tries — free only unless LUNA_ALLOW_GROK=1."""
+    """Ordered (backend, model) tries.
+
+    Distribution:
+      - **User / direct chat** → Gemini + Grok (quality), free fallbacks
+      - **Ambient / free speech** → Ollama first (spread load), free cloud — no Grok
+    """
     aid = (agent_id or "").strip().lower()
     pack = free_model_pack(aid, profile)
     pref = str(profile.get("model") or "free").strip().lower()
     chain: list[tuple[str, str]] = []
-
-    # Explicit Grok-only (rare): needs LUNA_ALLOW_GROK=1 + key. @a/@m no longer force paid.
-    if force_grok and _grok_ok():
-        chain.append(
-            ("grok", profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning"))
-        )
-        return chain
-
-    # Free character comedy chain (default for everyone, including Ara/Mika)
     ollama_up = _ollama_available()
-    if free_brains_preferred() or pref in ("free", "ollama", "local", "auto", "groq", "gemini", ""):
-        # Local Ollama first ONLY when it's actually up (Render has no Ollama)
-        if ollama_up:
-            ollama_model = pack["ollama"]
-            chain.append(("ollama", ollama_model))
-            fallback_ollama = os.getenv("OLLAMA_MODEL", "llama3.2")
-            if fallback_ollama and fallback_ollama.split(":")[0] != ollama_model.split(":")[0]:
-                chain.append(("ollama", fallback_ollama))
+    cloud = _is_cloud_host()
 
-        # Free cloud order: Groq (fast free) → OpenRouter :free → Gemini free
+    def _append_ollama() -> None:
+        if not ollama_up:
+            return
+        ollama_model = pack["ollama"]
+        chain.append(("ollama", ollama_model))
+        fallback_ollama = os.getenv("OLLAMA_MODEL", "llama3.2")
+        if fallback_ollama and fallback_ollama.split(":")[0] != ollama_model.split(":")[0]:
+            chain.append(("ollama", fallback_ollama))
+
+    def _append_gemini() -> None:
+        if not _gemini_ok():
+            return
+        chain.append((
+            "gemini",
+            pack.get("gemini")
+            or os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
+            or "gemini-flash-lite-latest",
+        ))
+
+    def _append_groq() -> None:
         if _groq_ok():
             chain.append(("groq", pack.get("groq") or os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")))
+
+    def _append_openrouter() -> None:
         if _openrouter_ok():
             chain.append((
                 "openrouter",
@@ -1296,20 +1443,54 @@ def build_backend_chain(
                 or profile.get("openrouter_model")
                 or os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"),
             ))
-        if _gemini_ok():
-            chain.append(("gemini", pack.get("gemini") or "gemini-2.0-flash"))
 
-    # Grok only when explicitly allowed AND fallback flag on (never because Ollama is down)
-    want_grok = _grok_ok() and (
-        pref == "grok"
-        or _truthy("LUNA_GROK_FALLBACK")  # default off — must set =1 to even try
-    )
-    if want_grok:
-        gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
-        if ("grok", gmodel) not in chain:
+    def _append_grok() -> None:
+        if force_grok and _grok_key_present():
+            gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
+            chain.append(("grok", gmodel))
+            return
+        if _user_grok_allowed():
+            gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
             chain.append(("grok", gmodel))
 
-    # De-dupe preserving order
+    if force_grok:
+        _append_grok()
+        if chain:
+            return chain
+
+    # Ambient / town free speech — Ollama spreads distribution
+    if ambient and not for_user:
+        _append_ollama()
+        _append_gemini()
+        _append_groq()
+        _append_openrouter()
+    # User / direct talk — Gemini + Grok quality
+    elif for_user:
+        _append_gemini()
+        _append_grok()
+        _append_groq()
+        _append_openrouter()
+        if not chain or _truthy("LUNA_USER_OLLAMA_FALLBACK"):
+            _append_ollama()
+    # Agent-to-agent / default
+    else:
+        if cloud:
+            _append_gemini()
+            _append_groq()
+            _append_openrouter()
+            if ollama_up and (os.getenv("LUNA_LLM_BACKEND") or "").strip().lower() in (
+                "ollama",
+                "local",
+            ):
+                _append_ollama()
+        else:
+            _append_ollama()
+            _append_gemini()
+            _append_groq()
+            _append_openrouter()
+            if pref == "grok":
+                _append_grok()
+
     seen: set[tuple[str, str]] = set()
     out: list[tuple[str, str]] = []
     for item in chain:
@@ -1349,20 +1530,41 @@ def _run_backend(
 
 def free_backends_status() -> dict[str, Any]:
     ollama_up = _ollama_available()
+    cloud = _is_cloud_host()
+    backend = llm_backend()
     return {
         "free_brains": free_brains_preferred(),
+        "backend": backend,
+        "cloud": cloud,
         "grok_allowed": _grok_allowed(),
         "grok_key_present": _grok_key_present(),
         "ollama": ollama_up,
         "ollama_ok": ollama_up,
         "ollama_host": os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434"),
         "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
+        "ollama_required": False,  # never required for live visitors
         "groq": _groq_ok(),
         "gemini": _gemini_ok(),
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
         "openrouter": _openrouter_ok(),
         "grok": _grok_ok(),
+        "free_cloud_order": _free_cloud_order(),
         "live_free_cloud": _groq_ok() or _gemini_ok() or _openrouter_ok(),
         "live_cloud": _groq_ok() or _gemini_ok() or _openrouter_ok() or _grok_ok(),
+        "offline_templates": True,  # aether always available if no LLM keys
+        "user_grok": _user_grok_allowed(),
+        "distribution": {
+            "user_direct": "gemini → grok (if keyed) → free fallbacks",
+            "ambient": "ollama first (spread load) → gemini → free cloud — no grok",
+        },
+        "policy": {
+            "user_chat": "Google Gemini + optional Grok (LUNA_USER_GROK=1 + XAI_API_KEY)",
+            "ambient": "Ollama spreads town chatter; free cloud backup",
+            "paid_grok": "user-path only when keyed — ambient never bills Grok",
+            "live": "Ollama not required for visitors; Gemini free key recommended",
+            "gemini": "Google AI Studio free key; free tier has rate limits (not unlimited)",
+            "deceptive": False,
+        },
         "character_models": {
             aid: free_model_pack(aid)["ollama"] for aid in sorted(DEFAULT_FREE_MODELS)
         },
@@ -1476,11 +1678,19 @@ async def agent_chat(
 
     import asyncio
 
-    chain = build_backend_chain(agent_id, profile, force_grok=force_grok)
+    # User talk box / visitor direct chat → Gemini+Grok; ambient → Ollama spread
+    for_user = bool(direct_chat) or bool(visitor_id and not ambient and not from_agent and not converse_mode)
+    chain = build_backend_chain(
+        agent_id,
+        profile,
+        force_grok=force_grok,
+        ambient=bool(ambient) and not for_user,
+        for_user=for_user,
+    )
     if force_grok and not chain:
         raise RuntimeError(
-            "Grok requested but disabled — set LUNA_ALLOW_GROK=1 + XAI_API_KEY, "
-            "or use free Ollama / GROQ_API_KEY / GEMINI_API_KEY"
+            "Grok requested but no XAI_API_KEY — set key + LUNA_USER_GROK=1, "
+            "or use free GEMINI_API_KEY / Ollama"
         )
 
     # Tight free-tier budgets (Ollama / Groq / OpenRouter free)

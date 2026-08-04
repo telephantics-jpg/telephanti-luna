@@ -39,8 +39,8 @@
       "camp-world": "/static/camp/camp-world.mjs?v=v107",
       "camp-client": "/static/camp/camp-client.mjs?v=v107",
       "camp-features": "/static/camp/camp-features.mjs?v=v107",
-      "camp-characters": "/static/camp/camp-characters.mjs?v=v107",
-      "camp-props": "/static/camp/camp-props.mjs?v=v107"
+      "camp-characters": "/static/camp/camp-characters.mjs?v=v117-face",
+      "camp-props": "/static/camp/camp-props.mjs?v=v117-face"
     }
   }
   </script>
@@ -52,10 +52,10 @@
   <link rel="modulepreload" href="/static/camp/camp-world.mjs?v=v107" />
   <link rel="modulepreload" href="/static/camp/camp-client.mjs?v=v107" />
   <link rel="modulepreload" href="/static/camp/camp-features.mjs?v=v107" />
-  <link rel="modulepreload" href="/static/camp/camp-characters.mjs?v=v107" />
-  <link rel="modulepreload" href="/static/camp/camp-props.mjs?v=v107" />
-  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=v111" />
-  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-07-30-three-v111-action-pad" />
+  <link rel="modulepreload" href="/static/camp/camp-characters.mjs?v=v117-face" />
+  <link rel="modulepreload" href="/static/camp/camp-props.mjs?v=v117-face" />
+  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=v118-thor" />
+  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-08-04-three-v118-thor-sprint" />
   <script>
     // Kill stale service workers that cache-first'd a broken three.module.js graph
     (function () {
@@ -321,9 +321,14 @@
       outline: 2px solid #fbbf24;
       outline-offset: 2px;
     }
-    .bubble3d .who, .bubble3d .say {
+    .bubble3d .who {
       display: block;
-      pointer-events: none; /* clicks always hit the bubble box, not text nodes */
+      pointer-events: none; /* clicks hit the bubble box */
+    }
+    .bubble3d .say {
+      display: block;
+      /* Allow scroll on long lines; parent still gets pin/hold */
+      pointer-events: auto;
     }
     .bubble3d .who { font-weight: 800; color: var(--violet); font-size: 0.78rem; margin-bottom: 6px; letter-spacing: 0.02em; padding-right: 28px; }
     .bubble3d .bubble-x {
@@ -387,9 +392,22 @@
       min-height: 188px !important;
       width: min(380px, 90vw) !important;
     }
+    /* Click/tap pin — stays open until × (gold edge softer than lock) */
+    .bubble3d.pinned-open:not(.locked) {
+      border-color: #fde68a !important;
+      box-shadow: 0 0 0 2px rgba(253, 230, 138, 0.55), 0 12px 36px rgba(0,0,0,0.5) !important;
+      opacity: 1 !important;
+      filter: none !important;
+    }
     .bubble3d.holding {
       border-color: #fbbf24 !important;
       outline: 2px solid rgba(251, 191, 36, 0.55);
+    }
+    .bubble3d .say {
+      white-space: pre-wrap;
+      overflow-y: auto;
+      max-height: 9.5rem;
+      -webkit-overflow-scrolling: touch;
     }
     @keyframes pop { from { opacity: 0; transform: translate(-50%, -90%) scale(0.92); } to { opacity: 1; transform: translate(-50%, -100%) scale(1); } }
 
@@ -1303,7 +1321,7 @@
   </div>
 
     <!-- External progressive boot (tiny) → full app module -->
-  <script type="module" src="/static/firmament-three-boot.mjs?v=v111"></script>
+  <script type="module" src="/static/firmament-three-boot.mjs?v=v118-thor"></script>
 
   <script src="/static/world-nav.js?v=310-3d-live" defer></script>
 </body>

@@ -3130,19 +3130,22 @@ async def firmament_llm_status_api():
     return {
         "backend": llm_backend(),
         "free_brains": free.get("free_brains"),
+        "cloud": free.get("cloud"),
         "ollama_host": host,
         "ollama_model": free.get("ollama_model"),
         "ollama_ok": ollama_ok,
+        "ollama_required": False,
         "character_models": free.get("character_models"),
         "groq_configured": free.get("groq"),
         "gemini_configured": free.get("gemini"),
         "openrouter_configured": free.get("openrouter"),
         "grok_configured": free.get("grok"),
+        "grok_allowed": free.get("grok_allowed"),
+        "policy": free.get("policy"),
         "hint": (
-            "Direct chat uses free Ollama (hermes3/llama3.2) first for paragraph comedy. "
-            "Live camp feed feeds every brain (free). "
-            "Optional free cloud: GROQ_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY. "
-            "@a/@m still need XAI_API_KEY."
+            "Live: free cloud (GROQ / OpenRouter :free / Gemini) or offline templates — "
+            "Ollama not required for visitors. Home: optional Ollama. "
+            "Paid Grok/xAI is opt-in only (LUNA_ALLOW_GROK=1); coding chat never bills visitors."
         ),
         "live_feed": "/api/firmament/live-feed",
     }

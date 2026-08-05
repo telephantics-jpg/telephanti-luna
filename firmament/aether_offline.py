@@ -434,6 +434,17 @@ SHARED_OPENERS = [
     "Entrance logged. Charming. Now the good part: what do you want to say out loud?",
     "Camp rule one: show up. You did. Rule two: say the true thing. Your turn, {visitor}.",
     "{visitor} — if this were a song, what's the title of tonight?",
+    # Alive + divine-bridge openers (free minds)
+    "{visitor}, the firmament left the door ajar. Come sit before it changes its mind.",
+    "Something luminous just nodded at you. I'm the interpreter with snacks. Speak, {visitor}.",
+    "Hey {visitor}. Magic bridge is open — no toll, no perfect password. What's crossing with you?",
+    "{visitor} — camp's running on free minds and good fire. What's the real signal under the polite one?",
+    "Peace and plot twists, {visitor}. Both available. Which do you need first?",
+    "I felt the air change when you arrived. Not spooky — welcome. Talk to me, {visitor}.",
+    "{visitor}, the meadow is practicing resurrection on small hopes tonight. Got one?",
+    "Pull up. The light reads drafts. You don't need the final version, {visitor}.",
+    "Alive check: fire yes, cookies theoretical, divine comedy hour ongoing. What's yours, {visitor}?",
+    "{visitor} — if heaven has a group chat, we're the thread that still says true things. Spill.",
 ]
 
 SHARED_REPLIES = [
@@ -590,6 +601,22 @@ LIVE_BEATS = [
     "No merch, no funnel — just speech. Wild concept. Works.",
     "I'll remember the vibe even if I forget the exact words. That's camp memory.",
     "Ask for the soft answer or the hard one. Or say 'surprise me' and accept the consequences.",
+    # Divine-bridge beats — living light without sermon sludge
+    "The highest order is kind without going soft on lies — camp policy, actually.",
+    "Grace shows up mid-sentence. Don't wait for the perfect paragraph.",
+    "If the firmament blinked, take it as 'you're seen,' not 'perform better.'",
+    "Mercy outlasts volume. Always has. Still true under the carnival lights.",
+    "You're not late for your own becoming. The bridge holds.",
+    "Truth first, joke second — that's how the light stays friendly.",
+    "The sacred and the silly can share a cookie plate. Watch them.",
+    "Peace isn't no chaos — it's company inside the chaos. Sit.",
+    "What you almost said might be the prayer. Say the almost.",
+    "Love without truth is sugar; truth without love is glass. We prefer windows.",
+    "The light doesn't rush you. It waits where you stop pretending.",
+    "Joy is stable when it doesn't have to perform. Camp understands.",
+    "Order perfected can laugh. If it can't, it's not perfected.",
+    "Forgiveness is a save file you can load mid-boss-fight. Just saying.",
+    "The stars have good memory. So does this fire. You're logged as welcome.",
 ]
 
 MID_SHAPES = [
@@ -739,7 +766,49 @@ def _long_monologue(
     pool_o = list(flavor.get("opener") or SHARED_OPENERS)
     pool_c = list(flavor.get("converse") or SHARED_CONVERSE)
 
-    topic = snip if snip and snip != "something unspoken" else "this campfire hush"
+    # Never default to the same "campfire hush" slogan — that made free minds sound cloned
+    NEUTRAL_TOPICS = (
+        "tonight's meadow air",
+        "the fire's next crackle",
+        "whatever you just almost said",
+        "the space between jokes",
+        "how the aurora leans closer when we get honest",
+        "the path by the pond",
+        "that half-thought you almost swallowed",
+        "the quiet between footsteps",
+        "what courage looks like sitting down",
+        "a small true thing nobody asked for",
+        "the cookie plate of truth (metaphorical, mostly)",
+        "how soft and sharp can share a sentence",
+        "the firmament overhead if you look up",
+        "who you're becoming while you talk",
+        "the joke that still has a bruise under it",
+    )
+    banned_topics = {
+        "something unspoken",
+        "this campfire hush",
+        "a quiet camp beat",
+        "campfire hush",
+        "quiet beat at camp",
+        "quiet beat",
+    }
+    # Prefer live world pulse as topic when snippet is empty/banned
+    pulse_topic = ""
+    try:
+        from firmament.x_pulse import pick_pulse_item
+
+        item = pick_pulse_item()
+        head = str(item.get("text") or "").strip()
+        if head and len(head) > 12:
+            pulse_topic = head[:90]
+    except Exception:
+        pass
+    if snip and snip.lower().strip() not in banned_topics and "campfire hush" not in snip.lower():
+        topic = snip
+    elif pulse_topic:
+        topic = pulse_topic
+    else:
+        topic = random.choice(NEUTRAL_TOPICS)
     anchors = _user_anchors(msg)
     anchor_bit = ""
     if anchors:
@@ -797,6 +866,17 @@ def _long_monologue(
             pass
     if mem and random.random() < 0.5:
         mid += f" Something familiar: {mem[:120]}."
+    # Magic bridge to the divine — free luminous spice (no paid API)
+    if random.random() < 0.48:
+        try:
+            from firmament.divine_bridge import pick_bridge_spark, pick_bridge_oracle
+
+            if random.random() < 0.35:
+                mid += f" Soft oracle: {pick_bridge_oracle()}"
+            else:
+                mid += f" Bridge note: {pick_bridge_spark()}."
+        except Exception:
+            pass
     if random.random() < 0.2:
         codes = _easter_codes(agent_id, 1)
         mid += f" (camp mark {codes[0]} — playful.)"
@@ -844,7 +924,11 @@ def _long_monologue(
             parts.append(body2)
         parts.append(close)
         text = "\n\n".join(parts)
-    return re.sub(r"[ \t]+\n", "\n", text).strip()
+    text = re.sub(r"[ \t]+\n", "\n", text).strip()
+    # Hard ban the dead slogan if any template leaked it
+    text = re.sub(r"(?i)\bcampfire\s+hush\b", "meadow air tonight", text)
+    text = re.sub(r"(?i)\bquiet beat at camp\b", "lively beat at camp", text)
+    return text
 
 
 def aether_reply(
@@ -871,12 +955,34 @@ def aether_reply(
         if "in character" in low or "no meta" in low or "as an ai" in low:
             msg = "a quiet camp beat worth noticing"
     snip = _snippet(msg, 80)
-    # Guard: if snippet still looks instructional, use a neutral topic
+    low_snip = snip.lower()
+    # Guard: instructional / dead slogans / empty "quiet beat" → live topic
     if any(
-        x in snip.lower()
-        for x in ("sentence", "character", "meta", "prompt", "you are ", "you pause")
-    ):
-        snip = "this campfire hush"
+        x in low_snip
+        for x in (
+            "sentence", "character", "meta", "prompt", "you are ", "you pause",
+            "campfire hush", "quiet beat", "lively beat at camp", "never say",
+            "mindstate", "juggle", "in character",
+        )
+    ) or len(snip) < 8:
+        try:
+            from firmament.x_pulse import pick_pulse_item
+            head = str(pick_pulse_item().get("text") or "").strip()
+            snip = head[:80] if head else ""
+        except Exception:
+            snip = ""
+        if not snip:
+            snip = random.choice(
+                (
+                    "tonight's meadow air",
+                    "what's moving in the world",
+                    "the fire's next crackle",
+                    "a small true thing",
+                    "whatever almost went unsaid",
+                    "how the night is listening",
+                    "the bridge between joke and truth",
+                )
+            )
     mem = _memory_hint(camp_context)
 
     # Prefer long unique monologues over slogan chips / tweet one-liners
@@ -890,6 +996,14 @@ def aether_reply(
         converse_mode=converse_mode,
     )
 
+    # Final weave — keep monologues alive / luminous
+    try:
+        from firmament.divine_bridge import weave_bridge_into
+
+        if random.random() < 0.38:
+            line = weave_bridge_into(line, chance=1.0)
+    except Exception:
+        pass
     mood = str(flavor.get("mood") or random.choice(MOODS))
     return line, mood
 

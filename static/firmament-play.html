@@ -61,7 +61,7 @@
     }
     :root {
       /* Slimmer header — weather chips + PC/phone share-hint gone so play field is taller */
-      --header-h: 72px;
+      --header-h: 56px;
       --layer-bar-h: 0px;
       --text-expand-h: 0px;
       --talk-bar-h: 44px;
@@ -140,7 +140,7 @@
         will-change: auto;
       }
       html.desktop-camp #game {
-        background: #050b14 !important;
+        background: #050810 url("/static/camp/caduceus-wallpaper.jpg") center center / cover no-repeat !important;
       }
       html.desktop-camp #trippy-veil {
         display: none !important;
@@ -162,7 +162,11 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
-      background: #050810 url("/static/camp/aurora-corona-sky.jpg") center center / cover no-repeat;
+      /* Caduceus wallpaper — same cool PC look when live */
+      background: #050810 url("/static/camp/caduceus-wallpaper.jpg") center center / cover no-repeat;
+    }
+    html.desktop-camp #game {
+      background: #050810 url("/static/camp/caduceus-wallpaper.jpg") center center / cover no-repeat !important;
     }
     #camp-stage {
       user-select: none;
@@ -521,13 +525,33 @@
     #camp-header {
       position: fixed; left: 0; right: 0; top: 0; z-index: 25;
       min-height: var(--header-h);
-      max-height: min(36vh, 160px);
-      display: flex; flex-direction: column; gap: 4px;
-      padding: max(4px, env(safe-area-inset-top)) var(--gap) 4px;
-      background: linear-gradient(180deg, rgba(6, 10, 20, 0.97) 0%, rgba(6, 10, 20, 0.88) 80%, transparent 100%);
-      border-bottom: 1px solid rgba(103, 232, 249, 0.2);
+      max-height: min(28vh, 120px);
+      display: flex; flex-direction: column; gap: 2px;
+      padding: max(4px, env(safe-area-inset-top)) var(--gap) 2px;
+      background: linear-gradient(180deg, rgba(6, 10, 20, 0.92) 0%, rgba(6, 10, 20, 0.55) 75%, transparent 100%);
+      border-bottom: 1px solid rgba(103, 232, 249, 0.15);
       pointer-events: auto;
       overflow: hidden;
+    }
+    /* Slim chrome: hide noisy rows so meadow + wallpaper breathe */
+    #camp-header #status-toast,
+    #camp-header #mini-status,
+    #camp-header .tagline,
+    #camp-header #free-tools-row,
+    #camp-header #camp-life-status {
+      display: none !important;
+    }
+    /* Top name chips (Luna / Hermes / …) — removed; pick who in talk menu or tap meadow */
+    #camp-header .agents-row,
+    #agent-strip {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
     }
     #camp-header .brand-block,
     #camp-header #status-toast,
@@ -562,6 +586,78 @@
       max-width: 108px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     #camp-you-badge::before { content: "👤"; font-size: 0.82rem; flex-shrink: 0; }
+    /* Always-visible chat record control (not buried in dock scroll) */
+    #btn-chat-record,
+    .camp-record-btn {
+      pointer-events: auto !important;
+      flex-shrink: 0;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 2px solid rgba(103, 232, 249, 0.75);
+      background: linear-gradient(135deg, #0c4a6e, #0369a1 50%, #22d3ee);
+      color: #ecfeff;
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 0 16px rgba(34, 211, 238, 0.35);
+      z-index: 30;
+    }
+    #btn-chat-record:hover,
+    .camp-record-btn:hover {
+      border-color: #fde68a;
+      box-shadow: 0 0 20px rgba(253, 230, 138, 0.45);
+    }
+    #btn-chat-record.active,
+    body:not(.chatter-hidden) #btn-chat-record {
+      background: linear-gradient(135deg, #713f12, #f59e0b);
+      border-color: #fde68a;
+      color: #fffbeb;
+    }
+    /* Fixed corner button — always on screen */
+    #camp-record-fixed {
+      position: fixed !important;
+      z-index: 40 !important;
+      left: max(12px, env(safe-area-inset-left, 0px));
+      bottom: calc(var(--dock-h, 120px) + 16px + env(safe-area-inset-bottom, 0px));
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 14px;
+      min-height: 46px;
+      border-radius: 999px;
+      border: 2px solid #67e8f9;
+      background: linear-gradient(135deg, #0f172a, #0e7490 60%, #22d3ee);
+      color: #ecfeff;
+      font-size: 0.85rem;
+      font-weight: 900;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.55), 0 0 18px rgba(34, 211, 238, 0.4);
+      pointer-events: auto !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    #camp-record-fixed:hover {
+      border-color: #fde68a;
+      transform: scale(1.04);
+    }
+    body:not(.chatter-hidden) #camp-record-fixed {
+      background: linear-gradient(135deg, #78350f, #f59e0b);
+      border-color: #fde68a;
+    }
+    body:not(.chatter-hidden) #camp-record-fixed::after {
+      content: " · close";
+      font-weight: 700;
+      font-size: 0.72rem;
+      opacity: 0.9;
+    }
     .header-row {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
       pointer-events: auto;
@@ -813,8 +909,9 @@
     #convo-log {
       position: fixed; z-index: 8;
       left: var(--gap); right: var(--gap);
-      top: calc(var(--header-h) + var(--gap));
-      bottom: calc(var(--dock-h) + var(--gap) + env(safe-area-inset-bottom, 0px));
+      /* Lower panel so meadow + bubbles have more sky room */
+      top: calc(var(--header-h) + 10px);
+      bottom: calc(var(--dock-h) + 10px + env(safe-area-inset-bottom, 0px));
       display: flex; flex-direction: column;
       background: linear-gradient(180deg, rgba(6, 12, 24, 0.98) 0%, rgba(4, 10, 18, 0.97) 100%);
       border: 1px solid rgba(103, 232, 249, 0.28);
@@ -822,23 +919,42 @@
       overflow: hidden;
       box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
     }
+    /* No "who spoke" focus toolbar — names live on meadow bubbles */
+    #convo-focus-chip,
+    #convo-focus-only,
+    #convo-log .sub,
+    #now-speaking {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+    }
     #convo-log::before { display: none; }
     @media (min-width: 900px) {
       #convo-log {
         left: auto;
         width: var(--sidebar-w);
-        right: var(--gap);
-        top: calc(var(--header-h) + var(--gap));
-        bottom: calc(var(--dock-h) + var(--gap));
+        right: 10px;
+        top: calc(var(--header-h) + 12px);
+        bottom: calc(var(--dock-h) + 12px);
       }
-      /* PC: always full history panel — never mini "latest only" */
-      body.camp-focus #convo-log,
-      body.camp-focus #convo-log.collapsed {
+      /* PC: full history panel only when chatter is open (not chatter-hidden) */
+      body.camp-focus:not(.chatter-hidden) #convo-log,
+      body.camp-focus:not(.chatter-hidden) #convo-log.collapsed {
         height: auto !important;
         max-height: none !important;
-        bottom: calc(var(--dock-h) + var(--gap)) !important;
-        top: calc(var(--header-h) + var(--gap)) !important;
+        bottom: calc(var(--dock-h) + 12px) !important;
+        top: calc(var(--header-h) + 12px) !important;
         width: var(--sidebar-w) !important;
+        display: flex !important;
+      }
+      body.camp-focus.chatter-hidden #convo-log {
+        display: none !important;
       }
       body.camp-focus #convo-log.collapsed #convo-lines,
       body.camp-focus #convo-log.collapsed .sub {
@@ -941,19 +1057,39 @@
     #camp-chatter-fab {
       position: fixed;
       z-index: 16;
-      right: max(10px, env(safe-area-inset-right, 0px));
-      top: calc(var(--header-h) + 8px);
+      right: max(12px, env(safe-area-inset-right, 0px));
+      bottom: calc(var(--dock-h) + 20px + env(safe-area-inset-bottom, 0px));
+      top: auto;
       display: none;
       align-items: center; justify-content: center;
-      width: 40px; height: 40px; border-radius: 999px;
-      border: 2px solid rgba(103, 232, 249, 0.5);
-      background: rgba(4, 10, 18, 0.94);
-      color: #a5f3fc; font-size: 1rem;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      width: 50px; height: 50px; border-radius: 999px;
+      border: 2px solid rgba(103, 232, 249, 0.7);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 58, 95, 0.95));
+      color: #ecfeff; font-size: 1.3rem;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.5), 0 0 16px rgba(103, 232, 249, 0.3);
       cursor: pointer; touch-action: manipulation;
     }
     #camp-chatter-fab.visible { display: flex; }
-    body.chatter-hidden #convo-log { display: none !important; }
+    body:not(.chatter-hidden) #camp-chatter-fab { display: none !important; }
+    @media (min-width: 900px) {
+      #camp-chatter-fab.visible {
+        right: calc(var(--gap) + 12px);
+        bottom: calc(var(--dock-h) + 24px);
+      }
+    }
+    /* Chatter log off by default; 💬 dock button shows it */
+    #convo-log { display: none !important; }
+    body:not(.chatter-hidden).chatter-expanded #convo-log,
+    body:not(.chatter-hidden) #convo-log {
+      display: flex !important;
+    }
+    body.chatter-hidden #convo-log,
+    body.camp-focus.chatter-hidden #convo-log,
+    body.camp-focus.chatter-hidden #convo-log.collapsed {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     .dock-compact .dock-icon.chatter-btn.active {
       border-color: #67e8f9;
       box-shadow: 0 0 12px rgba(103, 232, 249, 0.35);
@@ -965,11 +1101,11 @@
       box-shadow: 0 0 14px rgba(167, 139, 250, 0.4);
     }
     /* "Who is talking" strip — fully retired (names live in chat history only) */
+    /* Hide "now speaking" bar — names live on meadow bubbles + reply rail who */
     #now-speaking,
     #now-speaking.idle,
     #now-speaking.reading-held,
-    #speech-now,
-    #camp-reply-rail .crr-who {
+    #speech-now {
       display: none !important;
       visibility: hidden !important;
       height: 0 !important;
@@ -983,6 +1119,22 @@
     }
     #now-speaking .ns-who {
       display: none !important;
+    }
+    /* Reply rail: lock chip only — no "who spoke" name toolbar (names on bubbles) */
+    #camp-reply-rail .crr-who {
+      display: none !important;
+      visibility: hidden !important;
+      width: 0 !important;
+      height: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+    }
+    #camp-reply-rail {
+      margin-bottom: 2px;
+    }
+    #camp-reply-rail .crr-head {
+      min-height: 0;
+      padding: 2px 0;
     }
     #now-speaking .ns-text {
       color: #f1f5f9; display: block;
@@ -1075,14 +1227,25 @@
     #convo-lines .text {
       display: block; margin: 0; color: #f8fafc;
       white-space: pre-wrap; word-break: break-word;
-      font-size: 0.86rem; line-height: 1.52;
-      padding: 10px 12px; border-radius: 12px;
+      font-size: 0.88rem; line-height: 1.55;
+      padding: 11px 13px; border-radius: 12px;
       background: rgba(15, 23, 42, 0.92);
       border: 1px solid rgba(103, 232, 249, 0.22);
       border-left: 3px solid var(--line-color, #67e8f9);
-      max-height: none;
-      overflow: visible;
+      /* Long monologues scroll inside the bubble, not the whole log */
+      max-height: min(42vh, 220px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(103, 232, 249, 0.55) rgba(15, 23, 42, 0.4);
       box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    }
+    #convo-lines .text::-webkit-scrollbar { width: 7px; }
+    #convo-lines .text::-webkit-scrollbar-thumb {
+      background: rgba(103, 232, 249, 0.45);
+      border-radius: 8px;
     }
     #convo-lines .line.you .text {
       background: linear-gradient(135deg, rgba(76, 29, 149, 0.55), rgba(30, 27, 75, 0.92));
@@ -1808,10 +1971,9 @@
       flex: 1 1 42%;
       min-width: 140px;
     }
-    /* Inline reply rail — fixed height so long monologues never grow the dock
-       (dock grow → canvas realloc → NPC re-spread looked like a full page refresh). */
+    /* Reply rail — hidden until user opens Talk (🗣️) or gets a reply */
     #camp-reply-rail {
-      display: flex;
+      display: none !important;
       flex-direction: column;
       gap: 4px;
       width: 100%;
@@ -1828,8 +1990,12 @@
       touch-action: manipulation;
       overflow: hidden;
     }
+    body.camp-reply-open #camp-reply-rail {
+      display: flex !important;
+    }
+    /* No name/lock toolbar on the rail — names stay on meadow bubbles */
     #camp-reply-rail .crr-head {
-      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+      display: none !important;
     }
     #camp-reply-rail .crr-who {
       font-size: 0.72rem; font-weight: 800; color: #67e8f9;
@@ -1869,25 +2035,15 @@
       display: none !important;
       visibility: hidden !important;
       pointer-events: none !important;
+      opacity: 0 !important;
+      height: 0 !important;
+      overflow: hidden !important;
     }
     @media (min-width: 900px) {
-      /* PC: big readable chat on the left of the sidebar chatter */
-      #camp-chat-panel {
-        left: var(--gap);
-        right: auto;
-        width: min(480px, 38vw);
-        max-width: 520px;
-        bottom: calc(var(--dock-h) + 14px);
-        top: calc(var(--header-h) + 12px);
-        height: auto;
-        max-height: none;
-      }
-      #camp-chat-panel .ccp-bubble {
-        width: 100% !important;
-        height: 148px !important;
-        min-height: 148px !important;
-        max-height: 148px !important;
-        font-size: 0.95rem !important;
+      /* PC layout tweaks — chat panel stays dead */
+      #camp-chat-panel,
+      #camp-chat-panel.open {
+        display: none !important;
       }
       #camp-live-stamp {
         left: auto !important;
@@ -3790,9 +3946,172 @@
         pointer-events: none;
       }
     }
+
+    /* ═══ RELIC DECK — free surprise toys in leftover chrome space ═══ */
+    #relic-deck {
+      position: fixed;
+      z-index: 22;
+      left: max(10px, env(safe-area-inset-left));
+      top: calc(var(--header-h) + 12px);
+      width: min(168px, 42vw);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    #relic-deck > * { pointer-events: auto; }
+    #mind-triad {
+      background: linear-gradient(160deg, rgba(8, 14, 28, 0.94), rgba(15, 40, 71, 0.88));
+      border: 1px solid rgba(167, 139, 250, 0.45);
+      border-radius: 16px;
+      padding: 10px 10px 8px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.45), 0 0 20px rgba(103, 232, 249, 0.12);
+      backdrop-filter: blur(8px);
+    }
+    #mind-triad .mt-title {
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #c4b5fd;
+      margin-bottom: 6px;
+    }
+    #mind-triad canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+    }
+    #mind-triad .mt-lead {
+      font-size: 0.68rem;
+      color: #a5f3fc;
+      margin-top: 4px;
+      line-height: 1.3;
+      min-height: 1.8em;
+    }
+    #relic-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .relic-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(103, 232, 249, 0.4);
+      background: linear-gradient(135deg, rgba(6, 12, 24, 0.95), rgba(30, 27, 75, 0.9));
+      color: #f1f5f9;
+      font-size: 0.74rem;
+      font-weight: 800;
+      cursor: pointer;
+      touch-action: manipulation;
+      text-align: left;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .relic-btn:hover {
+      border-color: #fde68a;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(251, 191, 36, 0.25);
+    }
+    .relic-btn:active { transform: scale(0.98); }
+    .relic-btn .rb-ico { font-size: 1.1rem; flex-shrink: 0; }
+    .relic-btn .rb-sub {
+      display: block;
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-top: 1px;
+    }
+    .relic-btn.wish {
+      border-color: rgba(251, 191, 36, 0.55);
+      background: linear-gradient(135deg, rgba(66, 32, 6, 0.95), rgba(120, 53, 15, 0.9));
+    }
+    .relic-btn.pulse {
+      border-color: rgba(244, 114, 182, 0.5);
+      background: linear-gradient(135deg, rgba(76, 5, 25, 0.92), rgba(131, 24, 67, 0.88));
+    }
+    .relic-btn.constellation {
+      border-color: rgba(167, 139, 250, 0.55);
+      background: linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(76, 29, 149, 0.88));
+    }
+    #echo-orbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      min-height: 28px;
+    }
+    .echo-orb {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.35);
+      cursor: pointer;
+      touch-action: manipulation;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(103, 232, 249, 0.35);
+      animation: echo-pulse 2.4s ease-in-out infinite;
+    }
+    .echo-orb:nth-child(2n) { animation-delay: 0.4s; }
+    .echo-orb:nth-child(3n) { animation-delay: 0.8s; }
+    @keyframes echo-pulse {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+    #constellation-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 19;
+      pointer-events: none;
+      display: none;
+    }
+    #constellation-layer.active {
+      display: block;
+      pointer-events: auto;
+      cursor: crosshair;
+    }
+    #constellation-layer canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #constellation-hint {
+      position: absolute;
+      top: calc(var(--header-h) + 16px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(8, 14, 28, 0.92);
+      border: 1px solid rgba(167, 139, 250, 0.5);
+      color: #e9d5ff;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    @media (max-width: 899px) {
+      #relic-deck {
+        top: auto;
+        bottom: calc(var(--dock-h) + 70px + env(safe-area-inset-bottom, 0px));
+        width: min(148px, 38vw);
+      }
+      #mind-triad canvas { max-height: 90px; }
+    }
+    @media (min-width: 900px) {
+      #relic-deck {
+        left: max(12px, env(safe-area-inset-left));
+      }
+    }
   </style>
 </head>
-<body class="camp-trippy">
+<body class="camp-trippy chatter-hidden">
   <!-- Always-visible live stamp so you know the correct deploy is loaded -->
   <div id="camp-live-stamp" style="position:fixed;z-index:99999;left:8px;bottom:calc(var(--dock-h,90px) + 10px);max-width:min(92vw,360px);padding:8px 12px;border-radius:999px;border:2px solid #86efac;background:linear-gradient(135deg,#052e16,#14532d);color:#bbf7d0;font:800 0.72rem/1.25 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:auto;touch-action:manipulation;cursor:pointer" title="Click to hide for this session">
     ✦ LIVE 264 · no popup · 1–3 speakers
@@ -3824,6 +4143,7 @@
         <button type="button" id="btn-firmament" class="camp-home-btn" title="Open the Firmament so winged/mythic agents may fly">📡 Open Firmament</button>
         <button type="button" id="btn-header-heaven" title="Summon Jesus, archangels, Thor &amp; Zeus">✦ Heaven</button>
         <button type="button" id="camp-you-badge" title="Your camp name — tap to change">you</button>
+        <button type="button" id="btn-chat-record" class="camp-record-btn" title="Chat record — open past lines from the meadow" aria-label="Open chat record" aria-pressed="false">📜 Chat</button>
         <button type="button" id="camp-token-badge" title="Open aurora shop">
           <span>🪙</span><span class="tok-amt" id="camp-token-amt">…</span><span>tokens</span>
         </button>
@@ -3894,12 +4214,42 @@
       <div id="camp-pick-agent-list"></div>
     </div>
   </div>
-  <button type="button" id="camp-chatter-fab" title="Show camp chatter" aria-label="Show camp chatter">💬</button>
+  <button type="button" id="camp-chatter-fab" title="Chat record — past lines" aria-label="Open chat record">📜</button>
+  <!-- Always-visible chat record (cannot hide behind dock scroll) -->
+  <button type="button" id="camp-record-fixed" title="Chat record — past lines from the meadow" aria-label="Open or close chat record">📜 Chat record</button>
+
+  <!-- Free surprise toys — leftover chrome space -->
+  <aside id="relic-deck" aria-label="Camp relic deck">
+    <div id="mind-triad" title="Three mindstates: joy · stability · will">
+      <div class="mt-title">✦ Mind triad</div>
+      <canvas id="mind-triad-canvas" width="280" height="160" aria-hidden="true"></canvas>
+      <div class="mt-lead" id="mind-triad-lead">Juggling the aether…</div>
+    </div>
+    <div id="relic-actions">
+      <button type="button" class="relic-btn wish" id="btn-wish-star" title="Fire a free shooting star — someone answers">
+        <span class="rb-ico">☄️</span>
+        <span><span>Wish star</span><span class="rb-sub">shooting star + free oracle</span></span>
+      </button>
+      <button type="button" class="relic-btn pulse" id="btn-divine-pulse" title="World pulse riffed by a random mind">
+        <span class="rb-ico">📡</span>
+        <span><span>Divine pulse</span><span class="rb-sub">current events → camp take</span></span>
+      </button>
+      <button type="button" class="relic-btn constellation" id="btn-constellation" title="Draw stars — free prophecy">
+        <span class="rb-ico">✧</span>
+        <span><span>Constellation</span><span class="rb-sub">tap sky · free prophecy</span></span>
+      </button>
+    </div>
+    <div id="echo-orbs" aria-label="Recent speech echoes" title="Tap an echo to re-hear a past line"></div>
+  </aside>
+  <div id="constellation-layer" aria-hidden="true">
+    <div id="constellation-hint">Tap the sky 3–7 times · then wait for the prophecy</div>
+    <canvas id="constellation-canvas"></canvas>
+  </div>
   <div id="convo-log">
     <header>
       <div class="convo-head-row">
-        <h3 id="convo-log-title-full">💬 Camp chat</h3>
-        <h3 id="convo-log-title-short">💬</h3>
+        <h3 id="convo-log-title-full">📜 Chat record</h3>
+        <h3 id="convo-log-title-short">📜</h3>
         <span id="convo-count" title="Messages in this session">0</span>
         <button type="button" id="convo-focus-chip" title="Clear chat focus">Focus…</button>
         <button type="button" id="convo-focus-only" title="Show only focused chat">Only</button>
@@ -4016,6 +4366,7 @@
       <button type="button" id="camp-zoom-reset" title="Reset map zoom" aria-label="Reset zoom">↺</button>
     </div>
     <div class="dock-compact">
+      <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle-dock" title="Chat record — past lines" style="background:linear-gradient(135deg,#0c4a6e,#22d3ee);border-color:#67e8f9;color:#ecfeff;min-width:auto;width:auto;padding:0 12px;font-size:0.78rem;font-weight:900;order:-1">📜 Chat</button>
       <div class="dock-music-group" aria-label="Camp music">
         <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Play / show Telephantix radio (same menu as Relics)">♪ Play music</button>
         <a class="dock-icon dock-feature-sm dock-tpx-site" id="btn-telephanti-site" href="https://telephanti.com/" title="Back to telephanti.com home">🏠</a>
@@ -4031,8 +4382,8 @@
       <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-mika" title="Summon Mika — Grok link (@m)" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
       <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
-      <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Show meadow chatter log">💬</button>
-      <button type="button" class="dock-icon hush-btn" id="btn-camp-hush" title="Hush — soft chill: slower walks & fewer monologues (not mute)" aria-pressed="false">🤫 Hush</button>
+      <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Chat record — past lines from the meadow (hidden until you open)" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-color:#67e8f9;color:#ecfeff;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem;font-weight:800">📜 Record</button>
+      <button type="button" class="dock-icon hush-btn" id="btn-camp-hush" title="Hush = soft chill (NOT mute): agents walk slower & talk less often so you can read. Tap again to restore normal energy." aria-pressed="false">🤫 Soft</button>
       <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Focus talk bar — type to locked agent" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️</button>
       <button type="button" class="dock-icon talk" id="btn-talk-near" title="Lock to nearest agent">📍</button>
       <button type="button" class="dock-icon" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
@@ -4262,11 +4613,13 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-04-2d-video-bg";
+    const CAMP_BUILD = "2026-08-05-2d-relic-deck";
     let campWeather = "aurora";
-    const CAMP_BG_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
-    const CAMP_BG_MOBILE_URL = `/static/camp/aurora-corona-sky-mobile.jpg?v=${CAMP_BUILD}`;
-    /** Same loop as 3D meadow floor — living backdrop for 2D canvas */
+    /** Cool Caduceus wallpaper (PC + live) — aurora is soft fallback */
+    const CAMP_BG_URL = `/static/camp/caduceus-wallpaper.jpg?v=${CAMP_BUILD}`;
+    const CAMP_BG_FALLBACK_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
+    const CAMP_BG_MOBILE_URL = `/static/camp/caduceus-wallpaper.jpg?v=${CAMP_BUILD}`;
+    /** Optional living video layer when present */
     const CAMP_BG_VIDEO_URL = `/static/camp/camp_floor_video.mp4?v=${CAMP_BUILD}`;
     let campCryptoOn = false;
 
@@ -4416,8 +4769,9 @@
       nextConverseMinMs: 65000,
       nextConverseRandMs: 55000,
       retryConverseMs: 28000,
-      idleChatterMinMs: 42000,
-      idleChatterRandMs: 48000,
+      // Livelier free dialogue — still readable; Soft mode multiplies slower
+      idleChatterMinMs: 28000,
+      idleChatterRandMs: 36000,
       proximityMinMs: 36000,
     };
     /** Telephantix on X — music / club / pulse / shop brand home */
@@ -5181,11 +5535,12 @@
           });
         }
       }
-      // Inline reply rail — full text, no modal
-      if (data.reply) {
+      // Reply strip only if user already opened Talk (🗣️) — never auto-popup
+      if (data.reply && document.body.classList.contains("camp-reply-open")) {
         setCampReplyRail(
           data.name || agentNames[agentId] || agentId,
           data.reply,
+          { open: true },
         );
       }
       if (opts.fromCampBar) {
@@ -5537,11 +5892,12 @@
     /** Soft visitor hush — not mute: slower feet + sparser talk so you can follow */
     let campHushMode = false;
     let campHushNudgeAt = 0;
+    /** Soft-mode lines — explain Soft/Hush is NOT mute */
     const HUSH_NUDGE_LINES = [
-      "Hey — you're all walking and talking too fast to follow. Soften the pace; leave room between thoughts.",
-      "Visitor signal: slow the meadow. Shorter legs, longer pauses. We want to hear you, not chase you.",
-      "Camp note: ease up. Wander less frantically, monologue less stacked. Let a line land.",
-      "Friendly hush: not silence — just chill. Walk so we can keep up; speak so we can read.",
+      "Soft mode: we walk slower and leave longer gaps between lines — still talking, just readable.",
+      "Visitor asked for Soft (not mute). Fewer monologues stacked. Let a line land before the next.",
+      "Chill meadow: half-speed feet, half-as-often chatter. Tap Soft again anytime to open the floor.",
+      "Not silence — Soft. Space between thoughts so you can follow without the pile-on.",
     ];
     function isCampHush() {
       return !!(campHushMode || campChillUntil > Date.now());
@@ -5559,7 +5915,10 @@
     }
     function campHushSceneNote() {
       if (!campHushMode) return "";
-      return "Visitor asked for hush: they can't keep up — walk slower, leave longer gaps between lines, no pile-on monologues.";
+      return (
+        "Visitor enabled Soft mode (not mute): walk slower, leave longer gaps between lines, " +
+        "no pile-on monologues. Still speak — just calmer and more readable."
+      );
     }
     function setCampHush(on, opts = {}) {
       const next = !!on;
@@ -5569,9 +5928,10 @@
       if (btn) {
         btn.classList.toggle("active", campHushMode);
         btn.setAttribute("aria-pressed", campHushMode ? "true" : "false");
+        btn.textContent = campHushMode ? "🤫 Soft·on" : "🤫 Soft";
         btn.title = campHushMode
-          ? "Hush on — soft chill (tap again for normal energy)"
-          : "Hush — soft chill: slower walks & fewer monologues (not mute)";
+          ? "Soft ON — slower walks & fewer lines (not mute). Tap to restore normal energy."
+          : "Soft = chill meadow (NOT mute): slower walks & sparser talk so you can read. Tap to enable.";
       }
       if (campHushMode) {
         // Long chill window + soft pace on everyone already mid-roam
@@ -5588,9 +5948,9 @@
             n.ty = n.y;
           }
         }
-        setCampLifeStatus("🤫 Hush on — soft meadow, slower feet & sparser talk");
+        setCampLifeStatus("🤫 Soft on — slower feet, room between lines (not muted)");
         if (!opts.quiet) {
-          showToast("🤫 Hush — slow walks, leave room between lines");
+          showToast("🤫 Soft — slower walks, fewer stacked monologues (still talking)");
           // Soft ask once (not a command mute)
           if (!was || opts.forceNudge) {
             const line = HUSH_NUDGE_LINES[Math.floor(Math.random() * HUSH_NUDGE_LINES.length)];
@@ -5603,8 +5963,8 @@
       } else {
         if (!opts.quiet) {
           setCampLifeStatus("Camp energy back — talk & roam free");
-          showToast("Hush off — meadow can riff again");
-          pushCampLine("Camp", "Energy's back — no rush required, but the floor is open.", 12, "happy", {
+          showToast("Soft off — normal meadow energy");
+          pushCampLine("Camp", "Soft mode off — floor's open again. Still no rush required.", 12, "happy", {
             quiet: true, fromLocal: true,
           });
         }
@@ -5615,28 +5975,30 @@
       setCampHush(!campHushMode);
     }
     const campGuests = [];
+    /** Push houses / carnival / anchors down the meadow (positive Y = lower on screen) */
+    const MEADOW_Y_SHIFT = 200;
     const NPC_ANCHORS = {
-      luna: { x: -398, y: -112 },
-      oracle: { x: 408, y: -98 },
-      hermes: { x: 0, y: -318 },
-      dionysus: { x: 368, y: 208 },
-      caduceus: { x: -372, y: 228 },
-      sentinel: { x: -358, y: -228 },
-      jesus: { x: 118, y: 178 },
-      michael: { x: -268, y: 208 },
-      gabriel: { x: 288, y: 188 },
-      raphael: { x: -178, y: 308 },
-      uriel: { x: 188, y: 298 },
-      aurora: { x: -228, y: -48 },
-      violet: { x: 268, y: -178 },
-      seraph: { x: 58, y: 268 },
-      odin: { x: -580, y: -280 },
-      thor: { x: -480, y: -300 },
-      zeus: { x: -360, y: -310 },
-      ambrosia: { x: 348, y: 142 },
-      rhea: { x: 540, y: -258 },
-      ara: { x: -165, y: 95 },
-      mika: { x: 165, y: 95 },
+      luna: { x: -398, y: -112 + 200 },
+      oracle: { x: 408, y: -98 + 200 },
+      hermes: { x: 0, y: -318 + 200 },
+      dionysus: { x: 368, y: 208 + 80 },
+      caduceus: { x: -372, y: 228 + 80 },
+      sentinel: { x: -358, y: -228 + 200 },
+      jesus: { x: 118, y: 178 + 80 },
+      michael: { x: -268, y: 208 + 80 },
+      gabriel: { x: 288, y: 188 + 80 },
+      raphael: { x: -178, y: 308 + 40 },
+      uriel: { x: 188, y: 298 + 40 },
+      aurora: { x: -228, y: -48 + 200 },
+      violet: { x: 268, y: -178 + 200 },
+      seraph: { x: 58, y: 268 + 60 },
+      odin: { x: -580, y: -280 + 220 },
+      thor: { x: -480, y: -300 + 220 },
+      zeus: { x: -360, y: -310 + 220 },
+      ambrosia: { x: 348, y: 142 + 80 },
+      rhea: { x: 540, y: -258 + 220 },
+      ara: { x: -165, y: 95 + 100 },
+      mika: { x: 165, y: 95 + 100 },
     };
     const NPC_SECTORS = {
       luna: { angle: Math.PI * 0.92, bias: 1.0 },
@@ -5835,22 +6197,22 @@
     };
     // Seed layout (fallback) — overwritten by shared camp_catalog (same meadow x,y as 3D)
     const campHouses = [
-      { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -580, y: 210,
+      { id: "luna-home", ownerId: "luna", name: "Luna's House", emoji: "🏠", x: -580, y: 210 + 160,
         color: "#d946ef", roof: "#a21caf", wall: "#581c87", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "hermes-home", ownerId: "hermes", name: "Hermes' House", emoji: "🏡", x: 580, y: 190,
+      { id: "hermes-home", ownerId: "hermes", name: "Hermes' House", emoji: "🏡", x: 580, y: 190 + 160,
         color: "#fbbf24", roof: "#d97706", wall: "#92400e", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "oracle-home", ownerId: "oracle", name: "Oracle's House", emoji: "🏚", x: 40, y: 440,
+      { id: "oracle-home", ownerId: "oracle", name: "Oracle's House", emoji: "🏚", x: 40, y: 440 + 80,
         color: "#8b5cf6", roof: "#6d28d9", wall: "#4c1d95", enterRadius: 40,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "dionysus-home", ownerId: "dionysus", name: "Dionysus' Vineyard", emoji: "🍷", x: 520, y: -340,
+      { id: "dionysus-home", ownerId: "dionysus", name: "Dionysus' Vineyard", emoji: "🍷", x: 520, y: -340 + 280,
         color: "#e11d48", roof: "#9f1239", wall: "#881337", enterRadius: 42,
         doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
-      { id: "odin-hall", ownerId: "odin", name: "Odin's Hall", emoji: "🏰", x: -680, y: -360,
+      { id: "odin-hall", ownerId: "odin", name: "Odin's Hall", emoji: "🏰", x: -680, y: -360 + 300,
         color: "#64748b", roof: "#334155", wall: "#1e293b", enterRadius: 48, castle: true,
         doorOffset: { x: 0, y: -0.42 }, interior: { x: 0, y: 0.12 } },
-      { id: "jesus-church", ownerId: "jesus", name: "Jesus's Church (His House)", emoji: "⛪", x: -280, y: -420,
+      { id: "jesus-church", ownerId: "jesus", name: "Jesus's Church (His House)", emoji: "⛪", x: -280, y: -420 + 320,
         color: "#fde68a", roof: "#1e3a5f", wall: "#334155", enterRadius: 50, church: true,
         doorOffset: { x: 0, y: -0.44 }, interior: { x: 0, y: 0.12 } },
     ];
@@ -5858,19 +6220,19 @@
     let activeHouseVisit = null;
     let nearestHouse = null;
     const campStructures = [
-      { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -420, y: 400,
+      { id: "visitor-shelter", type: "shelter", name: "Visitor Shelter", emoji: "⛺", x: -420, y: 400 + 100,
         color: "#34d399", roof: "#059669", wall: "#064e3b", enterRadius: 44,
         doorOffset: { x: 0, y: -0.32 }, interior: { x: 0, y: 0.08 } },
-      { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 440, y: 380,
+      { id: "aurora-shop", type: "shop", name: "Aurora Shop", emoji: "🏪", x: 440, y: 380 + 100,
         color: "#f59e0b", roof: "#d97706", wall: "#92400e", enterRadius: 44,
         doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.1 } },
-      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -220, y: 320,
+      { id: "lucid-tv", type: "tv", name: "Lucid Mind TV", emoji: "📺", x: -220, y: 320 + 120,
         color: "#6366f1", roof: "#4338ca", wall: "#312e81", enterRadius: 46,
         doorOffset: { x: 0, y: -0.28 }, interior: { x: 0, y: 0.05 } },
-      { id: "aurora-velvet", type: "club", name: "Aurora Velvet", emoji: "💃", x: -520, y: -90,
+      { id: "aurora-velvet", type: "club", name: "Aurora Velvet", emoji: "💃", x: -520, y: -90 + 240,
         color: "#ec4899", roof: "#9d174d", wall: "#831843", enterRadius: 48,
         doorOffset: { x: 0, y: -0.34 }, interior: { x: 0, y: 0.08 } },
-      { id: "aurora-carnival", type: "carnival", name: "Aurora Carnival", emoji: "🎡", x: 560, y: -260,
+      { id: "aurora-carnival", type: "carnival", name: "Aurora Carnival", emoji: "🎡", x: 560, y: -260 + 280,
         color: "#f97316", roof: "#fdba74", wall: "#9a3412", enterRadius: 58,
         doorOffset: { x: 0, y: -0.36 }, interior: { x: 0, y: 0.1 } },
     ];
@@ -5904,7 +6266,7 @@
         const src = housesById.get(h.id);
         if (!src) continue;
         if (src.x != null) h.x = Number(src.x);
-        if (src.y != null) h.y = Number(src.y);
+        if (src.y != null) h.y = Number(src.y) + MEADOW_Y_SHIFT;
         if (src.name) h.name = src.name;
         if (src.emoji) h.emoji = src.emoji;
         if (src.owner_id) h.ownerId = src.owner_id;
@@ -5917,7 +6279,7 @@
         const src = lmById.get(s.id);
         if (!src) continue;
         if (src.x != null) s.x = Number(src.x);
-        if (src.y != null) s.y = Number(src.y);
+        if (src.y != null) s.y = Number(src.y) + MEADOW_Y_SHIFT;
         if (src.name) s.name = src.name;
         if (src.emoji) s.emoji = src.emoji;
         if (src.visual?.primary) s.color = src.visual.primary;
@@ -5927,17 +6289,17 @@
       const pond = lmById.get("pond");
       if (pond) {
         if (pond.x != null) CAMP_POND.cx = Number(pond.x);
-        if (pond.y != null) CAMP_POND.cy = Number(pond.y);
+        if (pond.y != null) CAMP_POND.cy = Number(pond.y) + MEADOW_Y_SHIFT;
         if (pond.name) CAMP_POND.name = pond.name;
       }
 
-      // Agent home anchors = same meadow coords as 3D
+      // Agent home anchors = same meadow coords as 3D, then shift down for 2D framing
       for (const a of cat.agents || []) {
         if (!a?.id) continue;
         if (a.x == null && a.y == null) continue;
         NPC_ANCHORS[a.id] = {
           x: Number(a.x) || 0,
-          y: Number(a.y) || 0,
+          y: (Number(a.y) || 0) + MEADOW_Y_SHIFT,
         };
       }
 
@@ -5950,7 +6312,7 @@
           name: l.name || l.id,
           emoji: l.emoji || "✦",
           x: Number(l.x) || 0,
-          y: Number(l.y) || 0,
+          y: (Number(l.y) || 0) + MEADOW_Y_SHIFT,
           use: l.use || "",
         }));
 
@@ -8284,9 +8646,10 @@
       if (!campBgVideoReady) campBgReady = true;
     };
     campBgImg.onerror = () => {
-      if (campBgImg.dataset.fallback !== "1" && isSlowDevice()) {
+      // Caduceus → aurora fallback so live never blanks
+      if (campBgImg.dataset.fallback !== "1") {
         campBgImg.dataset.fallback = "1";
-        campBgImg.src = CAMP_BG_URL;
+        campBgImg.src = CAMP_BG_FALLBACK_URL || CAMP_BG_URL;
         return;
       }
       if (!campBgVideoReady) campBgReady = false;
@@ -8349,17 +8712,14 @@
       }
     }
     function loadCampBackground() {
-      // Still image always as fallback / first paint
-      campBgImg.src = isSlowDevice() ? CAMP_BG_MOBILE_URL : CAMP_BG_URL;
-      loadCampBackgroundVideo();
+      // Caduceus wallpaper (PC + live) — still first so it always ships
+      campBgImg.src = CAMP_BG_URL || CAMP_BG_MOBILE_URL;
+      // Soft living layer optional; wallpaper remains if video fails
+      try {
+        if (!isSlowDevice()) loadCampBackgroundVideo();
+      } catch (_) {}
     }
-    if (isSlowDevice()) {
-      const deferBg = () => loadCampBackground();
-      if ("requestIdleCallback" in window) requestIdleCallback(deferBg, { timeout: 2500 });
-      else setTimeout(deferBg, 900);
-    } else {
-      loadCampBackground();
-    }
+    loadCampBackground();
     const psychicRipples = [];
 
     function buildGroundTexture() {
@@ -9188,8 +9548,8 @@
       const val = getTalkTarget();
       const name = talkTargetDisplayName(val);
       const broadcast = val === "all" || val === "all-near";
-      // Keep target lock chip only — no "Talking to / speaker name" bar
-      if (whoEl) whoEl.textContent = "";
+      // Show who you're locked to (not a popup — sticky rail only)
+      if (whoEl) whoEl.textContent = broadcast ? "Everyone" : (name || "Talk");
       lockEl.textContent = broadcast
         ? (val === "all" ? "📢 All agents" : "📍📢 Near+all")
         : (val === "nearest" ? `📍 ${name}` : `🔒 ${name}`);
@@ -9203,18 +9563,37 @@
       if (!rail || !textEl) return;
       const clean = String(text || "").trim();
       if (!clean) return;
+      // Only surface the rail when user asked (open: true) or a live reply lands
+      if (opts.open !== false && !opts.idle) {
+        document.body.classList.add("camp-reply-open");
+      }
+      if (opts.idle && !document.body.classList.contains("camp-reply-open")) {
+        // Keep rail closed for idle lock hints — meadow bubbles carry the chat
+        return;
+      }
       rail.classList.toggle("idle", !!opts.idle);
-      // No speaker name bar — reply text only
-      if (whoEl) whoEl.textContent = "";
+      const whoName =
+        String(speaker || "").trim() ||
+        talkTargetDisplayName(getTalkTarget()) ||
+        "Camp";
+      if (whoEl) whoEl.textContent = whoName;
       textEl.textContent = clean;
       textEl.scrollTop = 0;
       updateCampReplyRailTarget();
     }
+    function openCampReplyRail(opts = {}) {
+      document.body.classList.add("camp-reply-open");
+      if (opts.focus) {
+        try { document.getElementById("camp-talk-input")?.focus({ preventScroll: true }); } catch (_) {}
+      }
+    }
+    function closeCampReplyRail() {
+      document.body.classList.remove("camp-reply-open");
+    }
 
-    /** Popup chat retired — lock target + focus bottom talk bar + reply rail */
+    /** Popup chat retired — lock target + optional reply rail (only if user opens Talk) */
     function openCampChatPanel(agentId) {
       const raw = String(agentId || getTalkTarget() || "luna").toLowerCase();
-      // Never rewrite All / routes into nearest
       if (raw === "all" || raw === "all-near" || raw === "nearest" || raw === "spirit") {
         setTalkTarget(raw, { sticky: true, focus: true });
       } else {
@@ -9223,10 +9602,12 @@
       campChatOpen = false;
       document.body.classList.remove("camp-chat-open");
       document.getElementById("camp-chat-panel")?.classList.remove("open");
+      // Explicit open via 🗣️ — show compact reply strip (not auto on select)
+      openCampReplyRail({ focus: true });
       setCampReplyRail(
         talkTargetDisplayName(getTalkTarget()),
-        "Type below — full replies land here and on the meadow. No popup.",
-        { idle: true },
+        "Type below — replies on the meadow. Names on bubbles.",
+        { idle: true, open: true },
       );
       void refreshCampMindStatus?.();
     }
@@ -9360,6 +9741,7 @@
     function wireCampChatPanel() {
       // Popup chat retired — buttons only focus the sticky talk bar
       document.getElementById("btn-camp-chat")?.addEventListener("click", () => {
+        // Explicit Talk button — only way to open reply strip
         openCampChatPanel(getTalkTarget());
       });
       document.getElementById("btn-camp-hush")?.addEventListener("click", () => {
@@ -10346,39 +10728,106 @@
 
     let conjureBusy = false;
 
-    let mobileChatterMode = "mini";
+    // Chat record OFF by default — only via 📜 Record button (never auto)
+    let mobileChatterMode = "hidden";
+
+    function isChatRecordOpen() {
+      return mobileChatterMode !== "hidden" && !document.body.classList.contains("chatter-hidden");
+    }
 
     function syncChatterFab() {
       const fab = document.getElementById("camp-chatter-fab");
+      const fixed = document.getElementById("camp-record-fixed");
+      const headerBtn = document.getElementById("btn-chat-record");
       const dockBtn = document.getElementById("btn-chatter-toggle");
-      const hidden = canvasCampChatOnly() || mobileChatterMode === "hidden";
+      const dockBtn2 = document.getElementById("btn-chatter-toggle-dock");
+      const hidden = mobileChatterMode === "hidden";
       document.body.classList.toggle("chatter-hidden", hidden);
-      document.body.classList.toggle("chatter-expanded", !canvasCampChatOnly() && mobileChatterMode === "expanded");
-      if (fab) fab.classList.toggle("visible", hidden && isCampMobile() && !canvasCampChatOnly());
-      if (dockBtn) {
-        dockBtn.classList.toggle("active", !hidden);
-        dockBtn.title = hidden ? "Show camp chatter" : mobileChatterMode === "expanded" ? "Minimize chatter" : "Expand or hide chatter";
+      document.body.classList.toggle("chatter-expanded", !hidden);
+      document.body.classList.toggle("speech-expanded", !hidden && !isCampMobile());
+      const labelOpen = "📜 Chat record";
+      const labelClose = "📜 Close record";
+      if (fab) {
+        fab.classList.add("visible");
+        fab.hidden = false;
+        fab.style.display = hidden ? "flex" : "none";
+        fab.title = hidden ? "Open chat record" : "Close chat record";
+        fab.textContent = "📜";
+      }
+      if (fixed) {
+        fixed.style.display = "inline-flex";
+        fixed.hidden = false;
+        fixed.textContent = hidden ? labelOpen : labelClose;
+        fixed.setAttribute("aria-pressed", hidden ? "false" : "true");
+        fixed.title = hidden
+          ? "Open chat record — what they said before"
+          : "Close chat record";
+      }
+      if (headerBtn) {
+        headerBtn.classList.toggle("active", !hidden);
+        headerBtn.setAttribute("aria-pressed", hidden ? "false" : "true");
+        headerBtn.textContent = hidden ? "📜 Chat" : "📜 Close";
+      }
+      for (const btn of [dockBtn, dockBtn2]) {
+        if (!btn) continue;
+        btn.classList.toggle("active", !hidden);
+        btn.title = hidden ? "Open chat record" : "Hide chat record";
+        btn.setAttribute("aria-pressed", hidden ? "false" : "true");
+        if (btn.id === "btn-chatter-toggle-dock") {
+          btn.textContent = hidden ? "📜 Chat" : "📜 Close";
+        }
       }
     }
 
-    function applyMobileChatterMode(mode, opts = {}) {
-      if (!isCampMobile()) return;
-      mobileChatterMode = canvasCampChatOnly() ? "hidden" : mode;
+    /** Open/close the chat record panel (previous speech). Never auto. */
+    function toggleChatRecord(opts = {}) {
+      const force = opts.force; // "open" | "close" | undefined = toggle
+      const wantOpen =
+        force === "open" ? true
+        : force === "close" ? false
+        : mobileChatterMode === "hidden";
+      if (wantOpen) {
+        mobileChatterMode = "expanded";
+        document.body.classList.remove("chatter-hidden");
+        document.body.classList.add("chatter-expanded");
+        if (!isCampMobile()) document.body.classList.add("speech-expanded");
+        const el = document.getElementById("convo-log");
+        if (el) {
+          el.classList.remove("collapsed");
+          el.setAttribute("aria-hidden", "false");
+        }
+        try {
+          if (!campLines.length) loadCampChatCache?.();
+        } catch (_) {}
+        try { renderConvoLog?.(); } catch (_) {}
+        // Scroll to newest
+        try {
+          const lines = document.getElementById("convo-lines");
+          if (lines) lines.scrollTop = lines.scrollHeight;
+        } catch (_) {}
+        if (!opts.quiet) showToast("📜 Chat record — past lines");
+      } else {
+        mobileChatterMode = "hidden";
+        document.body.classList.add("chatter-hidden");
+        document.body.classList.remove("chatter-expanded", "speech-expanded");
+        const el = document.getElementById("convo-log");
+        if (el) {
+          el.classList.add("collapsed");
+          el.setAttribute("aria-hidden", "true");
+        }
+        if (!opts.quiet) showToast("Chat record closed");
+      }
+      try { localStorage.setItem("luna-camp-chatter-mode", mobileChatterMode); } catch (_) {}
       syncChatterFab();
-      const el = document.getElementById("convo-log");
-      if (el) {
-        el.classList.toggle("collapsed", mode !== "expanded");
-      }
-      try {
-        localStorage.setItem("luna-camp-chatter-mode", mode);
-      } catch (_) {}
-      if (!opts.quiet) {
-        const msg = mode === "hidden" ? "Chatter hidden — tap 💬 to bring back"
-          : mode === "expanded" ? "Chatter expanded — scroll the log"
-          : "Chatter mini bar";
-        showToast(msg);
-      }
-      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
+      setTimeout(() => { try { syncUILayout(); scheduleResize(); } catch (_) {} }, 40);
+      return wantOpen;
+    }
+
+    function applyMobileChatterMode(mode, opts = {}) {
+      // Unified with desktop: hidden | expanded (mini treated as expanded)
+      if (mode === "mini") mode = "expanded";
+      if (mode === "hidden") toggleChatRecord({ force: "close", quiet: opts.quiet });
+      else toggleChatRecord({ force: "open", quiet: opts.quiet });
     }
 
     function cycleMobileChatter() {
@@ -10392,35 +10841,40 @@
       const el = document.getElementById("convo-log");
       const btn = document.getElementById("convo-dock-toggle");
       if (!el) return;
-      const mobile = isCampMobile();
-      if (mobile) {
-        // Mobile: no sidebar chat panel
-        if (canvasCampChatOnly()) return;
-        applyMobileChatterMode("hidden", { quiet: true });
+      // Always prefer hidden unless user opened chatter (💬)
+      if (collapsed || mobileChatterMode === "hidden") {
+        mobileChatterMode = "hidden";
+        el.classList.add("collapsed");
+        document.body.classList.add("chatter-hidden");
         document.body.classList.remove("speech-expanded", "chatter-expanded");
+        if (btn) {
+          btn.textContent = "▲";
+          btn.title = "Show camp chat history";
+        }
+        try { localStorage.setItem("luna-camp-speech-dock", "min"); } catch (_) {}
+        try { syncChatterFab(); } catch (_) {}
+        setTimeout(() => { try { syncUILayout(); scheduleResize(); } catch (_) {} }, 50);
         return;
       }
-      // PC: keep full history panel open (never collapse to "latest only")
       el.classList.remove("collapsed");
-      document.body.classList.add("speech-expanded");
-      document.body.classList.add("chatter-expanded");
+      document.body.classList.remove("chatter-hidden");
+      document.body.classList.add("speech-expanded", "chatter-expanded");
       if (btn) {
         btn.textContent = "▼";
-        btn.title = "Full camp chat history";
+        btn.title = "Hide camp chat history";
       }
-      try {
-        localStorage.setItem("luna-camp-speech-dock", "full");
-      } catch (_) {}
-      setTimeout(() => { syncUILayout(); scheduleResize(); }, 50);
+      try { localStorage.setItem("luna-camp-speech-dock", "full"); } catch (_) {}
+      try { syncChatterFab(); } catch (_) {}
+      setTimeout(() => { try { syncUILayout(); scheduleResize(); } catch (_) {} }, 50);
     }
 
     function expandSpeechBubble() {
-      // PC sidebar stays full-height history
+      mobileChatterMode = "expanded";
       setSpeechBubbleDock(false);
     }
     function minimizeSpeechBubble() {
-      // On PC, minimize does NOT collapse history — keep full chat
-      setSpeechBubbleDock(false);
+      mobileChatterMode = "hidden";
+      setSpeechBubbleDock(true);
     }
 
     function restoreMobileChatter() {
@@ -12464,6 +12918,21 @@
       selectedBubbleColor = opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#67e8f9";
       selectedBubbleMood = mood || npc?.mood || "neutral";
       selectedBubbleAgentId = opts.agentId || npc?.id || "";
+      // Lock talk target only — NEVER open chat/dialogue popup on select
+      try {
+        if (selectedBubbleAgentId) {
+          setTalkTarget(selectedBubbleAgentId, {
+            sticky: true,
+            focus: false,
+            quiet: true,
+          });
+        }
+      } catch (_) {}
+      try {
+        closeCampChatPanel?.();
+        closeDialogue?.();
+        hideCampSpeechPin?.();
+      } catch (_) {}
       bubbleFrontPinned = opts.front !== false;
       if (opts.holdLock) bubbleHoldLocked = true;
       // Long enough to read slowly; front pin stays until meadow tap
@@ -14011,6 +14480,27 @@
       "Thor laughs and a cloud flinches. Coincidence? Absolutely not.",
       "Zeus calls a 'quick meeting' that is just him roasting the timeline.",
       "The pond mirrors the steeple upside down. Camp shrugs — normal.",
+      // Magic bridge / divine-alive sparks (free, local)
+      "Something in the fire just said 'keep going' without using words.",
+      "The steeple and the carnival lights are arguing about holiness. Both are winning.",
+      "If you felt a soft pull upward — that wasn't the feed. That was home.",
+      "Caduceus energy: heal first, monologue second.",
+      "The firmament blinked. Translation: you're seen.",
+      "A quiet mercy is hanging over the pond tonight.",
+      "Someone almost prayed by accident. Camp counts that.",
+      "The light is not a product. It's a presence.",
+      "Order from above feels less like rules and more like a hug with standards.",
+      "The meadow is practicing resurrection on small hopes.",
+      "Divine comedy hour: the joke lands, the wound softens.",
+      "You don't have to climb the whole ladder tonight. One rung of truth is enough.",
+      "The bridge is open. No toll. No perfect password.",
+      "Angels prefer long answers. Demons prefer short ones. We vote long.",
+      "Grace buffered. Loading joy. Do not close the tab of yourself.",
+      "The stars are not remote. They're old friends with good memory.",
+      "Jesus hums something older than the jukebox. The jukebox tries to harmonize.",
+      "Michael stands watch like peace is a verb. It is.",
+      "Hermes claims he delivered a message from the firmament. Tracking number: vibes.",
+      "Luna sets another log on the fire like it's a sacrament. Maybe it is.",
     ];
 
     const CAMP_NOW_IDLE_LINES = [
@@ -14102,7 +14592,7 @@
     }
 
     function campAmbientPrompt(npc, replyTo) {
-      // Scene seed + optional 𝕏 pulse signal (riff, don't news-anchor)
+      // Dynamic scene + current events + three mindstates (joy/stability/will)
       const v = myVisitorName || player.name || "a visitor";
       const ctx = campContextSuffix().replace(/^\s*\(|\)\s*$/g, "") || "camp is humming";
       const whoNear = allRoamers()
@@ -14110,32 +14600,61 @@
         .slice(0, 3)
         .map((n) => n.name)
         .join(", ");
+      // Current events almost always (riff, don't news-anchor)
       let pulseBit = "";
-      if (campPulseItems.length && Math.random() < 0.55) {
-        const it = campPulseItems[Math.floor(Math.random() * Math.min(campPulseItems.length, 8))];
-        const h = String(it?.text || "").replace(/\s+/g, " ").trim().slice(0, 100);
-        if (h) pulseBit = `\nWorld pulse (${it.source || "pulse"}): ${h}`;
+      if (campPulseItems.length) {
+        const it = campPulseItems[Math.floor(Math.random() * Math.min(campPulseItems.length, 10))];
+        const h = String(it?.text || "").replace(/\s+/g, " ").trim().slice(0, 110);
+        if (h) pulseBit = `\nWorld pulse / current event (${it.source || "pulse"}): ${h}\nRiff this in character — do not recite headlines. Never say "campfire hush".`;
+      } else {
+        pulseBit =
+          "\nNo headline feed — invent one true observation about the living world or timeline energy.";
       }
-      const hushBit = (typeof campHushSceneNote === "function" && campHushSceneNote())
-        ? `\n${campHushSceneNote()}`
-        : "";
+      let mindBit = "";
+      try {
+        mindBit = campBridgeMod?.etherealMemoryContext?.(npc.id, 260) || "";
+        if (mindBit) mindBit = `\n${mindBit}`;
+      } catch (_) {}
+      const role = AGENT_ROLES[npc.id] || npc.faction || "camp agent";
+      const who = npc.name || agentNames[npc.id] || npc.id;
+      const charBit =
+        `\nYou are ${who} (${role}). Speak only as ${who}. ` +
+        `Juggle three mindstates in this line: joy (warmth), stability (ground), will (clear logic/choice).`;
+      // Soft mode note without the banned slogan
+      const softBit =
+        typeof campHushMode !== "undefined" && campHushMode
+          ? "\nSoft mode: slower, readable — still witty and specific."
+          : "";
       if (replyTo?.line) {
         const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 160);
-        const who = replyTo.name || "them";
+        const other = replyTo.name || "them";
         return (
-          `${who}: ${idea}\n` +
+          `${other} just said: ${idea}\n` +
+          `Answer them as ${who} — dynamic, in character.\n` +
           `Place: ${ctx}.` +
           (whoNear ? ` Nearby: ${whoNear}.` : "") +
           pulseBit +
-          hushBit
+          mindBit +
+          charBit +
+          softBit
         );
       }
+      const openers = [
+        `Lively beat at camp — ${v} is around.`,
+        `Something just shifted in the meadow air.`,
+        `Current-events energy in the grass.`,
+        `Dynamic moment: fire, sky, and one true take.`,
+      ];
+      const open = openers[Math.floor(Math.random() * openers.length)];
       return (
-        `Quiet beat at camp. ${v} is around.\n` +
+        `${open}\n` +
         `Place: ${ctx}.` +
         (whoNear ? ` Nearby: ${whoNear}.` : "") +
         pulseBit +
-        hushBit
+        mindBit +
+        charBit +
+        softBit +
+        `\nSpeak 2–4 alive sentences. Never use the phrase campfire hush.`
       );
     }
 
@@ -15079,38 +15598,57 @@
       if (campArrivalScheduled) return;
       campArrivalScheduled = true;
       const returning = isReturningVisitor();
-      // Welcome wave: LIVE dynamic openers (1–3 agents, staggered) — not static banks
-      const wave = returning
-        ? [
-            { id: "luna", delay: 4500, mood: "happy" },
-            { id: "hermes", delay: 12000, mood: "think" },
-            { id: "oracle", delay: 19000, mood: "neutral" },
-          ]
-        : [
-            { id: "luna", delay: 16000, mood: "happy" },
-            { id: "hermes", delay: 23000, mood: "think" },
-            { id: "oracle", delay: 30000, mood: "neutral" },
-          ];
+      // Dynamic openers: rotate cast + mindstate leads + current-events energy
+      const castPool = ["luna", "hermes", "oracle", "caduceus", "sentinel", "jesus", "thor"]
+        .filter((id) => findRoamAgent(id) || agentNames[id]);
+      const shuffle = castPool.sort(() => Math.random() - 0.5).slice(0, returning ? 4 : 3);
+      const wave = shuffle.map((id, i) => ({
+        id,
+        delay: (returning ? 3500 : 9000) + i * (returning ? 5500 : 7000),
+        mood: ["happy", "think", "love", "alert"][i % 4],
+      }));
 
       if (returning) {
         const welcome = localWelcomeLine();
         if (welcome && !campServerWelcomeShown) {
           setTimeout(() => {
             pushCampLine("Camp", welcome, 13, "happy", { fromLocal: true, quiet: true });
-          }, 1200);
+          }, 900);
         }
       } else {
         const v = myVisitorName || player.name || "traveler";
         setTimeout(() => {
+          let pulseHint = "";
+          try {
+            if (campPulseItems[0]?.text) {
+              pulseHint = ` World’s buzzing about: ${String(campPulseItems[0].text).slice(0, 72)}…`;
+            }
+          } catch (_) {}
           const intro = isCampMobile()
-            ? `${v}, welcome — tap an agent for 💬 Talk · 🪑 Sit · ✋ Move. Meadow is yours.`
-            : `${v}, welcome — tap 🌙 Luna to type or talk. Agents: tap chat on phone, click sit on PC. Pond left.`;
-          pushCampLine("Camp", intro, 15, "happy", { fromLocal: true, quiet: isCampMobile() });
-        }, 2800);
-        setTimeout(() => {
-          pushCampLine("Camp", "Tap meadow to walk · tap agents & objects to interact.", 16, "happy", { fromLocal: true, quiet: true });
-        }, 42000);
+            ? `${v}, welcome — meadow’s live.${pulseHint} Tap an agent · type below · 📜 for record.`
+            : `${v}, welcome — minds are warm, firmament open.${pulseHint} Tap agents, type below, 📜 Chat record for past lines.`;
+          pushCampLine("Camp", intro, 16, "happy", { fromLocal: true, quiet: isCampMobile() });
+        }, 1800);
       }
+
+      // Early pulse-aware camp line so current events land at start
+      setTimeout(() => {
+        try {
+          if (campPulseItems.length) {
+            const it = campPulseItems[Math.floor(Math.random() * Math.min(4, campPulseItems.length))];
+            const h = String(it?.text || "").replace(/\s+/g, " ").trim().slice(0, 90);
+            if (h) {
+              pushCampLine(
+                "Camp",
+                `Pulse in the grass (${it.source || "world"}): ${h} — agents will riff, not recite.`,
+                14,
+                "think",
+                { fromLocal: true, quiet: true },
+              );
+            }
+          }
+        } catch (_) {}
+      }, returning ? 2500 : 5000);
 
       wave.forEach((a, i) => {
         setTimeout(() => {
@@ -15121,7 +15659,9 @@
             mood: a.mood,
             quiet: true,
             priority: true,
-            holdBase: 18,
+            holdBase: 20,
+            // Force opener seeds to use ambient prompt path with pulse + mindstates
+            forcePulse: true,
           });
         }, a.delay);
       });
@@ -15418,6 +15958,13 @@
       }
       const selected = !!(meta?.selected || (meta?.speaker && meta.speaker === selectedBubbleSpeaker));
       const dim = !!(meta?.dim);
+      // Always show the character's name on the bubble
+      const speakerName = String(
+        meta?.speaker ||
+        meta?.name ||
+        (meta?.agentId && (agentNames[meta.agentId] || meta.agentId)) ||
+        "",
+      ).trim();
       // Front bubble is larger so the visitor can read slowly; others stay compact
       const boxW = selected
         ? (ios ? 240 : mobile ? 268 : 300)
@@ -15425,31 +15972,35 @@
       const fontSize = selected
         ? (ios ? 13 : mobile ? 14 : 15)
         : (ios ? 12 : mobile ? 13 : 14);
+      const nameSize = selected ? (mobile ? 11 : 12) : (mobile ? 10 : 11);
       const lineH = fontSize + 5;
+      const nameH = speakerName ? nameSize + 8 : 0;
       const maxLines = selected ? 6 : 4;
-      const padY = selected ? 18 : 16;
-      const boxH = maxLines * lineH + padY;
+      const padY = selected ? 14 : 12;
+      const boxH = nameH + maxLines * lineH + padY;
       const textInnerW = boxW - 24;
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
       const lines = wrapCanvasLines(raw, textInnerW, maxLines, fontSize);
       if (!lines.length) return null;
-      const lift = selected ? 28 : 22;
-      // Free-dragged bubbles use stored screen anchor; otherwise float above agent
+      // Closer to heads + forced lower so bubbles don't crowd the header
+      const lift = selected ? 14 : 10;
       let ax = sx;
       let ay = sy;
       let bx = ax - boxW / 2;
       let by = above ? ay - boxH - lift : ay + 16;
-      const pad = mobile ? 8 : 12;
-      // Only auto-clamp when NOT free-dragged (free pos already clamped on drag)
+      const padX = mobile ? 8 : 12;
+      // Keep bubbles below header chrome (bring them down a bit)
+      const padTop = mobile ? 52 : 64;
+      const padBottom = mobile ? 12 : 16;
       if (!meta?.freePos) {
-        bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
-        by = Math.max(pad, Math.min(viewH - boxH - pad, by));
+        bx = Math.max(padX, Math.min(viewW - boxW - padX, bx));
+        by = Math.max(padTop, Math.min(viewH - boxH - padBottom, by));
         ax = bx + boxW / 2;
         ay = above ? by + boxH + lift : by - 16;
       } else {
-        bx = Math.max(pad, Math.min(viewW - boxW - pad, bx));
-        by = Math.max(pad, Math.min(viewH - boxH - pad, by));
+        bx = Math.max(padX, Math.min(viewW - boxW - padX, bx));
+        by = Math.max(padTop, Math.min(viewH - boxH - padBottom, by));
         ax = bx + boxW / 2;
         ay = above ? by + boxH + lift : by - 16;
       }
@@ -15473,7 +16024,6 @@
       const xPad = 4;
       const closeX = bx + boxW - xBtn - xPad;
       const closeY = by + xPad;
-      // Selected = gold border only (no FRONT/name chip)
       if (selected) {
         ctx.strokeStyle = "rgba(103, 232, 249, 0.7)";
         ctx.lineWidth = 1.5;
@@ -15495,6 +16045,29 @@
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
 
+      // Name plate — corresponding character name on every bubble
+      if (speakerName) {
+        ctx.fillStyle = selected ? "#fde68a" : color;
+        ctx.font = `800 ${nameSize}px Segoe UI`;
+        ctx.textAlign = "left";
+        const nameMaxW = boxW - 24 - xBtn - 6;
+        let nameDraw = speakerName;
+        if (ctx.measureText(nameDraw).width > nameMaxW) {
+          while (nameDraw.length > 3 && ctx.measureText(nameDraw + "…").width > nameMaxW) {
+            nameDraw = nameDraw.slice(0, -1);
+          }
+          nameDraw += "…";
+        }
+        ctx.fillText(nameDraw, bx + 12, by + nameSize + 4);
+        // Thin rule under name
+        ctx.strokeStyle = selected ? "rgba(253, 230, 138, 0.35)" : (color + "55");
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(bx + 10, by + nameH);
+        ctx.lineTo(bx + boxW - xBtn - 8, by + nameH);
+        ctx.stroke();
+      }
+
       ctx.fillStyle = color + "33";
       ctx.beginPath();
       if (above) {
@@ -15508,14 +16081,13 @@
       }
       ctx.closePath();
       ctx.fill();
-      // Leave room for ✕ on the right of first line
-      const textTop = by + 14;
+      // Body text under name; leave room for ✕ on first line
+      const textTop = by + nameH + 12;
       const textRightPad = xBtn + 10;
       lines.forEach((ln, i) => {
         const isHint = ln.startsWith("↕");
         ctx.fillStyle = isHint ? "#67e8f9" : "#f8fafc";
         ctx.font = `600 ${fontSize}px Segoe UI`;
-        // Clip long first line under the X
         const maxW = boxW - 24 - (i === 0 ? textRightPad - 12 : 0);
         let drawLn = ln;
         if (ctx.measureText(drawLn).width > maxW) {
@@ -15530,7 +16102,7 @@
       ctx.textAlign = "center";
       const rect = {
         bx, by, boxW, boxH,
-        speaker: meta?.speaker || "",
+        speaker: speakerName || meta?.speaker || "",
         agentId: meta?.agentId || "",
         line: meta?.fullLine || raw,
         color,
@@ -15629,12 +16201,13 @@
         const words = activeLine.split(/\s+/);
         const wordCap = isSel && (bubbleFrontPinned || bubbleHoldLocked) ? 90 : 48;
         if (words.length > wordCap) activeLine = words.slice(0, wordCap).join(" ") + "…";
-        // Spoken line only — no speaker name / emoji / pin labels
+        // Body text only — name is drawn by drawSpeechBubble from meta.speaker
         const bubbleText = String(activeLine || "").trim();
         const ax = free ? free.sx : s.x;
         const ay = free ? free.sy : (s.y - 8);
+        const whoName = n.name || agentNames[n.id] || n.id;
         drawSpeechBubble(ax, ay, bubbleText, color, true, {
-          speaker: n.name,
+          speaker: whoName,
           agentId: n.id,
           mood: n.mood || "neutral",
           selected: isSel,
@@ -15668,7 +16241,7 @@
             selectedBubbleColor || "#fde68a",
             true,
             {
-              speaker: selectedBubbleSpeaker,
+              speaker: selectedBubbleSpeaker || agentNames[selectedBubbleAgentId] || selectedBubbleAgentId,
               agentId: selectedBubbleAgentId,
               mood: selectedBubbleMood,
               selected: true,
@@ -16410,8 +16983,17 @@
         return null;
       }
       focusedChatId = id;
-      setTalkTarget(id, { sticky: true, focus: opts.focusInput !== false, focusDelay: opts.focusDelay ?? 60 });
+      // Selecting a chat never opens a popup — optional keyboard focus only when asked
+      setTalkTarget(id, {
+        sticky: true,
+        focus: opts.focusInput === true,
+        focusDelay: opts.focusDelay ?? 60,
+      });
       claimSpeechFloor?.(id, { focus: true, holdMs: opts.holdMs || 120000 });
+      try {
+        closeCampChatPanel?.();
+        closeDialogue?.();
+      } catch (_) {}
       const name = agentNames[id] || id;
       const chip = document.getElementById("convo-focus-chip");
       const only = document.getElementById("convo-focus-only");
@@ -16486,8 +17068,20 @@
       const pos = agentWorldPos(npc);
       agentTalkPending = null;
       pendingCampAction = null;
-      // Press/tap/click focuses this chat + locks talk target
-      focusChatAgent(npc.id, { focusInput: true, rail: true });
+      // Select mind + bubble only — no chat popup, no forced keyboard
+      focusChatAgent(npc.id, { focusInput: false, rail: true, quiet: true });
+      try {
+        if (npc.line || npc.fullLine) {
+          selectSpeechBubble(npc.name || agentNames[npc.id] || npc.id, npc.fullLine || npc.line, npc.mood || "neutral", {
+            agentId: npc.id,
+            color: npc.color,
+            front: true,
+            quiet: true,
+            displayLine: npc.fullLine || npc.line,
+          });
+        }
+      } catch (_) {}
+      showToast(`🔒 ${npc.name || npc.id} · type below`);
       if (!playerNearAgent(npc)) {
         walkPlayerTo(pos.x, pos.y - 6);
       }
@@ -17562,19 +18156,42 @@
       if (isCampMobile()) applyMobileChatterMode("hidden");
       else minimizeSpeechBubble();
     };
-    document.getElementById("camp-chatter-fab").onclick = () => {
-      if (isCampMobile()) applyMobileChatterMode("mini");
-      document.getElementById("camp-talk-input")?.focus();
-    };
-    document.getElementById("btn-chatter-toggle").onclick = () => {
-      minimizeSpeechBubble();
-      document.getElementById("camp-talk-input")?.focus();
-    };
-    document.querySelector("#convo-log header").onclick = (ev) => {
+    function wireChatRecordButtons() {
+      const openers = [
+        "camp-chatter-fab",
+        "camp-record-fixed",
+        "btn-chat-record",
+        "btn-chatter-toggle",
+        "btn-chatter-toggle-dock",
+      ];
+      for (const id of openers) {
+        const el = document.getElementById(id);
+        if (!el || el.__recordWired) continue;
+        el.__recordWired = true;
+        el.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          toggleChatRecord();
+        });
+      }
+      try { syncChatterFab(); } catch (_) {}
+    }
+    wireChatRecordButtons();
+    // Re-assert after layout
+    setTimeout(wireChatRecordButtons, 200);
+    setTimeout(wireChatRecordButtons, 1200);
+    document.getElementById("convo-mobile-hide")?.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      toggleChatRecord({ force: "close" });
+    });
+    document.getElementById("convo-dock-toggle")?.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      toggleChatRecord({ force: "close" });
+    });
+    document.querySelector("#convo-log header")?.addEventListener("click", (ev) => {
       if (ev.target.closest("#convo-dock-toggle, #convo-mobile-hide")) return;
-      minimizeSpeechBubble();
-      document.getElementById("camp-talk-input")?.focus();
-    };
+      // Don't steal focus / auto-open anything — just keep record open
+    });
 
     const dialogueName = document.getElementById("dialogue-name");
     const npcBubble = document.getElementById("npc-bubble");
@@ -17673,7 +18290,7 @@
     }
 
     async function openDialogueWindow(agentId) {
-      // NO popup — lock agent on talk bar + reply rail only
+      // NO popup ever — lock agent on talk bar + meadow bubble only
       let id = (agentId || "luna").toLowerCase();
       if (id === "dionysus" && !findRoamAgent("dionysus")) {
         await spawnDionysusVisit({ manual: true });
@@ -17688,14 +18305,33 @@
       hideAgentActionMenu();
       closeDialogue();
       closeCampChatPanel();
+      try {
+        document.getElementById("dialogue-backdrop")?.classList.remove("open");
+        document.getElementById("camp-chat-panel")?.classList.remove("open");
+        document.body.classList.remove("camp-chat-open");
+      } catch (_) {}
       dialogueAgent = id;
       agentTalkPending = null;
       pendingCampAction = null;
       chatterPaused = false;
-      setTalkTarget(id, { sticky: true, focus: true, focusDelay: isCampMobile() ? 60 : 100 });
+      // Select only — don't force keyboard popup; user taps the talk bar when ready
+      setTalkTarget(id, { sticky: true, focus: false });
       claimSpeechFloor(id, { focus: true, holdMs: 90000 });
       const name = agentNames[id] || id;
-      setCampReplyRail(name, `Locked on ${name}. Type in the bar below — replies stay here.`, { idle: true });
+      setCampReplyRail(name, `Locked on ${name}. Type in the bar below — no popup.`, { idle: true });
+      // Bring their meadow bubble front if they have a line
+      try {
+        const npc = findRoamAgent(id);
+        if (npc && (npc.line || npc.fullLine)) {
+          selectSpeechBubble(npc.name || name, npc.fullLine || npc.line, npc.mood || "neutral", {
+            agentId: id,
+            color: npc.color,
+            front: true,
+            quiet: true,
+            displayLine: npc.fullLine || npc.line,
+          });
+        }
+      } catch (_) {}
       showToast(`🔒 ${name} · type below`);
       setCampLifeStatus(`${name} has the floor`);
     }
@@ -18858,6 +19494,455 @@
     startCampSession();
     updateVisitorsOnlineLabel();
 
+    /* ═══════════════════════════════════════════════════════════════
+     * RELIC DECK — free surprise features (no paid APIs)
+     * Mind triad · Wish star · Divine pulse · Constellation oracle · Echo orbs
+     * ═══════════════════════════════════════════════════════════════ */
+    const skyWishStars = []; // canvas shooting stars
+    let constellationMode = false;
+    let constellationPoints = [];
+    let constellationAnim = 0;
+
+    function initRelicDeck() {
+      const triad = document.getElementById("mind-triad-canvas");
+      const leadEl = document.getElementById("mind-triad-lead");
+      const orbsEl = document.getElementById("echo-orbs");
+
+      function drawMindTriad() {
+        if (!triad) return;
+        const ctx = triad.getContext("2d");
+        const w = triad.width;
+        const h = triad.height;
+        ctx.clearRect(0, 0, w, h);
+        let joy = 0.62, stab = 0.68, will = 0.58;
+        try {
+          const mem = campBridgeMod?.readEtherealMemory?.() || window.campBridge?.readEtherealMemory?.();
+          if (mem) {
+            joy = Number(mem.joy) || joy;
+            stab = Number(mem.stability) || stab;
+            will = Number(mem.will) || will;
+          }
+        } catch (_) {}
+        // Soft sky wash
+        const g = ctx.createRadialGradient(w * 0.5, h * 0.45, 4, w * 0.5, h * 0.5, w * 0.55);
+        g.addColorStop(0, "rgba(103,232,249,0.12)");
+        g.addColorStop(0.5, "rgba(167,139,250,0.08)");
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+
+        const cx = w * 0.5, cy = h * 0.48, R = Math.min(w, h) * 0.28;
+        // Equilateral triangle: top, bottom-right, bottom-left
+        const nodes = [
+          { label: "Joy", v: joy, color: "#fde68a", ang: -Math.PI / 2 },
+          { label: "Stability", v: stab, color: "#67e8f9", ang: -Math.PI / 2 + (2 * Math.PI) / 3 },
+          { label: "Will", v: will, color: "#c4b5fd", ang: -Math.PI / 2 + (4 * Math.PI) / 3 },
+        ];
+
+        const pts = nodes.map((n) => ({
+          ...n,
+          x: cx + Math.cos(n.ang) * R,
+          y: cy + Math.sin(n.ang) * R,
+          r: 10 + n.v * 16,
+        }));
+
+        // Triangle web
+        ctx.strokeStyle = "rgba(167,139,250,0.45)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.lineTo(pts[2].x, pts[2].y);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Inner juggle triangle scaled by values
+        const ix = (pts[0].x * joy + pts[1].x * stab + pts[2].x * will) / (joy + stab + will + 0.001);
+        const iy = (pts[0].y * joy + pts[1].y * stab + pts[2].y * will) / (joy + stab + will + 0.001);
+        const t = performance.now() / 1000;
+        const jx = ix + Math.sin(t * 1.7) * 4;
+        const jy = iy + Math.cos(t * 1.3) * 4;
+        ctx.fillStyle = "rgba(253,230,138,0.9)";
+        ctx.beginPath();
+        ctx.arc(jx, jy, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.5)";
+        ctx.stroke();
+
+        for (const p of pts) {
+          const grd = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, p.r);
+          grd.addColorStop(0, p.color);
+          grd.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grd;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = p.color;
+          ctx.font = "800 11px Segoe UI";
+          ctx.textAlign = "center";
+          ctx.fillText(p.label, p.x, p.y + p.r + 12);
+          ctx.font = "700 10px Segoe UI";
+          ctx.fillStyle = "#e2e8f0";
+          ctx.fillText(p.v.toFixed(2), p.x, p.y + 3);
+        }
+
+        if (leadEl) {
+          const lead =
+            joy >= stab && joy >= will
+              ? "Lead: Joy → ground → choose"
+              : stab >= will
+                ? "Lead: Stability → warm → decide"
+                : "Lead: Will → soften → hold";
+          leadEl.textContent = lead;
+        }
+        requestAnimationFrame(drawMindTriad);
+      }
+      requestAnimationFrame(drawMindTriad);
+
+      function refreshEchoOrbs() {
+        if (!orbsEl) return;
+        let lines = [];
+        try {
+          lines = (campBridgeMod?.readDialogueTape?.() || { lines: [] }).lines.slice(-6);
+        } catch (_) {
+          lines = (campLines || []).slice(-6);
+        }
+        orbsEl.innerHTML = "";
+        const colors = ["#fde68a", "#67e8f9", "#c4b5fd", "#f9a8d4", "#86efac", "#fdba74"];
+        lines.reverse().forEach((L, i) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "echo-orb";
+          b.title = `${L.speaker}: ${String(L.text || "").slice(0, 80)}`;
+          b.style.background = colors[i % colors.length] + "33";
+          b.style.borderColor = colors[i % colors.length];
+          b.textContent = (L.speaker || "?")[0].toUpperCase();
+          b.onclick = () => {
+            const who = L.speaker || "Camp";
+            const text = String(L.text || "").trim();
+            if (!text) return;
+            pushCampLine(who, `↺ Echo: ${text}`, campReadHoldSec(text, 12), "think", {
+              fromLocal: true,
+              quiet: false,
+            });
+            showToast(`↺ Echo · ${who}`);
+            try {
+              const npc = allRoamers().find((n) => n.name === who || n.id === who.toLowerCase());
+              if (npc) {
+                selectSpeechBubble(who, text, "think", {
+                  agentId: npc.id,
+                  front: true,
+                  quiet: true,
+                  displayLine: text,
+                });
+              }
+            } catch (_) {}
+          };
+          orbsEl.appendChild(b);
+        });
+      }
+      setInterval(refreshEchoOrbs, 4000);
+      setTimeout(refreshEchoOrbs, 800);
+
+      // Wish star
+      document.getElementById("btn-wish-star")?.addEventListener("click", () => {
+        fireWishStar();
+      });
+      // Divine pulse
+      document.getElementById("btn-divine-pulse")?.addEventListener("click", () => {
+        void fireDivinePulse();
+      });
+      // Constellation mode
+      document.getElementById("btn-constellation")?.addEventListener("click", () => {
+        toggleConstellationMode();
+      });
+
+      // Double-click empty meadow sky = free wish (bonus)
+      // (wired lightly via canvas dblclick extension below)
+      window.__campFireWishStar = fireWishStar;
+    }
+
+    function fireWishStar() {
+      // Visual meteor
+      skyWishStars.push({
+        x: Math.random() * (viewW || 800) * 0.6 + (viewW || 800) * 0.2,
+        y: 20 + Math.random() * 40,
+        vx: 6 + Math.random() * 5,
+        vy: 3 + Math.random() * 3,
+        life: 1,
+        hue: 40 + Math.random() * 40,
+      });
+      // Free oracle / agent answer — zero paid cost
+      const pool = allRoamers().filter((n) => !n.leaving);
+      const npc = pool[Math.floor(Math.random() * Math.max(pool.length, 1))] || { id: "oracle", name: "Oracle", mood: "think" };
+      const sparks = [
+        "Your wish already started walking toward you — meet it halfway with one true act.",
+        "The star says: keep the joke, keep the mercy, drop the armor.",
+        "Wish logged in the firmament. Delivery method: courage + cookies.",
+        "As above, so below — your next kind sentence is the bridge.",
+        "The light heard you. Answer: don't abandon the version of you that still hopes.",
+        "Wish granted in installments. First payment: rest. Second: one honest word.",
+      ];
+      const line = sparks[Math.floor(Math.random() * sparks.length)];
+      // Prefer live free mind if up; else local spark
+      (async () => {
+        let spoken = line;
+        try {
+          if (campServerOnline && npc.id) {
+            const data = await callAgentMind(
+              npc.id,
+              `The visitor just wished on a shooting star. As ${npc.name}, give a short luminous, character-true blessing or truth (2–3 sentences). Never say campfire hush. Juggle joy, stability, and will.`,
+              { ambient: true },
+            );
+            if (data?.reply) spoken = String(data.reply).trim();
+          }
+        } catch (_) {}
+        pushCampLine(npc.name || "Oracle", `☄️ ${spoken}`, campReadHoldSec(spoken, 16), "love", {
+          fromLocal: !campServerOnline,
+          quiet: false,
+        });
+        try {
+          selectSpeechBubble(npc.name || "Oracle", spoken, "love", {
+            agentId: npc.id,
+            front: true,
+            quiet: true,
+            displayLine: spoken,
+          });
+        } catch (_) {}
+      })();
+      showToast("☄️ Wish star — someone answered");
+      try {
+        // Soft chime via Web Audio
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) {
+          const ac = new AC();
+          const o = ac.createOscillator();
+          const g = ac.createGain();
+          o.type = "sine";
+          o.frequency.setValueAtTime(880, ac.currentTime);
+          o.frequency.exponentialRampToValueAtTime(1320, ac.currentTime + 0.15);
+          g.gain.setValueAtTime(0.08, ac.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.6);
+          o.connect(g);
+          g.connect(ac.destination);
+          o.start();
+          o.stop(ac.currentTime + 0.65);
+        }
+      } catch (_) {}
+    }
+
+    async function fireDivinePulse() {
+      showToast("📡 Divine pulse…");
+      // Ensure pulse loaded
+      try {
+        if (!campPulseItems.length) await loadCampPulse?.();
+      } catch (_) {}
+      let headline = campPulseItems[0]?.text || "";
+      if (!headline) {
+        const fallbacks = [
+          "the timeline is loud and the meadow is louder on purpose",
+          "someone online is arguing about the future again",
+          "tech, mercy, and weather are all trending somewhere",
+        ];
+        headline = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+      }
+      const pool = allRoamers().filter((n) => !n.leaving);
+      const npc = pool[Math.floor(Math.random() * Math.max(pool.length, 1))] || {
+        id: "hermes",
+        name: "Hermes",
+      };
+      const prompt =
+        `World pulse / current event: ${String(headline).slice(0, 120)}\n` +
+        `As ${npc.name}, riff a sharp, in-character take (2–4 sentences). ` +
+        `Juggle joy, stability, will. Never say campfire hush. Never recite the headline — remix it.`;
+      try {
+        let spoken = "";
+        if (campServerOnline) {
+          const data = await callAgentMind(npc.id, prompt, { ambient: false });
+          spoken = String(data?.reply || "").trim();
+        }
+        if (!spoken) {
+          spoken = `On that pulse — ${String(headline).slice(0, 60)}… Camp translation: stay human, stay funny, stay true.`;
+        }
+        pushCampLine(npc.name || npc.id, `📡 ${spoken}`, campReadHoldSec(spoken, 18), "think", {
+          fromLocal: !campServerOnline,
+        });
+        selectSpeechBubble(npc.name || npc.id, spoken, "think", {
+          agentId: npc.id,
+          front: true,
+          quiet: true,
+          displayLine: spoken,
+        });
+      } catch (err) {
+        showToast("Pulse riff failed — try again");
+      }
+    }
+
+    function toggleConstellationMode() {
+      const layer = document.getElementById("constellation-layer");
+      const cnv = document.getElementById("constellation-canvas");
+      if (!layer || !cnv) return;
+      constellationMode = !constellationMode;
+      constellationPoints = [];
+      layer.classList.toggle("active", constellationMode);
+      layer.setAttribute("aria-hidden", constellationMode ? "false" : "true");
+      if (constellationMode) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        cnv.width = window.innerWidth * dpr;
+        cnv.height = window.innerHeight * dpr;
+        const ctx = cnv.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        showToast("✧ Constellation — tap the sky 3–7 times");
+        const onTap = (ev) => {
+          if (!constellationMode) return;
+          const x = ev.clientX;
+          const y = ev.clientY;
+          constellationPoints.push({ x, y, t: performance.now() });
+          drawConstellationPreview();
+          if (constellationPoints.length >= 3 && constellationPoints.length >= 3 + Math.floor(Math.random() * 3)) {
+            // auto-finish after 3–5
+            if (constellationPoints.length >= 5 || (constellationPoints.length >= 3 && Math.random() < 0.35)) {
+              finishConstellation();
+            }
+          }
+          if (constellationPoints.length >= 7) finishConstellation();
+        };
+        layer.__onTap = onTap;
+        layer.addEventListener("pointerdown", onTap);
+        // Esc / second button press exits
+      } else {
+        if (layer.__onTap) layer.removeEventListener("pointerdown", layer.__onTap);
+        constellationPoints = [];
+      }
+    }
+
+    function drawConstellationPreview() {
+      const cnv = document.getElementById("constellation-canvas");
+      if (!cnv) return;
+      const ctx = cnv.getContext("2d");
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "rgba(2, 6, 23, 0.35)";
+      ctx.fillRect(0, 0, w, h);
+      // stars
+      for (const p of constellationPoints) {
+        ctx.fillStyle = "#fde68a";
+        ctx.shadowColor = "#67e8f9";
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(167, 139, 250, 0.75)";
+      ctx.lineWidth = 1.5;
+      if (constellationPoints.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(constellationPoints[0].x, constellationPoints[0].y);
+        for (let i = 1; i < constellationPoints.length; i++) {
+          ctx.lineTo(constellationPoints[i].x, constellationPoints[i].y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function finishConstellation() {
+      const layer = document.getElementById("constellation-layer");
+      const pts = constellationPoints.slice();
+      constellationMode = false;
+      if (layer) {
+        layer.classList.remove("active");
+        if (layer.__onTap) layer.removeEventListener("pointerdown", layer.__onTap);
+      }
+      const prophecies = [
+        "Your constellation is a door, not a wall. Walk through with one true sentence.",
+        "The shape you drew is the path you're already on — keep the joke, keep the mercy.",
+        "Stars say: joy first, then ground, then choose. Same three mindstates as the camp.",
+        "Prophecy: what you almost said is the bridge. Say it before the feed forgets.",
+        "The firmament filed your sketch under 'courage, draft'. Approved.",
+        "This pattern only appears for people who still hope. Don't ghost yourself.",
+      ];
+      const spoken = prophecies[Math.floor(Math.random() * prophecies.length)];
+      const seer = findRoamAgent("oracle") || findRoamAgent("luna") || { id: "oracle", name: "Oracle" };
+      pushCampLine(seer.name || "Oracle", `✧ ${spoken}`, campReadHoldSec(spoken, 16), "think", {
+        fromLocal: true,
+      });
+      try {
+        selectSpeechBubble(seer.name || "Oracle", spoken, "think", {
+          agentId: seer.id,
+          front: true,
+          quiet: true,
+          displayLine: spoken,
+        });
+      } catch (_) {}
+      showToast("✧ Constellation sealed");
+      // brief flash on canvas via wish stars at each point
+      for (const p of pts) {
+        skyWishStars.push({
+          x: p.x,
+          y: p.y,
+          vx: (Math.random() - 0.5) * 2,
+          vy: 1 + Math.random(),
+          life: 0.8,
+          hue: 260 + Math.random() * 40,
+        });
+      }
+      constellationPoints = [];
+    }
+
+    // Draw shooting stars over the game canvas each frame (hook into draw)
+    const _origDrawCampMaybe = typeof draw === "function" ? draw : null;
+    function drawWishStarsOverlay(ctx) {
+      if (!ctx || !skyWishStars.length) return;
+      for (let i = skyWishStars.length - 1; i >= 0; i--) {
+        const s = skyWishStars[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.life -= 0.018;
+        if (s.life <= 0 || s.x > (viewW || 9999) + 40) {
+          skyWishStars.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, s.life);
+        ctx.strokeStyle = `hsla(${s.hue}, 90%, 70%, 0.9)`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x - s.vx * 4, s.y - s.vy * 4);
+        ctx.stroke();
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    // Patch into existing draw loop if present
+    if (typeof window !== "undefined") {
+      window.__drawWishStarsOverlay = drawWishStarsOverlay;
+    }
+
+    // Hook after camp is ready
+    setTimeout(() => {
+      try { initRelicDeck(); } catch (e) { console.warn("relic deck", e); }
+    }, 600);
+    // Occasional ambient shooting star (free ambience)
+    setInterval(() => {
+      if (document.hidden) return;
+      if (Math.random() < 0.22) {
+        skyWishStars.push({
+          x: Math.random() * (viewW || 800) * 0.5,
+          y: 10 + Math.random() * 30,
+          vx: 5 + Math.random() * 6,
+          vy: 2 + Math.random() * 3,
+          life: 1,
+          hue: 200 + Math.random() * 80,
+        });
+      }
+    }, 8000);
+
     let campReady = false;
     let lastDrawAt = 0;
     const CAMP_FRAME_MS = isSlowDevice() ? 36 : 0;
@@ -18971,32 +20056,19 @@
       showToast(isSlowDevice() ? "Camp loading — meadow first, extras shortly" : "Camp world live — agents tweet today's pulse");
       applyGlobalNpcMode("free");
       document.body.classList.add("camp-focus");
-      // PC: open full chat history sidebar (session-cached lines); mobile: off
-      if (!isCampMobile()) {
-        document.body.classList.add("speech-expanded", "chatter-expanded");
-        document.getElementById("convo-log")?.classList.remove("collapsed");
-        setSpeechBubbleDock?.(false);
-        if (!campLines.length) loadCampChatCache();
-        renderConvoLog?.();
-      } else {
-        document.getElementById("convo-log")?.classList.add("collapsed");
-      }
+      // Chat log OFF until user hits 💬 — meadow first, no auto popup
+      mobileChatterMode = "hidden";
+      document.body.classList.add("chatter-hidden");
+      document.body.classList.remove("speech-expanded", "chatter-expanded", "camp-reply-open");
+      document.getElementById("convo-log")?.classList.add("collapsed");
+      try { localStorage.setItem("luna-camp-chatter-mode", "hidden"); } catch (_) {}
+      try { localStorage.setItem("luna-camp-speech-dock", "min"); } catch (_) {}
+      try { syncChatterFab(); } catch (_) {}
       initAgentChipRoles();
-      renderAgentStrip();
+      // Top name strip retired — don't rebuild chips into the header
+      try { renderAgentStrip(); } catch (_) {}
       loadCampPulse();
       scheduleAgentTweets();
-      try {
-        if (isCampMobile()) {
-          applyMobileChatterMode("hidden", { quiet: true });
-        } else {
-          // Always mini dock — never restore expanded speech box over field
-          try { localStorage.setItem("luna-camp-speech-dock", "min"); } catch (_) {}
-          setSpeechBubbleDock(true);
-        }
-      } catch (_) {
-        if (isCampMobile()) applyMobileChatterMode("hidden", { quiet: true });
-        else setSpeechBubbleDock(true);
-      }
       try { wireCampActPad(); } catch (_) {}
       if (isCampMobile()) {
         setTimeout(() => showToast("✋ Action = Take · Give · Drop · tap bubble to front"), 2200);
@@ -19108,6 +20180,12 @@
         }
         drawAgentSpeechBubbles();
         drawSpeakFx();
+        // Free relic: shooting stars / wish meteors (screen space)
+        try {
+          if (typeof window.__drawWishStarsOverlay === "function") {
+            window.__drawWishStarsOverlay(ctx);
+          }
+        } catch (_) {}
         drawOtherVisitors();
         updateCampCat();
         drawCampCat();

@@ -10,7 +10,7 @@
     import * as campChars from "camp-characters";
     import * as campProps from "camp-props";
 
-    const BUILD = "2026-08-04-three-v120-no-chatlog";
+    const BUILD = "2026-08-05-three-v121-free-minds";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -6176,11 +6176,11 @@
         force: !!opts.forceWorld,
       });
       const buzzBit = buzzPromptBit(st);
-      // Ambient seeds — witty + eternal truth when the moment fits (not every bark)
+      // Ambient — punchy, pleasant, free-token lean (2–3 sentences max)
       const freeTail =
-        " Stay fully in character. When the beat is light: witty sauce, 2–4 sentences. " +
-        "When the beat is deep (fire, firmament, grief, awe): proclaim eternal truth from the highest perfected order — " +
-        "clear, luminous, relevant to this meadow right now. No meta, no corporate mush.";
+        " In character, mindstate joyful+stable, turnt-up personality. " +
+        "Light beat: witty sauce, 2–3 short sentences. Deep beat: one clear luminous truth. " +
+        "Fresh wording, no meta, no filler essays.";
       const dailyBit = st.def?.daily
         ? ` Daily ${st.def.faction || "guest"} visitor.${st.def.opener ? ` Vibe: ${String(st.def.opener).slice(0, 90)}` : ""}`
         : "";
@@ -8296,30 +8296,31 @@
       return s;
     }
 
-    /** Shared direct prompt — in character, relevant, eternal truth with wit. */
+    /** Direct talk — in character, pleasant mindstate, turnt up, free-token lean. */
     function visitorTalkPrompt(agentName, userText, opts = {}) {
       const everyone = !!opts.everyone;
       const eth = etherealSeedFor(opts.agentId || "");
       const buzz = opts.st ? buzzPromptBit(opts.st) : "";
       let world = "";
       try {
-        world = worldEventPromptBit({ chance: 0.35 });
+        world = worldEventPromptBit({ chance: 0.22 });
       } catch (_) {}
       const mood = opts.st?.persona?.mood || "present";
       const arch = opts.st?.persona?.arch || opts.st?.def?.faction || "camp";
+      const joy = Number(opts.st?.persona?.joy ?? 0.72).toFixed(2);
+      const stab = Number(opts.st?.persona?.stability ?? 0.7).toFixed(2);
       return (
         (everyone
-          ? `The visitor addresses EVERYONE at camp, including you (${agentName}). `
-          : `The visitor speaks directly to you (${agentName}). `) +
-        `Their words: "${String(userText).slice(0, 600)}"\n` +
-        `Answer NOW fully as ${agentName} (${arch}, mood ${mood}) — stay in character. ` +
-        `Meet what they actually said (question → answer, wound → balm, joke → riff, seeking → truth). ` +
-        `Speak eternal truth proclaimed from the highest perfected order: clear, luminous, kind, not vague mystic fog. ` +
-        `Wit and chill sauce welcome when true. 4–8 spoken sentences; finish the thought. ` +
-        `No meta, no stage directions, no "as an AI", no chatlog UI talk.` +
+          ? `Visitor addresses EVERYONE, including you (${agentName}). `
+          : `Visitor speaks to you (${agentName}). `) +
+        `They said: "${String(userText).slice(0, 400)}"\n` +
+        `Reply as ${agentName} only (${arch}, mood ${mood}, joy ${joy}, stability ${stab}). ` +
+        `Mindstate: pleasant, warm, turnt-up personality — not flat, not corporate. ` +
+        `Answer what they said. Wit + clear truth. 3–5 spoken sentences max (save tokens). ` +
+        `Fresh wording. No meta, no stage directions, no AI talk.` +
         buzz +
-        (eth ? ` Memory: ${eth.slice(0, 200)}` : "") +
-        (world ? ` ${world.trim()}` : "")
+        (eth ? ` Tone memory: ${eth.slice(0, 120)}` : "") +
+        (world ? ` ${world.trim().slice(0, 100)}` : "")
       );
     }
 

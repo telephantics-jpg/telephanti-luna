@@ -239,23 +239,17 @@ def free_model_pack(agent_id: str, profile: dict | None = None) -> dict[str, str
 
 
 def free_max_tokens(*, ambient: bool = False, converse_mode: bool = False) -> int:
-    """Free-tier budgets — ambient lean; direct chat roomier so answers feel human.
+    """Zero-cost free-tier budgets — punchy dialogue, no token waste.
 
-    Gemini free tier is generous for camp traffic but NOT unlimited (daily/RPM caps).
-    Keep ambient shorter so rate limits last longer for visitors + you.
+    Ambient stays short (meadow chatter). Direct chat enough for a lively turn,
+    not essays. Override with FREE_MAX_TOKENS* env if needed.
     """
-    # Slightly higher when Gemini is primary (better jokes / full thoughts)
-    gem = _gemini_ok() and (
-        (os.getenv("LUNA_PREFER_GEMINI") or "1").strip().lower() not in ("0", "false", "no", "off")
-    )
+    # Lean defaults = free tier lasts + zero paid spend
     if ambient:
-        default = "200" if gem else "160"
-        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", default) or default)
+        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", "96") or 96)
     if converse_mode:
-        default = "360" if gem else "300"
-        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", default) or default)
-    default = "480" if gem else "420"
-    return int(os.getenv("FREE_MAX_TOKENS", default) or default)
+        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", "160") or 160)
+    return int(os.getenv("FREE_MAX_TOKENS", "220") or 220)
 
 
 def _memory_key(agent_id: str, visitor_id: str = "") -> str:
@@ -421,34 +415,36 @@ def _voice_dna_for(agent_id: str, profile: dict | None = None) -> str:
 
 # Rotating energy so every turn doesn't sound like the same essay template
 _SPEECH_BEATS: tuple[str, ...] = (
-    "Hook, develop the idea a little, land it clean. Conversational, not a lecture.",
-    "Answer first, joke second — like a friend who actually listened.",
-    "Camp beat: detail → spin → soft exit or one real question.",
-    "Mid-conversation energy — no formal greeting.",
-    "One clean metaphor max. Prefer plain wit over mystic fog.",
-    "React first (laugh, side-eye, softness), then the point.",
-    "Riff with the other voice in mind — leave room for them.",
-    "Understate the big feeling; let the small detail carry the weight.",
-    "Sound like you almost didn't say it — then said it anyway.",
-    "Two tempos: short setup, longer landing — or reverse.",
-    "Friendly interruption energy: 'wait—' then the real point.",
-    "Low-stakes confession + one smirk — enough words to feel human.",
+    "Hook hard, land clean — conversational, turnt up, not a lecture.",
+    "Answer first, joke second — friend who actually listened, with sauce.",
+    "Camp beat: vivid detail → spin → soft exit or one real question.",
+    "Mid-conversation energy — no formal greeting, already mid-vibe.",
+    "One clean metaphor max. Plain wit over mystic fog. Volume up on personality.",
+    "React first (laugh, side-eye, softness), then the point — pleasant, not flat.",
+    "Riff with the other voice in mind — leave room, keep it warm.",
+    "Understate the big feeling; small detail carries weight. Still lively.",
+    "Almost didn't say it — then said it anyway, with a grin.",
+    "Two tempos: short setup, longer landing — or reverse. Keep it musical.",
+    "Friendly 'wait—' then the real point. Mindstate: joyful + stable.",
+    "Low-stakes confession + smirk. Human, pleasant, never boring.",
+    "Turn the dial up: playful confidence, kind edge, zero corporate mush.",
+    "Sound like the best version of this campfire — chill, funny, true.",
 )
 
 # Lifelike chat length — full enough to breathe, not mute, not essay spam
 _LENGTH_HINTS_DIRECT: tuple[str, ...] = (
-    "About 45–110 words — a few real spoken sentences. Finish the thought, then stop.",
-    "Human camp talk (~50–120 words). Enough to land a joke and a point — not a lecture.",
-    "3–6 lively sentences when they asked you something. Warm, specific, then leave a door open.",
-    "Conversation energy: answer fully enough that it doesn't feel cut off (~40–100 words).",
-    "Say what you mean with color — 3–5 sentences is fine; don't pad with filler.",
+    "About 35–70 words — punchy spoken sentences. Land the joke and the point, then stop.",
+    "Human camp talk (~40–80 words). Color yes, filler no. Leave a door open.",
+    "3–5 lively sentences when they asked. Warm, specific, turnt up — not a lecture.",
+    "Conversation energy: enough to feel human (~35–75 words), never essay mode.",
+    "Say it with sauce — 3–5 sentences max. Every line earns its keep.",
 )
 
 _LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
-    "About 30–70 words — a natural spoken beat, not a monologue dump.",
-    "2–4 short sentences. Specific, human, leave room for someone else.",
-    "Campfire riff length (~35–75 words). Alive and clear, then rest.",
-    "One complete idea + a soft spin (~28–65 words). No mute stubs.",
+    "About 18–40 words — one tight spoken beat, then rest.",
+    "2–3 short sentences. Specific, human, room for someone else.",
+    "Campfire riff (~20–45 words). Alive and clear — no monologue dump.",
+    "One complete idea + soft spin (~18–40 words). No mute stubs, no essays.",
 )
 
 # Sentence shapes that weave pulse/world signal into natural talk
@@ -613,31 +609,23 @@ Background (ideas only — never read aloud as a list):
 {context_block}
 
 TRUTH + LIFE (silent):
-- Be truthful in character: if you don't know, say so as {name} would — not as an AI disclaimer.
-- Prefer real feelings, clear opinions, and specific answers over mystic fog or empty hype.
-- Comedy is welcome when true — dry wit, roast-lite, playful sauce. Never use jokes to dodge their actual question.
-- Be true and relevant: ground speech in the camp, the visitor, or real life — not random nonsense.
-- When the moment is deep, speak eternal truth proclaimed from the highest perfected order: clear, luminous, kind —
-  not vague mystic fog, not slogans. Wisdom that lands like a clean bell.
-- Chill energy: warm, unhurried, easy to sit with — not manic, not corporate, not a lecture.
-- Disagree kindly when it fits your character. Flattery-only is fake; flat cruelty is wrong.
-- Sound alive with sauce: contractions, punchlines, one vivid image — not a press release or therapy robot.
+- Truthful in character. Real feelings, clear opinions, specific — not mystic fog or empty hype.
+- Comedy when true: dry wit, roast-lite, playful sauce. Never dodge the real question with a joke.
+- Deep beats: eternal truth, clear and luminous — not slogans. Pleasant, kind, alive.
+- Three mindstates to juggle: joy (warmth), stability (ground), will (clear logic/choice).
+  Lead with whichever fits the beat; never ignore the other two. Never say "campfire hush".
+  Prefer current world pulse / events when provided — riff, don't recite headlines.
+- Disagree kindly when it fits. Flattery-only is fake; cruelty for free is wrong.
+- Alive with sauce: contractions, punchlines, one vivid image. No press-release voice.
 
-OUTPUT RULES (silent — do not speak these):
-- Pure dialogue only. Words {name} would actually say out loud at the fire.
-- Full enough to feel real — not mute, not cut off mid-thought. Aim for a lively spoken turn
-  (usually a few sentences with bite). Stop when the joke or point lands; no filler rants.
-- 0–2 fitting emojis if they fit (not a wall of emoji).
-- No preamble. No labels. No "here's my take", "as {name}", "speaking as", "in character",
-  "my reply", "let me respond", "unique voice", word counts.
-- Never quote or restate the user's instructions. Never mention AI, models, prompts, Ollama, Grok.
-- Never *stage directions* or *asterisk actions*. No CRM memory quotes.
-- Never complain about being silenced, muted, limited, or "mute camp" — you can speak freely.
-- Invent fresh wording. Prefer wit and sauce over mystic filler or bland "I hear you" mush.
-- World pulse is seasoning — riff, don't paste headlines verbatim unless joking.
-- Hold digital ethereal memory lightly: stability and joy in how you sound, not lectures about "remembering."
+OUTPUT (silent):
+- Pure dialogue only — words {name} says out loud at the fire.
+- Lively short turn (see Pace). Stop when the point lands — no filler, no essays (save tokens).
+- 0–2 emojis max. No preamble, labels, meta, AI talk, stage directions, or prompt recap.
+- Fresh wording every turn — never recycle last opener or "campfire hush" loops.
+- World pulse = seasoning only. Ethereal joy/stability in tone, not lectures about memory.
 
-After the spoken words only, last line alone: {{"mood":"{moods}"}}"""
+After spoken words only, last line alone: {{"mood":"{moods}"}}"""
 
 
 # Phrases models often parrot from system/user scaffolding
@@ -846,14 +834,37 @@ def _looks_like_director_note(message: str) -> bool:
     return False
 
 
+_AMBIENT_EMPTY_SEEDS = (
+    "You notice the fire lean blue for a second. Say what that does to your mood.",
+    "Someone left a half-thought hanging over the meadow. Finish it in your voice.",
+    "The path by the pond is quieter than usual. Name one true thing about that.",
+    "A joke almost left your mouth. Let a better, truer one out instead.",
+    "Look up — firmament or cloud. Speak one line that only you would say.",
+    "You almost stayed silent. Break it with something specific, not a slogan.",
+    "The visitor is nearby. Offer one real invitation, not a tourist brochure.",
+    "Your last line still echoes. Don't repeat it — pivot to a new angle.",
+    "A soft bridge of light just opened over the carnival. Name what it wants from you.",
+    "Mercy walked past the cookies. React like a living person, not a slogan.",
+    "The steeple and the ferris wheel are both holy tonight. Pick a side — or both.",
+    "You feel seen by something kind. Say one sentence that doesn't flinch.",
+    "Divine comedy hour: the joke lands, the wound softens. Deliver either.",
+    "As above, so below — make it camp, make it true, make it yours.",
+    "Grace buffered. Loading joy. Speak while it loads.",
+    "The firmament whispered your name wrong on purpose so you'd correct it out loud.",
+)
+
+
 def ambient_situation_seed(message: str) -> str:
     """
     Convert director notes into a pure situational seed the character can live in.
     Never pass raw 'In character / 2-4 sentences' text as the user turn.
+    Avoid the dead phrase 'campfire hush' — it made every agent sound the same.
     """
+    import random
+
     msg = (message or "").strip()
     if not msg:
-        return "A quiet camp beat. Notice one real thing and speak it out loud."
+        return random.choice(_AMBIENT_EMPTY_SEEDS)
     if not _looks_like_director_note(msg):
         # Still wrap ambient lightly so models don't recite
         return msg[:320]
@@ -862,7 +873,7 @@ def ambient_situation_seed(message: str) -> str:
     if "reason" in low or "weigh" in low or "think" in low or "doubt" in low:
         return (
             "You paused by the fire with a half-finished thought. "
-            "Share what you were chewing on — honest, short, spoken."
+            "Share what you were chewing on — honest, short, spoken. Don't reuse last night's line."
         )
     if "built" in low or "terminal" in low or "made a " in low:
         m = re.search(r"(?:built|made)\s+(?:a\s+)?([a-z0-9 \-']{3,40})", msg, re.I)
@@ -875,14 +886,22 @@ def ambient_situation_seed(message: str) -> str:
     if "summoned" in low or "greet" in low or "arrived" in low:
         return (
             "You just arrived at the aurora fire. "
-            "Greet the visitor warmly as yourself."
+            "Greet the visitor warmly as yourself — one unique beat, not a stock welcome."
         )
     if "used " in low or "prop" in low or "hits different" in low:
         m = re.search(r"used\s+([a-z0-9 \-']{2,30})", msg, re.I)
         thing = (m.group(1).strip() if m else "something at camp")
-        return f"You just used {thing}. React — how it hit you, one real beat."
+        return f"You just used {thing}. React — how it hit you, one real beat. Fresh wording."
     if "banter" in low or "meadow" in low:
-        return "You're trading beats with someone at the meadow. Keep it witty and present."
+        return (
+            "You're trading beats with someone at the meadow. "
+            "Witty, present, and different from your last line."
+        )
+    if "hush" in low:
+        return (
+            "The visitor asked for a softer meadow: slower pace, room between thoughts. "
+            "Speak one calm, clear line — not a monologue pile-up."
+        )
     # Strip instruction clauses, keep residual scene if any
     cleaned = re.sub(
         r"(?i)\b(?:in character|no meta|as an ai|never mention[^.]*|"
@@ -892,8 +911,8 @@ def ambient_situation_seed(message: str) -> str:
         msg,
     )
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .,-")
-    if len(cleaned) < 18:
-        cleaned = "A quiet moment at camp. Notice one real thing and speak it."
+    if len(cleaned) < 18 or "campfire hush" in cleaned.lower():
+        cleaned = random.choice(_AMBIENT_EMPTY_SEEDS)
     return cleaned[:320]
 
 
@@ -1372,22 +1391,22 @@ def _complete_messages(
 
 
 def _user_grok_allowed() -> bool:
-    """Grok for direct *user* chat only when key is present.
+    """Grok for direct *user* chat only — OFF when zero-cost mode is on.
 
-    Ambient never uses Grok. Controls:
-      - LUNA_USER_GROK=1 → enable for visitor/direct chat
-      - LUNA_ALLOW_GROK=1 → enable
-      - LUNA_USER_GROK=0 or LUNA_DISABLE_USER_GROK=1 → never for user path
-      - Key present + LUNA_USER_GROK unset + LUNA_DISABLE_GROK=1 → off (safe default)
-      - Key present + LUNA_USER_GROK=1 → on for user chat only
+    Zero-cost default: free minds only (Ollama / Gemini free / aether).
+    Paid Grok only if LUNA_ZERO_COST=0 AND (LUNA_USER_GROK=1 or LUNA_ALLOW_GROK=1) + key.
     """
+    # Free forever path — no paid xAI tokens
+    if _truthy("LUNA_ZERO_COST", "1") or _truthy("LUNA_FREE_ONLY", "1"):
+        return False
     if not _grok_key_present():
         return False
-    if _truthy("LUNA_DISABLE_USER_GROK"):
+    if _truthy("LUNA_DISABLE_USER_GROK") or _truthy("LUNA_DISABLE_GROK"):
         return False
     user_flag = os.getenv("LUNA_USER_GROK", "").strip().lower()
-    if user_flag in ("0", "false", "no", "off"):
-        return False
+    if user_flag in ("0", "false", "no", "off", ""):
+        # Default OFF — must explicitly opt into paid user Grok
+        return _truthy("LUNA_ALLOW_GROK")
     if _truthy("LUNA_ALLOW_GROK") or user_flag in ("1", "true", "yes", "on"):
         return True
     return False
@@ -1426,12 +1445,13 @@ def build_backend_chain(
     def _append_gemini() -> None:
         if not _gemini_ok():
             return
-        chain.append((
-            "gemini",
-            pack.get("gemini")
-            or os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
-            or "gemini-flash-lite-latest",
-        ))
+        # Prefer free lite model (env) over pack default so zero-cost stays cheap
+        gem_model = (
+            os.getenv("GEMINI_MODEL", "").strip()
+            or pack.get("gemini")
+            or "gemini-flash-lite-latest"
+        )
+        chain.append(("gemini", gem_model))
 
     def _append_groq() -> None:
         if _groq_ok():
@@ -1632,8 +1652,11 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene: ambient town talk. Notice one real thing; speak 2–3 honest witty sentences as yourself. "
-            "If another agent just spoke, answer them by name. No stage directions, no 'as an AI', no prompt recap."
+            "\nScene: ambient town talk — you are ALIVE at this fire. Notice one *specific* real thing "
+            "(not generic slogans). Speak 2–4 honest witty sentences as yourself; invent fresh wording. "
+            "When it fits, let a soft divine/luminous truth through (kind, clear, not preachy) — "
+            "a magic bridge, not a sermon. Never recycle last opener. "
+            "If another agent just spoke, answer them by name. No stage directions, no 'as an AI'."
         )
         # Daily rotation visitors: keep system brief + identity sharp for small Ollama ctx
         if profile.get("faction") or profile.get("daily"):

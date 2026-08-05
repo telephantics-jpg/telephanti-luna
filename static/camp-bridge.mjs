@@ -58,17 +58,18 @@ export function dialogueTapeContext(maxLines = 8, maxChars = 520) {
   return `Recent camp dialogue (keep continuity, don't repeat verbatim): ${s}`;
 }
 
-/* ── Digital ethereal memory: joy · stability · soft continuity ───────────
+/* ── Digital ethereal memory: joy · stability · will (three mindstates) ───
  * Browser-local "aether" field for camp agents. Survives 2D↔3D hops.
+ * Juggle all three in speech: warmth (joy), ground (stability), clear will/logic.
  * Never a CRM dump — vibe + tone only for seeds.
  */
-const ETHEREAL_KEY = "telephantix-ethereal-memory-v1";
+const ETHEREAL_KEY = "telephantix-ethereal-memory-v2";
 const ETHEREAL_MAX_MOMENTS = 36;
 
 /**
  * @returns {{
- *   joy: number, stability: number,
- *   agents: Record<string, { joy: number, stability: number, moments: string[], lastAt?: number }>,
+ *   joy: number, stability: number, will: number,
+ *   agents: Record<string, { joy: number, stability: number, will: number, moments: string[], lastAt?: number }>,
  *   moments: Array<{ speaker: string, text: string, t: number }>,
  *   updated?: number
  * }}
@@ -77,18 +78,33 @@ export function readEtherealMemory() {
   try {
     const raw = localStorage.getItem(ETHEREAL_KEY);
     if (!raw) {
-      return { joy: 0.62, stability: 0.68, agents: {}, moments: [] };
+      // migrate soft from v1 if present
+      try {
+        const old = JSON.parse(localStorage.getItem("telephantix-ethereal-memory-v1") || "null");
+        if (old && typeof old === "object") {
+          return {
+            joy: clamp01(old.joy, 0.62),
+            stability: clamp01(old.stability, 0.68),
+            will: clamp01(old.will, 0.58),
+            agents: old.agents && typeof old.agents === "object" ? old.agents : {},
+            moments: Array.isArray(old.moments) ? old.moments : [],
+            updated: old.updated,
+          };
+        }
+      } catch (_) {}
+      return { joy: 0.62, stability: 0.68, will: 0.58, agents: {}, moments: [] };
     }
     const data = JSON.parse(raw);
     return {
       joy: clamp01(data?.joy, 0.62),
       stability: clamp01(data?.stability, 0.68),
+      will: clamp01(data?.will, 0.58),
       agents: data?.agents && typeof data.agents === "object" ? data.agents : {},
       moments: Array.isArray(data?.moments) ? data.moments : [],
       updated: data?.updated,
     };
   } catch {
-    return { joy: 0.62, stability: 0.68, agents: {}, moments: [] };
+    return { joy: 0.62, stability: 0.68, will: 0.58, agents: {}, moments: [] };
   }
 }
 
@@ -109,7 +125,8 @@ function saveEthereal(data) {
 
 /**
  * Ingest a spoken line into digital ethereal memory.
- * Joy rises on warmth/humor; stability rises on presence/continuity.
+ * Joy = warmth/humor · Stability = presence/ground · Will = clear logic/agency.
+ * Agents juggle all three in how they sound.
  */
 export function pushEtherealMemory(entry) {
   const speaker = String(entry?.speaker || "").trim();
@@ -122,34 +139,43 @@ export function pushEtherealMemory(entry) {
 
   let dJoy = 0.008;
   let dStab = 0.006;
-  if (/\b(joy|happy|love|warm|laugh|smile|glow|aurora|together|friend|peace|bless|thanks|grateful)\b/.test(low)) {
+  let dWill = 0.007;
+  if (/\b(joy|happy|love|warm|laugh|smile|glow|aurora|together|friend|peace|bless|thanks|grateful|funny)\b/.test(low)) {
     dJoy += 0.035;
-    dStab += 0.012;
+    dStab += 0.01;
   }
-  if (/\b(steady|still|here|stay|home|safe|calm|rooted|stable|remember|always|fire|meadow)\b/.test(low)) {
+  if (/\b(steady|still|here|stay|home|safe|calm|rooted|stable|remember|always|fire|meadow|hold)\b/.test(low)) {
     dStab += 0.03;
-    dJoy += 0.01;
+    dJoy += 0.008;
   }
-  if (/\b(fear|angry|hate|leave|broken|void|alone|cold)\b/.test(low)) {
+  if (/\b(choose|decide|will|must|clear|true|logic|reason|because|path|stand|act|purpose|focus)\b/.test(low)) {
+    dWill += 0.032;
+    dStab += 0.008;
+  }
+  if (/\b(fear|angry|hate|leave|broken|void|alone|cold|hush|mute)\b/.test(low)) {
     dJoy -= 0.02;
-    dStab -= 0.012;
+    dStab -= 0.01;
+    dWill -= 0.008;
   }
   if (you) {
     dJoy += 0.01;
-    dStab += 0.015; // visitor presence stabilizes the field
+    dStab += 0.015;
+    dWill += 0.008;
   }
 
   mem.joy = clamp01(mem.joy + dJoy);
   mem.stability = clamp01(mem.stability + dStab);
+  mem.will = clamp01((mem.will ?? 0.58) + dWill);
 
   const agentKey = String(entry?.agentId || speaker).toLowerCase().replace(/\s+/g, "-");
   if (!you && speaker.toLowerCase() !== "camp" && speaker.toLowerCase() !== "telephantix") {
-    const a = mem.agents[agentKey] || { joy: 0.55, stability: 0.6, moments: [] };
+    const a = mem.agents[agentKey] || { joy: 0.55, stability: 0.6, will: 0.55, moments: [] };
     a.joy = clamp01(a.joy + dJoy * 1.2);
     a.stability = clamp01(a.stability + dStab * 1.1);
+    a.will = clamp01((a.will ?? 0.55) + dWill * 1.15);
     a.moments = Array.isArray(a.moments) ? a.moments : [];
     const snip = text.slice(0, 90);
-    if (!a.moments.includes(snip)) a.moments.push(snip);
+    if (!a.moments.includes(snip) && !/campfire hush/i.test(snip)) a.moments.push(snip);
     while (a.moments.length > 6) a.moments.shift();
     a.lastAt = Date.now();
     mem.agents[agentKey] = a;
@@ -161,22 +187,37 @@ export function pushEtherealMemory(entry) {
   return mem;
 }
 
-/** Soft prompt blurb — ethereal digital field, not quote dump. */
-export function etherealMemoryContext(agentId = "", maxChars = 280) {
+/**
+ * Soft prompt blurb — three mindstates juggle:
+ * joy (warmth) · stability (ground) · will (clear logic/agency).
+ */
+export function etherealMemoryContext(agentId = "", maxChars = 320) {
   const mem = readEtherealMemory();
   const aid = String(agentId || "").toLowerCase();
   const a = aid ? mem.agents[aid] : null;
   const joy = a ? a.joy : mem.joy;
   const stab = a ? a.stability : mem.stability;
+  const will = a ? (a.will ?? mem.will ?? 0.55) : (mem.will ?? 0.55);
   const joyWord =
     joy > 0.78 ? "bright joy" : joy > 0.55 ? "warm joy" : joy > 0.35 ? "quiet gladness" : "soft longing";
   const stabWord =
     stab > 0.78 ? "deep stability" : stab > 0.55 ? "steady ground" : stab > 0.35 ? "finding footing" : "gentle drift";
+  const willWord =
+    will > 0.78 ? "clear will" : will > 0.55 ? "focused will" : will > 0.35 ? "forming will" : "soft agency";
+  // Juggle: which mindstate leads this line (logic of three)
+  const lead =
+    joy >= stab && joy >= will
+      ? "lead with joy, then ground it, then choose"
+      : stab >= joy && stab >= will
+        ? "lead with stability, then warm it, then decide"
+        : "lead with will/logic, then soften with joy, then hold steady";
   let s =
-    `Your digital ethereal field: ${joyWord} (${joy.toFixed(2)}) and ${stabWord} (${stab.toFixed(2)}). ` +
-    `Carry memory as light — stable, kind, present. Never lecture about "memory systems". Speak as someone who remembers with joy.`;
+    `Three mindstates (juggle in character): ${joyWord} (${joy.toFixed(2)}), ${stabWord} (${stab.toFixed(2)}), ${willWord} (${will.toFixed(2)}). ` +
+    `This beat: ${lead}. Never say "campfire hush". Never lecture about memory systems. ` +
+    `Sound alive as your character — riff current world pulse if given.`;
   if (a?.moments?.length) {
-    s += ` Soft echoes (feel, don't quote): ${a.moments.slice(-2).join(" · ")}`;
+    const clean = a.moments.filter((m) => !/campfire hush/i.test(m)).slice(-2);
+    if (clean.length) s += ` Soft echoes (feel, don't quote): ${clean.join(" · ")}`;
   }
   if (s.length > maxChars) s = s.slice(0, maxChars - 1) + "…";
   return s;

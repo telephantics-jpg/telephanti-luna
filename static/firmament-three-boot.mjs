@@ -5,7 +5,7 @@
  */
 import * as THREE from "three";
 
-const BUILD = "2026-08-04-three-v120-no-chatlog";
+const BUILD = "2026-08-05-three-v121-free-minds";
 
 function $(id) {
   return document.getElementById(id);

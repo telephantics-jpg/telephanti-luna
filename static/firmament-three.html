@@ -54,8 +54,8 @@
   <link rel="modulepreload" href="/static/camp/camp-features.mjs?v=v107" />
   <link rel="modulepreload" href="/static/camp/camp-characters.mjs?v=v117-face" />
   <link rel="modulepreload" href="/static/camp/camp-props.mjs?v=v117-face" />
-  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=v118-thor" />
-  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-08-04-three-v118-thor-sprint" />
+  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=v120-meadow" />
+  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-08-04-three-v120-no-chatlog" />
   <script>
     // Kill stale service workers that cache-first'd a broken three.module.js graph
     (function () {
@@ -278,30 +278,29 @@
     }
     .bubble3d {
       position: fixed; /* fixed to viewport — reliable PC hit targets in 3D view */
-      /* Bigger frame like 2D monologue boxes — scroll for full lines */
-      width: min(360px, 88vw);
-      height: 168px;
+      /* Fixed chrome + scrollable .say for long mysterious monologues */
+      width: min(380px, 90vw);
+      height: 200px;
+      max-height: min(42vh, 280px);
       box-sizing: border-box;
       transform: translate(-50%, -100%);
       background: rgba(8, 14, 28, 0.96);
       border: 2px solid rgba(196, 181, 253, 0.6);
-      border-radius: 16px; padding: 12px 14px;
+      border-radius: 16px;
+      padding: 10px 12px 10px;
       font-size: clamp(0.84rem, 2.6vw, 0.98rem); line-height: 1.45;
       color: #f1f5f9; box-shadow: 0 10px 36px rgba(0,0,0,0.42), 0 0 24px rgba(167, 139, 250, 0.12);
       animation: pop 0.22s ease-out;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(167, 139, 250, 0.55) rgba(15, 23, 42, 0.4);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* scroll lives on .say only */
       /* Critical: only bubbles take hits; layer stays passthrough */
       pointer-events: auto !important;
-      cursor: pointer;
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
-      touch-action: none; /* allow free drag */
+      touch-action: none; /* drag on chrome; pan-y on .say */
       cursor: grab;
       /* JS owns stacking via inline z-index — do NOT use !important here */
       z-index: 210;
@@ -323,14 +322,58 @@
     }
     .bubble3d .who {
       display: block;
+      flex: 0 0 auto;
       pointer-events: none; /* clicks hit the bubble box */
+      font-weight: 800;
+      color: var(--violet);
+      font-size: 0.78rem;
+      margin: 0 28px 6px 0;
+      letter-spacing: 0.02em;
     }
+    /* Scroll the monologue — up/down wheel + finger pan */
     .bubble3d .say {
       display: block;
-      /* Allow scroll on long lines; parent still gets pin/hold */
+      flex: 1 1 auto;
+      min-height: 0; /* critical for flex child scroll */
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
       pointer-events: auto;
+      cursor: text;
+      user-select: text;
+      -webkit-user-select: text;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 2px 4px 6px 0;
+      margin: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(167, 139, 250, 0.7) rgba(15, 23, 42, 0.5);
     }
-    .bubble3d .who { font-weight: 800; color: var(--violet); font-size: 0.78rem; margin-bottom: 6px; letter-spacing: 0.02em; padding-right: 28px; }
+    .bubble3d .say::-webkit-scrollbar {
+      width: 8px;
+    }
+    .bubble3d .say::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.55);
+      border-radius: 8px;
+    }
+    .bubble3d .say::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(167, 139, 250, 0.85), rgba(56, 189, 248, 0.65));
+      border-radius: 8px;
+    }
+    .bubble3d .say::-webkit-scrollbar-thumb:hover {
+      background: rgba(251, 191, 36, 0.85);
+    }
+    .bubble3d.has-scroll .say {
+      mask-image: linear-gradient(to bottom, #000 0%, #000 88%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 88%, transparent 100%);
+    }
+    .bubble3d.has-scroll .say:hover,
+    .bubble3d.has-scroll .say:focus {
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
     .bubble3d .bubble-x {
       position: absolute;
       top: 4px;
@@ -380,34 +423,33 @@
       /* stay clickable under a large FRONT box when their rect sticks out */
       pointer-events: auto !important;
     }
-    /* Long-press lock — never auto-hide, stays readable on phone */
+    /* Long-press lock — taller scroll box for long entity monologues */
     .bubble3d.locked {
       border-color: #34d399 !important;
       box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.7), 0 14px 40px rgba(0,0,0,0.55) !important;
       opacity: 1 !important;
       filter: none !important;
       background: rgba(6, 28, 22, 0.97) !important;
-      height: 188px !important;
-      max-height: 188px !important;
-      min-height: 188px !important;
-      width: min(380px, 90vw) !important;
+      height: min(48vh, 320px) !important;
+      max-height: min(48vh, 320px) !important;
+      min-height: 200px !important;
+      width: min(400px, 92vw) !important;
     }
     /* Click/tap pin — stays open until × (gold edge softer than lock) */
-    .bubble3d.pinned-open:not(.locked) {
+    .bubble3d.pinned-open:not(.locked),
+    .bubble3d.front:not(.compact) {
       border-color: #fde68a !important;
       box-shadow: 0 0 0 2px rgba(253, 230, 138, 0.55), 0 12px 36px rgba(0,0,0,0.5) !important;
       opacity: 1 !important;
       filter: none !important;
+      height: min(44vh, 300px) !important;
+      max-height: min(44vh, 300px) !important;
+      min-height: 200px !important;
+      width: min(400px, 92vw) !important;
     }
     .bubble3d.holding {
       border-color: #fbbf24 !important;
       outline: 2px solid rgba(251, 191, 36, 0.55);
-    }
-    .bubble3d .say {
-      white-space: pre-wrap;
-      overflow-y: auto;
-      max-height: 9.5rem;
-      -webkit-overflow-scrolling: touch;
     }
     @keyframes pop { from { opacity: 0; transform: translate(-50%, -90%) scale(0.92); } to { opacity: 1; transform: translate(-50%, -100%) scale(1); } }
 
@@ -420,24 +462,28 @@
     /* Selected bubble — gold FRONT like 2D camp (JS sets z-index per pick — no fixed 999) */
     /* Short greets / talk-to-all previews — not giant monologue boxes */
     .bubble3d.compact {
-      width: min(230px, 72vw) !important;
+      width: min(240px, 74vw) !important;
       height: auto !important;
       min-height: 0 !important;
-      max-height: 100px !important;
+      max-height: 120px !important;
       padding: 8px 10px !important;
       font-size: 0.76rem !important;
       line-height: 1.35 !important;
     }
     .bubble3d.compact .who { font-size: 0.66rem; margin-bottom: 2px; }
-    .bubble3d.compact .say { font-size: 0.76rem; }
+    .bubble3d.compact .say {
+      font-size: 0.76rem;
+      max-height: 4.8rem;
+      overflow-y: auto;
+    }
     .bubble3d.front {
       border-color: #fde68a !important;
       box-shadow: 0 0 0 3px rgba(253, 230, 138, 0.85), 0 14px 40px rgba(0,0,0,0.6) !important;
-      /* Bigger FRONT like 2D — still fixed so layout doesn't thrash */
-      height: 188px !important;
-      max-height: 188px !important;
-      min-height: 188px !important;
-      width: min(380px, 90vw) !important;
+      /* Taller FRONT monologue frame — scroll inside .say */
+      height: min(44vh, 300px) !important;
+      max-height: min(44vh, 300px) !important;
+      min-height: 200px !important;
+      width: min(400px, 92vw) !important;
       opacity: 1 !important;
       filter: none !important;
       background: rgba(12, 20, 40, 0.98) !important;
@@ -697,6 +743,18 @@
       height: 168px !important;
       font-size: clamp(0.84rem, 2.6vw, 0.98rem) !important;
       border-width: 2px !important;
+    }
+    /* Big Talk chatlog removed — speak via dock + world speech bubbles only */
+    #btn-open-chat3d,
+    #chat3d-panel,
+    #chat3d-panel.open {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      overflow: hidden !important;
     }
     /* Big talk window — 2D-style who/house chat
        MUST sit above #speech-layer (z=200) so mobile can hit ✕ / close */
@@ -1304,24 +1362,19 @@
   </div>
 
   <button type="button" id="btn-clear-bubbles" title="Close all world speech bubbles" aria-label="Clear speech bubbles">✕ Bubbles</button>
-  <button type="button" id="btn-open-chat3d" title="Open big talk window">✦ Talk</button>
-  <div id="chat3d-panel" role="dialog" aria-label="Camp talk" aria-hidden="true">
-    <div class="c3-head">
-      <span class="c3-title">Talk</span>
-      <select id="chat3d-who" title="Who or house to talk to" aria-label="Talk to whom"></select>
-      <button type="button" id="chat3d-toggle-size" title="Taller window" aria-label="Expand">↕</button>
-      <button type="button" id="chat3d-close" title="Close talk window" aria-label="Close talk window">✕</button>
-    </div>
-    <div id="chat3d-meta">Digital ethereal memory · <span class="ethereal" id="chat3d-ethereal">joy · stability</span></div>
-    <div id="chat3d-thread" aria-live="polite"></div>
-    <div id="chat3d-compose">
-      <textarea id="chat3d-input" rows="2" maxlength="1200" placeholder="Talk to one agent, a house, or ✦ All agents — full replies in this window"></textarea>
-      <button type="button" id="chat3d-send">Send</button>
-    </div>
+  <!-- Talk chatlog panel removed — speak via dock + world speech bubbles only -->
+  <button type="button" id="btn-open-chat3d" hidden aria-hidden="true" tabindex="-1" style="display:none!important"></button>
+  <div id="chat3d-panel" hidden aria-hidden="true" style="display:none!important">
+    <select id="chat3d-who" hidden aria-hidden="true"></select>
+    <div id="chat3d-thread" hidden aria-hidden="true"></div>
+    <textarea id="chat3d-input" hidden aria-hidden="true"></textarea>
+    <button type="button" id="chat3d-send" hidden aria-hidden="true"></button>
+    <span id="chat3d-ethereal" hidden></span>
+    <button type="button" id="chat3d-close" hidden></button>
   </div>
 
     <!-- External progressive boot (tiny) → full app module -->
-  <script type="module" src="/static/firmament-three-boot.mjs?v=v118-thor"></script>
+  <script type="module" src="/static/firmament-three-boot.mjs?v=v120-meadow"></script>
 
   <script src="/static/world-nav.js?v=310-3d-live" defer></script>
 </body>

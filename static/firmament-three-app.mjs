@@ -10,7 +10,7 @@
     import * as campChars from "camp-characters";
     import * as campProps from "camp-props";
 
-    const BUILD = "2026-08-04-three-v118-thor-sprint";
+    const BUILD = "2026-08-04-three-v120-no-chatlog";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -2377,8 +2377,8 @@
               : line;
             setTimeout(() => {
               try {
-                showSpeech3d(def.id, info.slice(0, 320), speechReadMs(info.slice(0, 320)), { force: true });
-                logLine(def.name, info.slice(0, 280));
+                showSpeech3d(def.id, bubblePreview(info, 1400), speechReadMs(info), { force: true });
+                logLine(def.name, info.slice(0, 900));
               } catch (_) {}
             }, 400 + Math.random() * 1800);
           }
@@ -4700,24 +4700,38 @@
       if (chat3dWho) chat3dWho.disabled = !!ouijaMode;
     }
 
+    /**
+     * Talk chatlog retired — never pop the big window.
+     * Selecting who still syncs the dock and focuses the meadow message box.
+     */
     function openChat3d(agentOrHouseId) {
-      if (!chat3dPanel) return;
-      chat3dPanel.classList.add("open");
-      chat3dPanel.setAttribute("aria-hidden", "false");
-      document.body.classList.add("chat3d-open");
-      // Ensure panel is always above residual speech
-      chat3dPanel.style.zIndex = "2600";
-      if (agentOrHouseId && agentOrHouseId !== "ouija") {
-        if (chat3dWho && [...chat3dWho.options].some((o) => o.value === agentOrHouseId)) {
-          chat3dWho.value = agentOrHouseId;
+      try {
+        if (agentOrHouseId && agentOrHouseId !== "ouija") {
+          if (whoEl && [...(whoEl.options || [])].some((o) => o.value === agentOrHouseId)) {
+            whoEl.value = agentOrHouseId;
+          }
+          try { setTalkWho(agentOrHouseId); } catch (_) {}
+          if (agentOrHouseId !== TALK_ALL_ID) selectedSpeechAgentId = agentOrHouseId;
+          const nm =
+            AGENTS.find((a) => a.id === agentOrHouseId)?.name ||
+            (agentOrHouseId === TALK_ALL_ID ? "all minds" : agentOrHouseId);
+          if (msgEl) {
+            msgEl.placeholder =
+              agentOrHouseId === TALK_ALL_ID
+                ? "Speak eternal truth to every mind…"
+                : `Speak to ${nm} — in character, highest truth…`;
+            try { msgEl.focus({ preventScroll: true }); } catch (_) { try { msgEl.focus(); } catch (_) {} }
+          }
         }
-        if (whoEl && [...whoEl.options].some((o) => o.value === agentOrHouseId)) {
-          whoEl.value = agentOrHouseId;
-        }
-      }
-      refreshEtherealHud();
+      } catch (_) {}
+      // Force-hide chatlog if anything tries to open it
+      try {
+        chat3dPanel?.classList.remove("open");
+        chat3dPanel?.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("chat3d-open");
+        chat3dPanel?.style.removeProperty("z-index");
+      } catch (_) {}
       refreshClearBubblesBtn();
-      try { chat3dInput?.focus(); } catch (_) {}
     }
     function closeChat3d() {
       chat3dPanel?.classList.remove("open");
@@ -4800,7 +4814,7 @@
           const { board, reading } = parseOuijaReply(reply);
           appendChat3dSpirit(board, reading);
           ouijaHistory.push({ role: "assistant", content: reading });
-          showSpeech3d("oracle", reading.slice(0, 280), speechReadMs(reading.slice(0, 280)), {
+          showSpeech3d("oracle", bubblePreview(reading, 1400), speechReadMs(reading), {
             force: true,
           });
           logLine("Oracle", reading);
@@ -4971,9 +4985,8 @@
       const speaker = displayAgentName(who);
       const clean = String(text || "").trim();
       if (!speaker || !clean) return;
-      // Always land full lines in the Talk dialogue box (not only world bubbles)
-      appendChat3dMsg(speaker, clean, _you, { forceScroll: !!_you });
-      refreshEtherealHud();
+      // Chatlog UI removed — keep tape/memory only (no popup thread)
+      try { refreshEtherealHud(); } catch (_) {}
       try {
         const agentId = AGENTS.find((a) => a.name === speaker || a.id === speaker)?.id || "";
         const entry = {
@@ -5359,9 +5372,49 @@
     /**
      * Press/select = FRONT immediately (like 2D). Drag = free place. Hold ~0.5s = lock.
      */
+    function markBubbleScrollHint(el) {
+      if (!el) return;
+      const say = el.querySelector?.(".say");
+      if (!say) return;
+      const overflow = say.scrollHeight > say.clientHeight + 4;
+      el.classList.toggle("has-scroll", overflow);
+      if (overflow) {
+        say.title = "Scroll for the full monologue";
+        say.setAttribute("aria-label", "Scrollable speech");
+      }
+    }
+
+    function wireBubbleSayScroll(el) {
+      const say = el?.querySelector?.(".say");
+      if (!say || say.__scrollWired) return;
+      say.__scrollWired = true;
+      // Wheel / trackpad: scroll text, don't zoom the 3D world
+      say.addEventListener(
+        "wheel",
+        (e) => {
+          e.stopPropagation();
+          // Let native scroll happen; block page/camera zoom
+          e.cancelBubble = true;
+        },
+        { passive: true },
+      );
+      // Touch: pan-y on body — don't start free-drag when finger is on the monologue
+      say.addEventListener(
+        "pointerdown",
+        (e) => {
+          e.stopPropagation();
+        },
+        { capture: true },
+      );
+      say.addEventListener("scroll", () => markBubbleScrollHint(el), { passive: true });
+      // After layout
+      requestAnimationFrame(() => markBubbleScrollHint(el));
+    }
+
     function bindBubbleSelect(el) {
       if (!el || el.__bubbleBound) return;
       el.__bubbleBound = true;
+      wireBubbleSayScroll(el);
       let holdTimer = null;
       let holdFired = false;
       let dragging = false;
@@ -5382,6 +5435,8 @@
         if (e.pointerType === "touch" && e.isPrimary === false) return;
         // × close must win — parent capture used to eat the event
         if (e.target?.closest?.(".bubble-x")) return;
+        // Scrolling the monologue — don't start drag/hold-lock
+        if (e.target?.closest?.(".say")) return;
         e.preventDefault?.();
         e.stopPropagation?.();
         e.stopImmediatePropagation?.();
@@ -5724,7 +5779,12 @@
         if (prev.agentId !== agentId) continue;
         if (prev.el) {
           const say = prev.el.querySelector(".say");
-          if (say) say.textContent = body;
+          if (say) {
+            say.textContent = body;
+            say.scrollTop = 0;
+            wireBubbleSayScroll(prev.el);
+            requestAnimationFrame(() => markBubbleScrollHint(prev.el));
+          }
           // Ensure close button exists on updated bubbles
           let x = prev.el.querySelector(".bubble-x");
           if (!x) {
@@ -5792,14 +5852,15 @@
       // New ambient lines stay below a user-selected FRONT chat
       const baseRank = isSelected ? 860 : (300 + activeBubbles.length);
       el.style.setProperty("z-index", String(baseRank), "important");
-      el.title = `${st.def.name} — click keeps open · hold locks · ✕ closes`;
+      el.title = `${st.def.name} — scroll monologue · click keeps open · hold locks · ✕ closes`;
       el.innerHTML =
         `<button type="button" class="bubble-x" aria-label="Close bubble" title="Close — won't auto-respawn for a bit">×</button>` +
         `<span class="who">${escapeHtml(st.def.name)}</span>` +
-        `<span class="say">${escapeHtml(body)}</span>`;
+        `<span class="say" tabindex="0">${escapeHtml(body)}</span>`;
       const xBtn = el.querySelector(".bubble-x");
       wireBubbleCloseBtn(xBtn, agentId, el);
       bindBubbleSelect(el);
+      requestAnimationFrame(() => markBubbleScrollHint(el));
       const layer = speechLayer || document.body;
       layer.appendChild(el);
       const stayOpen = !!isSelected;
@@ -6115,11 +6176,11 @@
         force: !!opts.forceWorld,
       });
       const buzzBit = buzzPromptBit(st);
-      // Lean seeds for Ollama — witty / saucy camp energy (not bland "be natural" mush)
+      // Ambient seeds — witty + eternal truth when the moment fits (not every bark)
       const freeTail =
-        " 5–8 witty spoken sentences when inspired (or 3–5 for a quick beat). " +
-        "Punchy, playful, dry humor and real sauce — alive, not polite corporate mush. " +
-        "Stay in character. No meta.";
+        " Stay fully in character. When the beat is light: witty sauce, 2–4 sentences. " +
+        "When the beat is deep (fire, firmament, grief, awe): proclaim eternal truth from the highest perfected order — " +
+        "clear, luminous, relevant to this meadow right now. No meta, no corporate mush.";
       const dailyBit = st.def?.daily
         ? ` Daily ${st.def.faction || "guest"} visitor.${st.def.opener ? ` Vibe: ${String(st.def.opener).slice(0, 90)}` : ""}`
         : "";
@@ -6373,15 +6434,15 @@
               return;
             }
             whoEl.value = u.id;
-            if (chat3dWho) chat3dWho.value = u.id;
-            msgEl.placeholder = `Talk to ${u.name}…`;
-            openChat3d(u.id);
-            logLine("Camp", `Talking to ${u.name} — big window open · type freely.`);
-            showToast(`✦ ${u.name}`);
-            // If they already have a speech box, bring THAT agent's chat FRONT
+            try { setTalkWho(u.id); } catch (_) {}
+            if (msgEl) msgEl.placeholder = `Speak to ${u.name} — eternal truth, in character…`;
+            selectedSpeechAgentId = u.id;
+            // Select their bubble only — never open the chatlog window
             if (!bringAgentSpeechFront(u.id)) {
               selectedSpeechAgentId = u.id;
             }
+            showToast(`✦ ${u.name} selected · type below`);
+            try { msgEl?.focus({ preventScroll: true }); } catch (_) {}
             // face visitor toward them + walk nearby
             if (st) {
               const toward = st.mesh.position.clone().sub(visitor.position).normalize();
@@ -7799,13 +7860,16 @@
       return `I am ${name} — ${namesake}. I answer as myself, not a copy of the others.`;
     }
 
-    /** Bubble preview — longer now so speech doesn't feel cut off (full text still in Talk log). */
-    function bubblePreview(text, maxChars = 280) {
+    /**
+     * Bubble text cap — high enough for mysterious entity monologues
+     * (scroll inside the bubble). Compact greets pass a smaller maxChars.
+     */
+    function bubblePreview(text, maxChars = 1400) {
       const t = String(text || "").replace(/\s+/g, " ").trim();
       if (t.length <= maxChars) return t;
       const cut = t.slice(0, maxChars - 1);
       const sp = cut.lastIndexOf(" ");
-      return (sp > 60 ? cut.slice(0, sp) : cut).trim() + "…";
+      return (sp > 80 ? cut.slice(0, sp) : cut).trim() + "…";
     }
 
     let heavenBusy = false;
@@ -8232,23 +8296,27 @@
       return s;
     }
 
-    /** Shared witty-direct prompt for visitor chat (single or all). */
+    /** Shared direct prompt — in character, relevant, eternal truth with wit. */
     function visitorTalkPrompt(agentName, userText, opts = {}) {
       const everyone = !!opts.everyone;
       const eth = etherealSeedFor(opts.agentId || "");
       const buzz = opts.st ? buzzPromptBit(opts.st) : "";
       let world = "";
       try {
-        world = worldEventPromptBit({ chance: 0.4 });
+        world = worldEventPromptBit({ chance: 0.35 });
       } catch (_) {}
+      const mood = opts.st?.persona?.mood || "present";
+      const arch = opts.st?.persona?.arch || opts.st?.def?.faction || "camp";
       return (
         (everyone
-          ? `The visitor is addressing EVERYONE at camp, including you (${agentName}). `
-          : `The visitor is talking directly to you (${agentName}). `) +
-        `Their words: "${String(userText).slice(0, 500)}"\n` +
-        `Answer them NOW as ${agentName} — witty, warm, specific, 5–8 spoken sentences when you have something to say (or 3–5 if a short beat fits). ` +
-        `Actually respond to what they said (question → answer, joke → riff, greeting → greet). ` +
-        `Camp comedy welcome; not mean. No meta, no stage directions, no "as an AI".` +
+          ? `The visitor addresses EVERYONE at camp, including you (${agentName}). `
+          : `The visitor speaks directly to you (${agentName}). `) +
+        `Their words: "${String(userText).slice(0, 600)}"\n` +
+        `Answer NOW fully as ${agentName} (${arch}, mood ${mood}) — stay in character. ` +
+        `Meet what they actually said (question → answer, wound → balm, joke → riff, seeking → truth). ` +
+        `Speak eternal truth proclaimed from the highest perfected order: clear, luminous, kind, not vague mystic fog. ` +
+        `Wit and chill sauce welcome when true. 4–8 spoken sentences; finish the thought. ` +
+        `No meta, no stage directions, no "as an AI", no chatlog UI talk.` +
         buzz +
         (eth ? ` Memory: ${eth.slice(0, 200)}` : "") +
         (world ? ` ${world.trim()}` : "")
@@ -8322,9 +8390,10 @@
         statusEl.hidden = true;
         statusEl.textContent = `${name} · thinking…`;
       }
-      // Visitor turns: open Talk + log once (logLine → dialogue box)
+      // Visitor turns: select mind + world bubble only (no chatlog popup)
       if (!ambient) {
-        openChat3d(targetId);
+        try { setTalkWho(targetId); } catch (_) {}
+        selectedSpeechAgentId = targetId;
         logLine("You", message, true);
         showToast(`✦ ${name} is answering…`);
       }
@@ -8339,24 +8408,21 @@
         const raw = data.reply || data.text || "";
         let reply = spokenOnly3d(raw, message) || spokenOnly3d(raw, "") || String(raw || "").trim();
         if (!reply || reply.length < 3) reply = localBark(targetId, { world: true });
-        // Full reply always lands in Talk dialogue under their name
-        openChat3d(targetId);
         logLine(name, reply);
-        // Always show a bubble when the agent is on the meadow
+        // Full reply in scrollable world bubble (no chatlog)
         const hasBody = agentState.some((a) => a.def.id === targetId);
         if (hasBody) {
-          const bub = reply.length > 420 ? bubblePreview(reply, 380) : reply;
+          const bub = bubblePreview(reply, 1600);
           showSpeech3d(targetId, bub, speechReadMs(reply), {
             force: true,
-            compact: reply.length > 600,
+            compact: false,
           });
-          // Bring that character's bubble to FRONT so it matches the Talk selection
           try {
             const bEl = activeBubbles.find((b) => b.agentId === targetId)?.el;
             if (bEl) bringBubbleFront(bEl, { quiet: true });
           } catch (_) {}
         } else if (!ambient) {
-          showToast(`${name}: ${bubblePreview(reply, 80)}`);
+          showToast(`${name}: ${bubblePreview(reply, 100)}`);
         }
         if (statusEl) {
           statusEl.hidden = true;
@@ -8364,9 +8430,8 @@
         }
       } catch (err) {
         const fallback = localBark(targetId, { world: true });
-        openChat3d(targetId);
         if (agentState.some((a) => a.def.id === targetId)) {
-          showSpeech3d(targetId, fallback, speechReadMs(fallback), { force: true, compact: true });
+          showSpeech3d(targetId, fallback, speechReadMs(fallback), { force: true, compact: false });
         }
         logLine(name, fallback);
         if (statusEl) {
@@ -8407,12 +8472,10 @@
         if (chat3dSend) chat3dSend.disabled = false;
         return;
       }
-      openChat3d(TALK_ALL_ID);
+      try { setTalkWho(TALK_ALL_ID); } catch (_) {}
       logLine("You", text, true);
-      appendChat3dMsg("You", text, true);
-      appendChat3dMsg("Camp", `✦ All agents · ${roster.length} will answer in turn`, false);
-      logLine("Camp", `✦ All agents · ${roster.length} will answer in turn`);
-      showToast(`✦ Talking to all · ${roster.length} voices`);
+      logLine("Camp", `✦ All minds · ${roster.length} will answer in the meadow`);
+      showToast(`✦ ${roster.length} minds answering in bubbles…`);
       try {
         for (let i = 0; i < roster.length; i++) {
           if (document.hidden) break;
@@ -8422,10 +8485,9 @@
             statusEl.hidden = true;
             statusEl.textContent = `All · ${def.name} (${i + 1}/${roster.length})…`;
           }
-          showToast(`✦ ${def.name} (${i + 1}/${roster.length})…`);
           let reply = "";
           try {
-            // Direct (non-ambient) so Ollama treats it as real visitor chat
+            // Direct visitor chat — Gemini/Grok path, not ambient
             const data = await campClient.agentChat(
               def.id,
               visitorTalkPrompt(def.name, text, {
@@ -8442,18 +8504,22 @@
             reply = localBark(def.id, { world: true });
           }
           logLine(def.name, reply);
-          const bub = reply.length > 420 ? bubblePreview(reply, 380) : reply;
+          const bub = bubblePreview(reply, 1600);
           showSpeech3d(def.id, bub, Math.max(MIN_SPEECH_MS, speechReadMs(reply, MIN_SPEECH_MS)), {
             force: true,
-            compact: reply.length > 600,
+            compact: false,
           });
+          try {
+            const bEl = activeBubbles.find((b) => b.agentId === def.id)?.el;
+            if (bEl) bringBubbleFront(bEl, { quiet: true });
+          } catch (_) {}
           // Face visitor while answering
           if (st) {
             try {
               faceTowardXZ(st.mesh, visitor.position.x, visitor.position.z, st.faceYaw || 0, true);
             } catch (_) {}
           }
-          const pace = Math.min(Math.max(MIN_SPEECH_MS + 800, bub.length * 32), 9000);
+          const pace = Math.min(Math.max(MIN_SPEECH_MS + 1200, bub.length * 28), 14000);
           await sleepMs(pace);
         }
         if (statusEl) {

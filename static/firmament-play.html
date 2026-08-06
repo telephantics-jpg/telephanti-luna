@@ -41,7 +41,8 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="preload" as="image" href="/static/camp/aurora-corona-sky-mobile.jpg" media="(max-width: 899px)" />
+  <!-- Cool Caduceus wallpaper on phones + PC (aurora is fallback only) -->
+  <link rel="preload" as="image" href="/static/camp/caduceus-wallpaper.jpg" />
   <link rel="preload" as="image" href="/static/camp/aurora-corona-sky.jpg" media="(min-width: 900px)" />
   <style>
     /* Hub embed: one music player only (parent telephantim hub) */
@@ -4741,13 +4742,13 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-06-relic-collapse-chat-mobile";
+    const CAMP_BUILD = "2026-08-06-mobile-cool-bg";
     let campWeather = "aurora";
-    /** Cool Caduceus wallpaper (PC + live) — aurora is soft fallback */
+    /** Cool Caduceus wallpaper — primary on mobile + PC; aurora is soft fallback */
     const CAMP_BG_URL = `/static/camp/caduceus-wallpaper.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_FALLBACK_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
     const CAMP_BG_MOBILE_URL = `/static/camp/caduceus-wallpaper.jpg?v=${CAMP_BUILD}`;
-    /** Optional living video layer when present */
+    /** Optional living video layer (PC / strong devices); mobile uses still wallpaper */
     const CAMP_BG_VIDEO_URL = `/static/camp/camp_floor_video.mp4?v=${CAMP_BUILD}`;
     let campCryptoOn = false;
 
@@ -8773,18 +8774,23 @@
     let campBgVideo = null;
     let campBgVideoReady = false;
     const campBgImg = new Image();
+    try { campBgImg.decoding = "async"; } catch (_) {}
+    try { campBgImg.setAttribute("decoding", "async"); } catch (_) {}
     campBgImg.onload = () => {
       campBgImage = campBgImg;
-      if (!campBgVideoReady) campBgReady = true;
+      campBgReady = true;
+      try { console.info("[camp2d] cool wallpaper ready", campBgImg.naturalWidth, campBgImg.naturalHeight); } catch (_) {}
     };
     campBgImg.onerror = () => {
       // Caduceus → aurora fallback so live never blanks
       if (campBgImg.dataset.fallback !== "1") {
         campBgImg.dataset.fallback = "1";
-        campBgImg.src = CAMP_BG_FALLBACK_URL || CAMP_BG_URL;
+        const fb = CAMP_BG_FALLBACK_URL || CAMP_BG_URL;
+        campBgImg.src = fb.startsWith("http") ? fb : `${location.origin}${fb.startsWith("/") ? "" : "/"}${fb}`;
         return;
       }
       if (!campBgVideoReady) campBgReady = false;
+      try { console.warn("[camp2d] wallpaper failed to load"); } catch (_) {}
     };
     function forceMuteBgVideo(vid) {
       if (!vid) return;
@@ -8795,11 +8801,22 @@
         vid.setAttribute("muted", "muted");
       } catch (_) {}
     }
+    function campAssetUrl(path) {
+      const p = String(path || "");
+      if (!p) return p;
+      if (/^https?:\/\//i.test(p)) return p;
+      try {
+        return new URL(p, location.origin).href;
+      } catch (_) {
+        return p.startsWith("/") ? `${location.origin}${p}` : p;
+      }
+    }
     function loadCampBackgroundVideo() {
-      if (isSlowDevice()) return; // stills only on weak phones
+      // Phones: still wallpaper only (cheaper + always visible). PC gets living layer.
+      if (isSlowDevice()) return;
       try {
         const vid = document.createElement("video");
-        vid.src = CAMP_BG_VIDEO_URL;
+        vid.src = campAssetUrl(CAMP_BG_VIDEO_URL);
         vid.muted = true;
         vid.defaultMuted = true;
         vid.volume = 0;
@@ -8844,9 +8861,12 @@
       }
     }
     function loadCampBackground() {
-      // Caduceus wallpaper (PC + live) — still first so it always ships
-      campBgImg.src = CAMP_BG_URL || CAMP_BG_MOBILE_URL;
-      // Soft living layer optional; wallpaper remains if video fails
+      // Mobile + PC: still Caduceus wallpaper first so cool art always paints
+      const still = isCampMobile()
+        ? (CAMP_BG_MOBILE_URL || CAMP_BG_URL)
+        : (CAMP_BG_URL || CAMP_BG_MOBILE_URL);
+      campBgImg.src = campAssetUrl(still);
+      // PC living layer optional; wallpaper remains if video fails
       try {
         if (!isSlowDevice()) loadCampBackgroundVideo();
       } catch (_) {}
@@ -9274,7 +9294,11 @@
 
     function drawGround() {
       const hasVideoBg = !!(campBgVideo && campBgVideoReady);
-      if (!drawCampBackgroundImage()) {
+      const paintedCool = drawCampBackgroundImage();
+      // Mobile uses still Caduceus wallpaper (no video) — treat still as the cool art path
+      // so green meadow wash does not bury the logo/sky on phones.
+      const hasCoolBg = paintedCool || hasVideoBg || !!(campBgImage && campBgReady);
+      if (!paintedCool) {
         const sky = ctx.createLinearGradient(0, 0, 0, viewH);
         sky.addColorStop(0, "#050b14");
         sky.addColorStop(0.22, "#0c1830");
@@ -9285,34 +9309,29 @@
         ctx.fillRect(0, 0, viewW, viewH);
         drawAuroraBands();
       } else {
-        // Light aurora wash only — let the video art read
+        // Light aurora wash only — let Caduceus / video art read (esp. mobile still)
         ctx.save();
-        ctx.globalAlpha = hasVideoBg
-          ? 0.08 + Math.sin(Date.now() / 2800) * 0.03
+        ctx.globalAlpha = hasCoolBg
+          ? 0.07 + Math.sin(Date.now() / 2800) * 0.025
           : 0.22 + Math.sin(Date.now() / 2400) * 0.04;
         drawAuroraBands();
         ctx.restore();
         const veil = ctx.createLinearGradient(0, viewH * 0.12, 0, viewH);
-        if (hasVideoBg) {
-          // Cool dark underlay (matches 3D floor) — less green wash
-          veil.addColorStop(0, "rgba(5, 8, 18, 0.05)");
-          veil.addColorStop(0.4, "rgba(8, 12, 28, 0.35)");
-          veil.addColorStop(1, "rgba(4, 8, 16, 0.78)");
-        } else {
-          veil.addColorStop(0, "rgba(5, 11, 20, 0)");
-          veil.addColorStop(0.45, "rgba(8, 22, 18, 0.28)");
-          veil.addColorStop(1, "rgba(6, 18, 14, 0.72)");
-        }
+        // Cool dark underlay — never opaque green over wallpaper
+        veil.addColorStop(0, "rgba(5, 8, 18, 0.02)");
+        veil.addColorStop(0.45, "rgba(8, 12, 28, 0.22)");
+        veil.addColorStop(1, "rgba(4, 8, 16, 0.55)");
         ctx.fillStyle = veil;
         ctx.fillRect(0, viewH * 0.1, viewW, viewH * 0.9);
       }
 
-      const fieldTop = viewH * (campBgReady ? 0.12 : 0.08);
+      const fieldTop = viewH * (hasCoolBg ? 0.18 : 0.08);
       const meadow = ctx.createLinearGradient(0, fieldTop, 0, viewH);
-      if (hasVideoBg) {
-        meadow.addColorStop(0, "rgba(8, 12, 24, 0.15)");
-        meadow.addColorStop(0.4, "rgba(6, 10, 20, 0.42)");
-        meadow.addColorStop(1, "rgba(4, 8, 16, 0.72)");
+      if (hasCoolBg) {
+        // Soft cool tint so agents still read; wallpaper stays visible
+        meadow.addColorStop(0, "rgba(8, 12, 24, 0.08)");
+        meadow.addColorStop(0.45, "rgba(6, 10, 20, 0.28)");
+        meadow.addColorStop(1, "rgba(4, 8, 16, 0.52)");
       } else {
         meadow.addColorStop(0, "rgba(20, 48, 36, 0.55)");
         meadow.addColorStop(0.35, "rgba(16, 40, 32, 0.78)");
@@ -9321,29 +9340,31 @@
       ctx.fillStyle = meadow;
       ctx.fillRect(0, fieldTop, viewW, viewH - fieldTop);
 
-      if (groundPattern && !hasVideoBg) {
+      if (groundPattern && hasCoolBg) {
+        // Soft grain only — cool art is the graphic (mobile wallpaper + PC video)
         ctx.save();
         ctx.fillStyle = groundPattern;
-        ctx.globalAlpha = campBgReady ? 0.58 : 0.82;
+        ctx.globalAlpha = isCampMobile() ? 0.06 : 0.1;
         ctx.fillRect(0, fieldTop, viewW, viewH - fieldTop);
         ctx.restore();
-      } else if (groundPattern && hasVideoBg) {
-        // Soft grain only — video is the graphic
+      } else if (groundPattern && !hasCoolBg) {
         ctx.save();
         ctx.fillStyle = groundPattern;
-        ctx.globalAlpha = 0.12;
+        ctx.globalAlpha = 0.82;
         ctx.fillRect(0, fieldTop, viewW, viewH - fieldTop);
         ctx.restore();
       }
 
       const t = Date.now() / 1000;
-      const bladeN = hasVideoBg ? (isSlowDevice() ? 8 : 18) : (isSlowDevice() ? 18 : 42);
+      const bladeN = hasCoolBg
+        ? (isSlowDevice() ? 6 : 14)
+        : (isSlowDevice() ? 18 : 42);
       for (let i = 0; i < bladeN; i++) {
         const fx = ((i * 173) % 1000) / 1000 * viewW;
         const fy = fieldTop + ((i * 97) % 1000) / 1000 * (viewH - fieldTop);
         const sway = Math.sin(t * 1.4 + i) * 2;
-        const a = hasVideoBg ? 0.1 : 0.22;
-        ctx.fillStyle = hasVideoBg
+        const a = hasCoolBg ? 0.08 : 0.22;
+        ctx.fillStyle = hasCoolBg
           ? `rgba(${80 + (i % 3) * 20}, ${100 + (i % 2) * 25}, ${140 + (i % 4) * 20}, ${a})`
           : `rgba(${120 + (i % 3) * 30}, ${180 + (i % 2) * 20}, ${90 + (i % 4) * 15}, ${a})`;
         ctx.beginPath();
@@ -9351,7 +9372,7 @@
         ctx.fill();
       }
 
-      ctx.strokeStyle = campBgReady ? "rgba(103, 232, 249, 0.05)" : "rgba(103, 232, 249, 0.07)";
+      ctx.strokeStyle = hasCoolBg ? "rgba(103, 232, 249, 0.04)" : "rgba(103, 232, 249, 0.07)";
       for (let i = -28; i < 28; i++) {
         const y = viewH * getCampAnchorY() + i * 24;
         ctx.beginPath();

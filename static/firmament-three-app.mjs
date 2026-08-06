@@ -10,7 +10,7 @@
     import * as campChars from "camp-characters";
     import * as campProps from "camp-props";
 
-    const BUILD = "2026-08-05-three-v121-free-minds";
+    const BUILD = "2026-08-06-mobile-cool-bg";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -736,14 +736,18 @@
       }
     }
 
-    // Ground — Mjolnir relic loop (video floor). Sticky: no green grass mesh, keep video alive.
+    // Ground — cool Caduceus still on mobile immediately; video floor when it can play.
+    // Sticky: no green grass mesh. Phones often block autoplay → still must show first.
     let groundVideoTex = null;
     let groundVideoEl = null;
     let groundFloorMesh = null;
+    let groundStillTex = null;
+    let groundVideoLive = false;
     let groundVideoLastKeepAlive = 0;
     {
       const FLOOR_VIDEO = `/static/camp/camp_floor_video.mp4?v=${BUILD}`;
-      // Dark underlay — never neon green if video stalls
+      const FLOOR_STILL = `/static/camp/caduceus-wallpaper.jpg?v=${BUILD}`;
+      // Dark underlay — never neon green if media stalls
       const under = new THREE.Mesh(
         new THREE.PlaneGeometry(240, 240),
         new THREE.MeshStandardMaterial({
@@ -760,6 +764,58 @@
       under.name = "groundUnderlay";
       scene.add(under);
 
+      // Floor mesh first with cool still — visible on iOS before any video gesture
+      const floorGeo = new THREE.PlaneGeometry(200, 200, 1, 1);
+      const floorMat = new THREE.MeshBasicMaterial({
+        color: 0x0c1220,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      });
+      const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+      floorMesh.rotation.x = -Math.PI / 2;
+      floorMesh.position.y = 0.012;
+      floorMesh.receiveShadow = true;
+      floorMesh.name = "mjolnirFloor";
+      floorMesh.renderOrder = -1;
+      scene.add(floorMesh);
+      groundFloorMesh = floorMesh;
+
+      const applyFloorMap = (tex) => {
+        if (!groundFloorMesh || !tex) return;
+        try {
+          if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        } catch (_) {}
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.minFilter = THREE.LinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.generateMipmaps = false;
+        tex.needsUpdate = true;
+        groundFloorMesh.material.map = tex;
+        groundFloorMesh.material.color?.set?.(0xffffff);
+        groundFloorMesh.material.needsUpdate = true;
+      };
+
+      try {
+        const loader = new THREE.TextureLoader();
+        loader.setCrossOrigin("anonymous");
+        loader.load(
+          FLOOR_STILL,
+          (tex) => {
+            groundStillTex = tex;
+            // Only keep still if video has not taken over yet
+            if (!groundVideoLive) {
+              applyFloorMap(tex);
+              console.info("[camp3d] cool still floor ready (mobile-safe)", FLOOR_STILL);
+            }
+          },
+          undefined,
+          (err) => console.warn("[camp3d] still floor failed", err),
+        );
+      } catch (err) {
+        console.warn("[camp3d] still floor loader", err);
+      }
+
       try {
         const vid = document.createElement("video");
         vid.src = FLOOR_VIDEO;
@@ -773,7 +829,11 @@
         vid.setAttribute("playsinline", "");
         vid.setAttribute("webkit-playsinline", "");
         vid.setAttribute("muted", "");
-        vid.preload = "auto";
+        // metadata first on phones — auto often stalls; unlock upgrades to full play
+        const isPhone =
+          /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "") ||
+          (window.matchMedia && window.matchMedia("(max-width: 899px)").matches);
+        vid.preload = isPhone ? "metadata" : "auto";
         // Never let floor audio leak (even if the file still has a track)
         const forceMute = () => {
           try {
@@ -799,43 +859,51 @@
         tex.minFilter = THREE.LinearFilter;
         tex.magFilter = THREE.LinearFilter;
         tex.generateMipmaps = false;
-        // Force GPU upload every frame (some drivers drop stalled VideoTextures)
         tex.needsUpdate = true;
         groundVideoTex = tex;
 
-        // Square plane (stable UVs) — video fills meadow; no green grass plane above it
-        const g = new THREE.PlaneGeometry(200, 200, 1, 1);
-        const mat = new THREE.MeshBasicMaterial({
-          map: tex,
-          side: THREE.FrontSide,
-          toneMapped: false,
-        });
-        const mesh = new THREE.Mesh(g, mat);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = 0.012;
-        mesh.receiveShadow = true;
-        mesh.name = "mjolnirFloor";
-        mesh.renderOrder = -1;
-        scene.add(mesh);
-        groundFloorMesh = mesh;
+        const promoteVideoFloor = () => {
+          if (!groundVideoTex || !groundFloorMesh) return;
+          if (vid.readyState < 2 || vid.videoWidth <= 0) return;
+          groundVideoLive = true;
+          applyFloorMap(groundVideoTex);
+          groundVideoTex.needsUpdate = true;
+        };
 
         const tryPlay = () => {
+          forceMute();
           const p = vid.play();
-          if (p && typeof p.catch === "function") {
-            p.catch(() => {
-              const unlock = () => {
-                vid.muted = true;
-                vid.play().catch(() => {});
-                window.removeEventListener("pointerdown", unlock);
-                window.removeEventListener("keydown", unlock);
-                window.removeEventListener("touchstart", unlock);
-              };
-              window.addEventListener("pointerdown", unlock, { once: true, passive: true });
-              window.addEventListener("keydown", unlock, { once: true });
-              window.addEventListener("touchstart", unlock, { once: true, passive: true });
-            });
+          if (p && typeof p.then === "function") {
+            p.then(() => promoteVideoFloor()).catch(() => {});
+          } else {
+            promoteVideoFloor();
           }
         };
+        // Mobile: keep trying unlock until video actually plays (not once-only)
+        let unlockBound = false;
+        const bindUnlock = () => {
+          if (unlockBound) return;
+          unlockBound = true;
+          const unlock = () => {
+            forceMute();
+            try {
+              vid.preload = "auto";
+              if (vid.readyState < 2) vid.load();
+            } catch (_) {}
+            tryPlay();
+            // Drop listeners once playing
+            if (!vid.paused && vid.readyState >= 2) {
+              window.removeEventListener("pointerdown", unlock);
+              window.removeEventListener("touchstart", unlock);
+              window.removeEventListener("keydown", unlock);
+            }
+          };
+          window.addEventListener("pointerdown", unlock, { passive: true });
+          window.addEventListener("touchstart", unlock, { passive: true });
+          window.addEventListener("keydown", unlock);
+        };
+        bindUnlock();
+
         const kick = () => {
           tryPlay();
           if (groundVideoTex) groundVideoTex.needsUpdate = true;
@@ -849,26 +917,28 @@
         vid.addEventListener("ended", () => {
           try {
             vid.currentTime = 0;
-            vid.play().catch(() => {});
+            vid.play().then(() => promoteVideoFloor()).catch(() => {});
           } catch (_) {}
         });
         vid.addEventListener("pause", () => {
-          // User gesture / tab return — resume unless page hidden
           if (!document.hidden) {
             setTimeout(() => {
-              if (vid.paused && !document.hidden) vid.play().catch(() => {});
+              if (vid.paused && !document.hidden) tryPlay();
             }, 120);
           }
         });
+        vid.addEventListener("playing", () => promoteVideoFloor());
         vid.addEventListener("error", () => {
-          console.warn("[camp3d] video floor error", vid.error);
+          console.warn("[camp3d] video floor error — keeping still", vid.error);
+          groundVideoLive = false;
+          if (groundStillTex) applyFloorMap(groundStillTex);
         });
         document.addEventListener("visibilitychange", () => {
-          if (!document.hidden && vid.paused) vid.play().catch(() => {});
+          if (!document.hidden && vid.paused) tryPlay();
         });
-        console.info("[camp3d] Mjolnir video floor (sticky)", FLOOR_VIDEO);
+        console.info("[camp3d] floor: still first, video when unlocked", FLOOR_VIDEO);
       } catch (err) {
-        console.warn("[camp3d] video floor failed, dark underlay only", err);
+        console.warn("[camp3d] video floor failed, still/underlay only", err);
       }
     }
 

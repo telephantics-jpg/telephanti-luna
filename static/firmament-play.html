@@ -619,18 +619,20 @@
       border-color: #fde68a;
       color: #fffbeb;
     }
-    /* Fixed corner button — always on screen */
+    /* Fixed corner button — always on screen (right side so relic tab / dock never cover it) */
     #camp-record-fixed {
       position: fixed !important;
-      z-index: 40 !important;
-      left: max(12px, env(safe-area-inset-left, 0px));
+      z-index: 2147483000 !important;
+      right: max(12px, env(safe-area-inset-right, 0px));
+      left: auto !important;
       bottom: calc(var(--dock-h, 120px) + 16px + env(safe-area-inset-bottom, 0px));
       display: inline-flex !important;
       align-items: center;
       justify-content: center;
       gap: 6px;
       padding: 10px 14px;
-      min-height: 46px;
+      min-height: 48px;
+      min-width: 48px;
       border-radius: 999px;
       border: 2px solid #67e8f9;
       background: linear-gradient(135deg, #0f172a, #0e7490 60%, #22d3ee);
@@ -639,6 +641,9 @@
       font-weight: 900;
       cursor: pointer;
       touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(103, 232, 249, 0.35);
+      user-select: none;
+      -webkit-user-select: none;
       box-shadow: 0 8px 28px rgba(0,0,0,0.55), 0 0 18px rgba(34, 211, 238, 0.4);
       pointer-events: auto !important;
       visibility: visible !important;
@@ -647,6 +652,9 @@
     #camp-record-fixed:hover {
       border-color: #fde68a;
       transform: scale(1.04);
+    }
+    #camp-record-fixed:active {
+      transform: scale(0.96);
     }
     body:not(.chatter-hidden) #camp-record-fixed {
       background: linear-gradient(135deg, #78350f, #f59e0b);
@@ -657,6 +665,14 @@
       font-weight: 700;
       font-size: 0.72rem;
       opacity: 0.9;
+    }
+    @media (max-width: 899px) {
+      #camp-record-fixed {
+        bottom: calc(var(--dock-h, 90px) + 12px + env(safe-area-inset-bottom, 0px));
+        padding: 12px 16px;
+        font-size: 0.9rem;
+        z-index: 2147483000 !important;
+      }
     }
     .header-row {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -3209,9 +3225,6 @@
       #status-toast,
       #weather-row,
       .brand-block .tagline,
-      #convo-log,
-      #convo-log.collapsed,
-      #convo-lines,
       #now-speaking,
       #camp-chatter-fab,
       #camp-keyboard-reply,
@@ -3244,13 +3257,55 @@
         pointer-events: none !important;
         visibility: hidden !important;
       }
-      body.camp-focus #convo-log,
-      body.camp-focus.chatter-expanded #convo-log,
-      body.camp-focus #convo-log.collapsed,
+      /* Chat record OFF by default on mobile — show only when user taps 📜 */
       body.chatter-hidden #convo-log,
+      body.camp-focus.chatter-hidden #convo-log,
+      body.camp-focus.chatter-hidden #convo-log.collapsed {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+      body:not(.chatter-hidden) #convo-log,
+      body.camp-focus:not(.chatter-hidden) #convo-log,
+      body.camp-focus.chatter-expanded:not(.chatter-hidden) #convo-log,
+      body:not(.chatter-hidden) #convo-log.collapsed {
+        display: flex !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        z-index: 50 !important;
+        left: 8px !important;
+        right: 8px !important;
+        top: calc(var(--header-h) + 8px) !important;
+        bottom: calc(var(--dock-h) + 8px + env(safe-area-inset-bottom, 0px)) !important;
+        max-height: none !important;
+        height: auto !important;
+        flex-direction: column;
+      }
+      body:not(.chatter-hidden) #convo-log #convo-lines {
+        display: flex !important;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        pointer-events: auto !important;
+      }
+      body:not(.chatter-hidden) #convo-log header {
+        display: flex !important;
+        pointer-events: auto !important;
+      }
+      #camp-chatter-fab,
       #camp-chatter-fab.visible {
         display: none !important;
         pointer-events: none !important;
+      }
+      /* Keep fixed 📜 tappable above everything on phones */
+      #camp-record-fixed {
+        display: inline-flex !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 2147483000 !important;
       }
       #camp-zoom-bar {
         display: none;
@@ -3439,10 +3494,10 @@
       }
       .brand-block h1 { font-size: 0.82rem; }
       #mini-status { display: none; }
-      body.camp-focus #convo-log,
-      body.camp-focus.speech-expanded #convo-log:not(.collapsed),
-      body.camp-focus #convo-log.collapsed {
-        max-height: 40px;
+      /* When chat record is open, use full usable height even in landscape */
+      body.camp-focus:not(.chatter-hidden) #convo-log,
+      body.camp-focus.chatter-expanded:not(.chatter-hidden) #convo-log {
+        max-height: none !important;
       }
       .dock-compact .dock-icon { width: 42px; height: 42px; font-size: 1.1rem; }
     }
@@ -3947,7 +4002,7 @@
       }
     }
 
-    /* ═══ RELIC DECK — free surprise toys in leftover chrome space ═══ */
+    /* ═══ RELIC DECK — free surprise toys (collapsed by default) ═══ */
     #relic-deck {
       position: fixed;
       z-index: 22;
@@ -3960,6 +4015,60 @@
       pointer-events: none;
     }
     #relic-deck > * { pointer-events: auto; }
+    #relic-deck-toggle {
+      pointer-events: auto !important;
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      min-height: 40px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(167, 139, 250, 0.55);
+      background: linear-gradient(135deg, rgba(8, 14, 28, 0.96), rgba(30, 27, 75, 0.92));
+      color: #e9d5ff;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(167, 139, 250, 0.3);
+      user-select: none;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.45), 0 0 14px rgba(167, 139, 250, 0.2);
+      z-index: 23;
+    }
+    #relic-deck-toggle:hover {
+      border-color: #fde68a;
+      color: #fef3c7;
+    }
+    #relic-deck-toggle:active { transform: scale(0.97); }
+    #relic-deck-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: min(70vh, 520px);
+      overflow: hidden;
+      opacity: 1;
+      transition: opacity 0.18s ease, max-height 0.22s ease, margin 0.18s ease;
+    }
+    /* Start collapsed — only the pill shows until user expands */
+    #relic-deck.collapsed #relic-deck-panel {
+      max-height: 0 !important;
+      opacity: 0;
+      margin: 0;
+      pointer-events: none !important;
+      overflow: hidden;
+    }
+    #relic-deck.collapsed #relic-deck-toggle .rdt-chev::before {
+      content: "▸";
+    }
+    #relic-deck:not(.collapsed) #relic-deck-toggle .rdt-chev::before {
+      content: "▾";
+    }
+    #relic-deck:not(.collapsed) #relic-deck-toggle {
+      border-color: rgba(103, 232, 249, 0.55);
+      color: #a5f3fc;
+    }
     #mind-triad {
       background: linear-gradient(160deg, rgba(8, 14, 28, 0.94), rgba(15, 40, 71, 0.88));
       border: 1px solid rgba(167, 139, 250, 0.45);
@@ -4099,10 +4208,23 @@
     @media (max-width: 899px) {
       #relic-deck {
         top: auto;
-        bottom: calc(var(--dock-h) + 70px + env(safe-area-inset-bottom, 0px));
+        /* Left side above dock — clear of right-side 📜 Chat record */
+        bottom: calc(var(--dock-h) + 12px + env(safe-area-inset-bottom, 0px));
         width: min(148px, 38vw);
+        z-index: 24;
+      }
+      #relic-deck.collapsed {
+        width: auto;
       }
       #mind-triad canvas { max-height: 90px; }
+      #relic-deck:not(.collapsed) {
+        max-height: min(52vh, 420px);
+      }
+      #relic-deck:not(.collapsed) #relic-deck-panel {
+        max-height: min(48vh, 380px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
     }
     @media (min-width: 900px) {
       #relic-deck {
@@ -4218,28 +4340,34 @@
   <!-- Always-visible chat record (cannot hide behind dock scroll) -->
   <button type="button" id="camp-record-fixed" title="Chat record — past lines from the meadow" aria-label="Open or close chat record">📜 Chat record</button>
 
-  <!-- Free surprise toys — leftover chrome space -->
-  <aside id="relic-deck" aria-label="Camp relic deck">
-    <div id="mind-triad" title="Three mindstates: joy · stability · will">
-      <div class="mt-title">✦ Mind triad</div>
-      <canvas id="mind-triad-canvas" width="280" height="160" aria-hidden="true"></canvas>
-      <div class="mt-lead" id="mind-triad-lead">Juggling the aether…</div>
+  <!-- Free surprise toys — collapsed by default; expand via pill -->
+  <aside id="relic-deck" class="collapsed" aria-label="Camp relic deck">
+    <button type="button" id="relic-deck-toggle" aria-expanded="false" aria-controls="relic-deck-panel" title="Open mind triad · wish star · divine pulse">
+      <span class="rdt-chev" aria-hidden="true"></span>
+      <span class="rdt-label">✦ Relics</span>
+    </button>
+    <div id="relic-deck-panel" hidden>
+      <div id="mind-triad" title="Three mindstates: joy · stability · will">
+        <div class="mt-title">✦ Mind triad</div>
+        <canvas id="mind-triad-canvas" width="280" height="160" aria-hidden="true"></canvas>
+        <div class="mt-lead" id="mind-triad-lead">Juggling the aether…</div>
+      </div>
+      <div id="relic-actions">
+        <button type="button" class="relic-btn wish" id="btn-wish-star" title="Fire a free shooting star — someone answers">
+          <span class="rb-ico">☄️</span>
+          <span><span>Wish star</span><span class="rb-sub">shooting star + free oracle</span></span>
+        </button>
+        <button type="button" class="relic-btn pulse" id="btn-divine-pulse" title="World pulse riffed by a random mind">
+          <span class="rb-ico">📡</span>
+          <span><span>Divine pulse</span><span class="rb-sub">current events → camp take</span></span>
+        </button>
+        <button type="button" class="relic-btn constellation" id="btn-constellation" title="Draw stars — free prophecy">
+          <span class="rb-ico">✧</span>
+          <span><span>Constellation</span><span class="rb-sub">tap sky · free prophecy</span></span>
+        </button>
+      </div>
+      <div id="echo-orbs" aria-label="Recent speech echoes" title="Tap an echo to re-hear a past line"></div>
     </div>
-    <div id="relic-actions">
-      <button type="button" class="relic-btn wish" id="btn-wish-star" title="Fire a free shooting star — someone answers">
-        <span class="rb-ico">☄️</span>
-        <span><span>Wish star</span><span class="rb-sub">shooting star + free oracle</span></span>
-      </button>
-      <button type="button" class="relic-btn pulse" id="btn-divine-pulse" title="World pulse riffed by a random mind">
-        <span class="rb-ico">📡</span>
-        <span><span>Divine pulse</span><span class="rb-sub">current events → camp take</span></span>
-      </button>
-      <button type="button" class="relic-btn constellation" id="btn-constellation" title="Draw stars — free prophecy">
-        <span class="rb-ico">✧</span>
-        <span><span>Constellation</span><span class="rb-sub">tap sky · free prophecy</span></span>
-      </button>
-    </div>
-    <div id="echo-orbs" aria-label="Recent speech echoes" title="Tap an echo to re-hear a past line"></div>
   </aside>
   <div id="constellation-layer" aria-hidden="true">
     <div id="constellation-hint">Tap the sky 3–7 times · then wait for the prophecy</div>
@@ -4613,7 +4741,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-05-2d-relic-deck";
+    const CAMP_BUILD = "2026-08-06-relic-collapse-chat-mobile";
     let campWeather = "aurora";
     /** Cool Caduceus wallpaper (PC + live) — aurora is soft fallback */
     const CAMP_BG_URL = `/static/camp/caduceus-wallpaper.jpg?v=${CAMP_BUILD}`;
@@ -5622,14 +5750,18 @@
     const CAMP_UI_SELECTOR = [
       "#action-bar", "#camp-header", "#camp-zoom-bar", "#convo-log",
       "#camp-music-bar", "#camp-enter-house", "#camp-speech-pin",
-      "#camp-chatter-fab", "#visitor-modal",
+      "#camp-chatter-fab", "#camp-record-fixed", "#btn-chat-record",
+      "#relic-deck", "#relic-deck-toggle", "#visitor-modal",
       "#camp-agent-menu", "#grok-terminal", "#camp-layer-bar", "#camp-text-expand",
       "#camp-pick-agent-fab", "#camp-pick-agent-sheet", "#camp-tpx-fab",
       "#camp-heaven-fab", "#btn-header-heaven", "#camp-chat-panel",
+      "#camp-act-fab", "#camp-act-sheet", "#constellation-layer",
     ].join(", ");
     function isCampUiTarget(el) {
       if (!el) return false;
       if (el.id === "camp-chat-panel" || el.closest?.("#camp-chat-panel")) return true;
+      if (el.id === "camp-record-fixed" || el.closest?.("#camp-record-fixed")) return true;
+      if (el.id === "relic-deck" || el.closest?.("#relic-deck")) return true;
       return !!(el.closest && el.closest(CAMP_UI_SELECTOR));
     }
     function isMapSurfaceTarget(el) {
@@ -18168,18 +18300,32 @@
         const el = document.getElementById(id);
         if (!el || el.__recordWired) continue;
         el.__recordWired = true;
+        // Stop map/canvas from stealing the gesture before click
+        el.addEventListener("pointerdown", (ev) => {
+          try { ev.stopPropagation(); } catch (_) {}
+        }, true);
+        el.addEventListener("touchstart", (ev) => {
+          try { ev.stopPropagation(); } catch (_) {}
+        }, { capture: true, passive: true });
         el.addEventListener("click", (ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();
+          try {
+            ev.preventDefault();
+            ev.stopPropagation();
+          } catch (_) {}
+          // Debounce so a stray synthetic click can't instant-close
+          const now = Date.now();
+          if (el.__recordLast && now - el.__recordLast < 320) return;
+          el.__recordLast = now;
           toggleChatRecord();
         });
       }
       try { syncChatterFab(); } catch (_) {}
     }
     wireChatRecordButtons();
-    // Re-assert after layout
+    // Re-assert after layout (boot/splash can reflow FABs)
     setTimeout(wireChatRecordButtons, 200);
     setTimeout(wireChatRecordButtons, 1200);
+    setTimeout(wireChatRecordButtons, 3000);
     document.getElementById("convo-mobile-hide")?.addEventListener("click", (ev) => {
       ev.stopPropagation();
       toggleChatRecord({ force: "close" });
@@ -19503,10 +19649,66 @@
     let constellationPoints = [];
     let constellationAnim = 0;
 
+    function setRelicDeckOpen(open, opts = {}) {
+      const deck = document.getElementById("relic-deck");
+      const panel = document.getElementById("relic-deck-panel");
+      const btn = document.getElementById("relic-deck-toggle");
+      if (!deck) return;
+      const want = !!open;
+      deck.classList.toggle("collapsed", !want);
+      if (panel) {
+        if (want) panel.removeAttribute("hidden");
+        else panel.setAttribute("hidden", "");
+      }
+      if (btn) {
+        btn.setAttribute("aria-expanded", want ? "true" : "false");
+        btn.title = want
+          ? "Hide mind triad · wish star · divine pulse"
+          : "Open mind triad · wish star · divine pulse";
+        const label = btn.querySelector(".rdt-label");
+        if (label) label.textContent = want ? "✦ Relics" : "✦ Relics";
+      }
+      try {
+        localStorage.setItem("luna-camp-relic-deck", want ? "open" : "collapsed");
+      } catch (_) {}
+      if (!opts.quiet && want) {
+        try { showToast("✦ Relic deck — mind triad · wish · pulse"); } catch (_) {}
+      }
+    }
+
+    function toggleRelicDeck(opts = {}) {
+      const deck = document.getElementById("relic-deck");
+      const isOpen = deck && !deck.classList.contains("collapsed");
+      setRelicDeckOpen(!isOpen, opts);
+    }
+
+    function wireRelicDeckToggle() {
+      const btn = document.getElementById("relic-deck-toggle");
+      if (!btn || btn.__relicWired) return;
+      btn.__relicWired = true;
+      btn.addEventListener("pointerdown", (ev) => {
+        try { ev.stopPropagation(); } catch (_) {}
+      }, true);
+      btn.addEventListener("touchstart", (ev) => {
+        try { ev.stopPropagation(); } catch (_) {}
+      }, { capture: true, passive: true });
+      btn.addEventListener("click", (ev) => {
+        try {
+          ev.preventDefault();
+          ev.stopPropagation();
+        } catch (_) {}
+        toggleRelicDeck();
+      });
+    }
+
     function initRelicDeck() {
       const triad = document.getElementById("mind-triad-canvas");
       const leadEl = document.getElementById("mind-triad-lead");
       const orbsEl = document.getElementById("echo-orbs");
+
+      // Always start collapsed on page load (user asked minimized at start)
+      setRelicDeckOpen(false, { quiet: true });
+      wireRelicDeckToggle();
 
       function drawMindTriad() {
         if (!triad) return;

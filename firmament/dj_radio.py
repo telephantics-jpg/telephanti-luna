@@ -38,133 +38,152 @@ DJ_CHARACTER = {
     "station": DEFAULT_STATION,
     "voice_key": "vox",  # edge-tts free male neural
     "vibe": (
-        "Late-night board op with dry comic timing. Ironic but accurate  -  "
-        "says the quiet true thing like a joke that lands. Even energy every drop: "
-        "two beats, one laugh of recognition, then the song. Never mean, never preachy, "
-        "never corporate. Loves Telephantix, night drivers, and the comedy of modern life."
+        "Late-night board op with stand-up timing and a soft heart. "
+        "Funnier first, true second — irony that winks, never sneers. "
+        "Sounds like a friend who watched the whole timeline and still put a record on. "
+        "Every drop: one dry joke that lands, one human nod, then the song. "
+        "Never mean, never preachy, never brand-safe mush. "
+        "Loves Telephantix, night drivers, and the cosmic joke of modern life."
     ),
     "signoffs": [
-        "Vox on the boards.",
-        "This is Vox  -  stay with the signal.",
-        "Vox out  -  music up, ego down.",
-        " -  Vox, overnight. Don't @ me.",
+        "Vox on the boards — ego off, volume up.",
+        "This is Vox. Stay weird. Stay kind. Don't @ the algorithm.",
+        "Vox out — music doing the adulting now.",
+        "— Vox, overnight. If that landed, good. If not, the bass will.",
+        "Booth signed. Song's got the wheel. Vox vanishing into the fade.",
     ],
 }
 
-# Ironic-but-true world bits  -  funny first, accurate second. Not partisan.
+# Ironic-but-true world bits — funnier first, accurate second. Fresh 2026 energy.
 # Rotated by calendar day so the set feels like "today" without news APIs.
 WORLD_TRUTHS = [
     (
-        "We built pocket supercomputers so we could argue with strangers about lunch. "
-        "Progress: yes. Wisdom: still buffering."
+        "We taught phones to finish our sentences and then got mad when they finished our personality. "
+        "Autocorrect for the soul — still in beta."
     ),
     (
-        "Everyone's 'building a personal brand' like personality is a SaaS tier. "
-        "Meanwhile character is still free and somehow rarer."
+        "Everyone's 'protecting their peace' by muting the one person who would actually check on them. "
+        "Boundaries? Sometimes. Avoidance with a skincare routine? Also an option, apparently."
     ),
     (
-        "We have infinite entertainment and the collective attention span of a goldfish "
-        "with a push notification. Congrats to us."
+        "We pay monthly to not see ads, then invent new apps so we can watch strangers' ads for free. "
+        "Capitalism isn't confused. We are."
     ),
     (
-        "The algorithm will feed you the version of you that clicks most. "
-        "That's not destiny  -  that's a vending machine with better lighting."
+        "Your step counter thinks walking to the fridge is cardio. "
+        "Your therapist thinks your group chat is cardio. Both might be right."
     ),
     (
-        "We're always 'connected' and somehow always late to call the one person "
-        "who'd actually pick up. Bandwidth isn't the same as showing up."
+        "We archived our childhoods in the cloud and still can't find last Tuesday's receipts. "
+        "Memory is premium now — presence was the free plan we canceled."
     ),
     (
-        "News wants your panic before breakfast; truth wants a second source. "
-        "One of those has a business model. Guess which."
+        "Hot takes travel at light speed. Changing your mind requires a rebrand, a thread, and three disclaimers. "
+        "Growth is free; optics charge a service fee."
     ),
     (
-        "A.I. will write the email. You still have to mean the apology. "
-        "The model doesn't get the awkward lunch after."
+        "We optimized dating into a swipe economy and then wondered why chemistry feels like customer support. "
+        "Romance is not a ticket queue — stop refreshing the queue."
     ),
     (
-        "We optimized life for convenience and accidentally deleted patience. "
-        "Now waiting three seconds feels like a human rights violation."
+        "AI can summarize your meeting. It cannot apologize for the meeting. "
+        "Still hiring: humans who own the weird silence after."
     ),
     (
-        "Loneliness is booming in group chats. Proximity was never the product  -  "
-        "presence was. We just bought the wrong upgrade."
+        "Push notifications trained us to treat every ping like a small emergency. "
+        "Most of them are coupons for anxiety with free shipping."
     ),
     (
-        "Your body still needs sleep, water, and sunlight. No subscription plan "
-        "has patched biology yet  -  trust me, they've tried."
+        "We live-stream sunsets and miss the wind. "
+        "The sky doesn't need your caption to be real — rude of it, honestly."
     ),
     (
-        "We document every sandwich and forget whole years. "
-        "Live one scene you won't post. Those are the ones that actually stick."
+        "Inbox zero is a personality now. "
+        "Meanwhile your actual life has three unread feelings and no archive folder."
     ),
     (
-        "Public life pays for performance; private life pays for integrity. "
-        "Only one of those shows up when the Wi-Fi dies."
+        "We built open offices for collaboration and invented headphones for survival. "
+        "Progress wears noise-canceling and calls it culture."
     ),
     (
-        "Infinite choice was sold as freedom. Turns out it's just a loading screen "
-        "with better thumbnails. Pick something good enough and go."
+        "Self-care sold us a candle. Discipline sold us a calendar. "
+        "Friendship still sells nothing and somehow keeps the lights on."
     ),
     (
-        "Polarization is a growth industry. Nuance doesn't trend. "
-        "Be expensive: hold two thoughts without starting a podcast about either."
+        "Everyone wants community until community needs a Tuesday night. "
+        "Vibes are easy. Showing up with snacks is religion."
     ),
     (
-        "We treat health like optional DLC and then wonder why the main quest lags. "
-        "Move. Eat something that had a mother. Sleep like it matters."
+        "We fact-check strangers harder than we fact-check our own excuses. "
+        "Bias has great PR and a family discount."
     ),
     (
-        "Trust is expensive to earn and cheap to fake online. "
-        "That's not cynicism  -  that's the fee schedule."
+        "Your feed thinks you want more of what made you mad yesterday. "
+        "That's not personalization — that's a casino that learned your tells."
     ),
     (
-        "Everyone wants to be a main character; almost nobody wants to do the dishes "
-        "in act two. Spoiler: the dishes are the plot."
+        "We call it 'content' so we don't have to call it 'a cry for connection with better lighting.' "
+        "Either way: hit play, then go touch grass that doesn't have a brand deal."
     ),
     (
-        "Climate isn't a vibe check  -  it's physics with a due date. "
-        "Hope without action is décor; action without hope is just yelling at the thermostat."
+        "Sleep is free. We treat it like optional DLC. "
+        "Then we buy three apps to fix the glitch we installed at 2 a.m."
     ),
     (
-        "Your nervous system wasn't designed for global catastrophe before coffee. "
-        "Local care first: one room, one person, one true task. Save the planet after lunch."
+        "Advice is infinite. Follow-through is artisan and small-batch. "
+        "Knowing better is a meme. Doing better is a plot twist."
     ),
     (
-        "Craft is quiet; takes are loud. The loud thing goes viral; the quiet thing "
-        "outlasts the app. Choose your immortality carefully."
+        "We multitask like it's a sport and wonder why nothing feels finished. "
+        "Single-tasking is the new luxury good — no waitlist, just pride."
     ),
     (
-        "We call it 'multitasking' when it's really 'doing three things badly "
-        "while feeling productive.' Single-thread is the new flex."
+        "Public opinion updates every hour. Character updates when nobody's filming. "
+        "Pick your release cycle carefully."
     ),
     (
-        "Kindness without boundaries is a doormat with good PR. "
-        "Boundaries without kindness is a fortress with no friends. Calibrate."
+        "We outsourced memory to devices and intuition to influencers. "
+        "Your gut is still free software — reinstall occasionally."
     ),
     (
-        "Debt, dopamine, and deadlines run the modern calendar. "
-        "Steal one hour that isn't monetized. Call it a crime. Call it free."
+        "Meetings expanded to fill the void where a sentence could've lived. "
+        "Email expanded to fill the void where a meeting could've lived. Circle of life."
     ),
     (
-        "Screens flattened the night sky into a rectangle. "
-        "Step outside  -  the original timeline is still streaming, no ads."
+        "We're fluent in irony and rusty at sincerity. "
+        "Joke first is fine. Mean it second or the bit eats the person."
     ),
     (
-        "Advice culture is huge; follow-through culture is a niche hobby. "
-        "Knowing better is free. Doing better costs one awkward Tuesday."
+        "The news wants your cortisol. Your people want your Tuesday. "
+        "Only one of those leaves a voicemail that still loves you."
     ),
     (
-        "We're drowning in opinions and starving for people who can change their mind "
-        "without a press release. Stay weird enough to revise."
+        "Craft is slow on purpose. Virality is fast on purpose. "
+        "One builds a life; the other builds a highlight reel with trust issues."
     ),
     (
-        "The best meetings could've been a sentence. The best apologies still can't. "
-        "Allocate your words like rent money."
+        "We say 'I'm so busy' like it's a résumé bullet. "
+        "Busy is free. Intentional is the upgrade nobody markets."
     ),
     (
-        "Creativity is the escape hatch from machine sameness. "
-        "Ugly first drafts beat polished emptiness  -  and they cost less lighting."
+        "Kindness without spine is a welcome mat. Spine without kindness is a locked door. "
+        "Be a porch light — visible, warm, not a doormat."
+    ),
+    (
+        "Your nervous system is still running prehistoric software on a 2026 update schedule. "
+        "Scroll less before coffee. The saber-tooth is usually just a calendar invite."
+    ),
+    (
+        "Creativity is the only subscription that refunds you in meaning. "
+        "Ugly drafts beat polished emptiness — cheaper lighting, better soul."
+    ),
+    (
+        "We want eternal youth and next-day delivery. "
+        "Time still charges interest. Pay in walks, laughs, and one honest nap."
+    ),
+    (
+        "Group chats are full. Living rooms are empty. "
+        "Bandwidth without presence is just loneliness with better typing indicators."
     ),
 ]
 
@@ -197,41 +216,53 @@ def template_drop(
     artist: str = DEFAULT_ARTIST,
     station: str = DEFAULT_STATION,
 ) -> str:
-    """Even witty bridge (~2 sentences): funny + true, names the next song."""
+    """Even witty bridge (~2 sentences): funnier + ironic, names the next song."""
     nxt = _clean_title(next_title)
     prev = _clean_title(prev_title) if prev_title else ""
     art = _clean_title(artist) or DEFAULT_ARTIST
     name = DJ_CHARACTER["handle"]
 
-    # Keep lengths similar so the set feels even  -  joke, then land on title.
+    # Joke first, land on title — fresh bank, even energy, zero corporate mush.
     lines = [
-        f"{name} here  -  {nxt} is up. I could hype it with five adjectives, but honesty is funnier: it slaps, so stop doomscrolling for one song.",
-        f"Incoming: {nxt} by {art}. Windows-down energy in a world that mostly offers notification anxiety. Rare upgrade  -  take it.",
-        f"Don't skip the first thirty seconds of {nxt}. That's where the song earns your trust and your phone loses the argument.",
-        f"Board flip to {nxt}. Cosmic, not corporate yoga voice. Stay weird, stay kind, leave the brand deck at the door.",
-        f"Soft landing into {nxt}. I'll talk just long enough to prove I'm awake  -  then the music does the grown-up work.",
-        f"{nxt}  -  for night drivers and people who rehearse arguments in the shower. Both of you are valid. Neither of you should text yet.",
-        f"Spinning {nxt}. If today flattened you into a productivity spreadsheet, this one puts some illegal dimension back.",
-        f"Camp, breathe  -  {art}, {nxt}. The algorithm wants your panic; this track wants your shoulders somewhere near human.",
-        f"This is {nxt}. Not a product placement  -  a mood delivery. No signature required. No upsell. Weird, I know.",
-        f"{name} says: if life felt synthetic today, {nxt} is the antidote with a pulse and zero Terms of Service.",
-        f"Sliding into {nxt}. One ear on the lyric, one on the true thing you've been dodging. Multitasking, but useful for once.",
-        f"Telephantix Radio  -  {nxt} next. Brief talk, longer song, zero lectures. You're welcome; my therapist is less efficient.",
-        f"Right into {nxt}. I'll keep this shorter than a corporate all-hands and twice as honest.",
-        f"Here's {nxt}. Brain on, shoulders down  -  a combo the modern workplace forgot to invent.",
-        f"Cue {nxt} by {art}. If the bass finds your pulse before your to-do list does, that's not an accident  -  that's mercy.",
-        f"{name} on the boards: {nxt}. Clever without smug, warm without syrup. Like good company that doesn't check their phone mid-sentence.",
-        f"Music up on {nxt}. Ego down. Notification badges can wait  -  they've survived without you this long.",
-        f"Playing {nxt}. Consider this a tiny rebellion against the infinite scroll. We still have those.",
+        f"{name} in the booth — {nxt} is next. I could hype it like an influencer launch, but honesty is funnier: this one actually has a pulse. Hit play before your phone invents a new emergency.",
+        f"Incoming: {nxt} by {art}. Windows-down energy in a civilization that mostly offers loading spinners and mild dread. Rare upgrade. Accept the terms: zero terms.",
+        f"Don't skip the first thirty of {nxt}. That's where the song earns your trust and your notification badge loses the custody battle.",
+        f"Board flip — {nxt}. Cosmic, not corporate wellness voice. Stay weird, stay kind, leave the brand deck and the false urgency at the door.",
+        f"Soft landing into {nxt}. I'll talk just long enough to prove the booth is staffed by a human with jokes, then the music does the adulting.",
+        f"{nxt} — for night drivers and people who rehearse texts in the shower. Both of you are valid. Neither of you should send that text yet.",
+        f"Spinning {nxt}. If today flattened you into a productivity spreadsheet with anxiety as a free add-on, this puts illegal dimension back in the file.",
+        f"Camp, unclench — {art}, {nxt}. The algorithm wants your panic; this track wants your shoulders somewhere near 'person who still likes music.'",
+        f"This is {nxt}. Not product placement — mood delivery with no upsell, no 'like and subscribe,' no spiritual multilevel marketing. Weird, I know. Stay.",
+        f"{name} says: if life felt like a demo build today, {nxt} is the full release with better bass and fewer tooltips.",
+        f"Sliding into {nxt}. One ear on the lyric, one on the true thing you've been dodging. Multitasking, but for once it isn't self-sabotage.",
+        f"Telephantix Radio — {nxt} next. Brief talk, longer song, zero lectures. My therapist bills more for less irony.",
+        f"Right into {nxt}. Shorter than a corporate all-hands, twice as honest, three times less likely to invent a new OKR for your soul.",
+        f"Here's {nxt}. Brain on, shoulders down — a combo HR forgot to invent while inventing pizza Fridays.",
+        f"Cue {nxt} by {art}. If the bass finds your pulse before your to-do list does, that's not an accident — that's mercy with a kick drum.",
+        f"{name} on the boards: {nxt}. Clever without smug, warm without syrup. Like company that doesn't check their phone mid-sentence. Endangered species. Enjoy.",
+        f"Music up on {nxt}. Ego down. Notification badges can wait — they've survived without you this long, drama queens that they are.",
+        f"Playing {nxt}. Tiny rebellion against the infinite scroll. We still have those. No app required. No streak to maintain. Just… ears.",
+        f"Plot twist: {nxt} is better than refreshing the same three apps hoping reality improved. Spoiler: it didn't. The song might.",
+        f"{name} with a PSA — {nxt} will not fix your life. It will fix the next three minutes, which is more honest than most self-help.",
+        f"Dropping {nxt}. If your day was a group chat with no punchline, consider this the delayed witty reply from the universe.",
+        f"Straight into {nxt} by {art}. Ironic world, sincere bass. Hold both. That's the brand. That's the bit.",
+        f"Booth note: {nxt} is not content. It's a song. Content is what happens when art fills out a form. We don't do forms after midnight.",
+        f"{name} here — {nxt} incoming. Pause the doomscroll like it owes you money. It does. Collect in bass.",
+        f"For the overthinkers: {nxt}. You can still overthink. Just do it in time. Rhythm is free therapy with better lighting.",
+        f"Spinning {nxt}. Side effects may include remembering you have a body, a pulse, and preferences that aren't a poll.",
+        f"This is {nxt} — Telephantix night shift. If corporate radio is a smile with no eyes, we're the eye contact that doesn't ask for your email.",
+        f"{name}: {nxt} is up. Skip culture is a democracy of cowards. Stick around. Courage is thirty seconds long.",
     ]
     if prev and prev.lower() != nxt.lower():
         lines.extend(
             [
-                f"Out of {prev}, into {nxt}. Clean handoff  -  like changing lanes without inventing a new personality online.",
-                f"That was {prev}  -  now {nxt} takes the wheel. Same night, new voltage, fewer opinions required.",
-                f"Leaving {prev} in the rearview. Ahead: {nxt}. Don't text-and-drive your whole life either  -  ask me how I know.",
-                f"From {prev} to {nxt}  -  the set has a spine tonight. Stay with it; the skip button is a coward's democracy.",
-                f"Closed {prev}. Opening {nxt}. Continuity is underrated in a culture of cold opens and colder takes.",
+                f"Out of {prev}, into {nxt}. Clean handoff — like changing lanes without inventing a new online persona mid-merge.",
+                f"That was {prev} — now {nxt} takes the wheel. Same night, new voltage, fewer unsolicited opinions required.",
+                f"Leaving {prev} in the rearview. Ahead: {nxt}. Don't text-and-drive your whole life either — ask me how I know. Don't actually ask.",
+                f"From {prev} to {nxt} — the set has a spine tonight. Stay with it; the skip button is a coward's democracy with great UX.",
+                f"Closed {prev}. Opening {nxt}. Continuity is underrated in a culture of cold opens, colder takes, and zero second acts.",
+                f"We put {prev} to bed. {nxt} just walked in wearing better shoes. Don't be rude — listen.",
+                f"Handoff: {prev} → {nxt}. Same booth, new joke, identical commitment to not wasting your ears.",
             ]
         )
     return _clamp(random.choice(lines), MAX_DROP_CHARS)
@@ -244,27 +275,31 @@ def template_truth_drop(
     artist: str = DEFAULT_ARTIST,
     station: str = DEFAULT_STATION,
 ) -> str:
-    """Every few songs: ironic-true beat, then land on the track by name."""
+    """Every few songs: funnier ironic-true beat, then land on the track by name."""
     nxt = _clean_title(next_title)
     art = _clean_title(artist) or DEFAULT_ARTIST
     name = DJ_CHARACTER["handle"]
-    truth = random.choice(_todays_truths(14))
+    truth = random.choice(_todays_truths(16))
 
     openers = [
-        f"{name} with a true thing that sounds like a joke  -  because it is, and also isn't.",
-        f"Hold skip half a second. Funny truth from outside the booth.",
-        f"{name} here. Observation, not a TED talk  -  then we play.",
-        f"Quick world note, dry humor included, refunds not available.",
-        f"Today's world, booth edition: ironic, accurate, mercifully short.",
-        f"Real talk that won't ruin the vibe  -  that's the whole brand.",
+        f"{name} with a true thing that sounds like a joke — because it is, and also isn't, which is the whole problem with reality.",
+        f"Hold skip half a second. Funny truth from outside the booth. Refunds not available; wisdom is non-returnable.",
+        f"{name} here. Observation, not a TED talk, not a podcast, not a funnel — then we play.",
+        f"Quick world note, dry humor included, moral superiority excluded.",
+        f"Today's world, booth edition: ironic, accurate, mercifully short, slightly unhinged in a friendly way.",
+        f"Real talk that won't ruin the vibe — that's the whole brand, and also how friendships survive.",
+        f"{name} clearing his throat for science. One ironic truth, then music does the pastoral care.",
+        f"Intermission from the nonsense: a true joke. If it stings, that's free diagnostics.",
     ]
     landings = [
-        f"Truth parked. Here's {nxt} by {art}. Windows down if you can; ego down either way.",
-        f"That's the bit. Congregation: {nxt}. Collection plate is optional.",
-        f"Mic down  -  {nxt} takes it. Stay human; the bots already filled the group chat.",
-        f"Enough philosophy. {art}, {nxt}. Medicine that doesn't taste like kale.",
-        f"And scene  -  {nxt}. Let it work while the world keeps refreshing itself.",
-        f"Joke over, song on: {nxt}. Same energy, better bass.",
+        f"Truth parked. Here's {nxt} by {art}. Windows down if you can; ego down either way — cheaper than therapy, louder than a take.",
+        f"That's the bit. Congregation: {nxt}. Collection plate optional. Skipping the sermon, keeping the bass.",
+        f"Mic down — {nxt} takes it. Stay human; the bots already filled the group chat and none of them brought snacks.",
+        f"Enough philosophy. {art}, {nxt}. Medicine that doesn't taste like kale or a LinkedIn post.",
+        f"And scene — {nxt}. Let it work while the world keeps refreshing itself into the same opinion.",
+        f"Joke over, song on: {nxt}. Same energy, better bass, fewer disclaimers.",
+        f"Booth out. {nxt} in. If that hit, good. If not, the kick drum will file a follow-up.",
+        f"Truth signed, sealed, slightly roasted. Spinning {nxt}. Go be a person for three minutes.",
     ]
     line = f"{random.choice(openers)} {truth} {random.choice(landings)}"
     return _clamp(line, MAX_TRUTH_CHARS)
@@ -275,11 +310,12 @@ def station_id_drop() -> str:
     name = DJ_CHARACTER["name"]
     st = DJ_CHARACTER["station"]
     lines = [
-        f"{name} on {st}. Telephantix only  -  funny truths, real songs, no corporate mindfulness tax.",
-        f"Overnight meadow. {name}. Even drops, dry jokes, occasional world-truth that lands soft.",
-        f"You're on {st}. I'm {name}  -  witty handoffs, ironic honesty, long songs that don't apologize.",
-        f"{name} at the boards. Every few tracks I say something true that sounds like a joke. The rest is music.",
-        f"{st} overnight with {name}. Skip culture is loud; good songs are louder if you let them.",
+        f"{name} on {st}. Telephantix only — funny truths, real songs, no corporate mindfulness tax, no 'engagement' homework.",
+        f"Overnight meadow. {name}. Even drops, dryer jokes, occasional world-truth that lands soft and still makes you snort.",
+        f"You're on {st}. I'm {name} — witty handoffs, ironic honesty, long songs that don't apologize for existing.",
+        f"{name} at the boards. Every few tracks I say something true that sounds like a joke. The rest is music. The joke is also true.",
+        f"{st} overnight with {name}. Skip culture is loud; good songs are louder if you stop treating them like content.",
+        f"{name} live. If you wanted safe radio, wrong booth. If you wanted a friend with a playlist and a smirk — stay.",
     ]
     return random.choice(lines)
 
@@ -316,14 +352,14 @@ def craft_drop_with_ollama(
         prompt = (
             f"You are {char['name']} ({char['handle']}), free late-night DJ on {st}. "
             f"Persona: {char['vibe']} "
-            f"Write a spoken mic drop (2-4 short sentences, about 50-85 words) that: "
-            f"(1) opens as Vox with even, confident booth energy, "
-            f"(2) delivers ONE funny, ironic-but-true observation about modern life "
-            f"(phones, algorithms, loneliness-in-group-chats, sleep, craft, attention, choice paralysis  -  "
-            f"NOT partisan politics, NOT mean, NOT a lecture), "
+            f"Write a spoken mic drop (2-4 short sentences, about 50-90 words) that: "
+            f"(1) opens as Vox with booth swagger and a smirk, "
+            f"(2) delivers ONE new funny, ironic-but-true observation about modern life "
+            f"(phones, apps, dating apps, sleep, AI, group chats, 'content,' hustle theater, attention — "
+            f"NOT partisan politics, NOT mean, NOT a lecture, NOT recycled 'algorithm bad' clichés without a twist), "
             f"(3) MUST name the exact song title \"{nxt}\" by {art} at the end as the landing. "
             f"Seed idea to riff on in your voice (do not quote verbatim): {truth_seed} "
-            "Tone: dry comedy that nods yes because it's accurate. Friend in the booth, not a coach. "
+            "Tone: stand-up timing + soft heart. Friend in the booth who watched the timeline and still pressed play. "
             "No hashtags, no emojis, no stage directions. Only words into the mic."
         )
         max_chars = MAX_TRUTH_CHARS
@@ -332,11 +368,11 @@ def craft_drop_with_ollama(
         prompt = (
             f"You are {char['name']} ({char['handle']}), free Spotify-style radio DJ on {st}. "
             f"Persona: {char['vibe']} "
-            f"Write ONE spoken intro (exactly 2 short sentences, about 30-48 words) for the song STARTING NOW. "
-            f"Even energy every time: first sentence a dry funny true beat, second lands on the song. "
+            f"Write ONE spoken intro (exactly 2 short sentences, about 32-52 words) for the song STARTING NOW. "
+            f"Even energy: first sentence a dry funny true beat with irony, second lands on the song by name. "
             f"You MUST say the exact title \"{nxt}\". Artist: {art}. "
             + (f'Optional half-breath nod to previous song \"{prev}\". ' if prev else "")
-            + "Ironic but warm. Not generic hype. Not a monologue. Not corporate. "
+            + "Funnier than generic radio. Warm, not syrupy. Not corporate hype. Not a monologue. "
             "No hashtags, no emojis, no stage directions. Only the words into the mic."
         )
         max_chars = MAX_DROP_CHARS
@@ -357,8 +393,9 @@ def craft_drop_with_ollama(
                             "role": "system",
                             "content": (
                                 f"You are {char['name']}, a free live radio DJ. "
-                                "Only output the spoken drop. Funny, ironic, true, even length. "
-                                "Never mean. Never preach. Never mention AI, models, or prompts."
+                                "Only output the spoken drop. Funnier first, ironic second, true underneath. "
+                                "Even length. Never mean. Never preach. Never corporate. "
+                                "Never mention being an AI, models, or prompts."
                             ),
                         },
                         {"role": "user", "content": prompt},

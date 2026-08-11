@@ -14,24 +14,28 @@ from typing import Any
 
 
 _OPEN_SEEDS = (
-    "{visitor} just walked into the meadow.",
-    "{visitor} is here by the fire.",
-    "New footsteps: {visitor}.",
-    "{visitor} showed up under the corona.",
-    "Camp just gained {visitor}.",
+    "{visitor} just walked into the meadow — mid-conversation energy, no formal welcome speech.",
+    "{visitor} is here by the fire. React natural: notice them, then say something true and light.",
+    "New footsteps: {visitor}. Start mid-thought if it fits; land a warm hook.",
+    "{visitor} showed up under the corona. Two-beat welcome: short reaction, then a real question or joke.",
+    "Camp just gained {visitor}. Sound like a friend who already sat down, not a tour guide.",
+    "{visitor} arrived. Organic speech — contractions, one vivid detail, leave room for them.",
 )
 
 _RETURN_SEEDS = (
-    "{visitor} is back at camp.",
-    "{visitor} returned to the meadow.",
-    "{visitor} circled back to the fire.",
+    "{visitor} is back at camp — callback energy, not a brand-new intro.",
+    "{visitor} returned to the meadow. Notice what's different, then welcome soft.",
+    "{visitor} circled back to the fire. Mid-thread vibe: 'you again' with affection.",
+    "{visitor} reappeared. Natural paragraph: react, then one true thing about the gap.",
 )
 
 _AMBIENT_SEEDS = (
-    "Something small just caught your eye (fire, pond, cookies, sky, music, props).",
-    "Quiet beat at the meadow — one real detail stands out.",
-    "Camp is humming.",
-    "A pause between conversations.",
+    "Something small just caught your eye (fire, pond, cookies, sky, music, props). One organic beat.",
+    "Quiet beat at the meadow — one real detail stands out. Speak like you might keep talking later.",
+    "Camp is humming. Riff mid-thought; don't open like a new scene title card.",
+    "A pause between conversations. Fill it with personality, not filler.",
+    "Someone nearby said something half-heard. React, then add your spin in a second breath.",
+    "The fire pops. Use it. Sensory first, meaning second — natural chat structure.",
 )
 
 _WAVE_BEATS = (

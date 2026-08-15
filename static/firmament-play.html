@@ -4753,7 +4753,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-15-mjolnir-sky";
+    const CAMP_BUILD = "2026-08-15-spoken-only";
     let campWeather = "aurora";
     /** Mjolnir lightning — primary on mobile + PC; Caduceus / aurora are fallbacks */
     const CAMP_BG_URL = `/static/camp/mjolnir-sky.jpg?v=${CAMP_BUILD}`;
@@ -8619,6 +8619,8 @@
         /you pause to/i, /you just built/i, /you were just/i, /never mention/i,
         /private stage/i, /speak only/i, /output rules/i, /mood json/i,
         /here'?s my take/i, /speaking as /i, /stay in character/i,
+        /spoken words only/i, /no stage directions/i,
+        /reply only as/i, /imbue the wielder/i,
       ];
       const seedLow = String(seed || "").toLowerCase().slice(0, 80);
       if (seedLow && t.toLowerCase().includes(seedLow) && seedLow.length > 24) {

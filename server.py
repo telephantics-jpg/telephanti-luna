@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "326-MJOLNIR-SKY"
+LUNA_BUILD = "327-SPOKEN-ONLY"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)

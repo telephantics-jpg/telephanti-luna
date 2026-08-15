@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "329-GROK-LIVE"
+LUNA_BUILD = "330-GROK-ON"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -3662,9 +3662,8 @@ async def health():
     openrouter_ok = (os.getenv("OPENROUTER_API_KEY") or "").strip() not in ("", "your_api_key_here")
     # Free minds = Ollama or free cloud keys — XAI/Grok does NOT count as free
     free_live = ollama_ok or groq_ok or gemini_ok or openrouter_ok
-    grok_allowed = os.getenv("LUNA_ALLOW_GROK", "").strip().lower() in ("1", "true", "yes", "on") and (
-        os.getenv("LUNA_DISABLE_GROK", "").strip().lower() not in ("1", "true", "yes", "on")
-    )
+    grok_disabled = os.getenv("LUNA_DISABLE_GROK", "").strip().lower() in ("1", "true", "yes", "on")
+    grok_ok = bool(configured and not grok_disabled)
     return {
         "ok": True,
         "api_key_configured": configured,
@@ -3672,8 +3671,8 @@ async def health():
         "ollama_ok": ollama_ok,
         "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
         "free_minds": free_live,
-        "grok_allowed": bool(grok_allowed and configured),
-        "grok_ok": bool(grok_allowed and configured),
+        "grok_allowed": grok_ok,
+        "grok_ok": grok_ok,
         "free_cloud": {"groq": groq_ok, "gemini": gemini_ok, "openrouter": openrouter_ok},
         "tts": "edge-tts (free)",
         "lipsync": lipsync,

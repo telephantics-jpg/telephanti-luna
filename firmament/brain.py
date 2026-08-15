@@ -73,12 +73,12 @@ def llm_backend() -> str:
     if explicit == "grok":
         return "grok" if _grok_allowed() else _first_free_backend(ollama_up=ollama_up, cloud=cloud)
 
-    # ── LIVE site: free cloud / templates for visitors. Never require Ollama. ──
-    # Ignore LUNA_FORCE_OLLAMA on cloud (common mistake: copy home .env to Render).
+    # ── LIVE site: Grok when keyed; else free cloud / templates. Never require Ollama. ──
     if cloud:
+        if _grok_ok():
+            return "grok"
         if explicit in ("ollama", "local") and ollama_up:
-            return "ollama"  # only if someone deliberately points live at a remote Ollama
-        # Free cloud keys first; Ollama only as last free option if somehow reachable
+            return "ollama"
         return _first_free_backend(
             ollama_up=ollama_up,
             cloud=True,
@@ -165,12 +165,12 @@ def _grok_key_present() -> bool:
 
 
 def _grok_allowed() -> bool:
-    """Paid xAI/Grok is OFF unless LUNA_ALLOW_GROK=1 and a key is present."""
+    """Grok is on when the xAI key is on the host, unless DISABLE is set."""
+    if not _grok_key_present():
+        return False
     if _truthy("LUNA_DISABLE_GROK"):
         return False
-    if not _truthy("LUNA_ALLOW_GROK"):
-        return False
-    return _grok_key_present()
+    return True
 
 
 def _grok_ok() -> bool:
@@ -1472,12 +1472,7 @@ def _user_grok_allowed() -> bool:
         return False
     if _truthy("LUNA_DISABLE_USER_GROK") or _truthy("LUNA_DISABLE_GROK"):
         return False
-    # Explicit allow wins — visitor talk can use Grok when Stood opts in
-    if _truthy("LUNA_ALLOW_GROK") or _truthy("LUNA_USER_GROK"):
-        return True
-    if _truthy("LUNA_ZERO_COST", "1") or _truthy("LUNA_FREE_ONLY", "1"):
-        return False
-    return False
+    return True
 
 
 def build_backend_chain(

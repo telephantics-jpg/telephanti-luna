@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "328-TALK-THREAD"
+LUNA_BUILD = "329-GROK-LIVE"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -3663,7 +3663,7 @@ async def health():
     # Free minds = Ollama or free cloud keys — XAI/Grok does NOT count as free
     free_live = ollama_ok or groq_ok or gemini_ok or openrouter_ok
     grok_allowed = os.getenv("LUNA_ALLOW_GROK", "").strip().lower() in ("1", "true", "yes", "on") and (
-        os.getenv("LUNA_DISABLE_GROK", "1").strip().lower() not in ("1", "true", "yes", "on")
+        os.getenv("LUNA_DISABLE_GROK", "").strip().lower() not in ("1", "true", "yes", "on")
     )
     return {
         "ok": True,
@@ -3673,6 +3673,7 @@ async def health():
         "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2"),
         "free_minds": free_live,
         "grok_allowed": bool(grok_allowed and configured),
+        "grok_ok": bool(grok_allowed and configured),
         "free_cloud": {"groq": groq_ok, "gemini": gemini_ok, "openrouter": openrouter_ok},
         "tts": "edge-tts (free)",
         "lipsync": lipsync,

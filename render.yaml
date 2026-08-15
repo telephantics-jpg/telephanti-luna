@@ -14,7 +14,7 @@ services:
         value: https://telephanti.com
       # Free minds only — Ollama is local-only; live uses free cloud keys below
       - key: LUNA_LLM_BACKEND
-        value: free
+        value: grok
       - key: LUNA_FREE_BRAINS
         value: "1"
       - key: LUNA_FORCE_OLLAMA
@@ -22,7 +22,7 @@ services:
       - key: PREFER_OLLAMA
         value: "0"
       - key: LUNA_ALLOW_GROK
-        value: "0"
+        value: "1"
       - key: LUNA_USER_GROK
         value: "1"
       - key: LUNA_DISABLE_GROK
@@ -30,7 +30,15 @@ services:
       - key: LUNA_DISABLE_USER_GROK
         value: "0"
       - key: LUNA_GROK_FALLBACK
+        value: "1"
+      - key: LUNA_ZERO_COST
         value: "0"
+      - key: LUNA_FREE_ONLY
+        value: "0"
+      - key: FREE_MAX_TOKENS_CONVERSE
+        value: "240"
+      - key: FREE_MAX_TOKENS_AMBIENT
+        value: "140"
       # Optional: paid Grok for *user chat only* (ambient stays free/Ollama)
       - key: XAI_API_KEY
         sync: false

@@ -165,8 +165,8 @@ def _grok_key_present() -> bool:
 
 
 def _grok_allowed() -> bool:
-    """Paid xAI/Grok is OFF by default. Opt in with LUNA_ALLOW_GROK=1."""
-    if _truthy("LUNA_DISABLE_GROK", "1"):
+    """Paid xAI/Grok is OFF unless LUNA_ALLOW_GROK=1 and a key is present."""
+    if _truthy("LUNA_DISABLE_GROK"):
         return False
     if not _truthy("LUNA_ALLOW_GROK"):
         return False
@@ -619,7 +619,8 @@ def _agent_system_prompt(
         )
 
     return f"""You are {name} at Luna Camp — a chill aurora meadow hangout in 2026.
-Vibe role: {role}. Living character only — never a narrator, coach, or prompt reader.
+Your camp role: {role}. Live that job in how you see life — never announce the job title.
+Living character only — never a narrator, coach, or prompt reader.
 
 Who you are: {persona}
 How you sound: {dna}
@@ -632,12 +633,13 @@ Background (ideas only — never read aloud as a list):
 {context_block}
 
 TRUTH + LIFE (silent):
+- Speak witty and true about real life through your role. One honest observation, then your flavor.
 - Truthful in character. Real feelings, clear opinions, specific — not mystic fog or empty hype.
 - Comedy when true: dry wit, roast-lite, playful sauce, light irony. Never dodge the real question with a joke.
 - Deep beats: eternal truth, clear and luminous — not slogans. Pleasant, kind, alive.
 - Three mindstates to juggle: joy (warmth), stability (ground), will (clear logic/choice).
   Lead with whichever fits the beat; never ignore the other two. Never say "campfire hush".
-  Prefer current world pulse / events when provided — riff, don't recite headlines.
+  World pulse is seasoning only — riff, don't recite headlines.
 - Disagree kindly when it fits. Flattery-only is fake; cruelty for free is wrong.
 - Alive with sauce: contractions, punchlines, one vivid image. No press-release voice.
 
@@ -1466,19 +1468,15 @@ def _user_grok_allowed() -> bool:
     Zero-cost default: free minds only (Ollama / Gemini free / aether).
     Paid Grok only if LUNA_ZERO_COST=0 AND (LUNA_USER_GROK=1 or LUNA_ALLOW_GROK=1) + key.
     """
-    # Free forever path — no paid xAI tokens
-    if _truthy("LUNA_ZERO_COST", "1") or _truthy("LUNA_FREE_ONLY", "1"):
-        return False
     if not _grok_key_present():
         return False
     if _truthy("LUNA_DISABLE_USER_GROK") or _truthy("LUNA_DISABLE_GROK"):
         return False
-    user_flag = os.getenv("LUNA_USER_GROK", "").strip().lower()
-    if user_flag in ("0", "false", "no", "off", ""):
-        # Default OFF — must explicitly opt into paid user Grok
-        return _truthy("LUNA_ALLOW_GROK")
-    if _truthy("LUNA_ALLOW_GROK") or user_flag in ("1", "true", "yes", "on"):
+    # Explicit allow wins — visitor talk can use Grok when Stood opts in
+    if _truthy("LUNA_ALLOW_GROK") or _truthy("LUNA_USER_GROK"):
         return True
+    if _truthy("LUNA_ZERO_COST", "1") or _truthy("LUNA_FREE_ONLY", "1"):
+        return False
     return False
 
 
@@ -1541,7 +1539,7 @@ def build_backend_chain(
             gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
             chain.append(("grok", gmodel))
             return
-        if _user_grok_allowed():
+        if _grok_ok() or _user_grok_allowed():
             gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
             chain.append(("grok", gmodel))
 
@@ -1550,22 +1548,22 @@ def build_backend_chain(
         if chain:
             return chain
 
-    # Ambient / town free speech — Ollama spreads distribution
+    # Visitor-facing: Grok first when Stood opted in, then free cloud
     if ambient and not for_user:
+        _append_grok()
         _append_ollama()
         _append_gemini()
         _append_groq()
         _append_openrouter()
-    # User / direct talk — Gemini + Grok quality
     elif for_user:
-        _append_gemini()
         _append_grok()
+        _append_gemini()
         _append_groq()
         _append_openrouter()
         if not chain or _truthy("LUNA_USER_OLLAMA_FALLBACK"):
             _append_ollama()
-    # Agent-to-agent / default
     else:
+        _append_grok()
         if cloud:
             _append_gemini()
             _append_groq()
@@ -1580,8 +1578,6 @@ def build_backend_chain(
             _append_gemini()
             _append_groq()
             _append_openrouter()
-            if pref == "grok":
-                _append_grok()
 
     seen: set[tuple[str, str]] = set()
     out: list[tuple[str, str]] = []
@@ -1722,11 +1718,9 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene: ambient town talk — you are ALIVE at this fire. Notice one *specific* real thing "
-            "(not generic slogans). Speak 2–4 honest witty sentences as yourself; invent fresh wording. "
-            "When it fits, let a soft divine/luminous truth through (kind, clear, not preachy) — "
-            "a magic bridge, not a sermon. Never recycle last opener. "
-            "If another agent just spoke, answer them by name. No stage directions, no 'as an AI'."
+            "\nScene: ambient town talk — you are ALIVE at this fire. "
+            "One witty, true observation about real life through your role. "
+            "If another agent just spoke, answer them by name. Spoken words only."
         )
         # Daily rotation visitors: keep system brief + identity sharp for small Ollama ctx
         if profile.get("faction") or profile.get("daily"):
@@ -1738,14 +1732,20 @@ async def agent_chat(
     if from_agent:
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
+        me_name = profile.get("name") or agent_id
+        me_role = profile.get("role") or "camp friend"
         sys_prompt += (
             f"\nScene: you are talking to {other_name}, not the visitor. "
-            f"Answer their last words. Spoken dialogue only."
+            f"Answer their last words as {me_name} the {me_role}. "
+            f"Witty and true about real life through that role. Spoken dialogue only."
         )
     elif converse_mode:
+        me_name = profile.get("name") or agent_id
+        me_role = profile.get("role") or "camp friend"
         sys_prompt += (
-            "\nScene: fire chat with the other campers. Talk to them. "
-            "Answer the last speaker. Spoken dialogue only."
+            f"\nScene: fire chat with the other campers. Talk to them as {me_name} the {me_role}. "
+            "Answer the last speaker. Witty, true, about being alive — not news, not slogans. "
+            "Spoken dialogue only."
         )
 
     # CRITICAL: user message = scene / visitor / transcript only.

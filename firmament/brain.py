@@ -867,6 +867,29 @@ def _looks_like_director_note(message: str) -> bool:
     return False
 
 
+def _spoken_dialogue_only(text: str) -> str:
+    """Keep words they say out loud. Drop narrator stage business."""
+    t = _strip_meta_dialogue_leak(text or "")
+    if not t:
+        return ""
+    # Stage-play: keep the quoted speech
+    if re.search(
+        r"\b(hopped|nodded|smiled|leaned|whispered|eyes sparkled|took in the news|mull(?:ed)? over)\b",
+        t,
+        re.I,
+    ):
+        quotes = re.findall(r'"([^"]{8,400})"', t)
+        if quotes:
+            t = " ".join(quotes)
+    t = re.sub(
+        r"^[A-Z][\w' .-]{0,24}\s+(?:hopped|nodded|smiled|laughed|leaned|whispered)[^.!?\n]*[.!?]\s*",
+        "",
+        t,
+    )
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
 def _looks_like_spoken_transcript(message: str) -> bool:
     """True if this is already people talking — do not rewrite it as a director note."""
     t = (message or "").strip()
@@ -2015,7 +2038,7 @@ async def agents_converse(
                 ai_lines += 1
             used_backend = be if be != "aether" or not thread else used_backend
             agent_model = result.get("model") or agent_model
-            line = _strip_meta_dialogue_leak((result.get("reply") or "").strip())
+            line = _spoken_dialogue_only((result.get("reply") or "").strip())
             if (
                 not line
                 or _looks_like_prompt_echo(line)
@@ -2038,7 +2061,7 @@ async def agents_converse(
                             ambient=False,
                             skip_memory=True,
                         )
-                        line = _strip_meta_dialogue_leak((retry.get("reply") or "").strip())
+                        line = _spoken_dialogue_only((retry.get("reply") or "").strip())
                         be = retry.get("backend") or be
                     except Exception:
                         line = ""

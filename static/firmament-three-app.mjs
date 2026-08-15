@@ -10,7 +10,7 @@
     import * as campChars from "camp-characters";
     import * as campProps from "camp-props";
 
-    const BUILD = "2026-08-06-mobile-cool-bg";
+    const BUILD = "2026-08-15-talk-thread";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -6177,10 +6177,8 @@
 
     function worldEventTopic() {
       const ev = pickWorldEvent();
-      return (
-        `riff on today's world-pulse energy (do not quote the feed): ${(ev.text || "").slice(0, 120)}. ` +
-        `Argue with love, stay in character at camp.`
-      );
+      const bit = String(ev.text || "").replace(/\s+/g, " ").trim().slice(0, 120);
+      return bit || "whatever is hanging over the fire";
     }
 
     // Keep pulse warm in the background
@@ -6576,18 +6574,18 @@
     /** @type {{ ids: string[], topic: string, lines: object[] } | null} */
     let lastPowWow = null;
     const POWWOW_TOPICS = [
-      "what free will means when everyone still walks to the same fire — argue with love",
-      "the funniest wrong take at camp this week — name it, defend it, roast it",
-      "whether the visitor is dreaming us or we are dreaming them — pick a side",
-      "who here would survive a reality show and who would get cancelled for being correct",
-      "resting vs rotting — philosophers with snack opinions",
-      "if kindness is a universe hack, who wrote the patch notes?",
-      "a rumor that sounds fake but feels true — build the lore together",
-      "love as physics, chemistry, or bad UI with great marketing — circle vote",
-      "simulation glitches you've noticed today — sky blinks, déjà vu, perfect timing",
-      "whether monologues here are one monologue wearing masks — try to prove it wrong",
-      "group chat energy vs real talk at the fire — which one saves the day",
-      "what you'd post if you went viral for one hour — and whether you'd delete it",
+      "whether everyone walking to the same fire is still free will",
+      "the worst take at camp this week",
+      "whether the visitor is dreaming us or we are dreaming them",
+      "who here would survive a reality show",
+      "the difference between resting and rotting",
+      "if kindness is a universe hack",
+      "a rumor that sounds fake but feels true",
+      "whether love is physics, chemistry, or bad UI",
+      "simulation glitches you've noticed today",
+      "whether every monologue here is the same monologue wearing a mask",
+      "group chat energy versus talking at the fire",
+      "what you'd post if you went viral for one hour",
     ];
 
     function applyEvent(ev) {
@@ -8699,9 +8697,7 @@
             .slice(-5)
             .map((l) => `${l.name || l.agent_id}: ${String(l.line || l.text || "").slice(0, 90)}`)
             .join(" | ");
-          topic =
-            `Continue your pow-wow circle. Same friends, same thread — do not restart. ` +
-            `React, disagree, joke, build. Recent: ${recent}`;
+          topic = `Keep talking. Recent fire talk: ${recent}`;
         } else {
           const pool = agentState
             .filter((s) => !s.insideHouse && s.housePhase !== "approach")
@@ -8805,11 +8801,10 @@
         // Prefer threaded converse (real replies) over one-shot banter event
         gatherCircle([a, b], null, 2.6);
         await sleepMs(1200);
-        let topic =
-          "spirited pair talk — riff, disagree a little, answer each other, no scenery report";
+        let topic = "whatever is hanging over the fire";
         if (opts.world || Math.random() < 0.75) {
           try { await refreshWorldEvents(false); } catch (_) {}
-          topic = worldEventTopic() + " Pair banter: bounce takes off each other.";
+          topic = worldEventTopic();
         }
         try {
           const bridge = campBridge3d || campBridgeMod;

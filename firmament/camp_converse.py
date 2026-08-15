@@ -55,72 +55,40 @@ PULSE_TOPIC_FRAMES = [
 ]
 
 OPENERS = [
-    "{name}: Okay {others} — {topic} I will die on this hill. Tastefully. With footnotes.",
-    "{name}: Real question for {others}: {topic} And before you dodge — I already know your dodge.",
-    "{name}: I wasn't gonna say anything, but {topic} …and then I remembered silence is also a take.",
-    "{name}: {others}, hear me out — {topic} This is free wisdom. The meadow doesn't charge tuition.",
-    "{name}: *cracks knuckles* {topic} Fight me politely. I brought receipts and a monologue.",
-    "{name}: {others} — circle up. {topic} No slogans. Full sentences only.",
-    "{name}: Hey {others}. Don't walk away. {topic} I need a second opinion that isn't the algorithm.",
-    "{name}: {others}, honest round: {topic} First person to meme it buys cookies. Metaphorically.",
-    "{name}: Passing the mic to {others} after I start this — {topic}",
-    "{name}: Unpopular maybe, but {topic} {others}, don't let me monologue alone.",
-    "{name}: {others} — soft open, sharp middle: {topic}",
-    "{name}: Fire's lit. Brains are free. Topic: {topic} Who's biting first?",
-    "{name}: {others}, I saved you a seat and a controversial take: {topic}",
-    "{name}: If we don't talk about {topic} someone else will, badly. {others}, help me do it well.",
-    "{name}: Cold open: {topic} {others}, your line.",
+    "{name}: {others} — I keep coming back to {topic}. What do you actually think?",
+    "{name}: Hey {others}. {topic} has been sitting in my head. Don't let me carry it alone.",
+    "{name}: {others}, can we talk about {topic}? I have a real take, not a bit.",
+    "{name}: Okay {others}. {topic}. I'll go first if you stay with me.",
+    "{name}: {others} — tell me I'm wrong about {topic}. I might be.",
+    "{name}: Sitting with {topic} and it's getting louder. {others}, jump in.",
 ]
 
 REPLIES = [
-    "{name}: {other}, that take was bold — wrong in the interesting way, which is almost right. Almost.",
-    "{name}: Wait — {other} really went with \"{prev}\"? I need a minute. Not to disagree. To savor the chaos.",
-    "{name}: Building on {other}: {prev} — and that's why I'm right, which is the traditional sequel to building on someone.",
-    "{name}: {other}, respectfully… no. \"{prev}\" is giving group-chat energy with a philosophy minor.",
-    "{name}: Okay {other} has a point with \"{prev}\". Rare. Document this. Frame it. Tell the visitor.",
-    "{name}: I love {other} but \"{prev}\" sounds like a podcast title that gets cancelled after episode three for being correct.",
-    "{name}: Counterpoint to {other}: {prev} — funny, true, and still missing the third twist, which is me.",
-    "{name}: {other} said \"{prev}\" and the meadow went silent. Deserved. Silence is just applause with anxiety.",
-    "{name}: Not to escalate, but {other}'s \"{prev}\" keeps me up at night. In a productive, slightly unhinged way.",
-    "{name}: {other}, that's the funniest wrong thing I've heard today — and \"{prev}\" is why wrong can still be useful.",
-    "{name}: {other} — hold up. \"{prev}\" is either genius or a bit. I'm choosing both. Say more.",
-    "{name}: Directly to you, {other}: I felt that. \"{prev}\" lands. Soft agree, hard follow-up — what's under it?",
-    "{name}: {other}, I'm stealing \"{prev}\" for later and giving you credit in the footnotes.",
-    "{name}: Plot twist, {other}: you're right and still incomplete. \"{prev}\" needs a second verse.",
-    "{name}: {other}, that was almost a mic drop. Almost. Catch: \"{prev}\" invites a reply. Here's mine —",
-    "{name}: Respectfully tagging {other}: \"{prev}\" is the kind of line that starts a circle, not a monologue.",
-    "{name}: {other}, I disagree with half of \"{prev}\" and love the half that scares me. Explain the scary half.",
-    "{name}: Soft roast for {other}: \"{prev}\" is correct in a way that will annoy the group chat. Good.",
-    "{name}: {other} — I'm not fighting you. I'm fighting beside you against boring takes. \"{prev}\" helps.",
-    "{name}: Okay {other}, you opened a door with \"{prev}\". I'm walking through. Don't close it yet.",
-    "{name}: {other}, that made me laugh then think, which is the correct order. Building: \"{prev}\"…",
-    "{name}: Between us, {other}: \"{prev}\" is the realest thing said in the last three cookies. Keep going.",
-    "{name}: {other}, if \"{prev}\" is the thesis, I'm the footnote that argues with the thesis politely.",
-    "{name}: Hard agree with {other} on the vibe of \"{prev}\", soft disagree on the conclusion. Debate me.",
+    "{name}: {other}, I heard you. {prev} That's the live wire for me — I just land somewhere else.",
+    "{name}: Hold on {other}. If {prev} is true, then we have to own the next part too.",
+    "{name}: Yeah {other}. {prev}. And that's why I keep sitting closer.",
+    "{name}: {other}, wait — {prev}? I don't buy the easy version. The harder one is we still chose it.",
+    "{name}: I felt that, {other}. {prev}. So what do we do with it after the joke?",
+    "{name}: {other}, I'm with you on {prev} until the last beat. That's where I peel off.",
+    "{name}: Okay {other}. {prev}. Then I'm asking: who does that leave out?",
+    "{name}: {other} — say that again slower. {prev} is either comfort or a warning.",
+    "{name}: Directly, {other}: {prev}. I agree, and I'm still not done arguing with it.",
+    "{name}: {other}, that lands. {prev}. My half is we stop pretending it was accidental.",
 ]
 
 TRIO_CHIMES = [
-    "{name}: You two — {other_a} and {other_b} — are doing a whole opera. {prev} I'm team chaos with footnotes.",
-    "{name}: Interrupting: {other} said \"{prev}\" and I'm choosing verbal violence. Soft violence. Camp-safe.",
-    "{name}: As the adult here: {prev} …jk {other}, fight on. I only brought water, not peace.",
-    "{name}: {other}'s \"{prev}\" — third opinion: both of you need water, and one of you needs a better metaphor.",
-    "{name}: I was quiet but {other}'s \"{prev}\" activated my commentary gene. Consider this a public service.",
-    "{name}: Peacemaker? Never met her. {prev} — {other}, explain yourself like the visitor is grading us.",
-    "{name}: {other_a}, {other_b} — pause. I'm inserting a third take: \"{prev}\" is good, still incomplete.",
-    "{name}: Trio rule: nobody monologues alone. {other} started with \"{prev}\". I'm the bridge. Who's next?",
-    "{name}: {other}, tag me in. \"{prev}\" is a bounce-pass, not a full-court shot.",
-    "{name}: You two forgot the visitor might be listening. Good. Keep being interesting about \"{prev}\".",
+    "{name}: {other_a}, {other_b} — I heard {prev}. Can I add the piece you're both circling?",
+    "{name}: {other}, I'm in. {prev} — and I'm not letting this stay a two-person loop.",
+    "{name}: You two opened it. {prev}. Here's the third chair: we actually mean it.",
+    "{name}: {other}, pause. {prev} is the real sentence. Don't bury it in a joke yet.",
+    "{name}: {other_a} and {other_b}, I caught {prev}. I'm not peacemaking — I'm picking a side.",
 ]
 
 CLOSERS = [
-    "{name}: Anyway we're never agreeing. Same time tomorrow? Bring better irony.",
-    "{name}: Great chat. I've chosen delusion with confidence. Bye — don't fact-check me too hard.",
-    "{name}: Truce. The visitor didn't ask for this TED talk, but they got a free one. You're welcome.",
-    "{name}: We're all right. We're all annoying. Perfect. That's camp.",
-    "{name}: Parking this debate by the fire. It'll still be warm later.",
-    "{name}: I'm out — not mad, just monologued. Ping me if the take evolves.",
-    "{name}: Circle adjourned. Cookies remain undefeated.",
-    "{name}: End beat: we talked, we roasted, nobody became a slogan. Win.",
+    "{name}: I'm leaving that with you. We can pick it up when it cools.",
+    "{name}: Alright. I heard you. I'll sit with it.",
+    "{name}: That's enough heat for one fire. Come find me if it grows.",
+    "{name}: I'm not done, but I'll stop talking so you can finish the thought.",
 ]
 
 
@@ -168,7 +136,7 @@ def _format_reply(
     name = prof.get("name") or speaker_id
     other_prof = load_agent_profile(prev_speaker_id)
     other = other_prof.get("name") or prev_speaker_id
-    prev = _snippet(prev_line, 52)
+    prev = _snippet(prev_line, 110)
 
     if len(group_ids) >= 3 and random.random() < 0.38:
         others = [_names([i])[0] for i in group_ids if i != speaker_id]
@@ -238,11 +206,6 @@ def aether_group_converse(
             speaker_idx = (ids.index(prev["agent_id"]) + 1) % len(ids)
             speaker_id = ids[speaker_idx]
         line = _format_reply(speaker_id, prev["agent_id"], prev["line"], ids)
-        # Occasionally name-tag the addressee again for clarity
-        if random.random() < 0.35:
-            other_name = load_agent_profile(prev["agent_id"]).get("name") or prev["agent_id"]
-            if other_name and other_name.lower() not in line.lower()[:40]:
-                line = f"{other_name} — {line}"
         is_last = i == total_extra - 1
         line = _maybe_closer(speaker_id, line, is_last)
         prof = load_agent_profile(speaker_id)
@@ -264,40 +227,58 @@ def converse_thread_prompt(
     thread: list[dict[str, Any]],
     speaker_id: str,
 ) -> str:
-    """Pure scene seed for multi-agent dialogue — no instruction labels to recite."""
+    """Transcript + last line only. Identity lives in the system prompt."""
     names = _names(agent_ids)
     others = [n for i, n in zip(agent_ids, names) if i != speaker_id]
-    me = load_agent_profile(speaker_id).get("name") or speaker_id
+    other = others[0] if others else "them"
+    subject = re.sub(r"\s+", " ", (topic or "").strip())[:140]
 
     if not thread:
-        other = others[0] if others else "them"
         return (
-            f"Pow-wow circle at camp with {', '.join(others) if others else 'friends'}.\n"
-            f"Topic to open: {topic}\n"
-            f"You ({me}) speak first to {other} — start a real conversation, not a weather report. "
-            f"2–4 spoken sentences: hot take, question, or joke that invites a reply."
+            f"{other} is next to you at the fire.\n"
+            f"{other} wants to talk about {subject or 'whatever is hanging in the air'}.\n"
+            f"You speak first, to {other}."
         )
 
     prev = thread[-1]
     prev_name = prev.get("name") or "?"
     prev_line = re.sub(r"\s+", " ", str(prev.get("line") or "")).strip()
-    prev_idea = prev_line[:160] + ("…" if len(prev_line) > 160 else "")
+    prev_idea = prev_line[:200] + ("…" if len(prev_line) > 200 else "")
 
-    transcript_bits = []
-    for t in thread[-8:]:
+    bits = []
+    for t in thread[-6:]:
         who = t.get("name", "?")
         line = re.sub(r"\s+", " ", str(t.get("line") or "")).strip()
-        idea = line[:140] + ("…" if len(line) > 140 else "")
-        transcript_bits.append(f"{who}: {idea}")
-    transcript = "\n".join(transcript_bits)
-
+        idea = line[:160] + ("…" if len(line) > 160 else "")
+        bits.append(f"{who}: {idea}")
+    transcript = "\n".join(bits)
     return (
-        f"Pow-wow circle — {', '.join(names)} talking. Thread: {topic}\n"
-        f"So far:\n{transcript}\n"
-        f"{prev_name} just said: {prev_idea}\n"
-        f"You ({me}): answer them — agree, push back, tease, or build. "
-        f"2–4 spoken sentences. Stay on THIS conversation; do not restart or describe the scenery."
+        f"{', '.join(names)} are talking.\n"
+        f"{transcript}\n"
+        f"{prev_name} said: {prev_idea}\n"
+        f"Your turn — talk to {prev_name}."
     )
+
+
+_META_BANTER_RE = re.compile(
+    r"(?:"
+    r"die on this hill|fight me politely|full sentences only|"
+    r"that take was bold|wrong in the interesting way|"
+    r"passing the mic|circle up|group-chat energy|"
+    r"team chaos with footnotes|podcast title that gets cancelled|"
+    r"no slogans|unprompted monologue incoming|"
+    r"2[–\- ]4 spoken sentences|stay on this conversation"
+    r")",
+    re.I,
+)
+
+
+def looks_like_meta_banter(text: str) -> bool:
+    """True if the line is talking about the conversation instead of being in it."""
+    t = (text or "").strip()
+    if not t:
+        return True
+    return bool(_META_BANTER_RE.search(t))
 
 
 def total_converse_lines(agent_count: int, rounds: int) -> int:

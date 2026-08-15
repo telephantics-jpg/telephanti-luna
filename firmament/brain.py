@@ -831,6 +831,8 @@ def _strip_meta_dialogue_leak(text: str) -> str:
 
 def _looks_like_director_note(message: str) -> bool:
     """True if client sent stage directions / LLM instructions instead of visitor speech."""
+    if _looks_like_spoken_transcript(message):
+        return False
     low = (message or "").strip().lower()
     if not low:
         return False
@@ -861,6 +863,20 @@ def _looks_like_director_note(message: str) -> bool:
     if hits >= 2:
         return True
     if low.startswith("you ") and ("sentence" in low or "character" in low or "meta" in low):
+        return True
+    return False
+
+
+def _looks_like_spoken_transcript(message: str) -> bool:
+    """True if this is already people talking — do not rewrite it as a director note."""
+    t = (message or "").strip()
+    if not t:
+        return False
+    if re.search(r"\bsaid:\s+\S", t, re.I):
+        return True
+    if re.search(r"your turn\s*[—\-–:].{0,40}\btalk to\b", t, re.I):
+        return True
+    if t.count("\n") >= 1 and re.search(r"^[A-Z][\w' .-]{1,24}:\s+\S", t, re.M):
         return True
     return False
 
@@ -1700,19 +1716,20 @@ async def agent_chat(
         other = load_agent_profile(from_agent)
         other_name = other.get("name", from_agent)
         sys_prompt += (
-            f"\nScene: talking with {other_name}. Answer them with a full lively beat of dialogue — "
-            f"hear their point, push or build, leave a door open. No meta framing."
+            f"\nScene: you are talking to {other_name}, not the visitor. "
+            f"Answer their last words. Spoken dialogue only."
         )
     elif converse_mode:
         sys_prompt += (
-            "\nScene: fire chat with other agents. Full lively dialogue turns — stay on thread, "
-            "react for real, no meta about turns or character mode."
+            "\nScene: fire chat with the other campers. Talk to them. "
+            "Answer the last speaker. Spoken dialogue only."
         )
 
-    # CRITICAL: user message = pure scene / visitor text only.
-    # Putting "REQUIRED: two paragraphs..." here is why models speak the prompt.
-    # Ambient client cues are often director notes — convert to situation seeds.
-    if ambient or _looks_like_director_note(message):
+    # CRITICAL: user message = scene / visitor / transcript only.
+    # Director notes in ambient cues get reduced. Converse transcripts must survive.
+    if converse_mode:
+        user_content = message
+    elif ambient or _looks_like_director_note(message):
         user_content = ambient_situation_seed(message)
     else:
         user_content = message
@@ -1954,6 +1971,7 @@ async def agents_converse(
     from firmament.camp_converse import (
         aether_group_converse,
         converse_thread_prompt,
+        looks_like_meta_banter,
         pick_converse_topic,
         total_converse_lines,
     )
@@ -1997,8 +2015,34 @@ async def agents_converse(
                 ai_lines += 1
             used_backend = be if be != "aether" or not thread else used_backend
             agent_model = result.get("model") or agent_model
-            line = (result.get("reply") or "").strip()
-            if not line:
+            line = _strip_meta_dialogue_leak((result.get("reply") or "").strip())
+            if (
+                not line
+                or _looks_like_prompt_echo(line)
+                or looks_like_meta_banter(line)
+            ):
+                # One retry with only the last spoken line — no director wrapper
+                if thread:
+                    prev = thread[-1]
+                    prev_said = re.sub(r"\s+", " ", str(prev.get("line") or "")).strip()[:200]
+                    bare = f'{prev.get("name") or "They"} said: {prev_said}'
+                    try:
+                        retry = await agent_chat(
+                            speaker,
+                            bare,
+                            pack_name=pack_name,
+                            visitor_id=visitor_id,
+                            visitor_name=visitor_name,
+                            from_agent=from_prev,
+                            converse_mode=True,
+                            ambient=False,
+                            skip_memory=True,
+                        )
+                        line = _strip_meta_dialogue_leak((retry.get("reply") or "").strip())
+                        be = retry.get("backend") or be
+                    except Exception:
+                        line = ""
+            if not line or _looks_like_prompt_echo(line) or looks_like_meta_banter(line):
                 continue
             thread.append({
                 "agent_id": speaker,

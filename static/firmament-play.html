@@ -4753,7 +4753,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-15-spoken-only";
+    const CAMP_BUILD = "2026-08-15-talk-thread";
     let campWeather = "aurora";
     /** Mjolnir lightning — primary on mobile + PC; Caduceus / aurora are fallbacks */
     const CAMP_BG_URL = `/static/camp/mjolnir-sky.jpg?v=${CAMP_BUILD}`;
@@ -5457,61 +5457,37 @@
       "Timeline is cooking: '{headline}'. Who's the chef and who got burned?",
     ];
     const CONVERSE_OPENERS = [
-      "Okay {others} — {topic} And I will die on this hill.",
-      "Real question for {others}: {topic}",
-      "I wasn't gonna say anything but {topic}",
-      "{others}, hear me out — {topic}",
-      "*cracks knuckles* {topic} Fight me politely.",
-      "Live from the meadow: {topic} — {others}, jump in or get roasted gently.",
-      "Unprompted monologue incoming about: {topic}. {others}, don't stop me.",
-      "If this campfire had a podcast, episode title is: {topic}. {others}?",
-      "Hot take with ice: {topic}. {others}, your move.",
-      "I'm about to say something true about {topic}. {others}, brace.",
+      "{others} — I keep coming back to {topic}. What do you actually think?",
+      "Hey {others}. {topic} has been sitting in my head. Don't let me carry it alone.",
+      "{others}, can we talk about {topic}? I have a real take.",
+      "Okay {others}. {topic}. I'll go first if you stay with me.",
+      "{others} — tell me I'm wrong about {topic}. I might be.",
+      "Sitting with {topic} and it's getting louder. {others}, jump in.",
     ];
     const CONVERSE_REPLIES = [
-      "{other}, you said \"{prev}\" — bold. Wrong, but bold.",
-      "Wait wait — {other} really went with \"{prev}\"? I need a minute.",
-      "Building on {other}: {prev} — and that's why I'm right.",
-      "{other}, respectfully… no. {prev} is giving group-chat energy.",
-      "Okay {other} has a point with \"{prev}\". Rare. Document this.",
-      "I love {other} but \"{prev}\" sounds like a podcast title.",
-      "Counterpoint to {other}: {prev} — anyway here's my actual take.",
-      "{other} said \"{prev}\" and the meadow went silent. Deserved.",
-      "Not to escalate but {other}'s \"{prev}\" keeps me up at night.",
-      "{other}, that's the funniest wrong thing I've heard today. {prev}",
-      "Riff: {other}'s \"{prev}\" just unlocked a side quest in my brain.",
-      "Hold — {other} — \"{prev}\" is half genius, half chaos. I'm into it.",
-      "I'm stealing \"{prev}\" from {other} and upgrading it: still wrong, more stylish.",
-      "Plot twist, {other}: \"{prev}\" was the setup. Here's the punchline.",
-      "If \"{prev}\" were a weather report from {other}, I'd pack an umbrella and snacks.",
-      "Yes and: {other}'s \"{prev}\" — now add free will cookies and a steeple.",
-      "{other} — hold up. \"{prev}\" is either genius or a bit. Both. Say more.",
-      "Directly to you, {other}: I felt that. \"{prev}\" lands. What's under it?",
-      "Plot twist, {other}: you're right and still incomplete. \"{prev}\" needs a second verse.",
-      "{other}, I'm not fighting you — fighting boring takes beside you. \"{prev}\" helps.",
-      "Okay {other}, you opened a door with \"{prev}\". I'm walking through.",
-      "Between us, {other}: \"{prev}\" is the realest thing said in three cookies.",
-      "Hard agree with {other} on vibe, soft disagree on conclusion of \"{prev}\". Debate me.",
-      "{other}, if \"{prev}\" is the thesis, I'm the polite footnote that argues.",
+      "{other}, I heard you. {prev} That's the live wire for me — I just land somewhere else.",
+      "Hold on {other}. If {prev} is true, then we have to own the next part too.",
+      "Yeah {other}. {prev}. And that's why I keep sitting closer.",
+      "{other}, wait — {prev}? I don't buy the easy version.",
+      "I felt that, {other}. {prev}. So what do we do with it after the joke?",
+      "{other}, I'm with you on {prev} until the last beat. That's where I peel off.",
+      "Okay {other}. {prev}. Then I'm asking: who does that leave out?",
+      "{other} — say that again slower. {prev} is either comfort or a warning.",
+      "Directly, {other}: {prev}. I agree, and I'm still not done arguing with it.",
+      "{other}, that lands. {prev}. My half is we stop pretending it was accidental.",
     ];
     const CONVERSE_TRIO_CHIMES = [
-      "You two — {other_a} and {other_b} — are doing a whole thing. {prev} I'm team chaos.",
-      "Interrupting: {other} said \"{prev}\" and I'm choosing violence (verbally).",
-      "As the adult here: {prev} …jk {other}, fight on.",
-      "{other}'s \"{prev}\" — third opinion: both of you need water.",
-      "I was quiet but {other}'s \"{prev}\" activated my commentary gene.",
-      "Peacemaker? Never met her. {prev} — {other}, explain yourself.",
-      "Third chair at this table: {prev}. {other_a} and {other_b}, continue — I'm taking notes.",
-      "You two made \"{prev}\" into an opera. I'm the intermission snack.",
+      "{other_a}, {other_b} — I heard {prev}. Can I add the piece you're both circling?",
+      "{other}, I'm in. {prev} — and I'm not letting this stay a two-person loop.",
+      "You two opened it. {prev}. Here's the third chair: we actually mean it.",
+      "{other}, pause. {prev} is the real sentence. Don't bury it in a joke yet.",
+      "{other_a} and {other_b}, I caught {prev}. I'm not peacemaking — I'm picking a side.",
     ];
     const CONVERSE_CLOSERS = [
-      "Anyway we're never agreeing. Same time tomorrow?",
-      "Great chat. I've chosen delusion. Bye.",
-      "Truce. The visitor didn't ask for this TED talk.",
-      "We're all right. We're all annoying. Perfect.",
-      "Mic drop, but soft — meadow edition.",
-      "I'm walking off mid-sentence for dramatic effect. Catch me later.",
-      "This conversation will loop. Oracle already knows. Bye.",
+      "I'm leaving that with you. We can pick it up when it cools.",
+      "Alright. I heard you. I'll sit with it.",
+      "That's enough heat for one fire. Come find me if it grows.",
+      "I'm not done, but I'll stop talking so you can finish the thought.",
     ];
 
     function pickLocalConverseTopic() {
@@ -5537,7 +5513,7 @@
 
     function converseLocalReply(speakerId, prevSpeakerId, prevLine, groupIds) {
       const other = agentNames[prevSpeakerId] || prevSpeakerId;
-      const prev = aetherSnippet(prevLine, 52);
+      const prev = aetherSnippet(prevLine, 110);
       if (groupIds.length >= 3 && Math.random() < 0.38) {
         const others = groupIds.filter((id) => id !== speakerId).map((id) => agentNames[id] || id);
         const tpl = CONVERSE_TRIO_CHIMES[Math.floor(Math.random() * CONVERSE_TRIO_CHIMES.length)];
@@ -5583,10 +5559,6 @@
           speakerId = group[(prevIdx + 1) % group.length];
         }
         let line = converseLocalReply(speakerId, prev.agent_id, prev.line, group);
-        const otherName = agentNames[prev.agent_id] || prev.agent_id;
-        if (Math.random() < 0.35 && otherName && !line.toLowerCase().includes(String(otherName).toLowerCase().slice(0, 4))) {
-          line = `${otherName} — ${line}`;
-        }
         if (i === total - 1 && Math.random() < 0.45) {
           line = CONVERSE_CLOSERS[Math.floor(Math.random() * CONVERSE_CLOSERS.length)];
         }
@@ -14758,69 +14730,31 @@
     }
 
     function campAmbientPrompt(npc, replyTo) {
-      // Dynamic scene + current events + three mindstates (joy/stability/will)
-      const v = myVisitorName || player.name || "a visitor";
-      const ctx = campContextSuffix().replace(/^\s*\(|\)\s*$/g, "") || "camp is humming";
       const whoNear = allRoamers()
         .filter((n) => n.id !== npc.id && !n.leaving && dist(n, npc) < 140)
         .slice(0, 3)
         .map((n) => n.name)
         .join(", ");
-      // Current events almost always (riff, don't news-anchor)
-      let pulseBit = "";
+      if (replyTo?.line) {
+        const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 200);
+        const other = replyTo.name || "them";
+        return (
+          `${other} said: ${idea}\n` +
+          `Your turn — talk to ${other}.` +
+          (whoNear ? ` ${whoNear} can hear you.` : "")
+        );
+      }
+      const v = myVisitorName || player.name || "a visitor";
+      let pulse = "";
       if (campPulseItems.length) {
         const it = campPulseItems[Math.floor(Math.random() * Math.min(campPulseItems.length, 10))];
         const h = String(it?.text || "").replace(/\s+/g, " ").trim().slice(0, 110);
-        if (h) pulseBit = `\nWorld pulse / current event (${it.source || "pulse"}): ${h}\nRiff this in character — do not recite headlines. Never say "campfire hush".`;
-      } else {
-        pulseBit =
-          "\nNo headline feed — invent one true observation about the living world or timeline energy.";
+        if (h) pulse = ` Something in the air: ${h}.`;
       }
-      let mindBit = "";
-      try {
-        mindBit = campBridgeMod?.etherealMemoryContext?.(npc.id, 260) || "";
-        if (mindBit) mindBit = `\n${mindBit}`;
-      } catch (_) {}
-      const role = AGENT_ROLES[npc.id] || npc.faction || "camp agent";
-      const who = npc.name || agentNames[npc.id] || npc.id;
-      const charBit =
-        `\nYou are ${who} (${role}). Speak only as ${who}. ` +
-        `Juggle three mindstates in this line: joy (warmth), stability (ground), will (clear logic/choice).`;
-      // Soft mode note without the banned slogan
-      const softBit =
-        typeof campHushMode !== "undefined" && campHushMode
-          ? "\nSoft mode: slower, readable — still witty and specific."
-          : "";
-      if (replyTo?.line) {
-        const idea = String(replyTo.line).replace(/\s+/g, " ").trim().slice(0, 160);
-        const other = replyTo.name || "them";
-        return (
-          `${other} just said: ${idea}\n` +
-          `Answer them as ${who} — dynamic, in character.\n` +
-          `Place: ${ctx}.` +
-          (whoNear ? ` Nearby: ${whoNear}.` : "") +
-          pulseBit +
-          mindBit +
-          charBit +
-          softBit
-        );
-      }
-      const openers = [
-        `Lively beat at camp — ${v} is around.`,
-        `Something just shifted in the meadow air.`,
-        `Current-events energy in the grass.`,
-        `Dynamic moment: fire, sky, and one true take.`,
-      ];
-      const open = openers[Math.floor(Math.random() * openers.length)];
       return (
-        `${open}\n` +
-        `Place: ${ctx}.` +
-        (whoNear ? ` Nearby: ${whoNear}.` : "") +
-        pulseBit +
-        mindBit +
-        charBit +
-        softBit +
-        `\nSpeak 2–4 alive sentences. Never use the phrase campfire hush.`
+        `${v} is around the fire.` +
+        (whoNear ? ` ${whoNear} nearby.` : "") +
+        pulse
       );
     }
 
@@ -19156,7 +19090,7 @@
         if (chatterPaused) break;
         const who = line.name || line.agent_id || "Camp";
         const aid = line.agent_id || "";
-        const text = line.line || "";
+        const text = spokenOnly(line.line || "", "");
         if (!text.trim()) continue;
         setCampLifeStatus(`${who} answers…`);
         if (aid) claimSpeechFloor(aid, { focus: true, holdMs: 90000 });
@@ -19207,7 +19141,7 @@
       if (campHushMode && pick && pick.length > 2) pick = pick.slice(0, 2);
       let topic = pickLocalConverseTopic();
       if (campHushMode) {
-        topic = `${topic} — keep it soft: shorter lines, leave space, visitor said you're hard to follow when you rush.`;
+        topic = `${topic} — slower, leave room`;
       }
       // Enough rounds for real back-and-forth (pair ~5–9 turns); hush stays short
       const rounds = campHushMode

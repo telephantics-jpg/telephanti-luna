@@ -52,9 +52,9 @@
       } catch (e) {}
     })();
   </script>
-  <!-- Cool Caduceus wallpaper on phones + PC (aurora is fallback only) -->
+  <!-- Mjolnir lightning still on phones + PC (Caduceus / aurora are fallbacks) -->
+  <link rel="preload" as="image" href="/static/camp/mjolnir-sky.jpg" />
   <link rel="preload" as="image" href="/static/camp/caduceus-wallpaper.jpg" />
-  <link rel="preload" as="image" href="/static/camp/aurora-corona-sky.jpg" media="(min-width: 900px)" />
   <style>
     /* Hub embed: one music player only (parent telephantim hub) */
     html.hub-embed #btn-camp-tpx,
@@ -152,7 +152,7 @@
         will-change: auto;
       }
       html.desktop-camp #game {
-        background: #050810 url("/static/camp/caduceus-wallpaper.jpg") center center / cover no-repeat !important;
+        background: #050810 url("/static/camp/mjolnir-sky.jpg") center center / cover no-repeat !important;
       }
       html.desktop-camp #trippy-veil {
         display: none !important;
@@ -174,11 +174,11 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
-      /* Caduceus wallpaper — same cool PC look when live */
-      background: #050810 url("/static/camp/caduceus-wallpaper.jpg") center center / cover no-repeat;
+      /* Mjolnir lightning still — same look before video paints */
+      background: #050810 url("/static/camp/mjolnir-sky.jpg") center center / cover no-repeat;
     }
     html.desktop-camp #game {
-      background: #050810 url("/static/camp/caduceus-wallpaper.jpg") center center / cover no-repeat !important;
+      background: #050810 url("/static/camp/mjolnir-sky.jpg") center center / cover no-repeat !important;
     }
     #camp-stage {
       user-select: none;
@@ -4753,14 +4753,14 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-06-mobile-cool-bg";
+    const CAMP_BUILD = "2026-08-15-mjolnir-sky";
     let campWeather = "aurora";
-    /** Cool Caduceus wallpaper — primary on mobile + PC; aurora is soft fallback */
-    const CAMP_BG_URL = `/static/camp/caduceus-wallpaper.jpg?v=${CAMP_BUILD}`;
-    const CAMP_BG_FALLBACK_URL = `/static/camp/aurora-corona-sky.jpg?v=${CAMP_BUILD}`;
-    const CAMP_BG_MOBILE_URL = `/static/camp/caduceus-wallpaper.jpg?v=${CAMP_BUILD}`;
-    /** Optional living video layer (PC / strong devices); mobile uses still wallpaper */
-    const CAMP_BG_VIDEO_URL = `/static/camp/camp_floor_video.mp4?v=${CAMP_BUILD}`;
+    /** Mjolnir lightning — primary on mobile + PC; Caduceus / aurora are fallbacks */
+    const CAMP_BG_URL = `/static/camp/mjolnir-sky.jpg?v=${CAMP_BUILD}`;
+    const CAMP_BG_FALLBACK_URL = `/static/camp/caduceus-wallpaper.jpg?v=${CAMP_BUILD}`;
+    const CAMP_BG_MOBILE_URL = `/static/camp/mjolnir-sky.jpg?v=${CAMP_BUILD}`;
+    /** Living Mjolnir loop (PC); mobile still paints first */
+    const CAMP_BG_VIDEO_URL = `/static/camp/mjolnir-sky.mp4?v=${CAMP_BUILD}`;
     let campCryptoOn = false;
 
     /** Load LUNA1 transit crypto (matches server firmament/crypto_box.py). */
@@ -8872,7 +8872,7 @@
       }
     }
     function loadCampBackground() {
-      // Mobile + PC: still Caduceus wallpaper first so cool art always paints
+      // Mobile + PC: still Mjolnir first so cool art always paints
       const still = isCampMobile()
         ? (CAMP_BG_MOBILE_URL || CAMP_BG_URL)
         : (CAMP_BG_URL || CAMP_BG_MOBILE_URL);

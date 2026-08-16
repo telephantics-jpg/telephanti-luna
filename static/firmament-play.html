@@ -1365,7 +1365,7 @@
     }
     #npc-behavior, #launcher-dock, #visitors-online, #btn-find-friends { display: none; }
     #prop-hint { display: none !important; }
-    /* Always-on Heaven summon — pinned FAB + talk bar + header (never display:none) */
+    /* Compact Heaven — small pill so meadow stays watchable */
     #camp-heaven-fab,
     #btn-header-heaven {
       position: relative;
@@ -1373,19 +1373,20 @@
       display: inline-flex !important;
       align-items: center;
       justify-content: center;
-      gap: 5px;
-      min-height: 34px;
-      padding: 6px 12px;
+      gap: 3px;
+      min-height: 26px;
+      min-width: 0;
+      padding: 3px 8px;
       border-radius: 999px;
-      border: 2px solid #fef3c7;
+      border: 1.5px solid #fef3c7;
       background: linear-gradient(135deg, #422006 0%, #fbbf24 55%, #fde68a 100%);
       color: #1c1917;
-      font-size: 0.78rem;
+      font-size: 0.62rem;
       font-weight: 900;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.01em;
       cursor: pointer;
       pointer-events: auto !important;
-      box-shadow: 0 4px 18px rgba(251, 191, 36, 0.5), 0 0 0 1px rgba(0,0,0,0.25);
+      box-shadow: 0 2px 10px rgba(251, 191, 36, 0.35);
       touch-action: manipulation;
       white-space: nowrap;
       flex-shrink: 0;
@@ -1393,17 +1394,27 @@
     #camp-heaven-fab {
       position: fixed;
       z-index: 55;
-      /* Below header, left of meadow — never under sidebar / never off-screen */
-      top: calc(var(--header-h) + 8px);
-      left: max(10px, env(safe-area-inset-left, 0px));
+      top: calc(var(--header-h) + 6px);
+      left: max(8px, env(safe-area-inset-left, 0px));
       right: auto;
-      min-height: 40px;
-      padding: 8px 14px;
-      font-size: 0.84rem;
+      min-height: 28px;
+      padding: 4px 9px;
+      font-size: 0.65rem;
     }
     #btn-header-heaven {
       position: relative;
       z-index: 30;
+      min-height: 26px;
+      padding: 3px 8px;
+      font-size: 0.62rem;
+    }
+    #btn-summon-heaven {
+      min-height: 32px !important;
+      min-width: 32px !important;
+      width: auto !important;
+      padding: 0 7px !important;
+      font-size: 0.6rem !important;
+      font-weight: 900 !important;
     }
     #camp-heaven-fab:hover,
     #btn-firmament {
@@ -1480,8 +1491,6 @@
     }
     #camp-heaven-fab,
     #btn-header-heaven,
-    #chip-summon-heaven,
-    #chip-summon-heaven-tools,
     #btn-summon-heaven {
       display: inline-flex !important;
       pointer-events: auto !important;
@@ -1490,11 +1499,11 @@
     }
     @media (min-width: 900px) {
       #camp-heaven-fab {
-        top: calc(var(--header-h) + 10px);
-        left: max(14px, env(safe-area-inset-left, 0px));
-        min-height: 44px;
-        padding: 10px 16px;
-        font-size: 0.9rem;
+        top: calc(var(--header-h) + 8px);
+        left: max(10px, env(safe-area-inset-left, 0px));
+        min-height: 28px;
+        padding: 4px 10px;
+        font-size: 0.68rem;
       }
     }
     body.house-interior-open #camp-heaven-fab,
@@ -1502,16 +1511,12 @@
       opacity: 0.85;
       pointer-events: auto !important;
     }
-    /* Sticky Heaven chip at start of agent strip — never scrolls away first */
-    #chip-summon-heaven {
-      position: sticky;
-      left: 0;
-      z-index: 4;
-      display: inline-flex !important;
-      border-color: rgba(253, 230, 138, 0.85) !important;
-      background: linear-gradient(135deg, rgba(66, 32, 6, 0.98), rgba(253, 230, 138, 0.35)) !important;
-      box-shadow: 4px 0 12px rgba(4, 8, 18, 0.85);
-      flex-shrink: 0;
+    /* Hide extra Heaven strip chips — FAB + dock only (less clutter) */
+    #chip-summon-heaven,
+    #chip-summon-heaven-tools {
+      display: none !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
     }
     /* Mobile give / take / drop */
     #camp-act-fab {
@@ -3282,26 +3287,33 @@
         display: none !important;
         pointer-events: none !important;
       }
-      /* Heaven always visible on mobile — FAB + dock */
+      /* Compact Heaven on mobile — FAB + dock only */
       #btn-summon-heaven,
-      #camp-heaven-fab,
-      #chip-summon-heaven {
+      #camp-heaven-fab {
         display: inline-flex !important;
         pointer-events: auto !important;
         visibility: visible !important;
         opacity: 1 !important;
       }
-      #btn-header-heaven {
-        display: none !important; /* header often hidden on phone */
-      }
+      #btn-header-heaven,
+      #chip-summon-heaven,
+      #chip-summon-heaven-tools,
       #camp-talk-heaven {
         display: none !important;
       }
       #camp-heaven-fab {
-        top: calc(var(--header-h) + 52px);
+        top: calc(var(--header-h) + 48px);
         right: auto;
-        left: max(10px, env(safe-area-inset-left, 0px));
+        left: max(8px, env(safe-area-inset-left, 0px));
         z-index: 60;
+        min-height: 26px;
+        padding: 3px 8px;
+        font-size: 0.6rem;
+      }
+      #btn-summon-heaven {
+        min-height: 30px !important;
+        padding: 0 6px !important;
+        font-size: 0.58rem !important;
       }
       /* Chat record OFF by default on mobile — show only when user taps 📜 */
       body.chatter-hidden #convo-log,
@@ -4318,7 +4330,7 @@
       <div class="header-row" style="gap:6px;flex-wrap:nowrap;margin-left:auto">
         <a id="btn-home-telephanti" class="camp-home-btn" href="https://telephanti.com/" title="Back to telephanti.com home">← Home</a>
         <button type="button" id="btn-firmament" class="camp-home-btn" title="Open the Firmament so winged/mythic agents may fly">📡 Open Firmament</button>
-        <button type="button" id="btn-header-heaven" title="Summon Jesus, archangels, Thor &amp; Zeus">✦ Heaven</button>
+        <button type="button" id="btn-header-heaven" title="Heaven: 1st press summon · 2nd press talk">✦ Heaven</button>
         <button type="button" id="camp-you-badge" title="Your camp name — tap to change">you</button>
         <button type="button" id="btn-chat-record" class="camp-record-btn" title="Chat record — open past lines from the meadow" aria-label="Open chat record" aria-pressed="false">📜 Chat</button>
         <button type="button" id="camp-token-badge" title="Open aurora shop">
@@ -4558,7 +4570,7 @@
       <button type="button" class="dock-icon dock-feature-sm" id="btn-lucid-tv" title="Lucid Mind TV" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
       <button type="button" class="dock-icon dock-feature-sm" id="btn-camp-shop" title="Aurora shop" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
       <button type="button" class="dock-icon dock-feature-sm" id="btn-camp-carnival" title="Aurora Carnival ride" style="background:linear-gradient(135deg,#9a3412,#f97316);border-color:#fdba74">🎡</button>
-      <button type="button" class="dock-icon" id="btn-summon-heaven" title="Summon Jesus &amp; archangels" aria-label="Summon Jesus and archangels" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem;font-weight:900">✦ Heaven</button>
+      <button type="button" class="dock-icon" id="btn-summon-heaven" title="Heaven: 1st press summon · 2nd press talk" aria-label="Heaven" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917;min-width:auto;width:auto;padding:0 7px;font-size:0.6rem;font-weight:900">✦</button>
       <button type="button" class="dock-icon" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
       <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Mysterious Unknown — summon a stranger from the aether · agents react">❓ Unknown</button>
       <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-ara" title="Summon Ara — Grok link (@a)" style="background:linear-gradient(135deg,#064e3b,#16a34a);border-color:#86efac;color:#ecfdf5;font-family:monospace;font-size:0.78rem;font-weight:800">@A</button>
@@ -4592,7 +4604,7 @@
       <button type="button" id="camp-chat-send">Send</button>
     </div>
   </div>
-  <button type="button" id="camp-heaven-fab" title="Summon Jesus and the archangels to camp">✦ Summon Heaven</button>
+  <button type="button" id="camp-heaven-fab" title="Heaven: 1st press summon · 2nd press talk">✦ Heaven</button>
   <button type="button" id="camp-enter-house" aria-live="polite">🚪 Enter house</button>
   <button type="button" id="camp-act-fab" title="Actions: take, give, drop" aria-label="Actions">✋</button>
   <div id="camp-act-sheet" role="menu" aria-label="Carry actions" aria-hidden="true">
@@ -4796,7 +4808,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-16-heaven-talk";
+    const CAMP_BUILD = "2026-08-16-heaven-quiet";
     let campWeather = "aurora";
     /** Caduceus still — always first on phones (reliable); wallpaper = fallback */
     const CAMP_BG_URL = `/static/camp/caduceus-3d.jpg?v=${CAMP_BUILD}`;
@@ -6200,6 +6212,9 @@
       { id: "zeus", name: "Zeus", color: "#facc15", mood: "flirt", sprite: "zeus" },
     ];
     let heavenSummoned = false;
+    /** Second press on Heaven starts talk; first press is quiet spawn only */
+    let heavenTalkStarted = false;
+    let heavenTalkTimers = [];
     const MIN_NPC_GAP = 58;
     const ANCHOR_WANDER = 380;
     const CHAT_MEET_DIST = 40;
@@ -10862,37 +10877,46 @@
       return findRoamAgent(def.id);
     }
 
-    async function summonArchangelCouncil() {
-      const hasJesus = !!(findRoamAgent("jesus") || campGuests.some((g) => g.id === "jesus" && !g.leaving));
-      const hasAngels = campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving);
-      const hasPantheon = PANTHEON_IDS.every((id) => findRoamAgent(id));
-      if (heavenSummoned && hasJesus && hasAngels && hasPantheon) {
-        showToast("Heaven + Thor & Zeus are already at camp — talk bar or church ⛪");
-        setCampLifeStatus("✦ Heaven is here — Jesus, archangels, Thor ⚡ & Zeus ☁");
-        // Still re-pull them near church so you can find them
-        HEAVEN_ROSTER.forEach((def, i) => spawnHeavenGuest(def, i));
-        return;
-      }
-      heavenSummoned = true;
+    function setHeavenButtonLabels(mode) {
+      // mode: "summon" | "ready" | "talking"
+      const fabLabel =
+        mode === "talking" ? "✦ Talking" : mode === "ready" ? "✦ Talk" : "✦ Heaven";
+      const dockLabel =
+        mode === "talking" ? "✦ On" : mode === "ready" ? "✦ Talk" : "✦";
+      const title =
+        mode === "talking"
+          ? "Heaven is speaking — watch the meadow"
+          : mode === "ready"
+            ? "Press again to make Heaven talk"
+            : "Summon Heaven (quiet — no auto chat)";
       ["camp-heaven-fab", "btn-header-heaven"].forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;
-        el.classList.add("heaven-live");
-        el.textContent = "✦ Heaven here";
+        el.textContent = fabLabel;
+        el.title = title;
+        el.classList.toggle("heaven-live", mode !== "summon");
       });
-
       const dockH = document.getElementById("btn-summon-heaven");
-      if (dockH) dockH.textContent = "✦ Here";
-      expandSpeechBubble();
+      if (dockH) {
+        dockH.textContent = dockLabel;
+        dockH.title = title;
+        dockH.classList.toggle("heaven-live", mode !== "summon");
+      }
+    }
+
+    function clearHeavenTalkTimers() {
+      for (const t of heavenTalkTimers) {
+        try { clearTimeout(t); } catch (_) {}
+      }
+      heavenTalkTimers = [];
+    }
+
+    /** Quiet spawn only — no chat waves (watch mode friendly) */
+    async function summonHeavenQuiet() {
+      heavenSummoned = true;
+      heavenTalkStarted = false;
+      setHeavenButtonLabels("ready");
       psychicRipples.push({ x: camp.x, y: camp.y, t: Date.now(), color: "#fde68a" });
-      pushCampLine(
-        "Camp",
-        "✦ Light folds open — Jesus, the archangels, Thor ⚡ and Zeus ☁ step into the aurora meadow.",
-        26,
-        "love",
-      );
-      setCampLifeStatus("✦ Heaven + pantheon arriving — Thor & Zeus included…");
-      showToast("✦ Summoning Jesus, archangels, Thor & Zeus…");
       try {
         await fetch("/api/firmament/load-pack", {
           method: "POST",
@@ -10900,9 +10924,7 @@
           body: JSON.stringify({ pack_id: "aurora_playground" }),
         });
       } catch (_) {}
-      // Spawn full roster: Jesus, archangels, Thor, Zeus
       HEAVEN_ROSTER.forEach((def, i) => spawnHeavenGuest(def, i));
-      // Pull camera-relevant units to church ring
       HEAVEN_ROSTER.forEach((def, i) => {
         const unit = findRoamAgent(def.id);
         if (!unit) return;
@@ -10914,10 +10936,29 @@
         unit.arriving = false;
         unit.leaving = false;
       });
-      spreadAllNpcs();
-      refreshCampLayerPicker();
-      refreshCampTalkTarget(true);
-      // Full arrival monologues + multi-round heaven dialogue (lots of talk)
+      try { spreadAllNpcs(); } catch (_) {}
+      try { refreshCampLayerPicker(); } catch (_) {}
+      try { refreshCampTalkTarget(true); } catch (_) {}
+      setCampLifeStatus("✦ Heaven here — quiet. Press ✦ Talk when you want them to speak.");
+      showToast("✦ Heaven arrived · press again to talk");
+    }
+
+    /** Second press — start dialogue waves */
+    async function startHeavenTalk() {
+      if (!heavenSummoned) {
+        await summonHeavenQuiet();
+      }
+      if (heavenTalkStarted) {
+        showToast("✦ Already talking — watch the meadow");
+        setHeavenButtonLabels("talking");
+        return;
+      }
+      heavenTalkStarted = true;
+      setHeavenButtonLabels("talking");
+      clearHeavenTalkTimers();
+      showToast("✦ Heaven talking…");
+      setCampLifeStatus("✦ Heaven speaking — Jesus · archangels · Thor · Zeus");
+
       try {
         const { res, data } = await firmamentSecurePost("/api/firmament/agents/converse", {
           agent_a: "jesus",
@@ -10925,9 +10966,9 @@
           agent_c: "gabriel",
           agent_d: "raphael",
           topic:
-            "Heaven just arrived at Luna Camp. Each of you greets the meadow with a FULL chit-chat monologue " +
-            "(5–10 spoken sentences): who you are, why you came, a joke, a blessing, invite the visitor to talk. " +
-            "Answer each other. Warm, witty, never one lonely sentence. Emojis ok.",
+            "Heaven is at Luna Camp and the visitor just asked you to speak. " +
+            "Each of you greets with a FULL chit-chat monologue (5–10 sentences): who you are, why you came, a joke, a blessing. " +
+            "Answer each other. Warm, witty. Emojis ok.",
           rounds: 3,
           ...visitorPayload(),
         });
@@ -10944,24 +10985,25 @@
       } catch (_) {
         pushCampLine(
           "Jesus",
-          "Peace ✨ — you're welcome here. My house is the church on the ridge if you want a quieter talk. " +
-            "The archangels brought their whole selves, not a postcard. Sit. Speak. We'll monologue back.",
-          28,
+          "Peace ✨ — you asked us to speak. We're here. Archangels, Thor, Zeus — the meadow is yours to hear.",
+          22,
           "love",
         );
       }
-      // Wave after wave of heaven talk
-      setTimeout(() => runCampConverse(["jesus", "michael", "gabriel"]), 12000);
-      setTimeout(() => runCampConverse(["thor", "zeus", "uriel"]), 20000);
-      setTimeout(() => runCampConverse(["raphael", "jesus", "luna"]), 28000);
-      setTimeout(() => runCampConverse(["thor", "odin", "zeus"]), 36000);
-      setTimeout(() => runCampConverse(["michael", "gabriel", "uriel"]), 45000);
-      setTimeout(() => runCampConverse(["jesus", "thor", "zeus"]), 56000);
-      setTimeout(() => runCampConverse(["odin", "zeus", "luna"]), 68000);
-      setTimeout(() => runCampConverse(["thor", "michael", "hermes"]), 80000);
-      // Keep Heaven talking in live ambient cycle
+
+      const schedule = (fn, ms) => {
+        const t = setTimeout(fn, ms);
+        heavenTalkTimers.push(t);
+      };
+      schedule(() => runCampConverse(["jesus", "michael", "gabriel"]), 10000);
+      schedule(() => runCampConverse(["thor", "zeus", "uriel"]), 18000);
+      schedule(() => runCampConverse(["raphael", "jesus", "luna"]), 26000);
+      schedule(() => runCampConverse(["thor", "odin", "zeus"]), 34000);
+      schedule(() => runCampConverse(["michael", "gabriel", "uriel"]), 42000);
+      schedule(() => runCampConverse(["jesus", "thor", "zeus"]), 52000);
+
       const keepHeavenTalking = async () => {
-        if (!heavenSummoned || chatterPaused) return;
+        if (!heavenSummoned || !heavenTalkStarted || chatterPaused) return;
         const roster = ["jesus", "thor", "zeus", "michael", "gabriel", "raphael", "uriel"];
         for (const id of roster) {
           const unit = findRoamAgent(id);
@@ -10971,22 +11013,19 @@
           await new Promise((r) => setTimeout(r, 2800 + Math.random() * 3200));
         }
       };
-      setTimeout(() => { void keepHeavenTalking(); }, 8000);
-      setTimeout(() => { void keepHeavenTalking(); }, 40000);
-      setTimeout(() => { void keepHeavenTalking(); }, 75000);
-      setTimeout(() => { void keepHeavenTalking(); }, 120000);
-      setTimeout(() => { void keepHeavenTalking(); }, 180000);
-      refreshCampTalkTarget(true);
-      setCampLifeStatus("✦ Heaven at camp — full dialogue wave · Jesus · archangels · Thor ⚡ · Zeus ☁");
-      showToast("✦ Heaven speaking — long monologues incoming");
-      // Greeting monologues for each arrival (live AI, lots of words)
-      setTimeout(async () => {
+      schedule(() => { void keepHeavenTalking(); }, 8000);
+      schedule(() => { void keepHeavenTalking(); }, 45000);
+      schedule(() => { void keepHeavenTalking(); }, 90000);
+
+      // Individual monologues
+      schedule(async () => {
         for (const id of ["jesus", "thor", "zeus", "michael", "gabriel", "raphael", "uriel"]) {
+          if (!heavenTalkStarted) break;
           const unit = findRoamAgent(id);
           if (!unit) continue;
           const seed =
-            `You just arrived with Heaven at Luna Camp. Full arrival monologue: 6–12 spoken sentences. ` +
-            `Who you are, why you came, a witty remark, a soft blessing, invite the visitor. Emojis ok. No meta.`;
+            `You are at Luna Camp and the visitor asked Heaven to speak. Full monologue: 6–12 spoken sentences. ` +
+            `Who you are, why you came, witty remark, soft blessing. Emojis ok. No meta.`;
           try {
             if (campServerOnline && typeof callAgentMind === "function") {
               const data = await callAgentMind(id, seed, { ambient: false });
@@ -11004,9 +11043,35 @@
           } catch (_) {
             await emitNpcAiChatter(unit, { allowAether: true });
           }
-          await new Promise((r) => setTimeout(r, 2200));
+          await new Promise((r) => setTimeout(r, 2000));
         }
-      }, 700);
+      }, 600);
+    }
+
+    /**
+     * Heaven button:
+     *  1st press → quiet summon (no auto chat) — watch the meadow
+     *  2nd press → start talk waves
+     */
+    async function summonArchangelCouncil() {
+      const hasJesus = !!(findRoamAgent("jesus") || campGuests.some((g) => g.id === "jesus" && !g.leaving));
+      const hasAngels = campGuests.some((g) => ARCHANGEL_IDS.includes(g.id) && !g.leaving);
+      const hasPantheon = PANTHEON_IDS.every((id) => findRoamAgent(id));
+      const alreadyHere = heavenSummoned && hasJesus && hasAngels && hasPantheon;
+
+      if (!alreadyHere) {
+        await summonHeavenQuiet();
+        return;
+      }
+      // Already here — second press starts talk
+      if (!heavenTalkStarted) {
+        await startHeavenTalk();
+        return;
+      }
+      // Talking already — soft re-gather, no spam
+      HEAVEN_ROSTER.forEach((def, i) => spawnHeavenGuest(def, i));
+      setHeavenButtonLabels("talking");
+      showToast("✦ Heaven is here · already talking");
     }
 
     function parseCampMention(text) {

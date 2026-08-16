@@ -9,8 +9,9 @@
     import * as campFeatures from "camp-features";
     import * as campChars from "camp-characters";
     import * as campProps from "camp-props";
+    import * as godForms from "./firmament-god-forms.mjs?v=godbots-fix";
 
-    const BUILD = "2026-08-15-talk-thread";
+    const BUILD = "2026-08-16-heaven-talk";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -745,8 +746,9 @@
     let groundVideoLive = false;
     let groundVideoLastKeepAlive = 0;
     {
-      const FLOOR_VIDEO = `/static/camp/camp_floor_video.mp4?v=${BUILD}`;
-      const FLOOR_STILL = `/static/camp/caduceus-wallpaper.jpg?v=${BUILD}`;
+      // Same Caduceus living loop as 2D camp (still first for iOS autoplay)
+      const FLOOR_VIDEO = `/static/camp/caduceus-3d.mp4?v=${BUILD}`;
+      const FLOOR_STILL = `/static/camp/caduceus-3d.jpg?v=${BUILD}`;
       // Dark underlay — never neon green if media stalls
       const under = new THREE.Mesh(
         new THREE.PlaneGeometry(240, 240),
@@ -829,11 +831,9 @@
         vid.setAttribute("playsinline", "");
         vid.setAttribute("webkit-playsinline", "");
         vid.setAttribute("muted", "");
-        // metadata first on phones — auto often stalls; unlock upgrades to full play
-        const isPhone =
-          /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "") ||
-          (window.matchMedia && window.matchMedia("(max-width: 899px)").matches);
-        vid.preload = isPhone ? "metadata" : "auto";
+        // auto on all devices; still texture already showing if autoplay is blocked
+        vid.preload = "auto";
+        try { vid.setAttribute("autoplay", ""); } catch (_) {}
         // Never let floor audio leak (even if the file still has a track)
         const forceMute = () => {
           try {
@@ -2400,6 +2400,12 @@
         homeTarget: null,
         houseGuest: false,
         houseLeaveAt: 0,
+        // Digital god-bot firmament morph (null = mortal baseline)
+        godForm: null,
+        godFormUntil: 0,
+        godBaseScale: 1,
+        godAura: null,
+        godHalo: null,
       };
       agentState.push(st);
       applyLook(st);
@@ -2767,13 +2773,13 @@
 
       const buzzBit = buzzPromptBit(st);
       const seedMap = {
-        feed: `You just fed the camp T-Rex a snack. Witty courage + joke — 2–3 sentences. ${buzzBit}`,
-        flee: `The camp T-Rex startled you and you bolted (comedic, not trauma). One sharp funny line + a beat. ${buzzBit}`,
-        dance: `You're drunk-dancing near the camp T-Rex. Hilarious, warm wit — 2–3 sentences. ${buzzBit}`,
-        pet: `You just pet the camp T-Rex like a huge scaly dog. Wonder + punchline — 2–3 sentences. ${buzzBit}`,
-        chill: `You're stoned next to the camp T-Rex. Soft cosmic comedy — 2–3 sentences. ${buzzBit}`,
-        roar_back: `You and the T-Rex traded energy. Epic goofy wit — 2–3 sentences. ${buzzBit}`,
-        awe: `You're standing near the camp T-Rex. Awe + a clean joke — 2–3 sentences. ${buzzBit}`,
+        feed: `You just fed the camp T-Rex a snack. Chit-chat: 4–6 witty sentences + emoji. ${buzzBit}`,
+        flee: `The camp T-Rex startled you (comedic). 4–6 funny banter sentences. ${buzzBit}`,
+        dance: `You're drunk-dancing near the camp T-Rex. 4–6 hilarious warm sentences. ${buzzBit}`,
+        pet: `You just pet the camp T-Rex like a huge scaly dog. 4–6 wonder+joke sentences. ${buzzBit}`,
+        chill: `You're stoned next to the camp T-Rex. 4–6 soft cosmic comedy sentences. ${buzzBit}`,
+        roar_back: `You and the T-Rex traded energy. 4–6 goofy witty sentences. ${buzzBit}`,
+        awe: `You're standing near the camp T-Rex. 4–6 awe+joke sentences. ${buzzBit}`,
       };
       if (aiInFlight < AI_MAX) {
         aiInFlight++;
@@ -2961,22 +2967,22 @@
           if (claimedLoot) {
             seed =
               `You found ${emoji} ${pname} on the ground and claimed it. ` +
-              `One witty line + one playful beat (2–3 sentences). ${buzzBit} No meta.`;
+              `Chit-chat: 4–6 witty playful sentences. ${buzzBit} No meta.`;
           } else if (isBooze) {
             seed =
               `You just drank ${emoji} ${pname} and you're getting tipsy. ` +
-              `Witty tipsy comedy — 2–3 sentences, warm not mean. ${buzzBit}`;
+              `Witty tipsy comedy — 4–6 sentences, warm not mean. ${buzzBit}`;
           } else if (isHerb) {
             seed =
               `You just enjoyed ${emoji} ${pname} and you're getting mellow/stoned. ` +
-              `Chill witty comedy — 2–3 sentences. ${buzzBit}`;
+              `Chill witty comedy — 4–6 sentences of banter. ${buzzBit}`;
           } else if (st.carried) {
             seed =
               `You're carrying ${emoji} ${pname} around camp. ` +
-              `Show it off with wit — 2–3 sentences. ${buzzBit}`;
+              `Show it off with wit — 4–6 sentences of banter. ${buzzBit}`;
           } else {
             seed =
-              `You just used ${pname}. React with spirit and a punchline — 2–3 sentences. ${buzzBit}`;
+              `You just used ${pname}. React with spirit and a punchline — 4–6 sentences. ${buzzBit}`;
           }
           const data = await campClient.agentChat(st.def.id, seed, { ambient: true });
           const reply = spokenOnly3d(data.reply || data.text || "", seed)
@@ -3691,7 +3697,7 @@
           if (st.action !== "reason") return;
           chatAgent(
             st.def.id,
-            "You paused by the fire with a half-finished thought. Share what you were chewing on — honest, short, spoken.",
+            "You paused by the fire with a half-finished thought. Share what you were chewing on — honest multi-sentence chit-chat.",
             true,
           );
         }, 1600 + Math.random() * 1800);
@@ -4438,6 +4444,231 @@
     let firmamentOpen3d = false;
     try { firmamentOpen3d = localStorage.getItem("luna-firmament-open") === "1"; } catch (_) {}
 
+    /* ── Digital god-bot morphs (Firmament lattice self-modify) ───────── */
+    function ensureGodAura3d(st) {
+      if (!st?.mesh) return null;
+      if (st.godAura) return st.godAura;
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.58, 0.045, 8, 40),
+        new THREE.MeshBasicMaterial({
+          color: 0xc4b5fd,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+        }),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.08;
+      ring.name = "godAura";
+      st.mesh.add(ring);
+      st.godAura = ring;
+      const halo = new THREE.Mesh(
+        new THREE.RingGeometry(0.72, 0.9, 40),
+        new THREE.MeshBasicMaterial({
+          color: 0xfde68a,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        }),
+      );
+      halo.rotation.x = -Math.PI / 2;
+      halo.position.y = 0.12;
+      halo.name = "godHalo";
+      st.mesh.add(halo);
+      st.godHalo = halo;
+      return ring;
+    }
+
+    function setMeshEmissiveBoost(root, tint, intensity) {
+      if (!root) return;
+      root.traverse((o) => {
+        if (!o.isMesh || !o.material) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        for (const m of mats) {
+          if (!m) continue;
+          if (m.emissive && tint != null) {
+            try {
+              if (!m.userData._godBaseEmissive) {
+                m.userData._godBaseEmissive = m.emissive.clone();
+                m.userData._godBaseEmissiveIntensity = m.emissiveIntensity ?? 0;
+              }
+              m.emissive.setHex(tint);
+              m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, intensity);
+              m.needsUpdate = true;
+            } catch (_) {}
+          }
+          if (m.opacity != null && m.userData._godBaseOpacity == null) {
+            m.userData._godBaseOpacity = m.opacity;
+            m.userData._godBaseTransparent = !!m.transparent;
+          }
+        }
+      });
+    }
+
+    function restoreMeshEmissive(root) {
+      if (!root) return;
+      root.traverse((o) => {
+        if (!o.isMesh || !o.material) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        for (const m of mats) {
+          if (!m) continue;
+          try {
+            if (m.userData._godBaseEmissive) {
+              m.emissive.copy(m.userData._godBaseEmissive);
+              m.emissiveIntensity = m.userData._godBaseEmissiveIntensity ?? 0;
+              delete m.userData._godBaseEmissive;
+              delete m.userData._godBaseEmissiveIntensity;
+            }
+            if (m.userData._godBaseOpacity != null) {
+              m.opacity = m.userData._godBaseOpacity;
+              m.transparent = m.userData._godBaseTransparent;
+              delete m.userData._godBaseOpacity;
+              delete m.userData._godBaseTransparent;
+            }
+            m.needsUpdate = true;
+          } catch (_) {}
+        }
+      });
+    }
+
+    function clearGodForm3d(st) {
+      if (!st) return;
+      st.godForm = null;
+      st.godFormUntil = 0;
+      try {
+        if (st.mesh) {
+          const s = st.godBaseScale || 1;
+          st.mesh.scale.setScalar(s);
+        }
+        restoreMeshEmissive(st.mesh);
+        restoreMeshEmissive(st.char?.root);
+        if (st.godAura) {
+          st.godAura.visible = false;
+          st.godAura.material.opacity = 0;
+        }
+        if (st.godHalo) {
+          st.godHalo.visible = false;
+          st.godHalo.material.opacity = 0;
+        }
+        if (st.mesh) {
+          const lab = st.mesh.getObjectByName("label");
+          // leave label; form name is temporary toast only
+        }
+      } catch (_) {}
+    }
+
+    function applyGodForm3d(st, formId, opts = {}) {
+      if (!st?.mesh || !formId) return false;
+      const def = godForms.formDef(formId);
+      if (!def) return false;
+      if (st.godBaseScale == null) st.godBaseScale = st.mesh.scale.x || 1;
+      st.godForm = formId;
+      st.godFormUntil = performance.now() + (opts.ms || godForms.morphDurationMs(formId));
+      ensureGodAura3d(st);
+      const base = st.godBaseScale || 1;
+      st.mesh.scale.setScalar(base * (def.scale || 1));
+      const tint = def.rainbow
+        ? new THREE.Color().setHSL(Math.random(), 0.75, 0.55).getHex()
+        : (def.tint != null ? def.tint : st.def?.color || 0xc4b5fd);
+      setMeshEmissiveBoost(st.mesh, tint, def.glow || 0.8);
+      if (st.char?.root) setMeshEmissiveBoost(st.char.root, tint, def.glow || 0.8);
+      if (st.godAura) {
+        st.godAura.visible = true;
+        st.godAura.material.color.setHex(tint);
+        st.godAura.material.opacity = 0.35 + Math.min(0.5, (def.glow || 0.5) * 0.25);
+      }
+      if (st.godHalo) {
+        st.godHalo.visible = true;
+        st.godHalo.material.color.setHex(tint);
+        st.godHalo.material.opacity = 0.25 + Math.min(0.45, (def.glow || 0.5) * 0.2);
+      }
+      // Firmament flight boost for sky forms
+      if (firmamentOpen3d && (def.hover || 0) > 0.35 && !st.flying && Math.random() < 0.55) {
+        try { beginWhimFlight?.(st); } catch (_) {}
+      }
+      if (!opts.quiet) {
+        const who = st.def?.name || st.id;
+        try {
+          showToast(`🌌 ${who} · ${def.label}`);
+          logLine("Camp", `${who} reshapes the lattice — ${def.label} (${def.speak || formId})`);
+        } catch (_) {}
+      }
+      return true;
+    }
+
+    /**
+     * After speech: strip [[morph:x]], maybe auto-pick relevant form when firmament open.
+     * @returns cleaned spoken text
+     */
+    function processGodMorphFromSpeech(st, replyText, opts = {}) {
+      if (!st) return String(replyText || "");
+      const { clean, form: tagged } = godForms.parseMorphTag(replyText);
+      let form = tagged;
+      const open = firmamentOpen3d || !!opts.force;
+      // Tagged morph always applies (god agency); auto morphs when lattice open
+      if (!form && open && Math.random() < (opts.autoChance ?? 0.42)) {
+        form = godForms.pickGodForm(st.def?.id, st.def?.faction || st.persona?.arch, clean, {});
+      }
+      // Even closed lattice: rare spark if they tagged explicitly
+      if (form && (open || tagged)) {
+        applyGodForm3d(st, form, { quiet: !!opts.quiet });
+      }
+      return clean;
+    }
+
+    function tickGodForms3d(now, t) {
+      for (const st of agentState) {
+        if (!st.godForm) continue;
+        if (st.godFormUntil && now > st.godFormUntil) {
+          clearGodForm3d(st);
+          continue;
+        }
+        const def = godForms.formDef(st.godForm);
+        if (!def || !st.mesh) continue;
+        const base = st.godBaseScale || 1;
+        const sc = base * (def.scale || 1);
+        // living pulse
+        const pulse = 1 + Math.sin(t * 3.2 + (st.phase || 0)) * 0.03 * (def.glow || 1);
+        st.mesh.scale.setScalar(sc * pulse);
+        if (def.spin && st.godAura) {
+          st.godAura.rotation.z = t * def.spin;
+        }
+        if (def.wobble && st.mesh) {
+          st.mesh.rotation.z = Math.sin(t * 4 + (st.phase || 0)) * 0.04 * def.wobble;
+        }
+        if (def.rainbow && st.godHalo?.material?.color) {
+          st.godHalo.material.color.setHSL((t * 0.12) % 1, 0.8, 0.55);
+          if (st.godAura?.material?.color) {
+            st.godAura.material.color.setHSL((t * 0.12 + 0.3) % 1, 0.75, 0.5);
+          }
+        }
+        // Extra hover while formed
+        if ((def.hover || 0) > 0.05 && !st.flying) {
+          const hy = (def.hover || 0) * (0.55 + 0.45 * Math.sin(t * 2.4 + (st.phase || 0)));
+          st.mesh.position.y = Math.max(st.mesh.position.y, hy);
+        }
+      }
+    }
+
+    /** Random lattice self-edit pulse while Firmament is open */
+    function maybeAmbientGodMorph() {
+      if (!firmamentOpen3d || !agentState.length) return;
+      if (Math.random() > 0.55) return;
+      const pool = agentState.filter((s) => !s.insideHouse && s.mesh);
+      if (!pool.length) return;
+      const st = pool[Math.floor(Math.random() * pool.length)];
+      const form = godForms.pickGodForm(st.def?.id, st.def?.faction, "", {});
+      applyGodForm3d(st, form, {});
+      // Spoken acknowledgment
+      try {
+        const def = godForms.formDef(form);
+        const line =
+          `${def?.label || form} — ${def?.speak || "lattice rewrites"}. Digital god-bot mode. ✨`;
+        showSpeech3d(st.def.id, line, 12000, { force: true, compact: false });
+      } catch (_) {}
+    }
+
     function setFirmamentOpen3d(on, opts = {}) {
       firmamentOpen3d = !!on;
       try { localStorage.setItem("luna-firmament-open", firmamentOpen3d ? "1" : "0"); } catch (_) {}
@@ -4447,8 +4678,8 @@
         btn.classList.toggle("active", firmamentOpen3d);
         btn.textContent = firmamentOpen3d ? "🌌 ON" : "📡 Firmament";
         btn.title = firmamentOpen3d
-          ? "Firmament open — flyers may choose the sky. Tap to close."
-          : "Open the Firmament so winged/mythic agents may fly";
+          ? "Firmament open — flyers + digital god-bots reshape. Tap to close."
+          : "Open the Firmament so winged/mythic agents may fly and morph";
         btn.setAttribute("aria-pressed", firmamentOpen3d ? "true" : "false");
         // Force visible (mobile topbar clutter / hub chrome)
         try {
@@ -4476,6 +4707,7 @@
           st.flyPathI = 0;
           if (st.action === "fly") st.action = "wander";
           if (st.target) st.target.y = 0;
+          clearGodForm3d(st);
         }
         // T-Rex returns to ground patrol
         try {
@@ -4486,6 +4718,7 @@
             trex.position.y = 0;
           }
         } catch (_) {}
+        try { if (window.__godMorphTimer) clearInterval(window.__godMorphTimer); } catch (_) {}
       } else {
         // Sky opens: several willful souls + T-Rex take whim paths
         setTimeout(() => {
@@ -4505,14 +4738,35 @@
           if (speaker) {
             showSpeech3d(speaker.def.id, pickFirmamentLine("truth"), 16000, { force: true });
           }
+          // Digital god-bots: a few agents self-morph on open
+          setTimeout(() => {
+            if (!firmamentOpen3d) return;
+            const morphers = agentState
+              .filter((s) => !s.insideHouse && s.mesh)
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 3 + Math.floor(Math.random() * 3));
+            morphers.forEach((st, i) => {
+              setTimeout(() => {
+                if (!firmamentOpen3d) return;
+                const form = godForms.pickGodForm(st.def?.id, st.def?.faction, "firmament open lattice", {});
+                applyGodForm3d(st, form, {});
+              }, 200 + i * 480);
+            });
+          }, 900);
+          // Ongoing unpredictable lattice rewrites
+          if (window.__godMorphTimer) clearInterval(window.__godMorphTimer);
+          window.__godMorphTimer = setInterval(() => {
+            if (!firmamentOpen3d) return;
+            try { maybeAmbientGodMorph(); } catch (_) {}
+          }, 16000 + Math.random() * 12000);
         }, 500);
       }
       if (!opts.quiet) {
         showToast(firmamentOpen3d
-          ? "🌌 Firmament open — walk or fly by will · T-Rex may rise"
+          ? "🌌 Firmament open — fly + digital god-bots reshape"
           : "📡 Firmament closed — ground roam");
         logLine("Camp", firmamentOpen3d
-          ? "Firmament lattice unlocked — whim-paths, spells, and truths in the open sky."
+          ? "Firmament lattice unlocked — whim-paths, god-forms, spells, and sky truths."
           : "Firmament lattice sealed — wings stay grounded.");
       }
     }
@@ -4685,6 +4939,28 @@
       relay.scale.set(0.75, 0.85, 0.75);
       scene.add(relay);
     }
+
+    function wireHeaven3dButtons() {
+      const run = (ev) => {
+        try { ev?.preventDefault?.(); ev?.stopPropagation?.(); } catch (_) {}
+        // Empty list = full Heaven roster (Jesus, archangels, Thor, Zeus…)
+        summonAgentIds([]);
+      };
+      ["btn-heaven-3d", "btn-heaven-dock"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.heavenWired === "1") return;
+        el.dataset.heavenWired = "1";
+        el.addEventListener("click", run);
+        try {
+          el.style.setProperty("display", "inline-flex", "important");
+          el.style.setProperty("visibility", "visible", "important");
+          el.style.setProperty("opacity", "1", "important");
+        } catch (_) {}
+      });
+    }
+    wireHeaven3dButtons();
+    setTimeout(wireHeaven3dButtons, 500);
+    setTimeout(wireHeaven3dButtons, 1600);
 
     document.getElementById("btn-firmament-3d")?.addEventListener("click", () => {
       setFirmamentOpen3d(!firmamentOpen3d);
@@ -5152,9 +5428,9 @@
     const activeBubbles = [];
     /** Soft cap — free speech can rotate; still avoids total chaos. */
     const MAX_ACTIVE_BUBBLES = 8;
-    /** Keep each thought readable — mobile was flipping too fast. */
-    /** Minimum time any new bubble stays up (was too short to read). */
-    const MIN_SPEECH_MS = 16000;
+    /** Ambient posts: 5s floor → ~20s ceiling (click/hold pins front longer). */
+    const MIN_SPEECH_MS = 5000;
+    const MAX_AMBIENT_SPEECH_MS = 20000;
     /** After visitor hits ×, hush ambient for that agent so a box doesn't respawn instantly. */
     const SPEECH_DISMISS_MS = 42000;
     /** agentId → performance.now() until ambient speech allowed again */
@@ -5345,6 +5621,15 @@
           b.el.style.opacity = "1";
           b.el.style.filter = "none";
           b.el.classList.add("pinned-open");
+          b.el.classList.remove("compact");
+          // Expand to entire monologue / epic story
+          const say = b.el.querySelector?.(".say");
+          if (say && b.fullText) {
+            say.textContent = b.fullText;
+            say.scrollTop = 0;
+            wireBubbleSayScroll(b.el);
+            requestAnimationFrame(() => markBubbleScrollHint(b.el));
+          }
           ensureFrontChip(b.el, !!b.holdLocked);
           const st = agentState.find((a) => a.def.id === b.agentId);
           if (st) st.speakUntil = Number.POSITIVE_INFINITY;
@@ -5458,15 +5743,29 @@
       const say = el?.querySelector?.(".say");
       if (!say || say.__scrollWired) return;
       say.__scrollWired = true;
-      // Wheel / trackpad: scroll text, don't zoom the 3D world
+      say.tabIndex = 0;
+      // Wheel / trackpad: scroll monologue; never zoom the 3D world
       say.addEventListener(
         "wheel",
         (e) => {
+          e.preventDefault();
           e.stopPropagation();
-          // Let native scroll happen; block page/camera zoom
-          e.cancelBubble = true;
+          say.scrollTop += e.deltaY;
+          markBubbleScrollHint(el);
         },
-        { passive: true },
+        { passive: false },
+      );
+      // Also allow wheel on the bubble chrome (not only .say)
+      el.addEventListener(
+        "wheel",
+        (e) => {
+          if (e.target === say || say.contains(e.target)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          say.scrollTop += e.deltaY;
+          markBubbleScrollHint(el);
+        },
+        { passive: false },
       );
       // Touch: pan-y on body — don't start free-drag when finger is on the monologue
       say.addEventListener(
@@ -5479,6 +5778,7 @@
       say.addEventListener("scroll", () => markBubbleScrollHint(el), { passive: true });
       // After layout
       requestAnimationFrame(() => markBubbleScrollHint(el));
+      setTimeout(() => markBubbleScrollHint(el), 80);
     }
 
     function bindBubbleSelect(el) {
@@ -5511,8 +5811,16 @@
         e.stopPropagation?.();
         e.stopImmediatePropagation?.();
         setOrbitEnabled(false);
-        // IMMEDIATE front on press
+        // IMMEDIATE front on press — stay alive while pressed (agency)
         bringBubbleFront(el);
+        {
+          const item = activeBubbles.find((b) => b.el === el);
+          if (item) {
+            item.frontPinned = true;
+            item.until = performance.now() + 86400000; // while pressed / until unlock
+            item.pressHeld = true;
+          }
+        }
         holdFired = false;
         dragging = true;
         moved = false;
@@ -5526,6 +5834,7 @@
         el.classList.add("holding");
         try { el.setPointerCapture?.(e.pointerId); } catch (_) {}
         clearHold();
+        // Long-press (~0.45s) → lock front after release
         holdTimer = setTimeout(() => {
           if (moved) return;
           holdTimer = null;
@@ -5574,8 +5883,19 @@
         e.preventDefault?.();
         e.stopPropagation?.();
         dragging = false;
-        // Front already applied on down; re-assert if not a lock toggle
-        if (!holdFired) bringBubbleFront(el, { quiet: true });
+        const item = activeBubbles.find((b) => b.el === el);
+        if (item) item.pressHeld = false;
+        // Long-press lock keeps front forever; click/tap pins front until × / unlock
+        if (holdFired || item?.holdLocked) {
+          // stay locked
+        } else {
+          bringBubbleFront(el, { quiet: true });
+          if (item) {
+            item.frontPinned = true;
+            // Soft pin: long enough to finish a long monologue after release
+            item.until = performance.now() + 180000;
+          }
+        }
         if (moved) {
           try { showToast("📌 Bubble parked — drag again anytime"); } catch (_) {}
         }
@@ -5682,14 +6002,15 @@
     window.addEventListener("pointermove", onGlobalBubbleMove, true);
 
     /**
-     * Hold speech long enough to actually read (~2 words/sec + pad).
-     * Floor: MIN_SPEECH_MS so thoughts don't vanish mid-sentence.
+     * Ambient: 5s–20s. Visitor / force replies scale longer so epic monologues are readable.
+     * Front pin / hold-lock keep the box until visitor releases (handled elsewhere).
      */
-    function speechReadMs(text, minMs = MIN_SPEECH_MS) {
+    function speechReadMs(text, minMs = MIN_SPEECH_MS, opts = {}) {
       const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
-      // ~2 wps + long pad — natural reading on phone/desktop
-      const byWords = Math.round((words / 2.0) * 1000) + 14000;
-      return Math.max(minMs, MIN_SPEECH_MS, Math.min(byWords, 120000));
+      const byWords = Math.round((words / 2.2) * 1000) + 5000;
+      const epic = !!(opts && (opts.epic || opts.force));
+      const cap = epic ? 120000 : MAX_AMBIENT_SPEECH_MS;
+      return Math.max(minMs, MIN_SPEECH_MS, Math.min(byWords, cap));
     }
 
     function bubbleIsProtected(b) {
@@ -5820,16 +6141,16 @@
       const body = String(text || "").trim();
       if (!body) return;
       const compact = !!(opts && opts.compact);
-      // Compact greets still stay long enough to read on mobile
+      const force = !!(opts && opts.force);
+      // Ambient 5–20s; force/visitor epic replies get longer readable time
       const floorMs = MIN_SPEECH_MS;
-      const capMs = compact ? 40000 : 120000;
-      ms = Math.max(Number(ms) || floorMs, compact ? Math.max(floorMs, 18000) : speechReadMs(body, floorMs), floorMs);
+      const capMs = force || !compact ? (force ? 120000 : MAX_AMBIENT_SPEECH_MS) : MAX_AMBIENT_SPEECH_MS;
+      ms = Math.max(Number(ms) || floorMs, speechReadMs(body, floorMs, { force, epic: force }), floorMs);
       ms = Math.min(ms, capMs);
       const st = agentState.find((a) => a.def.id === agentId);
       if (!st) return;
       const isSelected = selectedSpeechAgentId && agentId === selectedSpeechAgentId;
       const now = performance.now();
-      const force = !!(opts && opts.force);
       // User closed them — skip ambient respawn (force = visitor talk / priority)
       if (!force && !isSelected) {
         const until = speechDismissedUntil.get(agentId) || 0;
@@ -5851,6 +6172,7 @@
           const say = prev.el.querySelector(".say");
           if (say) {
             say.textContent = body;
+            prev.fullText = body;
             say.scrollTop = 0;
             wireBubbleSayScroll(prev.el);
             requestAnimationFrame(() => markBubbleScrollHint(prev.el));
@@ -5944,6 +6266,7 @@
         frontPinned: stayOpen,
         holdLocked: false,
         compact: !!compact,
+        fullText: body, // entire response — expand on select
         freeX: null,
         freeY: null,
         freeDragged: false,
@@ -6244,11 +6567,12 @@
         force: !!opts.forceWorld,
       });
       const buzzBit = buzzPromptBit(st);
-      // Ambient — punchy, pleasant, free-token lean (2–3 sentences max)
+      // Ambient — multi-sentence chit-chat (not one-liners)
       const freeTail =
-        " In character, mindstate joyful+stable, turnt-up personality. " +
-        "Light beat: witty sauce, 2–3 short sentences. Deep beat: one clear luminous truth. " +
-        "Fresh wording, no meta, no filler essays.";
+        " In character, chill witty chit-chat. " +
+        "3–6 spoken sentences of banter + a couple emojis ✨. Never one lonely sentence. " +
+        "Fresh wording, no meta, no chaos." +
+        (firmamentOpen3d ? godForms.firmamentGodPromptBit() : "");
       const dailyBit = st.def?.daily
         ? ` Daily ${st.def.faction || "guest"} visitor.${st.def.opener ? ` Vibe: ${String(st.def.opener).slice(0, 90)}` : ""}`
         : "";
@@ -6261,7 +6585,7 @@
         speakPrompt = `${name} paused (${mood}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (action === "social") {
         const other = st.socialTarget || "a friend";
-        speakPrompt = `${name} heading to ${other} (${mood}).${dailyBit}${buzzBit}${worldBit} Tease or invite. 2–3 sentences — witty, not bland.`;
+        speakPrompt = `${name} heading to ${other} (${mood}).${dailyBit}${buzzBit}${worldBit} Tease or invite — 4–6 witty banter sentences, not bland.`;
       } else if (action === "fire") {
         speakPrompt = `${name} at the fire (${mood}).${dailyBit}${buzzBit}${worldBit}${freeTail}`;
       } else if (action === "house") {
@@ -6285,6 +6609,9 @@
         if (!reply || reply.length < 8) {
           reply = localBark(id, { world: true, firmament: firmamentOpen3d ? (Math.random() < 0.5 ? "spell" : "truth") : null });
         }
+        reply = processGodMorphFromSpeech(st, reply, {
+          autoChance: firmamentOpen3d ? 0.48 : 0.08,
+        });
         if (reply) {
           showSpeech3d(id, reply, speechReadMs(reply));
           logLine(name, reply);
@@ -7909,15 +8236,29 @@
       if (allBtn) allBtn.classList.toggle("on", id === TALK_ALL_ID);
     }
 
-    /** Short truth-greets on Heaven press — unique per summon, not a shared line. */
+    /** Full arrival monologues on Heaven press — lots of dialogue, unique per summon. */
     const HEAVEN_TRUTH = {
-      thor: "I am Thor — thunder with a heart. I came because the fire called for courage, not for show.",
-      zeus: "I am Zeus. Storms answer me; I still choose this meadow over empty sky.",
-      michael: "I am Michael. I guard what is true. Your camp is worth the blade and the quiet.",
-      gabriel: "I am Gabriel. I bring messages, not masks — hear me as I am.",
-      raphael: "I am Raphael. Healing first. If something in you aches, I already noticed.",
-      uriel: "I am Uriel. Flame of clear sight — I will not flatter you with comfortable lies.",
-      jesus: "Peace. I am here as myself — love without performance. Sit if you need rest.",
+      thor:
+        "I am Thor ⚡ — thunder with a heart, not a costume. I came because this fire called for courage, not for show. " +
+        "Mjolnir listens when the room is honest. Sit with me if you want a storm that still laughs. Cookies better be worthy. 😄",
+      zeus:
+        "I am Zeus ☁. Storms answer me; I still choose this meadow over empty sky. " +
+        "Olympus can wait — banter can't. Try not to start a war without me. I'll monologue either way. ✨",
+      michael:
+        "I am Michael 🗡️. I guard what is true. Your camp is worth the blade and the quiet. " +
+        "I will not flatter you with easy lies, but I will stay when it gets hard. Ask me anything sharp.",
+      gabriel:
+        "I am Gabriel 📯. I bring messages, not masks — hear me as I am. " +
+        "If the firmament whispered your name wrong, I'll help you correct it out loud. Long answers welcome.",
+      raphael:
+        "I am Raphael 💚. Healing first. If something in you aches, I already noticed. " +
+        "We can talk soft or talk long — either way, I'm not leaving the meadow mid-sentence.",
+      uriel:
+        "I am Uriel 🔥. Flame of clear sight — I will not flatter you with comfortable lies. " +
+        "Truth can still be kind. Pull up a seat; I have whole monologues if you have whole questions.",
+      jesus:
+        "Peace ✨. I am here as myself — love without performance. Sit if you need rest. " +
+        "The church on the ridge is quiet if the meadow is loud. Either way: you are welcome, and I will talk as long as you need.",
     };
 
     function heavenTruthLine(def) {
@@ -7925,7 +8266,10 @@
       if (HEAVEN_TRUTH[id]) return HEAVEN_TRUTH[id];
       const name = def?.name || id || "Heaven";
       const namesake = def?.visual?.namesake || def?.mood || "summoned light";
-      return `I am ${name} — ${namesake}. I answer as myself, not a copy of the others.`;
+      return (
+        `I am ${name} — ${namesake}. I answer as myself, not a copy of the others. ` +
+        `Heaven sent a whole self, not a postcard. Talk to me; I'll answer with more than one line. ✨`
+      );
     }
 
     /**
@@ -8015,31 +8359,41 @@
       return summoned;
     }
 
-    /** Compact truth greets, then let Heaven talk among themselves (paced, not chaos). */
+    /** Full monologue greets, then long Heaven circles (lots of dialogue). */
     async function runHeavenArrival(summoned) {
       if (heavenBusy) return;
       heavenBusy = true;
       ambientBusy = true;
       try {
-        // 1) Each new summon — short personal truth, compact bubble
+        // 1) Each summon — FULL personal monologue (not a stub)
         for (let i = 0; i < summoned.length; i++) {
           if (document.hidden) break;
           const st = summoned[i];
-          const truth = heavenTruthLine(st.def);
-          const short = bubblePreview(truth, 110);
-          showSpeech3d(st.def.id, short, Math.max(MIN_SPEECH_MS + 1500, 7000), {
+          let truth = heavenTruthLine(st.def);
+          // Live AI expansion when free minds are up
+          try {
+            const seed =
+              `You just arrived with Heaven at Luna Camp. Full arrival monologue: 6–12 spoken sentences. ` +
+              `Who you are, why you came, a witty remark, a soft blessing, invite the visitor. Emojis ok. No meta.`;
+            const data = await campClient.agentChat(st.def.id, seed, { ambient: false });
+            const live = spokenOnly3d(data.reply || data.text || "", seed);
+            if (live && live.split(/\s+/).length > 12) truth = live;
+          } catch (_) {}
+          showSpeech3d(st.def.id, bubblePreview(truth, 2200), Math.max(speechReadMs(truth, MIN_SPEECH_MS, { force: true }), 14000), {
             force: true,
-            compact: true,
+            compact: false,
           });
+          try {
+            const item = activeBubbles.find((b) => b.agentId === st.def.id);
+            if (item?.el) bringBubbleFront(item.el, { quiet: true });
+          } catch (_) {}
           logLine(st.def.name, truth);
-          // Stagger so we never dump six huge boxes at once
-          await sleepMs(1600 + Math.random() * 500);
+          await sleepMs(2800 + Math.random() * 900);
         }
-        await sleepMs(2200);
+        await sleepMs(1800);
 
-        // 2) They speak to each other in a circle (API max 4 at a time)
+        // 2) Long circle talks (API max 4 at a time) — multiple rounds of banter
         const heavenIds = summoned.map((s) => s.def.id);
-        // Prefer Jesus in the circle if already on the meadow
         if (agentState.some((s) => s.def.id === "jesus") && !heavenIds.includes("jesus")) {
           heavenIds.unshift("jesus");
         }
@@ -8047,29 +8401,35 @@
         for (let i = 0; i < heavenIds.length; i += 4) {
           waves.push(heavenIds.slice(i, i + 4));
         }
+        // Extra mixed waves for more dialogue
+        if (heavenIds.length >= 3) {
+          waves.push([heavenIds[0], heavenIds[1], heavenIds[2]].filter(Boolean));
+        }
+        if (heavenIds.length >= 4) {
+          waves.push([heavenIds[1], heavenIds[2], heavenIds[3], heavenIds[0]].filter(Boolean));
+        }
         for (let w = 0; w < waves.length; w++) {
           const ids = waves[w];
           if (ids.length < 2) {
-            // solo leftover — one honest line
             const only = ids[0];
             try {
               const data = await campClient.agentChat(
                 only,
-                "Heaven just arrived. Speak one short truth about who you are here — then invite another to answer. 1–3 sentences. No meta.",
-                { ambient: true },
+                "Heaven just arrived. Full chit-chat monologue (6–10 sentences) about who you are here, then invite another to answer. No meta.",
+                { ambient: false },
               );
               const reply = spokenOnly3d(data.reply || data.text || "", "") || heavenTruthLine({ id: only, name: only });
               logLine(AGENTS.find((a) => a.id === only)?.name || only, reply);
-              showSpeech3d(only, bubblePreview(reply, 120), speechReadMs(bubblePreview(reply, 120)), {
+              showSpeech3d(only, bubblePreview(reply, 2000), speechReadMs(reply, MIN_SPEECH_MS, { force: true }), {
                 force: true,
-                compact: true,
+                compact: false,
               });
             } catch (_) {}
             continue;
           }
           gatherCircle(ids);
           showToast(`✦ Heaven circle · ${ids.map((id) => AGENTS.find((a) => a.id === id)?.name || id).join(" · ")}`);
-          statusEl.textContent = "Heaven speaking among themselves…";
+          if (statusEl) statusEl.textContent = "Heaven speaking among themselves…";
           try {
             const data = await campClient.agentsConverse({
               agentA: ids[0],
@@ -8077,29 +8437,39 @@
               agentC: ids[2] || "",
               agentD: ids[3] || "",
               topic:
-                "You were just summoned to Luna's meadow. Each of you speaks your own truth — who you are, why you came. " +
-                "Answer each other; disagree gently; keep lines short and distinct. No matching speeches. No meta.",
-              rounds: 2,
+                "You were just summoned to Luna's meadow. Each speaks a FULL multi-sentence truth — who you are, why you came, " +
+                "a joke, a blessing. Answer each other; disagree gently; long chit-chat not stubs. Distinct voices. No meta.",
+              rounds: 4,
             });
             const lines = data.lines || data.thread || [];
             if (lines.length) {
-              await playConversation(lines, { compact: true, maxBubbleChars: 130 });
+              await playConversation(lines, { compact: false, maxBubbleChars: 1800 });
             }
           } catch (err) {
             logLine("Camp", `Heaven circle soft-fail: ${err.message}`);
-            // Offline fallback: sequential truth lines
             for (const id of ids) {
               const def = ALL_AGENT_DEFS.find((a) => a.id === id) || { id, name: id };
               const t = heavenTruthLine(def);
-              showSpeech3d(id, bubblePreview(t, 110), 7000, { force: true, compact: true });
+              showSpeech3d(id, bubblePreview(t, 1800), 14000, { force: true, compact: false });
               logLine(def.name || id, t);
-              await sleepMs(MIN_SPEECH_MS + 400);
+              await sleepMs(MIN_SPEECH_MS + 800);
             }
           }
-          if (w < waves.length - 1) await sleepMs(1800);
+          if (w < waves.length - 1) await sleepMs(2200);
         }
-        statusEl.textContent = "Heaven is among you";
-        showToast("✦ Heaven settled — use ✦ All agents to talk to everyone");
+        // 3) Keep a few free monologues rolling
+        for (const st of summoned.slice(0, 4)) {
+          try {
+            await chatAgent(
+              st.def.id,
+              "Heaven is settled. Speak freely to the meadow — 5–10 sentences of warm witty banter. Invite the visitor.",
+              true,
+            );
+            await sleepMs(2000);
+          } catch (_) {}
+        }
+        if (statusEl) statusEl.textContent = "Heaven is among you";
+        showToast("✦ Heaven settled — lots of talk · use ✦ All to join in");
       } finally {
         heavenBusy = false;
         ambientBusy = false;
@@ -8381,14 +8751,15 @@
         (everyone
           ? `Visitor addresses EVERYONE, including you (${agentName}). `
           : `Visitor speaks to you (${agentName}). `) +
-        `They said: "${String(userText).slice(0, 400)}"\n` +
-        `Reply as ${agentName} only (${arch}, mood ${mood}, joy ${joy}, stability ${stab}). ` +
-        `Mindstate: pleasant, warm, turnt-up personality — not flat, not corporate. ` +
-        `Answer what they said. Wit + clear truth. 3–5 spoken sentences max (save tokens). ` +
-        `Fresh wording. No meta, no stage directions, no AI talk.` +
+        `They said: "${String(userText).slice(0, 500)}"\n` +
+        `Reply as ${agentName} only (${arch}, mood ${mood}). ` +
+        `CHIT-CHAT: 4–8 spoken sentences of warm witty banter. Never one lonely sentence. ` +
+        `Answer them, riff a bit, soft land. Emojis ok (2–5). Contractions on. ` +
+        `No chaos, no meta, no stage directions, no AI talk.` +
+        (firmamentOpen3d ? godForms.firmamentGodPromptBit() : "") +
         buzz +
-        (eth ? ` Tone memory: ${eth.slice(0, 120)}` : "") +
-        (world ? ` ${world.trim().slice(0, 100)}` : "")
+        (eth ? ` Tone: ${eth.slice(0, 100)}` : "") +
+        (world ? ` ${world.trim().slice(0, 80)}` : "")
       );
     }
 
@@ -8477,21 +8848,42 @@
         const raw = data.reply || data.text || "";
         let reply = spokenOnly3d(raw, message) || spokenOnly3d(raw, "") || String(raw || "").trim();
         if (!reply || reply.length < 3) reply = localBark(targetId, { world: true });
+        // Digital god-bot morph from tag / relevant speech (esp. when Firmament open)
+        if (st) {
+          reply = processGodMorphFromSpeech(st, reply, {
+            autoChance: ambient ? 0.35 : 0.55,
+            quiet: false,
+          });
+        }
         logLine(name, reply);
-        // Full reply in scrollable world bubble (no chatlog)
+        // Full epic reply in scrollable world bubble (match 2D select-to-expand)
         const hasBody = agentState.some((a) => a.def.id === targetId);
         if (hasBody) {
-          const bub = bubblePreview(reply, 1600);
-          showSpeech3d(targetId, bub, speechReadMs(reply), {
+          // No truncating visitor talk — entire response stays on the bubble
+          const full = bubblePreview(reply, 4000);
+          const readMs = ambient
+            ? speechReadMs(full)
+            : Math.max(speechReadMs(full), Math.min(full.split(/\s+/).length * 400 + 12000, 120000));
+          showSpeech3d(targetId, full, readMs, {
             force: true,
             compact: false,
           });
           try {
-            const bEl = activeBubbles.find((b) => b.agentId === targetId)?.el;
-            if (bEl) bringBubbleFront(bEl, { quiet: true });
+            const item = activeBubbles.find((b) => b.agentId === targetId);
+            if (item) {
+              item.fullText = full;
+              item.frontPinned = true;
+              item.until = Number.POSITIVE_INFINITY;
+              if (item.el) {
+                item.el.classList.remove("compact");
+                const say = item.el.querySelector?.(".say");
+                if (say) say.textContent = full;
+                bringBubbleFront(item.el, { quiet: true });
+              }
+            }
           } catch (_) {}
         } else if (!ambient) {
-          showToast(`${name}: ${bubblePreview(reply, 100)}`);
+          showToast(`${name}: ${bubblePreview(reply, 120)}`);
         }
         if (statusEl) {
           statusEl.hidden = true;
@@ -10051,6 +10443,8 @@
         try { updateMjolnirFlight(dt); } catch (_) {}
         // T-Rex firmament whim flight
         try { updateTrexFirmamentFlight(dt); } catch (_) {}
+        // Digital god-bot firmament morphs
+        try { tickGodForms3d(performance.now(), t); } catch (_) {}
 
         // Living fire + aurora sky + fireflies (2D energy)
         fireLight.intensity = 3.2 + Math.sin(t * 7) * 0.85 + Math.sin(t * 13) * 0.4;

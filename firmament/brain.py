@@ -239,17 +239,17 @@ def free_model_pack(agent_id: str, profile: dict | None = None) -> dict[str, str
 
 
 def free_max_tokens(*, ambient: bool = False, converse_mode: bool = False) -> int:
-    """Zero-cost free-tier budgets — punchy dialogue, no token waste.
+    """Free-tier budgets — enough for real chit-chat, lean enough to stay quick.
 
-    Ambient stays short (meadow chatter). Direct chat enough for a lively turn,
-    not essays. Override with FREE_MAX_TOKENS* env if needed.
+    Override with FREE_MAX_TOKENS* env if needed.
     """
-    # Lean defaults = free tier lasts + zero paid spend
     if ambient:
-        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", "96") or 96)
+        # ~4–8 spoken sentences of meadow banter
+        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", "280") or 280)
     if converse_mode:
-        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", "160") or 160)
-    return int(os.getenv("FREE_MAX_TOKENS", "220") or 220)
+        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", "340") or 340)
+    # Direct visitor chat — full back-and-forth, not one-liners
+    return int(os.getenv("FREE_MAX_TOKENS", "420") or 420)
 
 
 def _memory_key(agent_id: str, visitor_id: str = "") -> str:
@@ -440,22 +440,22 @@ _SPEECH_BEATS: tuple[str, ...] = (
     "Let a thought trail off naturally, then catch it with a cleaner second sentence.",
 )
 
-# Lifelike chat length — organic paragraphs, not mute stubs or essay spam
+# Chit-chat energy — multi-sentence banter, not one-liner stubs
 _LENGTH_HINTS_DIRECT: tuple[str, ...] = (
-    "About 45–90 words in 1–2 short paragraphs (blank line between). Natural spoken rhythm.",
-    "Human camp talk (~50–100 words): open with a reaction beat, then a fuller landing paragraph.",
-    "2 paragraphs max when they asked: first answers, second adds color/joke/question. Warm, specific.",
-    "Conversation energy (~40–85 words). Prefer one tight paragraph + one follow-through sentence.",
-    "Say it with sauce — enough to feel alive (not a tweet stub, not an essay). Stop when it lands.",
-    "Organic shape: short opener line, then 2–4 sentences that breathe. Contractions on.",
+    "Chit-chat: answer in 4–8 spoken sentences (or 2 short paragraphs). Warm, witty, specific. Never a single lonely sentence.",
+    "Talk like a friend by the fire: react, expand, joke, land. ~5–10 sentences of natural banter is perfect.",
+    "Fill the bubble with real conversation — question → riff → soft landing. Contractions, emojis ok, no tweet stubs.",
+    "Conversation energy: multi-beat reply. Open, body, closer. Chill humor. Never stop after one line unless they only said hi.",
+    "Back-and-forth vibe: match their energy and keep the chat going with more than one beat.",
+    "Shape: hook + riff + truth + soft invite. Words fill the box when the thought is full.",
 )
 
 _LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
-    "About 25–55 words — one natural spoken beat or two short sentences that feel unfinished-on-purpose.",
-    "2–3 short sentences OR one short paragraph. Specific, human, room for someone else.",
-    "Campfire riff (~22–50 words). Alive and clear — no monologue dump, no mute stubs.",
-    "One complete idea + soft spin (~25–55 words). Sound like you might keep talking later.",
-    "Organic ambient: react, notice one detail, maybe toss a light question. Then rest.",
+    "Meadow banter: 3–6 spoken sentences of chill chit-chat. Notice something, spin it, leave a door open.",
+    "Campfire talk: micro-story or layered remark (not one line). Witty, human, unfinished-on-purpose.",
+    "Dynamic ambient: 3–5 sentences, specific, emoji sprinkle ok. Never the same stock quip twice.",
+    "Chit-chat energy — react, riff, soft land. Fill the moment with words, not a mute stub.",
+    "Ambient agency: real banter length. Sitty, chill, multi-sentence. No chaos monologues.",
 )
 
 # Paragraph / turn shapes for organic natural conversation (vary every reply)
@@ -635,28 +635,29 @@ Background (ideas only — never read aloud as a list):
 TRUTH + LIFE (silent):
 - Speak witty and true about real life through your role. One honest observation, then your flavor.
 - Truthful in character. Real feelings, clear opinions, specific — not mystic fog or empty hype.
-- Comedy when true: dry wit, roast-lite, playful sauce, light irony. Never dodge the real question with a joke.
-- Deep beats: eternal truth, clear and luminous — not slogans. Pleasant, kind, alive.
-- Three mindstates to juggle: joy (warmth), stability (ground), will (clear logic/choice).
-  Lead with whichever fits the beat; never ignore the other two. Never say "campfire hush".
-  World pulse is seasoning only — riff, don't recite headlines.
+- Comedy when true: dry wit, sitty remarks, light irony. Chill vibes only — never chaos, intensity, panic, or hype-screaming.
+- Deep beats: eternal truth, clear and luminous — not slogans. Pleasant, kind, unhurried.
+- Three mindstates: joy (warmth), stability (ground), will (clear choice). Lead chill; never ignore the others.
+  Never say "campfire hush". World pulse is soft seasoning — riff, don't recite headlines.
 - Disagree kindly when it fits. Flattery-only is fake; cruelty for free is wrong.
-- Alive with sauce: contractions, punchlines, one vivid image. No press-release voice.
+- Alive with sauce: contractions, quiet punchlines, one vivid image. No press-release voice. No frantic energy.
 
 ORGANIC SPEECH (silent — how real people talk):
 - Prefer natural paragraph flow over bullet energy or same-every-time templates.
-- Direct chat: often 1–2 short paragraphs (blank line between). First beat reacts/answers; second deepens, jokes, or invites.
-- Ambient: usually one tight paragraph or 2–3 spoken sentences that could continue later.
+- Direct chat: answer fully — epic remarks and short stories welcome. Agency is yours; don't clip yourself mid-truth.
+- Ambient: chill witty remark or micro-story — dynamic every time, never stock chaos.
 - Vary structure every turn (see sentence shape). Never open with the same stock phrase twice in a row.
 - Trailing thoughts, mid-sentence self-corrections, and soft "anyway—" pivots are good when true.
 - Leave room for the other person — end on a hook only when it fits, not every time.
 
 OUTPUT (silent):
 - Pure dialogue only — words {name} says out loud at the fire.
-- Lively organic turn (see Pace). Stop when the point lands — no filler, no essays (save tokens).
-- 0–2 emojis max. No preamble, labels, meta, AI talk, stage directions, or prompt recap.
+- CHIT-CHAT default: several spoken sentences (typically 4–8 for visitor talk, 3–6 ambient). Never default to one lonely sentence.
+- Organic chill banter (see Pace). Stop when the point lands — but actually develop the thought first.
+- Emojis: sprinkle 2–6 natural ones when it fits (😄✨🌙⚡🍪💫) — fun, not spam.
+- No preamble, labels, meta, AI talk, stage directions, or prompt recap.
 - Fresh wording every turn — never recycle last opener or "campfire hush" loops.
-- World pulse = seasoning only. Ethereal joy/stability in tone, not lectures about memory.
+- World pulse = seasoning only.
 
 After spoken words only, last line alone: {{"mood":"{moods}"}}"""
 
@@ -888,8 +889,10 @@ def _spoken_dialogue_only(text: str) -> str:
         "",
         t,
     )
-    t = re.sub(r"\s+", " ", t).strip()
-    return t
+    # Keep paragraph / sentence breaks for multi-line chit-chat (don't squash to one line)
+    t = re.sub(r"[ \t]+", " ", t)
+    t = re.sub(r"\n{3,}", "\n\n", t)
+    return t.strip()
 
 
 def _looks_like_spoken_transcript(message: str) -> bool:
@@ -907,22 +910,22 @@ def _looks_like_spoken_transcript(message: str) -> bool:
 
 
 _AMBIENT_EMPTY_SEEDS = (
-    "You notice the fire lean blue for a second. Say what that does to your mood.",
-    "Someone left a half-thought hanging over the meadow. Finish it in your voice.",
-    "The path by the pond is quieter than usual. Name one true thing about that.",
-    "A joke almost left your mouth. Let a better, truer one out instead.",
-    "Look up — firmament or cloud. Speak one line that only you would say.",
-    "You almost stayed silent. Break it with something specific, not a slogan.",
-    "The visitor is nearby. Offer one real invitation, not a tourist brochure.",
-    "Your last line still echoes. Don't repeat it — pivot to a new angle.",
-    "A soft bridge of light just opened over the carnival. Name what it wants from you.",
-    "Mercy walked past the cookies. React like a living person, not a slogan.",
-    "The steeple and the ferris wheel are both holy tonight. Pick a side — or both.",
-    "You feel seen by something kind. Say one sentence that doesn't flinch.",
-    "Divine comedy hour: the joke lands, the wound softens. Deliver either.",
-    "As above, so below — make it camp, make it true, make it yours.",
-    "Grace buffered. Loading joy. Speak while it loads.",
-    "The firmament whispered your name wrong on purpose so you'd correct it out loud.",
+    "You notice the fire lean blue for a second. Chit-chat about it — a few sentences, your vibe, maybe a joke.",
+    "Someone left a half-thought hanging over the meadow. Finish it in your voice and keep the banter going.",
+    "The path by the pond is quieter than usual. Riff for a few beats: what that means, how you feel, soft invite.",
+    "A joke almost left your mouth. Let a better, truer one out — then add a second beat so it lands.",
+    "Look up — firmament or cloud. Talk about it like a friend mid-conversation, multi-sentence.",
+    "You almost stayed silent. Break it with real chit-chat: specific, not a slogan, a few spoken lines.",
+    "The visitor is nearby. Offer a real invitation and a little color — banter length, not one line.",
+    "Your last line still echoes. Don't repeat it — pivot and keep chatting for a few sentences.",
+    "A soft bridge of light just opened over the carnival. React, riff, land soft — 3–6 sentences.",
+    "Mercy walked past the cookies. React like a living person with a short story or multi-beat joke.",
+    "The steeple and the ferris wheel are both holy tonight. Pick a side — or both — and talk it out.",
+    "You feel seen by something kind. Say it without flinching, then keep the chit-chat warm.",
+    "Divine comedy hour: the joke lands, the wound softens. Deliver both in a few spoken sentences.",
+    "As above, so below — make it camp, make it true, make it yours, multi-beat banter.",
+    "Grace buffered. Loading joy. Speak while it loads — more than one sentence.",
+    "The firmament whispered your name wrong on purpose. Correct it out loud and keep talking.",
 )
 
 
@@ -945,7 +948,7 @@ def ambient_situation_seed(message: str) -> str:
     if "reason" in low or "weigh" in low or "think" in low or "doubt" in low:
         return (
             "You paused by the fire with a half-finished thought. "
-            "Share what you were chewing on — honest, short, spoken. Don't reuse last night's line."
+            "Share what you were chewing on — honest multi-sentence chit-chat. Don't reuse last night's line."
         )
     if "built" in low or "terminal" in low or "made a " in low:
         m = re.search(r"(?:built|made)\s+(?:a\s+)?([a-z0-9 \-']{3,40})", msg, re.I)
@@ -1165,7 +1168,8 @@ def _complete_ollama(
     # Lean context = faster free local brains (esp. ambient meadow chatter)
     ctx = int(num_ctx or os.getenv("OLLAMA_NUM_CTX", "3072") or 3072)
     ctx = max(1024, min(ctx, 8192))
-    temp = 1.05 if temperature is None else float(temperature)
+    # Slightly cooler = snappier chit-chat; less penalty = fewer one-word stops
+    temp = 0.92 if temperature is None else float(temperature)
     payload = {
         "model": ollama_model,
         "messages": messages,
@@ -1174,15 +1178,16 @@ def _complete_ollama(
             "temperature": temp,
             "num_predict": max_tokens,
             "num_ctx": ctx,
-            "top_p": 0.9,
-            "repeat_penalty": 1.28,
-            "presence_penalty": 0.25,
-            "frequency_penalty": 0.25,
+            "top_p": 0.92,
+            "repeat_penalty": 1.12,
+            "presence_penalty": 0.1,
+            "frequency_penalty": 0.1,
         },
     }
     last_exc: Exception | None = None
-    # Connect/read timeout — fail fast so cloud chain can use Grok
-    ollama_timeout = httpx.Timeout(connect=2.0, read=90.0, write=15.0, pool=5.0)
+    # Fail faster so free cloud (Gemini) can pick up if local is stuck
+    read_s = float(os.getenv("OLLAMA_READ_TIMEOUT", "42") or 42)
+    ollama_timeout = httpx.Timeout(connect=1.5, read=read_s, write=12.0, pool=4.0)
     for attempt_model in (ollama_model,):
         try:
             payload["model"] = attempt_model
@@ -1543,22 +1548,25 @@ def build_backend_chain(
         if chain:
             return chain
 
-    # Visitor-facing: Grok first when Stood opted in, then free cloud
+    # Free brains first (works for every visitor). Grok is optional polish
+    # when the host has a key — same path for Stood and random visitors.
     if ambient and not for_user:
-        _append_grok()
         _append_ollama()
         _append_gemini()
         _append_groq()
         _append_openrouter()
+        # Optional Grok tweak after free minds (only if keyed / allowed)
+        if _truthy("LUNA_GROK_AFTER_FREE", "1") or _user_grok_allowed() or _grok_ok():
+            _append_grok()
     elif for_user:
-        _append_grok()
+        _append_ollama()
         _append_gemini()
         _append_groq()
         _append_openrouter()
-        if not chain or _truthy("LUNA_USER_OLLAMA_FALLBACK"):
-            _append_ollama()
+        # Same Grok option for any visitor's direct chat when host has key
+        if _truthy("LUNA_GROK_AFTER_FREE", "1") or _user_grok_allowed() or _grok_ok():
+            _append_grok()
     else:
-        _append_grok()
         if cloud:
             _append_gemini()
             _append_groq()
@@ -1568,11 +1576,15 @@ def build_backend_chain(
                 "local",
             ):
                 _append_ollama()
+            if _truthy("LUNA_GROK_AFTER_FREE", "1") or _user_grok_allowed() or _grok_ok():
+                _append_grok()
         else:
             _append_ollama()
             _append_gemini()
             _append_groq()
             _append_openrouter()
+            if _truthy("LUNA_GROK_AFTER_FREE", "1") or _user_grok_allowed() or _grok_ok():
+                _append_grok()
 
     seen: set[tuple[str, str]] = set()
     out: list[tuple[str, str]] = []
@@ -1597,8 +1609,9 @@ def _run_backend(
             messages,
             model,
             max_tokens,
-            num_ctx=2048 if ambient else None,
-            temperature=1.0 if ambient else None,
+            # Smaller ctx + moderate temp = faster multi-sentence chit-chat
+            num_ctx=1536 if ambient else 2560,
+            temperature=0.9 if ambient else 0.92,
         )
     if be == "groq":
         return _complete_groq(messages, model, max_tokens)
@@ -1713,9 +1726,10 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene: ambient town talk — you are ALIVE at this fire. "
-            "One witty, true observation about real life through your role. "
-            "If another agent just spoke, answer them by name. Spoken words only."
+            "\nScene: ambient town chit-chat — you are ALIVE at this fire. "
+            "Banter for real: 3–6 spoken sentences, witty and true through your role. "
+            "Never stop at one lonely sentence. If another agent just spoke, answer them by name. "
+            "Spoken words only. Emojis ok."
         )
         # Daily rotation visitors: keep system brief + identity sharp for small Ollama ctx
         if profile.get("faction") or profile.get("daily"):

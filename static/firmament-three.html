@@ -54,8 +54,9 @@
   <link rel="modulepreload" href="/static/camp/camp-features.mjs?v=v107" />
   <link rel="modulepreload" href="/static/camp/camp-characters.mjs?v=v117-face" />
   <link rel="modulepreload" href="/static/camp/camp-props.mjs?v=v117-face" />
-  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=2026-08-06-mobile-cool-bg" />
-  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-08-06-mobile-cool-bg" />
+  <link rel="modulepreload" href="/static/firmament-god-forms.mjs?v=heaven-talk" />
+  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=2026-08-16-heaven-talk" />
+  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-08-16-heaven-talk" />
   <script>
     // Kill stale service workers that cache-first'd a broken three.module.js graph
     (function () {
@@ -278,10 +279,11 @@
     }
     .bubble3d {
       position: fixed; /* fixed to viewport — reliable PC hit targets in 3D view */
-      /* Fixed chrome + scrollable .say for long mysterious monologues */
-      width: min(380px, 90vw);
-      height: 200px;
-      max-height: min(42vh, 280px);
+      /* Hug the words: short lines = small box; long monologues grow then scroll */
+      width: min(360px, 90vw);
+      height: auto;
+      min-height: 0;
+      max-height: min(42vh, 320px);
       box-sizing: border-box;
       transform: translate(-50%, -100%);
       background: rgba(8, 14, 28, 0.96);
@@ -333,14 +335,15 @@
     /* Scroll the monologue — up/down wheel + finger pan */
     .bubble3d .say {
       display: block;
-      flex: 1 1 auto;
-      min-height: 0; /* critical for flex child scroll */
+      flex: 0 1 auto; /* don't stretch empty — grow with words only */
+      min-height: 0;
+      max-height: min(34vh, 260px);
       overflow-x: hidden;
-      overflow-y: auto;
+      overflow-y: scroll; /* always show scroll path for full replies */
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-      pointer-events: auto;
+      touch-action: pan-y !important;
+      pointer-events: auto !important;
       cursor: text;
       user-select: text;
       -webkit-user-select: text;
@@ -423,29 +426,39 @@
       /* stay clickable under a large FRONT box when their rect sticks out */
       pointer-events: auto !important;
     }
-    /* Long-press lock — taller scroll box for long entity monologues */
+    /* Long-press lock — hug text; grow for long monologues, no empty slab */
     .bubble3d.locked {
       border-color: #34d399 !important;
       box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.7), 0 14px 40px rgba(0,0,0,0.55) !important;
       opacity: 1 !important;
       filter: none !important;
       background: rgba(6, 28, 22, 0.97) !important;
-      height: min(48vh, 320px) !important;
-      max-height: min(48vh, 320px) !important;
-      min-height: 200px !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: min(58vh, 440px) !important;
       width: min(400px, 92vw) !important;
     }
-    /* Click/tap pin — stays open until × (gold edge softer than lock) */
+    .bubble3d.locked .say {
+      max-height: min(48vh, 380px);
+    }
+    /* Click/tap pin — stays open until ×; size follows words */
     .bubble3d.pinned-open:not(.locked),
     .bubble3d.front:not(.compact) {
       border-color: #fde68a !important;
       box-shadow: 0 0 0 2px rgba(253, 230, 138, 0.55), 0 12px 36px rgba(0,0,0,0.5) !important;
       opacity: 1 !important;
       filter: none !important;
-      height: min(44vh, 300px) !important;
-      max-height: min(44vh, 300px) !important;
-      min-height: 200px !important;
-      width: min(400px, 92vw) !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: min(58vh, 440px) !important;
+      width: min(420px, 94vw) !important;
+    }
+    .bubble3d.pinned-open:not(.locked) .say,
+    .bubble3d.front:not(.compact) .say {
+      max-height: min(48vh, 380px);
+      overflow-y: scroll !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y !important;
     }
     .bubble3d.holding {
       border-color: #fbbf24 !important;
@@ -479,14 +492,18 @@
     .bubble3d.front {
       border-color: #fde68a !important;
       box-shadow: 0 0 0 3px rgba(253, 230, 138, 0.85), 0 14px 40px rgba(0,0,0,0.6) !important;
-      /* Taller FRONT monologue frame — scroll inside .say */
-      height: min(44vh, 300px) !important;
-      max-height: min(44vh, 300px) !important;
-      min-height: 200px !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: min(58vh, 440px) !important;
       width: min(400px, 92vw) !important;
       opacity: 1 !important;
       filter: none !important;
       background: rgba(12, 20, 40, 0.98) !important;
+    }
+    .bubble3d.front .say {
+      max-height: min(48vh, 380px);
+      overflow-y: scroll !important;
+      -webkit-overflow-scrolling: touch;
     }
     #talk-row {
       display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
@@ -740,7 +757,9 @@
     }
     .bubble3d {
       width: min(360px, 88vw) !important;
-      height: 168px !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: min(42vh, 320px) !important;
       font-size: clamp(0.84rem, 2.6vw, 0.98rem) !important;
       border-width: 2px !important;
     }
@@ -1068,15 +1087,15 @@
         font-size: 0.7rem;
         padding: 9px 12px;
       }
-      /* Smaller speech bubbles so more of the meadow stays visible */
+      /* Ambient bubbles stay compact; FRONT grows with words (no empty slab) */
       .bubble3d {
-        width: min(188px, 54vw) !important;
+        width: min(220px, 68vw) !important;
         height: auto !important;
         min-height: 0 !important;
-        max-height: 88px !important;
+        max-height: min(28vh, 160px) !important;
         padding: 7px 28px 7px 9px !important; /* room for × */
-        font-size: 0.7rem !important;
-        line-height: 1.3 !important;
+        font-size: 0.72rem !important;
+        line-height: 1.35 !important;
         border-radius: 12px !important;
       }
       .bubble3d .bubble-x {
@@ -1091,7 +1110,10 @@
         margin-bottom: 2px !important;
         padding-right: 22px !important;
       }
-      .bubble3d .say { font-size: 0.7rem !important; }
+      .bubble3d .say {
+        font-size: 0.72rem !important;
+        max-height: min(22vh, 120px) !important;
+      }
       .bubble3d.compact {
         width: min(160px, 48vw) !important;
         max-height: 72px !important;
@@ -1099,12 +1121,19 @@
         font-size: 0.66rem !important;
       }
       .bubble3d.front,
-      .bubble3d.locked {
-        width: min(220px, 64vw) !important;
+      .bubble3d.locked,
+      .bubble3d.pinned-open {
+        width: min(92vw, 340px) !important;
         height: auto !important;
         min-height: 0 !important;
-        max-height: 112px !important;
-        padding: 8px 10px !important;
+        max-height: min(52vh, 360px) !important;
+        padding: 10px 12px !important;
+        font-size: 0.82rem !important;
+      }
+      .bubble3d.front .say,
+      .bubble3d.locked .say,
+      .bubble3d.pinned-open .say {
+        max-height: min(42vh, 300px) !important;
       }
       #btn-open-chat3d {
         bottom: calc(96px + env(safe-area-inset-bottom, 0px));
@@ -1332,6 +1361,8 @@
     </div>
     <span id="album-now" hidden></span>
     <button type="button" id="btn-firmament-3d" class="chip" title="Open Firmament so flyers may take the sky">📡 Firmament</button>
+    <button type="button" id="btn-heaven-3d" class="chip" title="Summon Jesus, archangels, Thor &amp; Zeus"
+      style="border-color:#fef3c7;background:linear-gradient(135deg,#422006,#fbbf24 55%,#fde68a);color:#1c1917;font-weight:900">✦ Heaven</button>
     <button type="button" id="btn-reset-cam" class="chip">Find me</button>
     <button type="button" id="btn-follow" class="chip" title="Camera follow">Follow</button>
     <button type="button" id="btn-banter-top" class="chip" title="Pair banter">💬</button>
@@ -1349,6 +1380,8 @@
       <button type="button" id="powwow">🔥 Circle</button>
     </div>
     <div id="talk-row">
+      <button type="button" class="btn-all-agents" id="btn-heaven-dock" title="Summon Heaven"
+        style="border-color:#fef3c7;background:linear-gradient(135deg,#422006,#fde68a);color:#1c1917;font-weight:900">✦ Heaven</button>
       <button type="button" class="btn-all-agents" id="btn-all-agents" title="Speak to every agent on the meadow">✦ All</button>
       <div class="who-dd" id="who-dd">
         <button type="button" class="who-dd-btn" id="who-dd-btn" aria-haspopup="listbox" aria-expanded="false" title="Who to talk to">Talk to…</button>
@@ -1374,7 +1407,7 @@
   </div>
 
     <!-- External progressive boot (tiny) → full app module -->
-  <script type="module" src="/static/firmament-three-boot.mjs?v=2026-08-06-mobile-cool-bg"></script>
+  <script type="module" src="/static/firmament-three-boot.mjs?v=2026-08-16-heaven-talk"></script>
 
   <script src="/static/world-nav.js?v=310-3d-live" defer></script>
 </body>

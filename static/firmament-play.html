@@ -4753,7 +4753,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-15-talk-thread";
+    const CAMP_BUILD = "2026-08-15-mjolnir-2d";
     let campWeather = "aurora";
     /** Mjolnir lightning — primary on mobile + PC; Caduceus / aurora are fallbacks */
     const CAMP_BG_URL = `/static/camp/mjolnir-sky.jpg?v=${CAMP_BUILD}`;
@@ -8797,8 +8797,7 @@
       }
     }
     function loadCampBackgroundVideo() {
-      // Phones: still wallpaper only (cheaper + always visible). PC gets living layer.
-      if (isSlowDevice()) return;
+      // Still paints first; living Mjolnir loop on every device that can decode it.
       try {
         const vid = document.createElement("video");
         vid.src = campAssetUrl(CAMP_BG_VIDEO_URL);
@@ -8851,9 +8850,9 @@
         ? (CAMP_BG_MOBILE_URL || CAMP_BG_URL)
         : (CAMP_BG_URL || CAMP_BG_MOBILE_URL);
       campBgImg.src = campAssetUrl(still);
-      // PC living layer optional; wallpaper remains if video fails
+      // Living Mjolnir loop — still stays if video is blocked
       try {
-        if (!isSlowDevice()) loadCampBackgroundVideo();
+        loadCampBackgroundVideo();
       } catch (_) {}
     }
     loadCampBackground();

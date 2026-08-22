@@ -4527,17 +4527,49 @@
       }
       /* PC: one copy of each control — no stacked FABs over the meadow */
       #btn-firmament-mobile,
-      #camp-heaven-fab,
       #camp-record-fixed,
       #camp-chatter-fab,
       #camp-live-stamp,
       #camp-act-fab,
       #camp-act-sheet,
       #camp-pick-agent-fab,
-      #btn-summon-heaven {
+      #btn-summon-heaven,
+      #btn-header-heaven {
         display: none !important;
         pointer-events: none !important;
         visibility: hidden !important;
+      }
+      /* Heaven sits to the RIGHT of Relics | 2D | 3D, not under it */
+      #camp-heaven-fab {
+        display: inline-flex !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        opacity: 1 !important;
+        left: calc(50% + 248px) !important;
+        right: auto !important;
+        top: 8px !important;
+        z-index: 96 !important;
+        min-height: 34px !important;
+        padding: 6px 14px !important;
+        font-size: 0.78rem !important;
+      }
+      html.hub-embed #camp-heaven-fab,
+      html.world-nav-embed #camp-heaven-fab {
+        top: 6px !important;
+        left: calc(50% + 260px) !important;
+      }
+      html.hub-embed {
+        --header-h: 96px;
+        --dock-h: calc(var(--text-expand-h) + var(--layer-bar-h) + var(--reply-rail-h) + var(--talk-bar-h) + var(--dock-icons-h) + 78px);
+      }
+      html.hub-embed #camp-header {
+        padding-top: 42px;
+      }
+      html.hub-embed #action-bar {
+        padding-bottom: 72px;
+      }
+      html.hub-embed #btn-camp-quiet-pc {
+        top: calc(var(--header-h) + 8px);
       }
       #btn-camp-gather {
         display: inline-flex !important;

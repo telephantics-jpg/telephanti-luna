@@ -11599,6 +11599,7 @@
         try { clearAllDomBubbles(); } catch (_) {}
         try { speechBubbleRects.length = 0; } catch (_) {}
       } else {
+        try { clearAllDomBubbles(); } catch (_) {}
         kickMeadowTalk();
       }
       syncTalkMinBtn();
@@ -14123,17 +14124,6 @@
           front: true,
           holdLocked: bubbleHoldLocked,
         });
-        try {
-          upsertDomBubble(who, text, {
-            color: npc?.color,
-            agentId: npc?.id,
-            mood: npc?.mood,
-            focus: true,
-            keepScroll: true,
-            locked: bubbleHoldLocked,
-            quiet: true,
-          });
-        } catch (_) {}
         return;
       }
       // Ambient posts: short on phone (meadow is tiny); longer on PC
@@ -14152,26 +14142,7 @@
         until,
         front: someoneFront ? false : !!(prev?.front),
       });
-      // DOM bubble for scroll/drag UI (PC ambient; phone only if already open)
-      try {
-        upsertDomBubble(who, text, {
-          color: npc?.color,
-          agentId: npc?.id,
-          mood: npc?.mood,
-          focus: !someoneFront,
-          quiet: true,
-        });
-        // Auto-dismiss ambient DOM bubble after hold (unless focused/locked)
-        const sp = who;
-        setTimeout(() => {
-          if (selectedBubbleSpeaker === sp && (bubbleFrontPinned || bubbleHoldLocked)) return;
-          const held = speechHold.get(sp);
-          if (held && held.until > Date.now() && held.front) return;
-          if (domBubbles.get(sp)?.locked) return;
-          if (selectedBubbleSpeaker === sp) return;
-          removeDomBubble(sp);
-        }, hold * 1000 + 400);
-      } catch (_) {}
+      // Thought bubbles stay on the canvas so they can be dragged.
       if (selectedBubbleSpeaker === who) {
         selectedBubbleLine = text;
         if (bubbleFrontPinned || bubbleHoldLocked) {
@@ -14364,38 +14335,23 @@
 
     function startBubbleDrag(bubbleHit, sx, sy, pointerId) {
       const speaker = bubbleHit.speaker;
-      const npc = allRoamers().find((n) => n.name === speaker || n.id === bubbleHit.agentId);
-      // Expand to ENTIRE response (fullLine), not the meadow preview
-      const full = String(
-        npc?.fullLine ||
-        speechHold.get(speaker)?.fullLine ||
-        speechHold.get(speaker)?.line ||
+      const line = String(
         bubbleHit.line ||
+        speechHold.get(speaker)?.line ||
         selectedBubbleLine ||
         "",
       ).trim();
-      // Press = immediate front + full epic monologue
-      selectSpeechBubble(speaker, full, bubbleHit.mood, {
-        color: bubbleHit.color,
-        agentId: bubbleHit.agentId,
-        focusChat: false,
-        displayLine: full,
-        fullLine: full,
-        front: true,
-        quiet: true,
-      });
-      // New speaker → scroll to top; same speaker re-tap keeps scroll position
-      if (selectedBubbleSpeaker !== speaker) {
-        bubbleScrollOffset.set(speaker, 0);
-      }
-      // While pressed: never auto-expire
+      selectedBubbleSpeaker = speaker;
+      selectedBubbleLine = line;
+      selectedBubbleColor = bubbleHit.color || selectedBubbleColor;
+      selectedBubbleMood = bubbleHit.mood || "neutral";
+      selectedBubbleAgentId = bubbleHit.agentId || "";
       bubbleFrontPinned = true;
       speechHold.set(speaker, {
-        line: full,
-        until: Date.now() + 86400000,
+        line,
+        fullLine: line,
+        until: Date.now() + 180000,
         front: true,
-        holdLocked: bubbleHoldLocked,
-        pressHeld: true,
       });
       dragTarget = {
         kind: "bubble",
@@ -14409,30 +14365,19 @@
         grabOy: sy - bubbleHit.by,
         boxW: bubbleHit.boxW || 200,
         boxH: bubbleHit.boxH || 80,
-        lift: bubbleHit.lift || 22,
+        lift: bubbleHit.lift || 12,
         color: bubbleHit.color,
         mood: bubbleHit.mood,
-        line: full,
+        line,
         holdTimer: 0,
         holdFired: false,
         pressHeld: true,
+        scrollable: !!bubbleHit.scrollable,
       };
-      // Long-press (~0.45s) → lock front until unlock (stays after release)
-      dragTarget.holdTimer = setTimeout(() => {
-        if (!dragTarget || dragTarget.kind !== "bubble" || dragTarget.moved) return;
-        dragTarget.holdFired = true;
-        toggleBubbleHoldLock(speaker, full, bubbleHit.mood, {
-          color: bubbleHit.color,
-          agentId: bubbleHit.agentId,
-          displayLine: full,
-        });
-      }, 450);
       pendingCampAction = null;
       canvas.classList.add("dragging");
-      try {
-        (campStage || canvas).setPointerCapture?.(pointerId);
-      } catch (_) {}
       try { canvas.setPointerCapture(pointerId); } catch (_) {}
+      try { showToast?.(`↕ ${speaker} — drag the thought`); } catch (_) {}
     }
 
     function openAgentScrollBubble(speaker, text, mood, opts = {}) {
@@ -17678,10 +17623,6 @@
           return !isSel;
         }
         const held = speechHold.get(n.name);
-        // DOM bubble already shows this speaker — skip canvas double-draw
-        if (domBubbles.has(n.name) || (n.id && [...domBubbles.values()].some((e) => e.agentId === n.id))) {
-          return false;
-        }
         // Selected → entire response (fullLine). Ambient → short meadow preview.
         let activeLine = isSel
           ? (selectedBubbleLine || held?.fullLine || held?.line || n.fullLine || n.line || "")
@@ -17753,8 +17694,8 @@
       // Only the drawn box (and ✕) count — no soft near-miss.
       // Camp / meadow presses must never select a bubble by proximity alone.
       const mobile = isCampMobile();
-      const pad = 0; // exact box only
-      const closePad = mobile ? 10 : 6;
+      const pad = mobile ? 22 : 16;
+      const closePad = mobile ? 14 : 8;
       // Top-most first (last drawn = selected / front)
       for (let i = speechBubbleRects.length - 1; i >= 0; i--) {
         const r = speechBubbleRects[i];
@@ -19148,6 +19089,7 @@
 
     function onCampPointerDown(ev) {
       if (dragTarget) return;
+      if (ev.target?.closest?.(".camp-bubble")) return;
       if (isCampUiTarget(ev.target)) return;
       if (!isCanvasMapTarget(ev.target) && !isCanvasMapTarget(document.elementFromPoint(ev.clientX, ev.clientY))) return;
       if (ev.pointerType === "touch") ev.preventDefault();
@@ -19206,11 +19148,19 @@
 
     function onCampPointerMove(ev) {
       if (trackCampPointerMove(ev)) return;
-      if (!dragTarget || ev.pointerId !== dragTarget.pointerId) return;
+      if (!dragTarget) {
+        try {
+          const { sx, sy } = campPointerPos(ev);
+          canvas.style.cursor = hitTestSpeechBubble(sx, sy) ? "grab" : "";
+        } catch (_) {}
+        return;
+      }
+      if (ev.pointerId !== dragTarget.pointerId) return;
+      if (dragTarget.kind === "bubble") canvas.style.cursor = "grabbing";
       const { sx, sy } = campPointerPos(ev);
       const dragDist = Math.hypot(sx - dragTarget.startSx, sy - dragTarget.startSy);
       // Bubbles use a lower threshold so drag feels responsive
-      const thresh = dragTarget.kind === "bubble" ? Math.min(6, campDragThreshold()) : campDragThreshold();
+      const thresh = dragTarget.kind === "bubble" ? 2 : campDragThreshold();
       if (dragDist > thresh) {
         if (dragTarget.kind === "bubble") {
           // Cancel long-press lock if finger slid
@@ -19222,7 +19172,7 @@
           const dy = sy - dragTarget.startSy;
           const maxS = bubbleScrollOffset.get(`${dragTarget.speaker}__max`) || 0;
           // Vertical finger motion on a long monologue = scroll the text (not park)
-          if (maxS > 0 && Math.abs(dy) >= Math.abs(dx) * 0.85) {
+          if (dragTarget.scrollable && maxS > 0 && Math.abs(dy) >= Math.abs(dx) * 1.4) {
             const lastY = dragTarget.lastScrollSy ?? dragTarget.startSy;
             const dLine = Math.round((lastY - sy) / 16); // drag up → read later lines
             if (dLine !== 0) {
@@ -19304,6 +19254,7 @@
             fullLine: target.line || selectedBubbleLine,
             front: true,
             quiet: !!target.scrolled,
+            skipDom: true,
           });
           if (target.scrolled) {
             try { showToast?.("↕ Scroll for full reply"); } catch (_) {}

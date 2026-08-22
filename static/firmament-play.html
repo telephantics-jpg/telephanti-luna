@@ -206,6 +206,138 @@
       /* Transparent so #camp-bg-layer always shows on phones */
       background: transparent !important;
     }
+    /* ── DOM speech bubbles (scroll + drag + focus + center) ───────── */
+    #camp-bubble-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .camp-bubble {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: min(300px, 78vw);
+      max-height: min(42vh, 300px);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+      border-radius: 14px;
+      border: 2px solid rgba(167, 139, 250, 0.65);
+      background: rgba(8, 14, 28, 0.96);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+      color: #f1f5f9;
+      transform: translate(-50%, -100%);
+      touch-action: none;
+      cursor: grab;
+      z-index: 10;
+      overflow: hidden;
+    }
+    .camp-bubble.dragging {
+      cursor: grabbing;
+      opacity: 0.97;
+      box-shadow: 0 14px 36px rgba(0,0,0,0.55), 0 0 0 2px rgba(251,191,36,0.55);
+    }
+    .camp-bubble.is-focus {
+      border-color: #fde68a;
+      box-shadow: 0 0 0 2px rgba(253,230,138,0.75), 0 14px 36px rgba(0,0,0,0.55);
+      z-index: 50 !important;
+      width: min(340px, 88vw);
+      max-height: min(52vh, 380px);
+    }
+    .camp-bubble.is-locked {
+      border-color: #34d399;
+      box-shadow: 0 0 0 2px rgba(52,211,153,0.65), 0 12px 32px rgba(0,0,0,0.5);
+    }
+    .camp-bubble.dimmed { opacity: 0.42; filter: saturate(0.7); }
+    .camp-bubble-bar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 8px 4px;
+      border-bottom: 1px solid rgba(148,163,184,0.15);
+      cursor: grab;
+      user-select: none;
+    }
+    .camp-bubble-who {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-weight: 800;
+      font-size: 0.78rem;
+      color: var(--bubble-c, #a78bfa);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .camp-bubble-btn {
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid rgba(148,163,184,0.3);
+      background: rgba(15,23,42,0.85);
+      color: #e2e8f0;
+      font-size: 0.75rem;
+      font-weight: 800;
+      cursor: pointer;
+      touch-action: manipulation;
+      line-height: 1;
+      padding: 0;
+    }
+    .camp-bubble-btn:hover { border-color: #fde68a; color: #fde68a; }
+    .camp-bubble-btn.x { color: #fca5a5; }
+    .camp-bubble-say {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: min(34vh, 240px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      padding: 8px 12px 12px;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      cursor: text;
+      user-select: text;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(167,139,250,0.75) rgba(15,23,42,0.4);
+    }
+    .camp-bubble.is-focus .camp-bubble-say {
+      max-height: min(42vh, 300px);
+    }
+    .camp-bubble-say::-webkit-scrollbar { width: 8px; }
+    .camp-bubble-say::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #a78bfa, #38bdf8);
+      border-radius: 8px;
+    }
+    .camp-bubble-hint {
+      flex: 0 0 auto;
+      font-size: 0.62rem;
+      color: #67e8f9;
+      text-align: center;
+      padding: 0 8px 6px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .camp-bubble.has-scroll .camp-bubble-hint { opacity: 0.9; }
+    @media (max-width: 899px) {
+      .camp-bubble {
+        width: min(280px, 82vw);
+        max-height: min(38vh, 260px);
+      }
+      .camp-bubble.is-focus {
+        width: min(92vw, 320px);
+        max-height: min(48vh, 340px);
+      }
+      .camp-bubble-say { font-size: 0.82rem; max-height: min(28vh, 200px); }
+      .camp-bubble.is-focus .camp-bubble-say { max-height: min(38vh, 280px); }
+    }
     html.desktop-camp #game {
       background: transparent !important;
     }
@@ -1157,6 +1289,27 @@
       color: #ede9fe;
       background: linear-gradient(135deg, #312e81, #4c1d95);
       box-shadow: 0 0 14px rgba(167, 139, 250, 0.4);
+    }
+    .dock-compact .dock-icon.talk-min-btn.active {
+      border-color: #fde68a;
+      color: #fffbeb;
+      background: linear-gradient(135deg, #422006, #b45309);
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.35);
+    }
+    /* Hide all floating dialogue until 💬 is pressed again */
+    body.talk-min #camp-bubble-layer,
+    body.talk-min #camp-reply-rail,
+    body.talk-min.camp-reply-open #camp-reply-rail,
+    body.talk-min #camp-text-expand,
+    body.talk-min #npc-bubble {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .hud-drag { cursor: grab; }
+    .hud-drag.is-dragging { cursor: grabbing; opacity: 0.92; z-index: 2147483001 !important; }
+    @media (min-width: 900px) {
+      #camp-live-stamp { display: none !important; }
     }
     /* "Who is talking" strip — fully retired (names live in chat history only) */
     /* Hide "now speaking" bar — names live on meadow bubbles + reply rail who */
@@ -4306,6 +4459,8 @@
         poster="/static/camp/caduceus-3d.jpg?v=phone-bg"></video>
     </div>
     <canvas id="game"></canvas>
+    <!-- DOM chat bubbles: scroll · drag · focus · center (above canvas) -->
+    <div id="camp-bubble-layer" aria-label="Speech bubbles"></div>
   </div>
   <!-- Mobile: header row is hidden — Firmament still reachable -->
   <button type="button" id="btn-firmament-mobile" title="Open the Firmament so winged/mythic agents may fly" aria-label="Firmament">📡 Firmament</button>
@@ -4579,6 +4734,7 @@
       <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
       <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Chat record — past lines from the meadow (hidden until you open)" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-color:#67e8f9;color:#ecfeff;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem;font-weight:800">📜 Record</button>
       <button type="button" class="dock-icon hush-btn" id="btn-camp-hush" title="Hush = soft chill (NOT mute): agents walk slower & talk less often so you can read. Tap again to restore normal energy." aria-pressed="false">🤫 Soft</button>
+      <button type="button" class="dock-icon talk-min-btn" id="btn-talk-min" title="Hide all speech bubbles — stays hidden until you press again" aria-pressed="false">💬 Hide</button>
       <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Focus talk bar — type to locked agent" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️</button>
       <button type="button" class="dock-icon talk" id="btn-talk-near" title="Lock to nearest agent">📍</button>
       <button type="button" class="dock-icon" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
@@ -4808,7 +4964,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-16-heaven-quiet";
+    const CAMP_BUILD = "2026-08-16-dom-bubbles";
     let campWeather = "aurora";
     /** Caduceus still — always first on phones (reliable); wallpaper = fallback */
     const CAMP_BG_URL = `/static/camp/caduceus-3d.jpg?v=${CAMP_BUILD}`;
@@ -5803,6 +5959,7 @@
       "#camp-pick-agent-fab", "#camp-pick-agent-sheet", "#camp-tpx-fab",
       "#camp-heaven-fab", "#btn-header-heaven", "#camp-chat-panel",
       "#camp-act-fab", "#camp-act-sheet", "#constellation-layer",
+      "#camp-bubble-layer", "#btn-talk-min",
     ].join(", ");
     function isCampUiTarget(el) {
       if (!el) return false;
@@ -11347,6 +11504,125 @@
 
     // Chat record OFF by default — only via 📜 Record button (never auto)
     let mobileChatterMode = "hidden";
+    let talkMinOn = false;
+
+    function isTalkMin() {
+      return talkMinOn || document.body.classList.contains("talk-min");
+    }
+
+    function syncTalkMinBtn() {
+      const btn = document.getElementById("btn-talk-min");
+      const on = isTalkMin();
+      document.body.classList.toggle("talk-min", on);
+      if (!btn) return;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.textContent = on ? "💬 Show" : "💬 Hide";
+      btn.title = on
+        ? "Show speech bubbles again"
+        : "Hide all speech bubbles — stays hidden until you press again";
+    }
+
+    function setTalkMin(on) {
+      talkMinOn = !!on;
+      document.body.classList.toggle("talk-min", talkMinOn);
+      try { localStorage.setItem("luna-camp-talk-min", talkMinOn ? "1" : "0"); } catch (_) {}
+      if (talkMinOn) {
+        try { clearAllDomBubbles(); } catch (_) {}
+        try { speechBubbleRects.length = 0; } catch (_) {}
+      }
+      syncTalkMinBtn();
+    }
+
+    function toggleTalkMin() {
+      setTalkMin(!isTalkMin());
+    }
+
+    function applyTalkMinFromStorage() {
+      let saved = null;
+      try { saved = localStorage.getItem("luna-camp-talk-min"); } catch (_) {}
+      setTalkMin(saved === "1");
+    }
+
+    /** Drag floating HUD chips out of the way (PC overlap). Click still works if you don't drag. */
+    function enableHudDrag(el, key) {
+      if (!el || el.__hudDragWired) return;
+      el.__hudDragWired = true;
+      el.classList.add("hud-drag");
+      const storeKey = `luna-camp-hud-${key}`;
+      try {
+        const saved = JSON.parse(localStorage.getItem(storeKey) || "null");
+        if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+          el.style.position = "fixed";
+          el.style.left = `${saved.x}px`;
+          el.style.top = `${saved.y}px`;
+          el.style.right = "auto";
+          el.style.bottom = "auto";
+        }
+      } catch (_) {}
+      let drag = null;
+      el.addEventListener("pointerdown", (e) => {
+        if (e.button != null && e.button !== 0) return;
+        if (e.target?.closest?.("input, textarea, select, a, .camp-bubble-say, .camp-bubble-btn")) return;
+        if (el.id === "relic-deck" && !e.target?.closest?.("#relic-deck-toggle")) return;
+        const r = el.getBoundingClientRect();
+        drag = {
+          dx: e.clientX - r.left,
+          dy: e.clientY - r.top,
+          x0: e.clientX,
+          y0: e.clientY,
+          moved: false,
+          pid: e.pointerId,
+        };
+        try { el.setPointerCapture?.(e.pointerId); } catch (_) {}
+      });
+      el.addEventListener("pointermove", (e) => {
+        if (!drag || (drag.pid != null && e.pointerId !== drag.pid)) return;
+        if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 8) return;
+        drag.moved = true;
+        el.classList.add("is-dragging");
+        const x = Math.max(6, Math.min(window.innerWidth - 52, e.clientX - drag.dx));
+        const y = Math.max(6, Math.min(window.innerHeight - 52, e.clientY - drag.dy));
+        el.style.position = "fixed";
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        el.style.right = "auto";
+        el.style.bottom = "auto";
+      });
+      const end = (e) => {
+        if (!drag) return;
+        if (drag.moved) {
+          el.dataset.justDragged = "1";
+          try {
+            localStorage.setItem(storeKey, JSON.stringify({
+              x: parseFloat(el.style.left),
+              y: parseFloat(el.style.top),
+            }));
+          } catch (_) {}
+        }
+        el.classList.remove("is-dragging");
+        try { el.releasePointerCapture?.(e.pointerId); } catch (_) {}
+        drag = null;
+      };
+      el.addEventListener("pointerup", end);
+      el.addEventListener("pointercancel", end);
+      el.addEventListener("click", (e) => {
+        if (el.dataset.justDragged === "1") {
+          e.preventDefault();
+          e.stopPropagation();
+          el.dataset.justDragged = "";
+        }
+      }, true);
+    }
+
+    function wireHudDrags() {
+      enableHudDrag(document.getElementById("camp-record-fixed"), "record");
+      enableHudDrag(document.getElementById("camp-chatter-fab"), "chatter");
+      enableHudDrag(document.getElementById("camp-heaven-fab"), "heaven");
+      enableHudDrag(document.getElementById("camp-act-fab"), "act");
+      enableHudDrag(document.getElementById("relic-deck"), "relics");
+      enableHudDrag(document.getElementById("camp-live-stamp"), "stamp");
+    }
 
     function isChatRecordOpen() {
       return mobileChatterMode !== "hidden" && !document.body.classList.contains("chatter-hidden");
@@ -13427,16 +13703,309 @@
     const bubbleFreePos = new Map();
     /** Vertical scroll offset (line index) for long selected monologues */
     const bubbleScrollOffset = new Map();
+    /** DOM chat bubbles (scroll + drag + focus + center) speaker → { el, free, freeX, freeY, ... } */
+    const domBubbles = new Map();
+    let domBubbleZ = 20;
+    let domBubbleDrag = null;
     const speechTextEl = document.getElementById("speech-text");
     const speechWhoEl = document.querySelector("#speech-now .who");
+
+    function campBubbleLayer() {
+      return document.getElementById("camp-bubble-layer");
+    }
+
+    function escapeBubbleHtml(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function markDomBubbleScroll(entry) {
+      if (!entry?.el) return;
+      const say = entry.el.querySelector(".camp-bubble-say");
+      if (!say) return;
+      const more = say.scrollHeight > say.clientHeight + 4;
+      entry.el.classList.toggle("has-scroll", more);
+    }
+
+    function focusDomBubble(speaker, opts = {}) {
+      const entry = domBubbles.get(speaker);
+      if (!entry) return;
+      for (const [sp, e] of domBubbles) {
+        e.el.classList.toggle("is-focus", sp === speaker);
+        e.el.classList.toggle("dimmed", sp !== speaker && !opts.noDim);
+        e.el.setAttribute("aria-pressed", sp === speaker ? "true" : "false");
+      }
+      domBubbleZ += 1;
+      entry.el.style.zIndex = String(200 + domBubbleZ);
+      if (opts.scrollTop != null && entry.el.querySelector(".camp-bubble-say")) {
+        entry.el.querySelector(".camp-bubble-say").scrollTop = opts.scrollTop;
+      }
+      requestAnimationFrame(() => markDomBubbleScroll(entry));
+    }
+
+    function centerDomBubbleOnAgent(speaker) {
+      const entry = domBubbles.get(speaker);
+      if (!entry) return;
+      entry.free = false;
+      entry.freeX = null;
+      entry.freeY = null;
+      entry.el.classList.remove("is-parked");
+      try { bubbleFreePos.delete(speaker); } catch (_) {}
+      updateDomBubblePositions();
+      focusDomBubble(speaker);
+      try { showToast?.(`◎ ${speaker} centered`); } catch (_) {}
+    }
+
+    function removeDomBubble(speaker) {
+      const entry = domBubbles.get(speaker);
+      if (!entry) return;
+      try { entry.el.remove(); } catch (_) {}
+      domBubbles.delete(speaker);
+      if (selectedBubbleSpeaker === speaker) {
+        selectedBubbleSpeaker = null;
+        bubbleFrontPinned = false;
+        bubbleHoldLocked = false;
+      }
+      // undim remaining
+      if (domBubbles.size === 1) {
+        for (const e of domBubbles.values()) e.el.classList.remove("dimmed");
+      }
+    }
+
+    function clearAllDomBubbles() {
+      for (const sp of [...domBubbles.keys()]) removeDomBubble(sp);
+    }
+
+    /**
+     * Create/update a DOM speech bubble — scrollable monologue, drag bar, focus, center.
+     */
+    function upsertDomBubble(speaker, text, opts = {}) {
+      if (isTalkMin()) return null;
+      const layer = campBubbleLayer();
+      if (!layer) return null;
+      const clean = String(text || "").trim();
+      if (!clean || !speaker) return null;
+      const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker.toLowerCase());
+      const color = opts.color || npc?.color || AGENT_COLORS[opts.agentId || npc?.id] || "#a78bfa";
+      const agentId = opts.agentId || npc?.id || "";
+      let entry = domBubbles.get(speaker);
+      if (!entry) {
+        const el = document.createElement("div");
+        el.className = "camp-bubble";
+        el.dataset.speaker = speaker;
+        el.tabIndex = 0;
+        el.setAttribute("role", "dialog");
+        el.setAttribute("aria-label", `${speaker} speech`);
+        el.innerHTML =
+          `<div class="camp-bubble-bar" data-drag="1">` +
+          `<span class="camp-bubble-who"></span>` +
+          `<button type="button" class="camp-bubble-btn ctr" title="Center on speaker" aria-label="Center">◎</button>` +
+          `<button type="button" class="camp-bubble-btn focus" title="Focus / bring front" aria-label="Focus">↑</button>` +
+          `<button type="button" class="camp-bubble-btn x" title="Close" aria-label="Close">×</button>` +
+          `</div>` +
+          `<div class="camp-bubble-say" tabindex="0"></div>` +
+          `<div class="camp-bubble-hint">↕ scroll · drag bar to move</div>`;
+        layer.appendChild(el);
+        entry = {
+          el,
+          speaker,
+          agentId,
+          free: false,
+          freeX: null,
+          freeY: null,
+          locked: false,
+          color,
+        };
+        domBubbles.set(speaker, entry);
+        wireDomBubble(entry);
+      }
+      entry.color = color;
+      entry.agentId = agentId || entry.agentId;
+      entry.el.style.setProperty("--bubble-c", color);
+      entry.el.style.borderColor = color;
+      const who = entry.el.querySelector(".camp-bubble-who");
+      const say = entry.el.querySelector(".camp-bubble-say");
+      if (who) who.textContent = speaker;
+      if (say) {
+        const prevTop = say.scrollTop;
+        say.textContent = clean;
+        // Keep scroll if updating same focus; else top for new speech
+        say.scrollTop = opts.keepScroll ? prevTop : 0;
+      }
+      entry.el.classList.toggle("is-locked", !!opts.locked || (bubbleHoldLocked && selectedBubbleSpeaker === speaker));
+      if (opts.focus !== false) {
+        focusDomBubble(speaker, { noDim: !!opts.quiet });
+        // Avoid recursion: selectSpeechBubble → upsertDomBubble → selectSpeechBubble
+        if (!opts.skipSelect) {
+          selectSpeechBubble(speaker, clean, opts.mood || "neutral", {
+            color,
+            agentId,
+            fullLine: clean,
+            displayLine: clean,
+            front: true,
+            quiet: true,
+            holdLock: !!opts.locked,
+            skipDom: true,
+          });
+        }
+      }
+      requestAnimationFrame(() => markDomBubbleScroll(entry));
+      setTimeout(() => markDomBubbleScroll(entry), 80);
+      return entry;
+    }
+
+    function wireDomBubble(entry) {
+      const el = entry.el;
+      const bar = el.querySelector(".camp-bubble-bar");
+      const say = el.querySelector(".camp-bubble-say");
+      el.querySelector(".camp-bubble-btn.x")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        removeDomBubble(entry.speaker);
+      });
+      el.querySelector(".camp-bubble-btn.ctr")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        centerDomBubbleOnAgent(entry.speaker);
+      });
+      el.querySelector(".camp-bubble-btn.focus")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        focusDomBubble(entry.speaker);
+        selectSpeechBubble(entry.speaker, say?.textContent || "", "neutral", {
+          agentId: entry.agentId,
+          color: entry.color,
+          fullLine: say?.textContent || "",
+          front: true,
+          quiet: false,
+        });
+      });
+      // Focus on bubble click (not when scrolling say)
+      el.addEventListener("pointerdown", (e) => {
+        if (e.target?.closest?.(".camp-bubble-say")) return;
+        if (e.target?.closest?.(".camp-bubble-btn")) return;
+        focusDomBubble(entry.speaker, { noDim: true });
+      });
+      // Drag from bar (or empty chrome) — not from scrollable text
+      const onDown = (e) => {
+        if (e.button != null && e.button !== 0) return;
+        if (e.target?.closest?.(".camp-bubble-btn")) return;
+        if (e.target?.closest?.(".camp-bubble-say")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        focusDomBubble(entry.speaker, { noDim: true });
+        const rect = el.getBoundingClientRect();
+        const stage = document.getElementById("camp-stage")?.getBoundingClientRect();
+        domBubbleDrag = {
+          speaker: entry.speaker,
+          grabX: e.clientX - rect.left - rect.width / 2,
+          grabY: e.clientY - rect.top - rect.height, // tip at bottom-center of box
+          pointerId: e.pointerId,
+        };
+        el.classList.add("dragging");
+        try { el.setPointerCapture?.(e.pointerId); } catch (_) {}
+      };
+      bar?.addEventListener("pointerdown", onDown);
+      el.addEventListener("pointermove", (e) => {
+        if (!domBubbleDrag || domBubbleDrag.speaker !== entry.speaker) return;
+        if (domBubbleDrag.pointerId != null && e.pointerId !== domBubbleDrag.pointerId) return;
+        const stage = document.getElementById("camp-stage");
+        const sr = stage?.getBoundingClientRect();
+        if (!sr) return;
+        let cx = e.clientX - sr.left - (domBubbleDrag.grabX || 0);
+        let cy = e.clientY - sr.top - (domBubbleDrag.grabY || 0);
+        // clamp tip point inside stage
+        const pad = 12;
+        cx = Math.max(pad, Math.min(sr.width - pad, cx));
+        cy = Math.max(pad + 40, Math.min(sr.height - pad, cy));
+        entry.free = true;
+        entry.freeX = cx;
+        entry.freeY = cy;
+        el.style.left = `${cx}px`;
+        el.style.top = `${cy}px`;
+        el.classList.add("is-parked");
+        try {
+          bubbleFreePos.set(entry.speaker, clampBubbleAnchor(cx, cy));
+        } catch (_) {}
+      });
+      const onUp = (e) => {
+        if (!domBubbleDrag || domBubbleDrag.speaker !== entry.speaker) return;
+        el.classList.remove("dragging");
+        try { el.releasePointerCapture?.(e.pointerId); } catch (_) {}
+        if (entry.free) {
+          try { showToast?.("📌 Bubble parked — ◎ to re-center"); } catch (_) {}
+        }
+        domBubbleDrag = null;
+      };
+      el.addEventListener("pointerup", onUp);
+      el.addEventListener("pointercancel", onUp);
+      // Double-click / double-tap bar → center
+      let lastTap = 0;
+      bar?.addEventListener("click", () => {
+        const now = Date.now();
+        if (now - lastTap < 320) centerDomBubbleOnAgent(entry.speaker);
+        lastTap = now;
+      });
+      say?.addEventListener("scroll", () => markDomBubbleScroll(entry), { passive: true });
+      // Wheel on bubble scrolls .say when focused
+      el.addEventListener(
+        "wheel",
+        (e) => {
+          if (!say) return;
+          e.stopPropagation();
+          // if over say, native scroll; else force scroll say
+          if (!e.target?.closest?.(".camp-bubble-say")) {
+            e.preventDefault();
+            say.scrollTop += e.deltaY;
+          }
+          markDomBubbleScroll(entry);
+        },
+        { passive: false },
+      );
+    }
+
+    function updateDomBubblePositions() {
+      if (!domBubbles.size) return;
+      const stage = document.getElementById("camp-stage");
+      if (!stage) return;
+      const sr = stage.getBoundingClientRect();
+      for (const [speaker, entry] of domBubbles) {
+        if (entry.free && entry.freeX != null && entry.freeY != null) {
+          entry.el.style.left = `${entry.freeX}px`;
+          entry.el.style.top = `${entry.freeY}px`;
+          continue;
+        }
+        const npc = allRoamers().find((n) => n.name === speaker || n.id === entry.agentId);
+        if (!npc || npc.insideHouse) {
+          entry.el.style.opacity = "0.35";
+          continue;
+        }
+        entry.el.style.opacity = "1";
+        try {
+          const s = worldToScreen(npc.x, npc.y);
+          // s is relative to canvas/view — same as stage if canvas fills stage
+          const lift = 28 + (npc.godScale ? (npc.godScale - 1) * 20 : 0);
+          let cx = s.x;
+          let cy = s.y - lift;
+          const pad = 10;
+          cx = Math.max(pad, Math.min(sr.width - pad, cx));
+          cy = Math.max(pad + 48, Math.min(sr.height - pad, cy));
+          entry.el.style.left = `${cx}px`;
+          entry.el.style.top = `${cy}px`;
+        } catch (_) {}
+      }
+    }
 
     function showBigSpeech(who, line, holdSec = 12) {
       const text = (line || "").trim();
       if (!text) return;
       // Always update to latest speech — do not freeze an old paragraph forever
       if (convoReadingHold && !canvasCampChatOnly()) return;
+      const npc = allRoamers().find((n) => n.name === who || n.id === who);
+      const isFront =
+        selectedBubbleSpeaker === who && (bubbleFrontPinned || bubbleHoldLocked);
       // Hold-locked / front-pinned bubble: update text, never lose front
-      if (selectedBubbleSpeaker === who && (bubbleFrontPinned || bubbleHoldLocked)) {
+      if (isFront) {
         selectedBubbleLine = text;
         const prev = speechHold.get(who);
         speechHold.set(who, {
@@ -13446,6 +14015,17 @@
           front: true,
           holdLocked: bubbleHoldLocked,
         });
+        try {
+          upsertDomBubble(who, text, {
+            color: npc?.color,
+            agentId: npc?.id,
+            mood: npc?.mood,
+            focus: true,
+            keepScroll: true,
+            locked: bubbleHoldLocked,
+            quiet: true,
+          });
+        } catch (_) {}
         return;
       }
       // Ambient posts: 5–20s unless visitor pin/hold keeps them front
@@ -13460,12 +14040,30 @@
         line: text,
         fullLine: text,
         until,
-        // New ambient chats stay behind the visitor's selected box
         front: someoneFront ? false : !!(prev?.front),
       });
+      // DOM bubble for scroll/drag UI (ambient too)
+      try {
+        upsertDomBubble(who, text, {
+          color: npc?.color,
+          agentId: npc?.id,
+          mood: npc?.mood,
+          focus: !someoneFront,
+          quiet: true,
+        });
+        // Auto-dismiss ambient DOM bubble after hold (unless focused/locked)
+        const sp = who;
+        setTimeout(() => {
+          if (selectedBubbleSpeaker === sp && (bubbleFrontPinned || bubbleHoldLocked)) return;
+          const held = speechHold.get(sp);
+          if (held && held.until > Date.now() && held.front) return;
+          if (domBubbles.get(sp)?.locked) return;
+          if (selectedBubbleSpeaker === sp) return;
+          removeDomBubble(sp);
+        }, hold * 1000 + 400);
+      } catch (_) {}
       if (selectedBubbleSpeaker === who) {
         selectedBubbleLine = text;
-        // Keep selected alive while they keep talking — full epic text
         if (bubbleFrontPinned || bubbleHoldLocked) {
           speechHold.set(who, {
             line: text,
@@ -13584,12 +14182,27 @@
       if (opts.lockPos && opts.anchorSx != null && opts.anchorSy != null) {
         bubbleFreePos.set(speaker, clampBubbleAnchor(opts.anchorSx, opts.anchorSy));
       }
+      // Keep DOM bubble in sync with selection (skipSelect to avoid recursion)
+      if (!opts.skipDom) {
+        try {
+          upsertDomBubble(speaker, display, {
+            color: selectedBubbleColor,
+            agentId: selectedBubbleAgentId,
+            mood: selectedBubbleMood,
+            focus: true,
+            locked: bubbleHoldLocked,
+            quiet: true,
+            keepScroll: true,
+            skipSelect: true,
+          });
+        } catch (_) {}
+      }
       if (!opts.quiet) {
         try {
           showToast?.(
             bubbleHoldLocked
-              ? `🔒 ${speaker} locked front — hold again to unlock`
-              : `📌 ${speaker} FRONT — tap another box to switch · hold to lock`,
+              ? `🔒 ${speaker} locked — drag bar · ◎ center · ↕ scroll`
+              : `📌 ${speaker} focus — drag bar · ◎ center · ↕ scroll monologue`,
           );
         } catch (_) {}
       }
@@ -16855,6 +17468,9 @@
 
     function drawAgentSpeechBubbles() {
       speechBubbleRects.length = 0;
+      if (isTalkMin()) return;
+      // Prefer DOM bubbles for interactive UI — skip canvas text for those speakers
+      try { updateDomBubblePositions(); } catch (_) {}
       let drawn = 0;
       // Always draw several bubbles so you can TAP any of them to bring that one front
       const max = Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 6 : 4);
@@ -16924,6 +17540,10 @@
           return !isSel;
         }
         const held = speechHold.get(n.name);
+        // DOM bubble already shows this speaker — skip canvas double-draw
+        if (domBubbles.has(n.name) || (n.id && [...domBubbles.values()].some((e) => e.agentId === n.id))) {
+          return false;
+        }
         // Selected → entire response (fullLine). Ambient → short meadow preview.
         let activeLine = isSel
           ? (selectedBubbleLine || held?.fullLine || held?.line || n.fullLine || n.line || "")
@@ -18971,6 +19591,13 @@
       try { syncChatterFab(); } catch (_) {}
     }
     wireChatRecordButtons();
+    document.getElementById("btn-talk-min")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleTalkMin();
+    });
+    try { applyTalkMinFromStorage(); } catch (_) {}
+    try { wireHudDrags(); } catch (_) {}
     // Re-assert after layout (boot/splash can reflow FABs)
     setTimeout(wireChatRecordButtons, 200);
     setTimeout(wireChatRecordButtons, 1200);

@@ -963,6 +963,10 @@ def aether_reply(
             "sentence", "character", "meta", "prompt", "you are ", "you pause",
             "campfire hush", "quiet beat", "lively beat at camp", "never say",
             "mindstate", "juggle", "in character",
+            "sensory first", "natural chat", "add your spin", "react, then",
+            "fill it with personality", "not filler", "welcome wave",
+            "live moment at camp", "do not narrate", "speak only as yourself",
+            "caught your eye (fire", "half-heard",
         )
     ) or len(snip) < 8:
         try:

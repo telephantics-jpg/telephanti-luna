@@ -1036,6 +1036,27 @@ def _looks_like_prompt_echo(text: str) -> bool:
         "first weigh options",
         "private stage note",
         "do not quote",
+        # Banter seed / director sludge the models love to recite
+        "sensory first",
+        "natural chat structure",
+        "add your spin",
+        "second breath",
+        "welcome wave",
+        "logged with care",
+        "use it.",
+        "react, then",
+        "mid-conversation energy",
+        "organic speech",
+        "leave room for them",
+        "title card",
+        "fill it with personality",
+        "not filler",
+        "speak only as yourself",
+        "do not narrate instructions",
+        "live moment at camp",
+        "fresh words",
+        "sentence shape",
+        "energy this beat",
     ):
         if needle in low:
             hits += 1

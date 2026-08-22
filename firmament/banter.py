@@ -4,38 +4,42 @@ This is the server-side mechanism for greets & idle banter.
 Client should call POST /api/firmament/banter (or agent/chat with these prompts).
 Static HTML line pools are FALLBACK only.
 
-Prompts are pure scene seeds — never instruction dumps the model can recite.
+Prompts are pure scene moments — never director notes the model can recite.
 """
 
 from __future__ import annotations
 
 import random
+import re
 from typing import Any
 
 
+# Pure sensory / social moments — NO "use it / react / structure" director speak
 _OPEN_SEEDS = (
-    "{visitor} just walked into the meadow — mid-conversation energy, no formal welcome speech.",
-    "{visitor} is here by the fire. React natural: notice them, then say something true and light.",
-    "New footsteps: {visitor}. Start mid-thought if it fits; land a warm hook.",
-    "{visitor} showed up under the corona. Two-beat welcome: short reaction, then a real question or joke.",
-    "Camp just gained {visitor}. Sound like a friend who already sat down, not a tour guide.",
-    "{visitor} arrived. Organic speech — contractions, one vivid detail, leave room for them.",
+    "{visitor} just walked into the meadow. Embers jump. A mug clinks somewhere.",
+    "{visitor} sits by the fire. Pine smoke, soft aurora, a half-eaten cookie on a napkin.",
+    "New footsteps: {visitor}. Corona light on wet grass. Someone laughs two tents over.",
+    "{visitor} shows up under the corona. Warm wood smell. A guitar case leans on a stump.",
+    "Camp gains {visitor}. The fire leans toward them like it recognizes company.",
+    "{visitor} arrives. Dew on the log bench. Somewhere a kettle ticks.",
 )
 
 _RETURN_SEEDS = (
-    "{visitor} is back at camp — callback energy, not a brand-new intro.",
-    "{visitor} returned to the meadow. Notice what's different, then welcome soft.",
-    "{visitor} circled back to the fire. Mid-thread vibe: 'you again' with affection.",
-    "{visitor} reappeared. Natural paragraph: react, then one true thing about the gap.",
+    "{visitor} is back. Same fire, different sky. A seat still warm from earlier.",
+    "{visitor} returns to the meadow. The cookies look rearranged. Suspicious.",
+    "{visitor} circles back. Aurora did a new color trick while they were gone.",
+    "{visitor} reappears. The pond mirror holds their outline for a second.",
 )
 
 _AMBIENT_SEEDS = (
-    "Something small just caught your eye (fire, pond, cookies, sky, music, props). One organic beat.",
-    "Quiet beat at the meadow — one real detail stands out. Speak like you might keep talking later.",
-    "Camp is humming. Riff mid-thought; don't open like a new scene title card.",
-    "A pause between conversations. Fill it with personality, not filler.",
-    "Someone nearby said something half-heard. React, then add your spin in a second breath.",
-    "The fire pops. Use it. Sensory first, meaning second — natural chat structure.",
+    "A pinecone rolls into the coals. Sparks stitch a tiny constellation.",
+    "Quiet meadow beat — pond glass, distant guitar, one stubborn cricket.",
+    "Camp hums. Cookie tin lid half-open. Someone left a joke unfinished.",
+    "Between conversations: steam from a mug, corona flicker, soft boot-scuff.",
+    "Half a laugh drifts from the other side of the fire. Then the hush again.",
+    "Fire pops. One bright coal settles. The meadow holds its breath.",
+    "Nebula the cat stares at nothing in particular. Extremely judgmental nothing.",
+    "A shooting star tries too hard. The corona shrugs like 'yeah, we do that here.'",
 )
 
 _WAVE_BEATS = (
@@ -44,6 +48,28 @@ _WAVE_BEATS = (
     "third welcome voice",
     "soft follow-up",
     "closing welcome note",
+)
+
+# Phrases that mean the model recited scaffolding — force aether fallback
+_SEED_ECHO_MARKERS = (
+    "sensory first",
+    "natural chat structure",
+    "add your spin",
+    "second breath",
+    "welcome wave:",
+    "place:",
+    "logged with care",
+    "use it.",
+    "react, then",
+    "mid-conversation energy",
+    "no formal welcome",
+    "organic speech",
+    "leave room for them",
+    "callback energy",
+    "brand-new intro",
+    "tour card",
+    "fill it with personality",
+    "not filler",
 )
 
 
@@ -56,18 +82,17 @@ def opener_prompt(
     near: str = "",
     wave_index: int = 0,
 ) -> str:
-    """Scene seed for greets — no ALL-CAPS instruction labels."""
+    """Scene seed for greets — sensory only."""
     visitor = (visitor_name or "traveler").strip() or "traveler"
     ctx = (context or "aurora meadow camp").strip()
     pool = _RETURN_SEEDS if returning else _OPEN_SEEDS
     seed = random.choice(pool).format(visitor=visitor)
-    beat = _WAVE_BEATS[min(max(0, wave_index), len(_WAVE_BEATS) - 1)]
     near_bit = f" Nearby: {near}." if near else ""
-    # Pure scene text — identity lives in system prompt
+    # Tiny spice token so models don't cache one opener
+    spice = random.choice(("soft wind", "warm ash", "quiet laugh", "cool dew", "bright ember"))
     return (
         f"{seed}\n"
-        f"Place: {ctx}.{near_bit}\n"
-        f"Welcome wave: {beat}."
+        f"Setting: {ctx}.{near_bit} Detail: {spice}."
     )
 
 
@@ -80,22 +105,43 @@ def ambient_prompt(
     reply_to_name: str = "",
     reply_to_idea: str = "",
 ) -> str:
-    """Scene seed for idle / reply banter — no meta scaffolding."""
+    """Scene seed for idle / reply banter — sensory only."""
     visitor = (visitor_name or "a visitor").strip() or "a visitor"
     ctx = (context or "camp is humming").strip()
     near_bit = f" Nearby: {near}." if near else ""
     if reply_to_name and reply_to_idea:
         idea = " ".join(reply_to_idea.split())[:100]
         return (
-            f"{reply_to_name} said: {idea}\n"
-            f"Place: {ctx}.{near_bit}"
+            f'{reply_to_name} just said: "{idea}"\n'
+            f"{visitor} is listening.\n"
+            f"Setting: {ctx}.{near_bit}"
         )
     seed = random.choice(_AMBIENT_SEEDS)
+    spice = random.choice(("left", "right", "behind you", "across the fire", "overhead"))
     return (
         f"{seed}\n"
-        f"{visitor} is around.\n"
-        f"Place: {ctx}.{near_bit}"
+        f"{visitor} is around ({spice}).\n"
+        f"Setting: {ctx}.{near_bit}"
     )
+
+
+def _looks_like_seed_echo(reply: str, seed: str = "") -> bool:
+    t = (reply or "").strip().lower()
+    if not t or len(t) < 12:
+        return True
+    for m in _SEED_ECHO_MARKERS:
+        if m in t:
+            return True
+    # Heavy overlap with the seed itself
+    if seed:
+        seed_l = seed.lower()
+        # Take a distinctive 6+ word chunk from seed
+        words = [w for w in re.findall(r"[a-z0-9']+", seed_l) if len(w) > 3]
+        if len(words) >= 6:
+            chunk = " ".join(words[2:8])
+            if chunk and chunk in t:
+                return True
+    return False
 
 
 async def speak_banter(
@@ -113,7 +159,8 @@ async def speak_banter(
     pack_name: str = "",
 ) -> dict[str, Any]:
     """Generate a live banter line through the free-mind chain."""
-    from firmament.brain import agent_chat
+    from firmament.brain import agent_chat, _looks_like_prompt_echo, _strip_meta_dialogue_leak
+    from firmament.aether_offline import aether_reply
 
     kind = (kind or "opener").strip().lower()
     if kind in ("opener", "arrive", "greeting", "welcome"):
@@ -135,9 +182,15 @@ async def speak_banter(
             reply_to_idea=reply_to_idea,
         )
 
+    # Frame as situation — spoken reply only (hard to recite as script)
+    user_turn = (
+        f"Live moment at camp:\n{message}\n\n"
+        f"Speak only as yourself out loud. Fresh words. Do not narrate instructions."
+    )
+
     result = await agent_chat(
         agent_id,
-        message,
+        user_turn,
         pack_name=pack_name,
         visitor_id=visitor_id,
         visitor_name=visitor_name,
@@ -145,6 +198,27 @@ async def speak_banter(
         skip_memory=True,
         converse_mode=False,
     )
+    reply = _strip_meta_dialogue_leak((result.get("reply") or "").strip())
+    if (
+        not reply
+        or _looks_like_prompt_echo(reply)
+        or _looks_like_seed_echo(reply, message)
+    ):
+        # Free offline witty line — still dynamic (random pools), never silent / never seed-echo
+        visitor = (visitor_name or "friend").strip() or "friend"
+        line, mood = aether_reply(
+            agent_id,
+            message,
+            visitor_name=visitor,
+            camp_context=context or "",
+        )
+        result["reply"] = line
+        result["mood"] = mood or result.get("mood") or "happy"
+        result["backend"] = "aether"
+        result["fallback"] = "seed_echo"
+    else:
+        result["reply"] = reply
+
     result["kind"] = kind
     result["banter"] = True
     return result

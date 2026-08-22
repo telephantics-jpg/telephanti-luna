@@ -214,6 +214,25 @@
       pointer-events: none;
       overflow: visible;
     }
+    #camp-map-hyper {
+      position: absolute;
+      z-index: 46;
+      transform: translate(-50%, 0);
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(8, 18, 36, 0.96);
+      border: 1.5px solid #38bdf8;
+      color: #7dd3fc;
+      font: 800 0.78rem/1.2 system-ui, sans-serif;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      pointer-events: auto;
+      white-space: nowrap;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+      cursor: pointer;
+    }
+    #camp-map-hyper:hover { color: #e0f2fe; border-color: #7dd3fc; }
+    body.talk-min #camp-map-hyper { display: none !important; }
     .camp-bubble {
       position: absolute;
       left: 0;
@@ -1527,6 +1546,13 @@
     #convo-lines .line-time {
       font-size: 0.58rem; color: #64748b; font-weight: 600;
       font-variant-numeric: tabular-nums;
+    }
+    #convo-lines .text a.camp-inline-link {
+      color: #7dd3fc;
+      font-weight: 800;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      pointer-events: auto;
     }
     #convo-lines .text {
       display: block; margin: 0; color: #f8fafc;
@@ -6094,7 +6120,7 @@
       "#camp-pick-agent-fab", "#camp-pick-agent-sheet", "#camp-tpx-fab",
       "#camp-heaven-fab", "#btn-header-heaven", "#camp-chat-panel",
       "#camp-act-fab", "#camp-act-sheet", "#constellation-layer",
-      "#btn-talk-min", "#btn-camp-quiet-pc",
+      "#btn-talk-min", "#btn-camp-quiet-pc", "#camp-map-hyper",
     ].join(", ");
     function isCampUiTarget(el) {
       if (!el) return false;
@@ -13944,6 +13970,63 @@
       }
     }
 
+    const CAMP_BIO_HREF = "https://telephantim.com/?world=bio";
+    const CAMP_BIO_LABEL = "telephantim.com";
+
+    function campTextHasBioLink(t) {
+      return /telephantim\.com|https?:\/\/\S+/i.test(String(t || ""));
+    }
+
+    function openCampBioPage() {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ source: "telephantim-world-nav", type: "set-scene", scene: "bio" }, "*");
+        }
+      } catch (_) {}
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.href = CAMP_BIO_HREF;
+          return;
+        }
+      } catch (_) {}
+      window.location.href = CAMP_BIO_HREF;
+    }
+
+    function ensureCampMapHyper() {
+      let el = document.getElementById("camp-map-hyper");
+      if (el) return el;
+      el = document.createElement("a");
+      el.id = "camp-map-hyper";
+      el.href = CAMP_BIO_HREF;
+      el.target = "_top";
+      el.rel = "noopener";
+      el.textContent = "telephantim.com → Bio";
+      el.title = "Open Telephantim Bio";
+      el.addEventListener("pointerdown", (e) => e.stopPropagation());
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openCampBioPage();
+      });
+      (document.getElementById("camp-stage") || document.body).appendChild(el);
+      return el;
+    }
+
+    function syncCampMapHyper() {
+      const el = ensureCampMapHyper();
+      if (isTalkMin()) {
+        el.hidden = true;
+        return;
+      }
+      const r = [...speechBubbleRects].reverse().find((x) => campTextHasBioLink(x.line));
+      if (!r) {
+        el.hidden = true;
+        return;
+      }
+      el.hidden = false;
+      el.style.left = `${Math.round(r.bx + r.boxW / 2)}px`;
+      el.style.top = `${Math.round(r.by + r.boxH + 6)}px`;
+    }
+
     const speechHold = new Map();
     const speechBubbleRects = [];
     const pinnedSpeech = new Map();
@@ -17134,9 +17217,18 @@
             }
           } catch (_) {}
           const intro = isCampMobile()
-            ? `${v}, welcome — meadow’s live.${pulseHint} Tap an agent · type below · 📜 for record.`
-            : `${v}, welcome — minds are warm, firmament open.${pulseHint} Tap agents, type below, 📜 Chat record for past lines.`;
+            ? `${v}, welcome — meadow’s live.${pulseHint} Bio is at telephantim.com — tap the blue link.`
+            : `${v}, welcome — minds are warm.${pulseHint} Bio lives at telephantim.com — tap the blue link on this meadow.`;
           pushCampLine("Camp", intro, 16, "happy", { fromLocal: true, quiet: isCampMobile() });
+          setTimeout(() => {
+            pushCampLine(
+              "Luna",
+              "If you want the Bio page, tap telephantim.com on this map — it opens the Bio world.",
+              18,
+              "love",
+              { fromLocal: true, quiet: false },
+            );
+          }, 4200);
         }, 1800);
       }
 
@@ -17853,6 +17945,7 @@
           );
         }
       }
+      try { syncCampMapHyper(); } catch (_) {}
     }
 
     function hitTestSpeechBubble(sx, sy) {
@@ -20268,6 +20361,19 @@
 
     let chatterPaused = false;
 
+    function linkifyCampHtml(s) {
+      const raw = String(s || "");
+      const esc = escapeHtml(raw);
+      return esc.replace(
+        /(https?:\/\/[^\s<]+|telephantim\.com(?:\/[^\s<]*)?)/gi,
+        (m) => {
+          const href = /^https?:\/\//i.test(m) ? m : CAMP_BIO_HREF;
+          const go = /telephantim\.com/i.test(m) ? CAMP_BIO_HREF : href;
+          return `<a class="camp-inline-link" href="${go}" target="_top" rel="noopener">${m}</a>`;
+        },
+      );
+    }
+
     function escapeHtml(s) {
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
@@ -20363,7 +20469,7 @@
           `<span class="speaker"><span class="speaker-dot" style="background:${color};color:${color}"></span>${escapeHtml(whoLabel)}${roleHtml}${moodHtml}</span>` +
           (time ? `<span class="line-time">${escapeHtml(time)}</span>` : "") +
           `</div>` +
-          `<span class="text">${escapeHtml(entry.text)}</span>` +
+          `<span class="text">${linkifyCampHtml(entry.text)}</span>` +
           `</div>`
         );
       }).join("");

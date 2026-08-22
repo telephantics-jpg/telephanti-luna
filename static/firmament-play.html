@@ -1299,6 +1299,37 @@
       background: linear-gradient(135deg, #422006, #b45309);
       box-shadow: 0 0 14px rgba(251, 191, 36, 0.35);
     }
+    .dock-compact .dock-icon.talk.active {
+      border-color: #86efac;
+      color: #ecfdf5;
+      background: linear-gradient(135deg, #14532d, #16a34a);
+      box-shadow: 0 0 14px rgba(74, 222, 128, 0.4);
+    }
+    /* Duplicate / extra dock chips — keep one row, no scrollbar */
+    #btn-talk-min,
+    #btn-chatter-toggle,
+    #camp-record-fixed,
+    #camp-chatter-fab,
+    #camp-chatter-fab.visible,
+    #dock-tip,
+    .dock-scroll-hint,
+    .dock-spare {
+      display: none !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
+    }
+    .dock-compact {
+      overflow-x: hidden !important;
+      overflow-y: hidden !important;
+      flex-wrap: wrap !important;
+      justify-content: center !important;
+      scrollbar-width: none !important;
+    }
+    .dock-compact::-webkit-scrollbar {
+      display: none !important;
+      height: 0 !important;
+      width: 0 !important;
+    }
     /* Hide all floating dialogue until 💬 is pressed again */
     body.talk-min #camp-bubble-layer,
     body.talk-min #camp-reply-rail,
@@ -1816,19 +1847,14 @@
       .dock-compact {
         max-width: 100%;
         width: 100%;
-        justify-content: flex-start;
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(56, 189, 248, 0.42) transparent;
+        justify-content: center;
+        overflow-x: hidden;
+        flex-wrap: wrap;
+        scrollbar-width: none;
         padding: 2px 4px 6px;
       }
-      .dock-compact::-webkit-scrollbar { display: block; height: 5px; }
-      .dock-compact::-webkit-scrollbar-thumb {
-        background: rgba(56, 189, 248, 0.42);
-        border-radius: 999px;
-      }
-      .dock-scroll-hint { display: block; font-size: 0.6rem; }
+      .dock-compact::-webkit-scrollbar { display: none !important; }
+      .dock-scroll-hint { display: none !important; }
       #camp-talk-bar {
         max-width: 100%;
         width: 100%;
@@ -2685,9 +2711,8 @@
         display: none !important;
         pointer-events: none !important;
       }
-      /* PC: keep Heaven + Dionysus summon visible in the dock */
-      #btn-summon-heaven,
-      #btn-summon-dionysus {
+      /* PC: Heaven stays in the dock; extras stay hidden */
+      #btn-summon-heaven {
         display: inline-flex !important;
         pointer-events: auto !important;
         flex-shrink: 0;
@@ -3439,10 +3464,14 @@
       #camp-agent-menu,
       #btn-summon-dionysus,
       #btn-talk-near,
-      #btn-dock-help,
-      .dock-compact .dock-icon.chatter-btn {
+      #btn-dock-help {
         display: none !important;
         pointer-events: none !important;
+      }
+      /* One 📜 in the dock — not a second floating copy */
+      .dock-compact .dock-icon.chatter-btn#btn-chatter-toggle-dock {
+        display: inline-flex !important;
+        pointer-events: auto !important;
       }
       /* Compact Heaven on mobile — FAB + dock only */
       #btn-summon-heaven,
@@ -3514,13 +3543,8 @@
         display: none !important;
         pointer-events: none !important;
       }
-      /* Keep fixed 📜 tappable above everything on phones */
       #camp-record-fixed {
-        display: inline-flex !important;
-        pointer-events: auto !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 2147483000 !important;
+        display: none !important;
       }
       #camp-zoom-bar {
         display: none;
@@ -3678,21 +3702,15 @@
         width: 100%;
         max-width: 100%;
         flex: 1 1 100%;
-        justify-content: flex-start;
-        flex-wrap: nowrap;
-        overflow-x: auto;
+        justify-content: center;
+        flex-wrap: wrap;
+        overflow-x: hidden;
         overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(56, 189, 248, 0.42) transparent;
+        scrollbar-width: none;
         gap: 6px;
         padding: 0 2px 4px;
       }
-      .dock-compact::-webkit-scrollbar { display: block; height: 4px; }
-      .dock-compact::-webkit-scrollbar-thumb {
-        background: rgba(56, 189, 248, 0.42);
-        border-radius: 999px;
-      }
+      .dock-compact::-webkit-scrollbar { display: none !important; }
       .dock-compact .dock-icon {
         width: 38px; height: 38px; font-size: 1rem;
         flex-shrink: 0;
@@ -4723,28 +4741,28 @@
       <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle-dock" title="Chat record — past lines" style="background:linear-gradient(135deg,#0c4a6e,#22d3ee);border-color:#67e8f9;color:#ecfeff;min-width:auto;width:auto;padding:0 12px;font-size:0.78rem;font-weight:900;order:-1">📜 Chat</button>
       <div class="dock-music-group" aria-label="Camp music">
         <button type="button" class="dock-icon dock-tpx" id="btn-camp-tpx" title="Play / show Telephantix radio (same menu as Relics)">♪ Play music</button>
-        <a class="dock-icon dock-feature-sm dock-tpx-site" id="btn-telephanti-site" href="https://telephanti.com/" title="Back to telephanti.com home">🏠</a>
-        <button type="button" class="dock-icon dock-music-off dock-feature-sm" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
+        <a class="dock-icon dock-feature-sm dock-tpx-site dock-spare" id="btn-telephanti-site" href="https://telephanti.com/" title="Back to telephanti.com home">🏠</a>
+        <button type="button" class="dock-icon dock-music-off dock-feature-sm dock-spare" id="btn-camp-music-off" title="Turn off camp music">🔇</button>
       </div>
       <button type="button" class="dock-icon dock-feature-sm" id="btn-lucid-tv" title="Lucid Mind TV" style="background:linear-gradient(135deg,#312e81,#6366f1);border-color:#c4b5fd">📺</button>
       <button type="button" class="dock-icon dock-feature-sm" id="btn-camp-shop" title="Aurora shop" style="background:linear-gradient(135deg,#78350f,#f59e0b);border-color:#fde68a">🏪</button>
       <button type="button" class="dock-icon dock-feature-sm" id="btn-camp-carnival" title="Aurora Carnival ride" style="background:linear-gradient(135deg,#9a3412,#f97316);border-color:#fdba74">🎡</button>
       <button type="button" class="dock-icon" id="btn-summon-heaven" title="Heaven: 1st press summon · 2nd press talk" aria-label="Heaven" style="background:linear-gradient(135deg,#422006,#fde68a);border-color:#fef3c7;color:#1c1917;min-width:auto;width:auto;padding:0 7px;font-size:0.6rem;font-weight:900">✦</button>
-      <button type="button" class="dock-icon" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
-      <button type="button" class="dock-icon conjure-btn" id="btn-conjure-aether" title="Mysterious Unknown — summon a stranger from the aether · agents react">❓ Unknown</button>
-      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-ara" title="Summon Ara — Grok link (@a)" style="background:linear-gradient(135deg,#064e3b,#16a34a);border-color:#86efac;color:#ecfdf5;font-family:monospace;font-size:0.78rem;font-weight:800">@A</button>
-      <button type="button" class="dock-icon dock-grok-agent" id="btn-talk-mika" title="Summon Mika — Grok link (@m)" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
-      <button type="button" class="dock-icon ouija-btn" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
-      <button type="button" class="dock-icon" id="btn-luna-avatar" title="Live Luna">🌙</button>
-      <button type="button" class="dock-icon chatter-btn" id="btn-chatter-toggle" title="Chat record — past lines from the meadow (hidden until you open)" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-color:#67e8f9;color:#ecfeff;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem;font-weight:800">📜 Record</button>
+      <button type="button" class="dock-icon dock-spare" id="btn-summon-dionysus" title="Invite Dionysus — you choose when he appears" style="background:linear-gradient(135deg,#881337,#e11d48);border-color:#fda4af">🍷</button>
+      <button type="button" class="dock-icon conjure-btn dock-spare" id="btn-conjure-aether" title="Mysterious Unknown — summon a stranger from the aether · agents react">❓ Unknown</button>
+      <button type="button" class="dock-icon dock-grok-agent dock-spare" id="btn-talk-ara" title="Summon Ara — Grok link (@a)" style="background:linear-gradient(135deg,#064e3b,#16a34a);border-color:#86efac;color:#ecfdf5;font-family:monospace;font-size:0.78rem;font-weight:800">@A</button>
+      <button type="button" class="dock-icon dock-grok-agent dock-spare" id="btn-talk-mika" title="Summon Mika — Grok link (@m)" style="background:linear-gradient(135deg,#312e81,#7c3aed);border-color:#c4b5fd;color:#f5f3ff;font-family:monospace;font-size:0.78rem;font-weight:800">@M</button>
+      <button type="button" class="dock-icon ouija-btn dock-spare" id="btn-camp-ouija" title="Ouija — speak to the other side">🔮</button>
+      <button type="button" class="dock-icon dock-spare" id="btn-luna-avatar" title="Live Luna">🌙</button>
+      <button type="button" class="dock-icon chatter-btn dock-spare" id="btn-chatter-toggle" title="Chat record — past lines from the meadow (hidden until you open)" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-color:#67e8f9;color:#ecfeff;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem;font-weight:800">📜 Record</button>
       <button type="button" class="dock-icon hush-btn" id="btn-camp-hush" title="Hush = soft chill (NOT mute): agents walk slower & talk less often so you can read. Tap again to restore normal energy." aria-pressed="false">🤫 Soft</button>
-      <button type="button" class="dock-icon talk-min-btn" id="btn-talk-min" title="Hide all speech bubbles — stays hidden until you press again" aria-pressed="false">💬 Hide</button>
-      <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Focus talk bar — type to locked agent" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️</button>
-      <button type="button" class="dock-icon talk" id="btn-talk-near" title="Lock to nearest agent">📍</button>
-      <button type="button" class="dock-icon" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
+      <button type="button" class="dock-icon talk-min-btn dock-spare" id="btn-talk-min" title="Hide all speech bubbles — stays hidden until you press again" aria-pressed="false">💬 Hide</button>
+      <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Talk on/off — tap so they speak, tap again to hide speech" aria-pressed="false" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️</button>
+      <button type="button" class="dock-icon talk dock-spare" id="btn-talk-near" title="Lock to nearest agent">📍</button>
+      <button type="button" class="dock-icon dock-spare" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
 
-      <button type="button" class="dock-icon" id="btn-find-bar" title="Reset positions">↺</button>
-      <button type="button" class="dock-icon" id="btn-dock-help" title="How to play">?</button>
+      <button type="button" class="dock-icon dock-spare" id="btn-find-bar" title="Reset positions">↺</button>
+      <button type="button" class="dock-icon dock-spare" id="btn-dock-help" title="How to play">?</button>
     </div>
     <div id="dock-tip" class="dock-tip">🎲 3D = full 3D camp · Telephantix = album · swipe toolbar →</div>
     <div class="dock-scroll-hint">swipe toolbar →</div>
@@ -10435,8 +10453,11 @@
     function wireCampChatPanel() {
       // Popup chat retired — buttons only focus the sticky talk bar
       document.getElementById("btn-camp-chat")?.addEventListener("click", () => {
-        // Explicit Talk button — only way to open reply strip
-        openCampChatPanel(getTalkTarget());
+        // 🗣️ Talk = speech on/off (not just focus the type box)
+        toggleTalkMin();
+        if (!isTalkMin()) {
+          openCampChatPanel(getTalkTarget());
+        }
       });
       document.getElementById("btn-camp-hush")?.addEventListener("click", () => {
         toggleCampHush();
@@ -11515,16 +11536,24 @@
     }
 
     function syncTalkMinBtn() {
-      const btn = document.getElementById("btn-talk-min");
-      const on = isTalkMin();
-      document.body.classList.toggle("talk-min", on);
-      if (!btn) return;
-      btn.classList.toggle("active", on);
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-      btn.textContent = on ? "💬 Show" : "💬 Hide";
-      btn.title = on
-        ? "Show speech bubbles again"
-        : "Hide all speech bubbles — stays hidden until you press again";
+      const hidden = isTalkMin();
+      const speaking = !hidden;
+      document.body.classList.toggle("talk-min", hidden);
+      const minBtn = document.getElementById("btn-talk-min");
+      if (minBtn) {
+        minBtn.classList.toggle("active", hidden);
+        minBtn.setAttribute("aria-pressed", hidden ? "true" : "false");
+        minBtn.textContent = hidden ? "💬 Show" : "💬 Hide";
+      }
+      const talkBtn = document.getElementById("btn-camp-chat");
+      if (talkBtn) {
+        talkBtn.classList.toggle("active", speaking);
+        talkBtn.setAttribute("aria-pressed", speaking ? "true" : "false");
+        talkBtn.textContent = speaking ? "🗣️ On" : "🗣️";
+        talkBtn.title = speaking
+          ? "Talk on — they speak. Tap again to hide speech."
+          : "Talk off — tap so they speak on the meadow.";
+      }
     }
 
     function talkMinStorageKey() {
@@ -19640,6 +19669,7 @@
       ev.preventDefault();
       ev.stopPropagation();
       toggleTalkMin();
+      if (!isTalkMin()) openCampChatPanel(getTalkTarget());
     });
     try { applyTalkMinFromStorage(); } catch (_) {}
     try { wireHudDrags(); } catch (_) {}

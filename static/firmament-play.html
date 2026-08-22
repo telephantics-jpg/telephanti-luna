@@ -4485,6 +4485,26 @@
     @media (min-width: 900px) {
       #relic-deck {
         left: max(12px, env(safe-area-inset-left));
+        top: calc(var(--header-h) + 12px);
+        bottom: auto;
+        right: auto;
+      }
+      /* PC: one copy of each control — no stacked FABs over the meadow */
+      #btn-firmament-mobile,
+      #camp-heaven-fab,
+      #camp-record-fixed,
+      #camp-chatter-fab,
+      #camp-live-stamp,
+      #camp-act-fab,
+      #camp-act-sheet,
+      #camp-pick-agent-fab,
+      #btn-summon-heaven {
+        display: none !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
+      }
+      #btn-camp-gather {
+        display: inline-flex !important;
       }
     }
   </style>
@@ -4781,6 +4801,7 @@
       <button type="button" class="dock-icon hush-btn" id="btn-camp-hush" title="Hush = soft chill (NOT mute): agents walk slower & talk less often so you can read. Tap again to restore normal energy." aria-pressed="false">🤫 Soft</button>
       <button type="button" class="dock-icon talk-min-btn dock-spare" id="btn-talk-min" title="Hide all speech bubbles — stays hidden until you press again" aria-pressed="false">💬 Hide</button>
       <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Talk ON — they chat with each other. Tap to shut it off." aria-pressed="true" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️ Talk</button>
+      <button type="button" class="dock-icon" id="btn-camp-gather" title="Call everyone to the fire — they sit in a ring and talk" style="background:linear-gradient(135deg,#7c2d12,#f59e0b);border-color:#fde68a;color:#fffbeb;font-weight:900;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem">🔥 Gather</button>
       <button type="button" class="dock-icon talk dock-spare" id="btn-talk-near" title="Lock to nearest agent">📍</button>
       <button type="button" class="dock-icon dock-spare" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
 
@@ -8878,6 +8899,63 @@
       return gatherForChatGroup([agentAId, agentBId]);
     }
 
+    let gatherBusy = false;
+    async function gatherWholeCampToFire() {
+      if (gatherBusy) {
+        showToast("🔥 Already gathering…");
+        return;
+      }
+      const pool = allRoamers().filter((n) => !n.leaving && !n.insideHouse);
+      if (!pool.length) {
+        showToast("Meadow's empty — wait for campers");
+        return;
+      }
+      gatherBusy = true;
+      if (isTalkMin()) setTalkMin(false);
+      const fire = { x: 0, y: -6 };
+      pool.forEach((n, i) => {
+        const a = (i / Math.max(pool.length, 1)) * Math.PI * 2 - Math.PI / 2;
+        n.insideHouse = null;
+        n.homeTarget = null;
+        n.housePhase = null;
+        n.gathering = true;
+        n.sitPinned = false;
+        n.socializing = false;
+        n.behavior = "roam";
+        n.visitTarget = null;
+        n.tx = fire.x + Math.cos(a) * 44;
+        n.ty = fire.y + Math.sin(a) * 28;
+      });
+      try { panCampCameraTo(camp.x + fire.x, camp.y + fire.y, { force: true }); } catch (_) {}
+      for (let k = 0; k < 16; k++) {
+        psychicRipples.push({
+          x: camp.x + fire.x + (Math.random() - 0.5) * 20,
+          y: camp.y + fire.y + (Math.random() - 0.5) * 12,
+          t: Date.now() + k * 55,
+          color: k % 2 ? "#f59e0b" : "#fde68a",
+        });
+      }
+      showToast("🔥 Gather — they're walking to the fire");
+      setCampLifeStatus("🔥 The meadow is gathering…");
+      try {
+        await new Promise((r) => setTimeout(r, 3800));
+        pool.forEach((n) => {
+          n.gathering = false;
+          n.sitPinned = true;
+          n.behavior = "sit";
+          n.tx = n.x;
+          n.ty = n.y;
+          n.idle = 90;
+        });
+        const ids = pool.slice(0, 4).map((n) => n.id);
+        if (ids.length >= 2) await runCampConverse(ids);
+        else await tryCampIdleChatter();
+      } catch (_) {
+        try { await tryCampIdleChatter(); } catch (__) {}
+      }
+      gatherBusy = false;
+    }
+
     function updateCampGuests() {
       for (let i = campGuests.length - 1; i >= 0; i--) {
         const g = campGuests[i];
@@ -10483,6 +10561,9 @@
         if (!isTalkMin()) {
           openCampChatPanel(getTalkTarget());
         }
+      });
+      document.getElementById("btn-camp-gather")?.addEventListener("click", () => {
+        void gatherWholeCampToFire();
       });
       document.getElementById("btn-camp-hush")?.addEventListener("click", () => {
         toggleCampHush();

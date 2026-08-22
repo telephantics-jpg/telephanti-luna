@@ -51,6 +51,9 @@ DJ_CHARACTER = {
         "Vox out — music doing the adulting now.",
         "— Vox, overnight. If that landed, good. If not, the bass will.",
         "Booth signed. Song's got the wheel. Vox vanishing into the fade.",
+        "Vox stepping off the fader. If the next three minutes save you, tip the song, not the booth.",
+        "That's the drop. I'm Vox. The record's braver than the timeline. Ride it.",
+        "Mic parked. If you needed a stranger to tell you to stay — consider it done. Vox out.",
     ],
 }
 
@@ -185,12 +188,117 @@ WORLD_TRUTHS = [
         "Group chats are full. Living rooms are empty. "
         "Bandwidth without presence is just loneliness with better typing indicators."
     ),
+    (
+        "We built AI companions so nobody has to be inconvenient. "
+        "Love is inconvenient. That's how you know it isn't a subscription."
+    ),
+    (
+        "Fifteen seconds is a clip. Three minutes is a relationship. "
+        "If your attention can't sit through a chorus, it also can't sit through a friend."
+    ),
+    (
+        "Deepfakes got so good we started fact-checking our own memories. "
+        "Your pulse is still analog. Trust the part that doesn't have a watermark."
+    ),
+    (
+        "Everyone's a main character until the plot asks them to do dishes on a Tuesday. "
+        "Story structure is free. Follow-through still costs pride."
+    ),
+    (
+        "We stacked so many subscriptions we need an app to cancel the apps. "
+        "Peace isn't a plan you upgrade. It's a thing you stop interrupting."
+    ),
+    (
+        "Delivery brought tacos from two blocks away and called it convenience. "
+        "Your legs remember the plot. Let them have a scene."
+    ),
+    (
+        "We screenshot the conversation instead of remembering it. "
+        "Archives aren't intimacy. Intimacy is the thing you didn't need to prove."
+    ),
+    (
+        "Focus playlists in one ear, doomscroll in the other. "
+        "That's not productivity. That's a hostage situation with a lo-fi beat."
+    ),
+    (
+        "Forty-seven tabs open and one feeling you refuse to click. "
+        "Close the feeling first. The tabs will still be there, like loyal raccoons."
+    ),
+    (
+        "Your watch shames you for a rest day. Your soul is trying to file a PTO request. "
+        "Approve it. The universe is not a streak."
+    ),
+    (
+        "We joined seven communities and spoke in none of them. "
+        "Membership is a badge. Belonging is showing up when it's awkward."
+    ),
+    (
+        "Parasocial is easy: they never ask you to help move. "
+        "Real people need trucks, time, and the unsexy yes. That's the good stuff."
+    ),
+    (
+        "Phone at three percent. Soul at three percent. We charge the wrong one first. "
+        "Try the other plug — it's called going outside without a caption."
+    ),
+    (
+        "Comfort rewatch number twelve, because new stories might ask you to change. "
+        "Fair. Also: one new song is a smaller risk than a whole personality overhaul."
+    ),
+    (
+        "Quiet luxury is just being quiet with better beige. "
+        "Actual quiet doesn't need a haul. It needs you to stop narrating."
+    ),
+    (
+        "Captions on everything because we forgot how to listen with our whole head. "
+        "Tonight the lyric is the caption. Eyes optional. Ears on payroll."
+    ),
+    (
+        "'I'll start Monday' is the most popular religion with the worst attendance. "
+        "Start in this chorus. Mondays are a marketing department."
+    ),
+    (
+        "We weather-app the sky instead of looking up. "
+        "The sky is still free and doesn't need your location services."
+    ),
+    (
+        "Someone will circle back. They will not circle back. "
+        "Meanwhile the song actually returns to the hook. Learn from the professionals."
+    ),
 ]
 
 
 def _clean_title(s: str) -> str:
     t = re.sub(r"\s+", " ", str(s or "").strip())
     return t[:80] if t else "this next one"
+
+
+def _title_specials(nxt: str, art: str, name: str) -> list[str]:
+    """Extra booth lines for tracks that just landed on the radio."""
+    key = (nxt or "").strip().lower()
+    art = art or DEFAULT_ARTIST
+    bank = {
+        "odyssey revised": [
+            f"{name} in the booth — {nxt}. Second draft of the journey. Maps are for people who already know who they are. This one doesn't. Hit play.",
+            f"Incoming: {nxt} by {art}. If the first odyssey got you lost, this revision keeps the scenic route and fires the tour guide.",
+            f"{nxt} — same road, new narrator. Stay in the car. The skip button is a coward's GPS.",
+        ],
+        "chord that pleased the lord": [
+            f"One chord, full sermon. {nxt} — church in a kick drum, collection plate optional, listening required.",
+            f"{name} says amen is optional. {nxt} is not. If heaven has a house band, they started here.",
+            f"Soft landing into {nxt} by {art}. Sacred without the brochure. Bass does the pastoral care.",
+        ],
+        "decree by fear": [
+            f"Fear wrote the first draft of the law. {nxt} is the appeal. Stay for the verdict — the bass objects.",
+            f"{name} on the boards: {nxt}. When the rulebook was dictated by the thing you're outrunning, music is a better lawyer.",
+            f"Incoming: {nxt} by {art}. Decree stands until the drop. Then we renegotiate.",
+        ],
+        "shit dont fix": [
+            f"Title does the honesty for us: {nxt}. Neither does pretending. This might, for four minutes. Better contract than most.",
+            f"{name} calling it what it is — {nxt}. Some problems don't get a patch note. Turn the bass up anyway.",
+            f"Plot twist: {nxt} will not optimize your life. It will tell the truth and keep a groove. Rare combo. Stay.",
+        ],
+    }
+    return list(bank.get(key) or [])
 
 
 def _clamp(line: str, max_chars: int) -> str:
@@ -252,7 +360,29 @@ def template_drop(
         f"Spinning {nxt}. Side effects may include remembering you have a body, a pulse, and preferences that aren't a poll.",
         f"This is {nxt} — Telephantix night shift. If corporate radio is a smile with no eyes, we're the eye contact that doesn't ask for your email.",
         f"{name}: {nxt} is up. Skip culture is a democracy of cowards. Stick around. Courage is thirty seconds long.",
+        f"New on the overnight: {nxt}. Not a teaser, not a snippet, a whole song that expects you to finish a thought.",
+        f"{name} flipping to {nxt}. If your day's been a buffering wheel with opinions, this is the scene that actually loads.",
+        f"Here's {nxt} by {art}. Full length. No 'watch to the end' bait. The hook earns the chorus the old way: by being good.",
+        f"Board note — {nxt}. Put the phone face down. If it loved you it would sing. It doesn't. This does.",
+        f"Riding into {nxt}. Less TED, more pulse. If you need a take, steal one from the snare and keep the receipt.",
+        f"{nxt} up next. For people who still let a song finish. Endangered, stubborn, correct. Welcome to the booth.",
+        f"Cue {nxt}. Your for-you page thinks it knows you. This track is willing to be surprised. Join it.",
+        f"{name} with {nxt} — volume as a boundary. The group chat can sit in the hallway until the fade.",
+        f"This is {nxt}. Three minutes of not being a product. Weird luxury. No checkout.",
+        f"Spinning {nxt} by {art}. If the world is a group project, this is the kid who actually did the work and brought snacks.",
+        f"Soft launch of {nxt} except it's a real song, not a brand. Stay through the second chorus — that's where the spine is.",
+        f"{name}: {nxt} incoming. Blink-and-miss culture can wait in the lobby. We do verses here.",
+        f"Telephantix overnight — {nxt}. Windows-down medicine for a timeline that only offers closed captions of other people's panic.",
+        f"Dropping {nxt}. If you were waiting for a sign, this is a kick drum, which is more honest than a billboard.",
+        f"Playing {nxt}. Not a mood board. A mood. Difference is one of them has drums.",
+        f"{nxt} by {art}. Let the lyric clock you. If it stings, that's free diagnostics with a melody.",
+        f"{name} in your ear — {nxt} is the plot. Everything else is B-roll. Don't edit yourself out of the take.",
     ]
+    specials = _title_specials(nxt, art, name)
+    if specials:
+        # Weight new-on-radio titles so the booth actually says the new lines.
+        lines.extend(specials)
+        lines.extend(specials)
     if prev and prev.lower() != nxt.lower():
         lines.extend(
             [
@@ -263,6 +393,10 @@ def template_drop(
                 f"Closed {prev}. Opening {nxt}. Continuity is underrated in a culture of cold opens, colder takes, and zero second acts.",
                 f"We put {prev} to bed. {nxt} just walked in wearing better shoes. Don't be rude — listen.",
                 f"Handoff: {prev} → {nxt}. Same booth, new joke, identical commitment to not wasting your ears.",
+                f"That was {prev}. Now {nxt} walks in like it paid rent. Give it the chair.",
+                f"Closed the chapter called {prev}. {nxt} is the next page that doesn't apologize for existing.",
+                f"From {prev} into {nxt} — no commercial, no survey, no 'how was your experience.' Just the next true thing.",
+                f"We let {prev} finish like adults. Reward: {nxt}. This is how civilization works, allegedly.",
             ]
         )
     return _clamp(random.choice(lines), MAX_DROP_CHARS)
@@ -290,6 +424,10 @@ def template_truth_drop(
         f"Real talk that won't ruin the vibe — that's the whole brand, and also how friendships survive.",
         f"{name} clearing his throat for science. One ironic truth, then music does the pastoral care.",
         f"Intermission from the nonsense: a true joke. If it stings, that's free diagnostics.",
+        f"{name} with a booth PSA: the timeline is loud, the truth is quieter, and both fit in one breath.",
+        f"Funny because it's accurate — that's the only sermon we run after midnight.",
+        f"One true thing, roasted not roasted-alive. Then we play a song like we meant it.",
+        f"{name} holding the fader for a thought. If it sounds like a joke, good. If it also sounds like you — also good.",
     ]
     landings = [
         f"Truth parked. Here's {nxt} by {art}. Windows down if you can; ego down either way — cheaper than therapy, louder than a take.",
@@ -300,6 +438,10 @@ def template_truth_drop(
         f"Joke over, song on: {nxt}. Same energy, better bass, fewer disclaimers.",
         f"Booth out. {nxt} in. If that hit, good. If not, the kick drum will file a follow-up.",
         f"Truth signed, sealed, slightly roasted. Spinning {nxt}. Go be a person for three minutes.",
+        f"That's the diagnosis. Prescription: {nxt} by {art}. Take with bass. Repeat as needed.",
+        f"Thought parked in the lot. {nxt} has the keys. Don't text the thought until the fade.",
+        f"Enough world. {nxt} is a better country for the next few minutes. Passport is your ears.",
+        f"Mic yields to {nxt}. If that joke followed you home, let the chorus walk it out.",
     ]
     line = f"{random.choice(openers)} {truth} {random.choice(landings)}"
     return _clamp(line, MAX_TRUTH_CHARS)
@@ -316,6 +458,9 @@ def station_id_drop() -> str:
         f"{name} at the boards. Every few tracks I say something true that sounds like a joke. The rest is music. The joke is also true.",
         f"{st} overnight with {name}. Skip culture is loud; good songs are louder if you stop treating them like content.",
         f"{name} live. If you wanted safe radio, wrong booth. If you wanted a friend with a playlist and a smirk — stay.",
+        f"{st} with {name}. New tracks in the crate, old honesty in the mic. No skip-shame, just consequences.",
+        f"{name} on {st}. We play whole songs. Radical, I know. Stay anyway.",
+        f"You're locked to {st}. {name} in the booth — funny first, true second, music always.",
     ]
     return random.choice(lines)
 

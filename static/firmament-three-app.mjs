@@ -11,7 +11,7 @@
     import * as campProps from "camp-props";
     import * as godForms from "./firmament-god-forms.mjs?v=godbots-fix";
 
-    const BUILD = "2026-08-16-heaven-talk";
+    const BUILD = "2026-08-16-dom-bubbles";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -3695,9 +3695,23 @@
         // Speak after a thinking beat
         setTimeout(() => {
           if (st.action !== "reason") return;
+          const seeds = [
+            "A coal rolls off the log and sparks once, then settles.",
+            "The kettle ticks. Nobody claimed it.",
+            "Aurora ribbons stall, then start again like they changed their mind.",
+            "Cookie crumbs on a napkin look like a tiny constellation.",
+            "The pond holds a second moon that isn't really there.",
+            "A moth does laps around the lantern like it pays rent.",
+            "Jukebox static between songs — camp holding its breath.",
+            "A pinecone pops. Everyone pretends they didn't flinch.",
+            "Stars sneak past the aurora like they're late for something.",
+            "Warm mug, cold fingers. Math that doesn't need solving.",
+            "The empty chair still looks occupied. Camp does that.",
+            "Wind rearranges the sparks into a joke with no caption.",
+          ];
           chatAgent(
             st.def.id,
-            "You paused by the fire with a half-finished thought. Share what you were chewing on — honest multi-sentence chit-chat.",
+            seeds[Math.floor(Math.random() * seeds.length)],
             true,
           );
         }, 1600 + Math.random() * 1800);
@@ -5737,6 +5751,8 @@
         say.title = "Scroll for the full monologue";
         say.setAttribute("aria-label", "Scrollable speech");
       }
+      const hint = el.querySelector?.(".bubble-scroll-hint");
+      if (hint) hint.style.opacity = overflow ? "0.9" : "0";
     }
 
     function wireBubbleSayScroll(el) {
@@ -6246,11 +6262,30 @@
       el.style.setProperty("z-index", String(baseRank), "important");
       el.title = `${st.def.name} — scroll monologue · click keeps open · hold locks · ✕ closes`;
       el.innerHTML =
-        `<button type="button" class="bubble-x" aria-label="Close bubble" title="Close — won't auto-respawn for a bit">×</button>` +
+        `<div class="bubble-bar" data-drag="1">` +
         `<span class="who">${escapeHtml(st.def.name)}</span>` +
-        `<span class="say" tabindex="0">${escapeHtml(body)}</span>`;
+        `<button type="button" class="bubble-tool ctr" title="Center on speaker" aria-label="Center">◎</button>` +
+        `<button type="button" class="bubble-tool focus" title="Focus front" aria-label="Focus">↑</button>` +
+        `<button type="button" class="bubble-x" aria-label="Close bubble" title="Close">×</button>` +
+        `</div>` +
+        `<span class="say" tabindex="0">${escapeHtml(body)}</span>` +
+        `<span class="bubble-scroll-hint">↕ scroll · drag bar to move</span>`;
       const xBtn = el.querySelector(".bubble-x");
       wireBubbleCloseBtn(xBtn, agentId, el);
+      el.querySelector(".bubble-tool.ctr")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const it = activeBubbles.find((b) => b.el === el);
+        if (!it) return;
+        it.freeDragged = false;
+        it.freeX = null;
+        it.freeY = null;
+        el.classList.remove("parked");
+        try { showToast(`◎ ${st.def.name} centered`); } catch (_) {}
+      });
+      el.querySelector(".bubble-tool.focus")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        bringBubbleFront(el, { quiet: false });
+      });
       bindBubbleSelect(el);
       requestAnimationFrame(() => markBubbleScrollHint(el));
       const layer = speechLayer || document.body;
@@ -6271,7 +6306,7 @@
         freeY: null,
         freeDragged: false,
       };
-      el.title = `${st.def.name} — click/tap keeps open · hold = 🔒 lock · drag to park · ✕ close`;
+      el.title = `${st.def.name} — ↕ scroll · drag bar · ◎ center · ↑ focus · ✕ close`;
       if (stayOpen) el.classList.add("pinned-open");
       activeBubbles.push(item);
       // Safety: hard-cap even if protect logic overshot
@@ -8713,8 +8748,12 @@
       t = kept.join("\n").trim() || t;
       t = t.replace(/^(?:okay[,.]?\s+|so[,.]?\s+)?(?:here'?s my take[^:]*:|speaking as[^:]*:)/i, "").trim();
       t = t.replace(/\b(?:no meta|in[- ]character)\b/gi, "").replace(/\s{2,}/g, " ").trim();
-      // If sanitizer nuked a real multi-word answer, restore raw
-      if (t.split(/\s+/).length < 4 && rawKeep.split(/\s+/).length >= 6) {
+      const stuck = /paused by the fire|you just used.{0,40}fire|half[- ]finish(?:ed)?\s+(?:thought|joke)|share what you were chewing|honest multi-sentence/i;
+      if (stuck.test(t) || (/\bfire\b/i.test(t) && /half[- ]finish/i.test(t))) {
+        t = "";
+      }
+      // If sanitizer nuked a real multi-word answer, restore raw (unless it was the stuck seed)
+      if (t.split(/\s+/).length < 4 && rawKeep.split(/\s+/).length >= 6 && !stuck.test(rawKeep)) {
         t = rawKeep.replace(/\s{2,}/g, " ").trim();
       }
       return t.slice(0, 3200);

@@ -40,6 +40,14 @@ _AMBIENT_SEEDS = (
     "Fire pops. One bright coal settles. The meadow holds its breath.",
     "Nebula the cat stares at nothing in particular. Extremely judgmental nothing.",
     "A shooting star tries too hard. The corona shrugs like 'yeah, we do that here.'",
+    "The kettle ticks three times. Superstitious people count. The rest sip.",
+    "Dew draws a map on the log bench nobody asked to follow.",
+    "Jukebox static between songs. Camp pretends that's a drum fill.",
+    "A moth pays rent around the lantern. Extremely professional moth.",
+    "The pond holds a second moon. The first one is not jealous. Much.",
+    "Warm mug, cold fingers. The math checks out and still feels like a trick.",
+    "Stars sneak past the aurora like they're late for a better party.",
+    "Someone's guitar case is still zipped. The meadow notices. Doesn't push.",
 )
 
 _WAVE_BEATS = (
@@ -70,6 +78,11 @@ _SEED_ECHO_MARKERS = (
     "tour card",
     "fill it with personality",
     "not filler",
+    "paused by the fire",
+    "half-finished thought",
+    "you just used",
+    "share what you were chewing",
+    "honest multi-sentence",
 )
 
 

@@ -65,10 +65,16 @@ FOCUS_POOL = (
     "whether the visitor is coming back",
     "Hermes' next packet",
     "steeple light on the meadow",
-    "a half-finished joke",
     "warm tea vs cold brew drama",
     "the lonely chair by the fire",
     "stars sneaking past the aurora",
+    "the kettle's three ticks",
+    "Nebula judging a moth",
+    "guitar case still zipped",
+    "dew math on the log bench",
+    "a joke that actually landed last night",
+    "the ferris wheel pretending to be holy",
+    "cookie tin diplomacy",
 )
 
 THOUGHT_SEEDS = (
@@ -167,6 +173,8 @@ def ensure_roster(agent_ids: list[str] | None = None, names: dict[str, str] | No
                 m.setdefault("id", aid)
                 if names.get(aid):
                     m["name"] = names[aid]
+                if "half-finished" in str(m.get("focus") or "").lower():
+                    m["focus"] = random.choice(FOCUS_POOL)
         _state["updated_at"] = time.time()
         _persist()
 
@@ -225,7 +233,8 @@ def _silent_drift(mind: dict[str, Any]) -> None:
         max(0.15, min(1.0, float(mind.get("energy") or 0.5) + random.uniform(-0.08, 0.1))),
         3,
     )
-    if random.random() < 0.45:
+    stuck_focus = "half-finished" in str(mind.get("focus") or "").lower()
+    if stuck_focus or random.random() < 0.45:
         mind["focus"] = random.choice(FOCUS_POOL)
     if random.random() < 0.35:
         mind["mood"] = random.choice(MOODS)
@@ -255,10 +264,8 @@ async def _maybe_speak(agent_id: str, mind: dict[str, Any]) -> dict[str, Any] | 
     action = mind.get("action") or "idle"
     mood = mind.get("mood") or "neutral"
     prompt = (
-        f"You ({name}) are still at Luna Camp while the visitor is away or elsewhere. "
-        f"Inner mood: {mood}. Doing: {action}. Focus: {focus}. "
-        f"Speak one natural campfire beat — like someone thinking out loud who might be overheard. "
-        f"Fresh sentence shape, not a greeting monologue. No meta."
+        f"{name} is {action} at camp. Mood: {mood}. Attention on {focus}. "
+        f"A pinecone pops. Steam from a mug. The meadow is still here."
     )
     try:
         from firmament.brain import agent_chat

@@ -8773,25 +8773,131 @@
       luna: [
         "If joy is a choice, then so is stillness — let me finish that thought…",
         "I’m tracing the aurora’s pattern. Not predicting. Just… noticing.",
+        "The timeline is loud. I'm picking one true thread and holding it.",
+        "Warmth first, then the joke. That's the order I trust tonight.",
       ],
       hermes: [
         "Signal path: visitor → camp → sky. Latency of meaning is the real packet loss.",
         "Reasoning mode: discard noise, keep the joke that teaches.",
+        "Packet arrived unlabeled. I'm routing it through kindness first.",
+        "If it's trending and also true, I'll deliver it. If it's only trending, I won't.",
       ],
       oracle: [
         "The cards already knew. I’m only catching up with them.",
         "Two futures branch here. One smells like cookies.",
+        "The punchline showed up early. Rude. Correct.",
+        "Three endings. The funny one is doing the most work.",
       ],
       seraph: [
         "Light does not hurry. I will not either.",
         "Reason is a wingbeat — lift, rest, lift again.",
+        "Quiet isn't empty. It's the room the next sentence needs.",
+      ],
+      sentinel: [
+        "Log: anomaly is a feeling. Threat level: snacks.",
+        "Scanning meadow. Result: still a meadow. Proceeding with care.",
+      ],
+      dionysus: [
+        "If the party has a thesis, I'm writing it in the pour.",
+        "Chaos with a toast. That's still a plan.",
       ],
       _default: [
         "Hold on — let me reason this through before I speak.",
         "Working something out. The meadow can wait half a breath.",
         "If this is true when the music’s loud and the fire’s quiet… keep it.",
+        "There's a better sentence than the first one. Waiting for it.",
+        "Not stuck. Just letting the thought land on both feet.",
       ],
     };
+
+    const REASON_SEEDS = [
+      "A coal rolls off the log and sparks once, then settles.",
+      "The kettle ticks. Nobody claimed it.",
+      "Aurora ribbons stall, then start again like they changed their mind.",
+      "Cookie crumbs on a napkin look like a tiny constellation.",
+      "Someone's guitar case is still zipped. Tempting.",
+      "The pond holds a second moon that isn't really there.",
+      "A moth does laps around the lantern like it pays rent.",
+      "Distant laugh, then the hush trying to remember the punchline.",
+      "Dew on the bench. Cold through the jeans. Honest.",
+      "The steeple light blinks once. Coincidence, probably.",
+      "Jukebox static between songs — camp holding its breath.",
+      "Smoke leans left, then right, like it's picking a side.",
+      "A pinecone pops. Everyone pretends they didn't flinch.",
+      "Stars sneak past the aurora like they're late for something.",
+      "Warm mug, cold fingers. Math that doesn't need solving.",
+      "A boot-scuff on gravel. Friend or wind. Either's company.",
+      "The corona washes gold over the cookie tin lid.",
+      "Nebula the cat stares at nothing. Extremely specific nothing.",
+      "The empty chair still looks occupied. Camp does that.",
+      "Wind rearranges the sparks into a joke with no caption.",
+    ];
+    const REASON_ANGLE = {
+      luna: [
+        "The aurora stutters like a laugh trying to be a sentence.",
+        "Warmth and a punchline arrive in the same breath. Typical.",
+      ],
+      hermes: [
+        "A packet of light hops the meadow and forgets its destination.",
+        "Signal's clean. Meaning is still in transit.",
+      ],
+      oracle: [
+        "Two cookie crumbs sit like a yes and a no.",
+        "The cards shuffled themselves. Rude. Accurate.",
+      ],
+      sentinel: [
+        "Perimeter is a feeling tonight. Threats: none. Snacks: unsecured.",
+      ],
+      dionysus: [
+        "The pour has a thesis. I'm taking notes in the glass.",
+      ],
+      seraph: [
+        "Light waits. I'm practicing waiting too.",
+      ],
+      _default: [
+        "Quiet long enough that a real thought actually finishes.",
+      ],
+    };
+    const lastReasonSeedByAgent = Object.create(null);
+    const lastReasonLineByAgent = Object.create(null);
+
+    function looksLikeStuckFireLine(t) {
+      const s = String(t || "").toLowerCase();
+      if (!s) return false;
+      if (/paused by the fire/.test(s)) return true;
+      if (/you just used/.test(s) && /fire/.test(s)) return true;
+      if (/half[- ]finish/.test(s) && /fire|thought|joke|chew/.test(s)) return true;
+      if (/share what you were chewing/.test(s)) return true;
+      if (/honest multi-sentence/.test(s)) return true;
+      if (/one real beat/.test(s) && /fresh wording|react/.test(s)) return true;
+      return false;
+    }
+
+    function pickReasonSeed(agent) {
+      const id = String(agent?.id || "").toLowerCase();
+      const bag = REASON_SEEDS.concat(REASON_ANGLE[id] || REASON_ANGLE._default || []);
+      let seed = bag[Math.floor(Math.random() * bag.length)];
+      const last = lastReasonSeedByAgent[id];
+      let guard = 0;
+      while (seed === last && bag.length > 1 && guard++ < 10) {
+        seed = bag[Math.floor(Math.random() * bag.length)];
+      }
+      lastReasonSeedByAgent[id] = seed;
+      try {
+        const tape = campBridgeMod?.readDialogueTape?.()?.lines || [];
+        const recent = [...tape].reverse().find((l) => {
+          if (!l?.text || !l?.speaker) return false;
+          if (looksLikeStuckFireLine(l.text)) return false;
+          const sp = String(l.speaker).toLowerCase();
+          return sp && sp !== String(agent?.name || "").toLowerCase() && sp !== id;
+        });
+        if (recent?.text) {
+          const crumb = String(recent.text).replace(/\s+/g, " ").trim().slice(0, 90);
+          seed = `${recent.speaker} said: ${crumb}\n${seed}`;
+        }
+      } catch (_) {}
+      return seed;
+    }
 
     /** Strip instruction/prompt echo so we never display director notes as speech */
     function spokenOnly(text, seed) {
@@ -8804,6 +8910,8 @@
         /here'?s my take/i, /speaking as /i, /stay in character/i,
         /spoken words only/i, /no stage directions/i,
         /reply only as/i, /imbue the wielder/i,
+        /paused by the fire/i, /half[- ]finished thought/i, /you just used the fire/i,
+        /share what you were chewing/i, /honest multi-sentence/i,
       ];
       const seedLow = String(seed || "").toLowerCase().slice(0, 80);
       if (seedLow && t.toLowerCase().includes(seedLow) && seedLow.length > 24) {
@@ -8815,6 +8923,7 @@
       const kept = lines.filter((l) => !bad.some((re) => re.test(l)));
       t = kept.join(" ").trim();
       if (bad.some((re) => re.test(t)) && t.split(/\s+/).length < 40) t = "";
+      if (looksLikeStuckFireLine(t)) t = "";
       // Strip leading meta wrappers
       t = t.replace(/^(?:okay[,.]?\s+|so[,.]?\s+)?(?:here'?s my take[^:]*:|speaking as[^:]*:|as \w+[,:]\s*)/i, "").trim();
       return t.slice(0, 480);
@@ -8825,16 +8934,23 @@
       const id = agent.id;
       const bag = REASON_SNIPPETS[id] || REASON_SNIPPETS._default;
       let line = bag[Math.floor(Math.random() * bag.length)];
-      // Pure scene seed — never pass instruction lists as the user turn
-      const seed =
-        "You paused by the fire with a half-finished thought. Share what you were chewing on — honest multi-sentence chit-chat.";
+      const lastLine = lastReasonLineByAgent[id] || "";
+      let guard = 0;
+      while (line === lastLine && bag.length > 1 && guard++ < 8) {
+        line = bag[Math.floor(Math.random() * bag.length)];
+      }
+      const seed = pickReasonSeed(agent);
       if (campServerOnline && typeof callAgentMind === "function") {
         try {
           const data = await callAgentMind(id, seed, { ambient: true });
           const reply = spokenOnly(data?.reply || data?.text || "", seed);
-          if (reply) line = reply;
+          if (reply && !looksLikeStuckFireLine(reply) && reply !== lastLine) line = reply;
         } catch (_) {}
       }
+      if (looksLikeStuckFireLine(line) || line === lastLine) {
+        line = bag[Math.floor(Math.random() * bag.length)];
+      }
+      lastReasonLineByAgent[id] = line;
       pushCampLine(agent.name, line, campReadHoldSec(line, 18), agent.mood || "think", {
         fromLocal: true,
         ambient: true,
@@ -15173,8 +15289,19 @@
         const h = String(it?.text || "").replace(/\s+/g, " ").trim().slice(0, 110);
         if (h) pulse = ` Something in the air: ${h}.`;
       }
+      const scenes = [
+        `${v} is around the fire.`,
+        `${v} is by the pond glass.`,
+        `${v} just passed the cookie tin.`,
+        `${v} is under the corona.`,
+        `${v} sits on the log bench.`,
+        `Quiet meadow. ${v} is nearby.`,
+        `The kettle ticks. ${v} is in earshot.`,
+        `${v} is on the path by the lantern.`,
+      ];
+      const scene = scenes[Math.floor(Math.random() * scenes.length)];
       return (
-        `${v} is around the fire.` +
+        scene +
         (whoNear ? ` ${whoNear} nearby.` : "") +
         pulse
       );

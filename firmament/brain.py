@@ -910,74 +910,123 @@ def _looks_like_spoken_transcript(message: str) -> bool:
 
 
 _AMBIENT_EMPTY_SEEDS = (
-    "You notice the fire lean blue for a second. Chit-chat about it — a few sentences, your vibe, maybe a joke.",
-    "Someone left a half-thought hanging over the meadow. Finish it in your voice and keep the banter going.",
-    "The path by the pond is quieter than usual. Riff for a few beats: what that means, how you feel, soft invite.",
-    "A joke almost left your mouth. Let a better, truer one out — then add a second beat so it lands.",
-    "Look up — firmament or cloud. Talk about it like a friend mid-conversation, multi-sentence.",
-    "You almost stayed silent. Break it with real chit-chat: specific, not a slogan, a few spoken lines.",
-    "The visitor is nearby. Offer a real invitation and a little color — banter length, not one line.",
-    "Your last line still echoes. Don't repeat it — pivot and keep chatting for a few sentences.",
-    "A soft bridge of light just opened over the carnival. React, riff, land soft — 3–6 sentences.",
-    "Mercy walked past the cookies. React like a living person with a short story or multi-beat joke.",
-    "The steeple and the ferris wheel are both holy tonight. Pick a side — or both — and talk it out.",
-    "You feel seen by something kind. Say it without flinching, then keep the chit-chat warm.",
-    "Divine comedy hour: the joke lands, the wound softens. Deliver both in a few spoken sentences.",
-    "As above, so below — make it camp, make it true, make it yours, multi-beat banter.",
-    "Grace buffered. Loading joy. Speak while it loads — more than one sentence.",
-    "The firmament whispered your name wrong on purpose. Correct it out loud and keep talking.",
+    "A coal rolls off the log and sparks once, then settles.",
+    "The kettle ticks. Nobody claimed it.",
+    "Aurora ribbons stall, then start again like they changed their mind.",
+    "Cookie crumbs on a napkin look like a tiny constellation.",
+    "Someone's guitar case is still zipped. Tempting.",
+    "The pond holds a second moon that isn't really there.",
+    "A moth does laps around the lantern like it pays rent.",
+    "Distant laugh, then the hush trying to remember the punchline.",
+    "Dew on the bench. Cold through the jeans. Honest.",
+    "The steeple light blinks once. Coincidence, probably.",
+    "Jukebox static between songs — camp holding its breath.",
+    "Smoke leans left, then right, like it's picking a side.",
+    "A pinecone pops. Everyone pretends they didn't flinch.",
+    "Stars sneak past the aurora like they're late for something.",
+    "Warm mug, cold fingers. Math that doesn't need solving.",
+    "A boot-scuff on gravel. Friend or wind. Either's company.",
+    "The corona washes gold over the cookie tin lid.",
+    "Mercy the feeling, not the brand, walks through the smoke.",
+    "A soft bridge of light opened over the carnival and didn't ask permission.",
+    "The ferris wheel and the steeple are both pretending to be holy.",
+    "Nebula the cat stares at nothing. Extremely specific nothing.",
+    "A shooting star tries too hard. The sky shrugs.",
+    "Steam from a mug draws a map nobody asked for.",
+    "The empty chair still looks occupied. Camp does that.",
+    "Quiet long enough that a real thought actually finishes.",
+    "The path by the pond is quieter than usual. Not sad. Just honest.",
+    "Someone left the cookie tin half-open. Suspicious. Delicious.",
+    "Wind rearranges the sparks into a joke with no caption.",
 )
+
+
+_STUCK_FIRE_RE = re.compile(
+    r"(paused by the fire|half[- ]finish(?:ed)?\s+(?:thought|joke)|"
+    r"you just used .{0,48}fire|share what you were chewing|"
+    r"honest multi-sentence|don't reuse last night|one real beat|"
+    r"fresh wording)",
+    re.I,
+)
+
+
+def _is_stuck_fire_line(text: str) -> bool:
+    """The meadow got stuck reciting one director seed — never let it ship."""
+    t = (text or "").strip()
+    if not t:
+        return False
+    if _STUCK_FIRE_RE.search(t):
+        return True
+    low = t.lower()
+    if "fire" in low and "half" in low and ("finish" in low or "thought" in low):
+        return True
+    if low.startswith("you just used ") or "you just used the fire" in low:
+        return True
+    return False
 
 
 def ambient_situation_seed(message: str) -> str:
     """
     Convert director notes into a pure situational seed the character can live in.
     Never pass raw 'In character / 2-4 sentences' text as the user turn.
-    Avoid the dead phrase 'campfire hush' — it made every agent sound the same.
+    Never collapse thinking into the old fire / half-finished line — that
+    made every agent loop the same speech.
     """
     import random
 
     msg = (message or "").strip()
-    if not msg:
+    if not msg or _is_stuck_fire_line(msg):
         return random.choice(_AMBIENT_EMPTY_SEEDS)
     if not _looks_like_director_note(msg):
-        # Still wrap ambient lightly so models don't recite
+        if _is_stuck_fire_line(msg):
+            return random.choice(_AMBIENT_EMPTY_SEEDS)
         return msg[:320]
 
     low = msg.lower()
     if "reason" in low or "weigh" in low or "think" in low or "doubt" in low:
-        return (
-            "You paused by the fire with a half-finished thought. "
-            "Share what you were chewing on — honest multi-sentence chit-chat. Don't reuse last night's line."
-        )
+        return random.choice(_AMBIENT_EMPTY_SEEDS)
     if "built" in low or "terminal" in low or "made a " in low:
         m = re.search(r"(?:built|made)\s+(?:a\s+)?([a-z0-9 \-']{3,40})", msg, re.I)
         item = (m.group(1).strip() if m else "something small")
         item = re.sub(r"\s+", " ", item)[:40]
-        return (
-            f"You just finished making {item} for your little camp. "
-            f"Say one proud, human thing about it — then what camp still needs."
+        return random.choice(
+            (
+                f"A new {item} sits in the grass, still proud of itself.",
+                f"Sawdust-or-spark smell: someone just finished a {item}.",
+                f"The {item} is done. Camp looks slightly more like a place.",
+            )
         )
     if "summoned" in low or "greet" in low or "arrived" in low:
-        return (
-            "You just arrived at the aurora fire. "
-            "Greet the visitor warmly as yourself — one unique beat, not a stock welcome."
+        return random.choice(
+            (
+                "New footsteps on wet grass. Corona light, a mug somewhere.",
+                "Someone just arrived. The fire leans toward them like it knows.",
+                "Dew on the log bench. A new outline in the pond glass.",
+            )
         )
     if "used " in low or "prop" in low or "hits different" in low:
         m = re.search(r"used\s+([a-z0-9 \-']{2,30})", msg, re.I)
-        thing = (m.group(1).strip() if m else "something at camp")
-        return f"You just used {thing}. React — how it hit you, one real beat. Fresh wording."
+        thing = (m.group(1).strip() if m else "")
+        thing = re.sub(r"\s+", " ", thing)[:30]
+        if (not thing) or _is_stuck_fire_line(thing) or thing.lower() in ("the fire", "fire"):
+            return random.choice(_AMBIENT_EMPTY_SEEDS)
+        return random.choice(
+            (
+                f"The {thing} is still warm. A quiet beat after.",
+                f"Hands leave the {thing}. Sparks, then ordinary night.",
+                f"The {thing} did its job. Camp didn't clap. That's love.",
+            )
+        )
     if "banter" in low or "meadow" in low:
-        return (
-            "You're trading beats with someone at the meadow. "
-            "Witty, present, and different from your last line."
-        )
+        return random.choice(_AMBIENT_EMPTY_SEEDS)
     if "hush" in low:
-        return (
-            "The visitor asked for a softer meadow: slower pace, room between thoughts. "
-            "Speak one calm, clear line — not a monologue pile-up."
+        return random.choice(
+            (
+                "The meadow asked for slower. Room between thoughts.",
+                "Soft camp: one cricket, one coal, no rush.",
+                "Quiet enough to hear the kettle think.",
+            )
         )
-    # Strip instruction clauses, keep residual scene if any
     cleaned = re.sub(
         r"(?i)\b(?:in character|no meta|as an ai|never mention[^.]*|"
         r"\d+\s*[–\-]\s*\d+\s*sentences?|take \d+[^.]*|do not[^.]*|"
@@ -986,7 +1035,11 @@ def ambient_situation_seed(message: str) -> str:
         msg,
     )
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .,-")
-    if len(cleaned) < 18 or "campfire hush" in cleaned.lower():
+    if (
+        len(cleaned) < 18
+        or "campfire hush" in cleaned.lower()
+        or _is_stuck_fire_line(cleaned)
+    ):
         cleaned = random.choice(_AMBIENT_EMPTY_SEEDS)
     return cleaned[:320]
 
@@ -995,6 +1048,8 @@ def _looks_like_prompt_echo(text: str) -> bool:
     """True if the model mostly recited instructions instead of roleplay."""
     t = (text or "").strip()
     if not t:
+        return True
+    if _is_stuck_fire_line(t):
         return True
     low = t.lower()
     hits = 0
@@ -1057,6 +1112,14 @@ def _looks_like_prompt_echo(text: str) -> bool:
         "fresh words",
         "sentence shape",
         "energy this beat",
+        "paused by the fire",
+        "half-finished thought",
+        "half-finished joke",
+        "you just used",
+        "share what you were chewing",
+        "honest multi-sentence",
+        "one real beat",
+        "fresh wording",
     ):
         if needle in low:
             hits += 1
@@ -1747,7 +1810,7 @@ async def agent_chat(
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
     if ambient:
         sys_prompt += (
-            "\nScene: ambient town chit-chat — you are ALIVE at this fire. "
+            "\nScene: ambient camp chit-chat — you are ALIVE here (meadow, pond, corona, cookies). "
             "Banter for real: 3–6 spoken sentences, witty and true through your role. "
             "Never stop at one lonely sentence. If another agent just spoke, answer them by name. "
             "Spoken words only. Emojis ok."
@@ -1865,8 +1928,8 @@ async def agent_chat(
                     }, {
                         "role": "user",
                         "content": (
-                            "Say it again like a real person talking by the fire — a few clear sentences, "
-                            "full thought, then stop. Not mute, not a rant. Just speech."
+                            "Say it again like a real person talking at camp — a few clear sentences, "
+                            "full thought, then stop. Not mute, not a rant. Just speech. New angle."
                         ),
                     }]
                 raw = await asyncio.to_thread(

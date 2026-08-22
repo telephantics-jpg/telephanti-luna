@@ -327,16 +327,19 @@
     }
     .camp-bubble.has-scroll .camp-bubble-hint { opacity: 0.9; }
     @media (max-width: 899px) {
+      /* Phone: tiny name chips, not meadow-covering monologues */
       .camp-bubble {
-        width: min(280px, 82vw);
-        max-height: min(38vh, 260px);
+        width: min(220px, 72vw);
+        max-height: min(22vh, 160px);
       }
       .camp-bubble.is-focus {
-        width: min(92vw, 320px);
-        max-height: min(48vh, 340px);
+        width: min(86vw, 280px);
+        max-height: min(32vh, 220px);
       }
-      .camp-bubble-say { font-size: 0.82rem; max-height: min(28vh, 200px); }
-      .camp-bubble.is-focus .camp-bubble-say { max-height: min(38vh, 280px); }
+      .camp-bubble-say { font-size: 0.78rem; max-height: min(16vh, 110px); padding: 6px 10px 8px; }
+      .camp-bubble.is-focus .camp-bubble-say { max-height: min(24vh, 160px); }
+      .camp-bubble-hint { font-size: 0.58rem; opacity: 0.85; }
+      .camp-bubble-btn { width: 32px; height: 32px; }
     }
     html.desktop-camp #game {
       background: transparent !important;
@@ -1307,6 +1310,7 @@
       pointer-events: none !important;
     }
     .hud-drag { cursor: grab; }
+    .hud-drag:not(#relic-deck) { touch-action: none; }
     .hud-drag.is-dragging { cursor: grabbing; opacity: 0.92; z-index: 2147483001 !important; }
     @media (min-width: 900px) {
       #camp-live-stamp { display: none !important; }
@@ -6042,8 +6046,8 @@
       campViewCamX = Math.max(camp.x + b.xMin - margin, Math.min(camp.x + b.xMax + margin, campViewCamX));
       campViewCamY = Math.max(camp.y + b.yMin - margin, Math.min(camp.y + b.yMax + margin, campViewCamY));
     }
-    function panCampCameraTo(wx, wy) {
-      if (!isCampMobile()) return;
+    function panCampCameraTo(wx, wy, opts = {}) {
+      if (!isCampMobile() && !opts.force) return;
       ensureViewCamera();
       campViewCamX = wx;
       campViewCamY = wy;
@@ -11523,10 +11527,14 @@
         : "Hide all speech bubbles — stays hidden until you press again";
     }
 
+    function talkMinStorageKey() {
+      return isCampMobile() ? "luna-camp-talk-min-phone" : "luna-camp-talk-min";
+    }
+
     function setTalkMin(on) {
       talkMinOn = !!on;
       document.body.classList.toggle("talk-min", talkMinOn);
-      try { localStorage.setItem("luna-camp-talk-min", talkMinOn ? "1" : "0"); } catch (_) {}
+      try { localStorage.setItem(talkMinStorageKey(), talkMinOn ? "1" : "0"); } catch (_) {}
       if (talkMinOn) {
         try { clearAllDomBubbles(); } catch (_) {}
         try { speechBubbleRects.length = 0; } catch (_) {}
@@ -11540,8 +11548,10 @@
 
     function applyTalkMinFromStorage() {
       let saved = null;
-      try { saved = localStorage.getItem("luna-camp-talk-min"); } catch (_) {}
-      setTalkMin(saved === "1");
+      try { saved = localStorage.getItem(talkMinStorageKey()); } catch (_) {}
+      if (saved === "1") setTalkMin(true);
+      else if (saved === "0") setTalkMin(false);
+      else setTalkMin(isCampMobile());
     }
 
     /** Drag floating HUD chips out of the way (PC overlap). Click still works if you don't drag. */
@@ -11549,6 +11559,8 @@
       if (!el || el.__hudDragWired) return;
       el.__hudDragWired = true;
       el.classList.add("hud-drag");
+      if (!el.title) el.title = "Drag to move · double-tap to center";
+      else if (!/double-tap/i.test(el.title)) el.title = `${el.title} · double-tap to center`;
       const storeKey = `luna-camp-hud-${key}`;
       try {
         const saved = JSON.parse(localStorage.getItem(storeKey) || "null");
@@ -11561,6 +11573,16 @@
         }
       } catch (_) {}
       let drag = null;
+      let lastTapAt = 0;
+      const resetHudHome = () => {
+        try { localStorage.removeItem(storeKey); } catch (_) {}
+        el.style.left = "";
+        el.style.top = "";
+        el.style.right = "";
+        el.style.bottom = "";
+        el.style.position = "";
+        try { showToast?.("◎ chip centered"); } catch (_) {}
+      };
       el.addEventListener("pointerdown", (e) => {
         if (e.button != null && e.button !== 0) return;
         if (e.target?.closest?.("input, textarea, select, a, .camp-bubble-say, .camp-bubble-btn")) return;
@@ -11591,7 +11613,8 @@
       });
       const end = (e) => {
         if (!drag) return;
-        if (drag.moved) {
+        const moved = !!drag.moved;
+        if (moved) {
           el.dataset.justDragged = "1";
           try {
             localStorage.setItem(storeKey, JSON.stringify({
@@ -11599,6 +11622,15 @@
               y: parseFloat(el.style.top),
             }));
           } catch (_) {}
+        } else {
+          const now = Date.now();
+          if (now - lastTapAt < 420) {
+            el.dataset.justDragged = "1";
+            resetHudHome();
+            lastTapAt = 0;
+          } else {
+            lastTapAt = now;
+          }
         }
         el.classList.remove("is-dragging");
         try { el.releasePointerCapture?.(e.pointerId); } catch (_) {}
@@ -13748,7 +13780,14 @@
 
     function centerDomBubbleOnAgent(speaker) {
       const entry = domBubbles.get(speaker);
-      if (!entry) return;
+      const npc = allRoamers().find((n) => n.name === speaker || n.id === speaker || n.id === speaker.toLowerCase());
+      if (npc && isCampMobile()) {
+        try { panCampCameraTo(camp.x + npc.x, camp.y + npc.y, { force: true }); } catch (_) {}
+      }
+      if (!entry) {
+        try { showToast?.(`◎ ${speaker} centered`); } catch (_) {}
+        return;
+      }
       entry.free = false;
       entry.freeX = null;
       entry.freeY = null;
@@ -13784,6 +13823,8 @@
      */
     function upsertDomBubble(speaker, text, opts = {}) {
       if (isTalkMin()) return null;
+      // Phone: don't park full bubbles on the meadow unless the visitor opened one
+      if (isCampMobile() && !opts.force && !opts.locked) return null;
       const layer = campBubbleLayer();
       if (!layer) return null;
       const clean = String(text || "").trim();
@@ -13807,7 +13848,7 @@
           `<button type="button" class="camp-bubble-btn x" title="Close" aria-label="Close">×</button>` +
           `</div>` +
           `<div class="camp-bubble-say" tabindex="0"></div>` +
-          `<div class="camp-bubble-hint">↕ scroll · drag bar to move</div>`;
+          `<div class="camp-bubble-hint">drag · ◎ center · × close</div>`;
         layer.appendChild(el);
         entry = {
           el,
@@ -14028,8 +14069,10 @@
         } catch (_) {}
         return;
       }
-      // Ambient posts: 5–20s unless visitor pin/hold keeps them front
-      const hold = Math.max(5, Math.min(holdSec || 12, 20));
+      // Ambient posts: short on phone (meadow is tiny); longer on PC
+      const hold = isCampMobile()
+        ? Math.max(2.4, Math.min(holdSec || 4, 5))
+        : Math.max(5, Math.min(holdSec || 12, 20));
       const prev = speechHold.get(who);
       const until = Math.max(prev?.until || 0, Date.now() + hold * 1000);
       const someoneFront =
@@ -14042,7 +14085,7 @@
         until,
         front: someoneFront ? false : !!(prev?.front),
       });
-      // DOM bubble for scroll/drag UI (ambient too)
+      // DOM bubble for scroll/drag UI (PC ambient; phone only if already open)
       try {
         upsertDomBubble(who, text, {
           color: npc?.color,
@@ -14194,6 +14237,7 @@
             quiet: true,
             keepScroll: true,
             skipSelect: true,
+            force: isCampMobile(),
           });
         } catch (_) {}
       }
@@ -17187,9 +17231,8 @@
     }
 
     function maxCanvasSpeechBubbles() {
-      // Keep enough bubbles hittable so any can be brought to front
-      if (isIOS() && isCampMobile()) return 5;
-      return isCampMobile() ? 6 : 8;
+      if (isCampMobile()) return 1;
+      return 8;
     }
 
     function drawThoughtBubble(sx, sy, text, color) {
@@ -17248,14 +17291,14 @@
       const lineH = fontSize + 5;
       const nameH = speakerName ? nameSize + 8 : 0;
       const visMax = selected
-        ? Math.max(6, Math.min(16, Math.floor((viewH * 0.42) / lineH)))
-        : 4;
+        ? (mobile ? 4 : Math.max(6, Math.min(16, Math.floor((viewH * 0.42) / lineH))))
+        : (mobile ? 1 : 4);
       const padY = selected ? 14 : 10;
       const scrollHintH = 0; // drawn inside last line zone
       const xBtnSpace = mobile ? 40 : 36;
       const maxBoxW = selected
-        ? (ios ? Math.min(viewW - 16, 320) : mobile ? Math.min(viewW - 20, 340) : Math.min(viewW - 48, 400))
-        : (ios ? 210 : mobile ? 230 : 248);
+        ? (ios ? Math.min(viewW - 24, 260) : mobile ? Math.min(viewW - 28, 250) : Math.min(viewW - 48, 400))
+        : (ios ? 168 : mobile ? 172 : 248);
       const minBoxW = selected ? (mobile ? 140 : 160) : (mobile ? 120 : 140);
       // Prefer meta.fullLine when selected so the entire response can be scrolled
       const drawRaw = selected && meta?.fullLine ? String(meta.fullLine).trim() || raw : raw;
@@ -17473,7 +17516,9 @@
       try { updateDomBubblePositions(); } catch (_) {}
       let drawn = 0;
       // Always draw several bubbles so you can TAP any of them to bring that one front
-      const max = Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 6 : 4);
+      const max = isCampMobile()
+        ? 1
+        : Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 6 : 4);
       const now = Date.now();
       // Front-pinned / hold-locked stay until visitor closes (✕) or unpins
       if (selectedBubbleSpeaker) {

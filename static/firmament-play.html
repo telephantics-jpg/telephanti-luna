@@ -1304,6 +1304,27 @@
       color: #ecfdf5;
       background: linear-gradient(135deg, #14532d, #16a34a);
       box-shadow: 0 0 14px rgba(74, 222, 128, 0.4);
+      animation: talk-on-pulse 1.6s ease-in-out infinite;
+    }
+    #btn-camp-chat {
+      order: -2 !important;
+      min-width: 78px !important;
+      width: auto !important;
+      padding: 0 14px !important;
+      font-size: 0.8rem !important;
+      font-weight: 900 !important;
+      letter-spacing: 0.02em;
+    }
+    @keyframes talk-on-pulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(74, 222, 128, 0.4); transform: scale(1); }
+      50% { box-shadow: 0 0 24px rgba(74, 222, 128, 0.95); transform: scale(1.05); }
+    }
+    #camp-act-fab,
+    #camp-act-sheet,
+    #camp-act-sheet.open {
+      display: none !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
     }
     /* Duplicate / extra dock chips — keep one row, no scrollbar */
     #btn-talk-min,
@@ -1772,7 +1793,8 @@
       line-height: 1.3;
     }
     @media (max-width: 899px) {
-      #camp-act-fab { display: flex !important; }
+      #camp-act-fab,
+      #camp-act-sheet { display: none !important; }
     }
     #camp-enter-house {
       position: fixed;
@@ -4757,7 +4779,7 @@
       <button type="button" class="dock-icon chatter-btn dock-spare" id="btn-chatter-toggle" title="Chat record — past lines from the meadow (hidden until you open)" style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-color:#67e8f9;color:#ecfeff;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem;font-weight:800">📜 Record</button>
       <button type="button" class="dock-icon hush-btn" id="btn-camp-hush" title="Hush = soft chill (NOT mute): agents walk slower & talk less often so you can read. Tap again to restore normal energy." aria-pressed="false">🤫 Soft</button>
       <button type="button" class="dock-icon talk-min-btn dock-spare" id="btn-talk-min" title="Hide all speech bubbles — stays hidden until you press again" aria-pressed="false">💬 Hide</button>
-      <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Talk on/off — tap so they speak, tap again to hide speech" aria-pressed="false" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️</button>
+      <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Talk ON — they chat with each other. Tap to shut it off." aria-pressed="true" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️ Talk</button>
       <button type="button" class="dock-icon talk dock-spare" id="btn-talk-near" title="Lock to nearest agent">📍</button>
       <button type="button" class="dock-icon dock-spare" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
 
@@ -5148,8 +5170,8 @@
       nextConverseRandMs: 55000,
       retryConverseMs: 28000,
       // Chill free dialogue — not chaotic spam
-      idleChatterMinMs: 32000,
-      idleChatterRandMs: 42000,
+      idleChatterMinMs: 14000,
+      idleChatterRandMs: 18000,
       proximityMinMs: 40000,
     };
     /** Telephantix on X — music / club / pulse / shop brand home */
@@ -8672,7 +8694,7 @@
         }
         n.idle = 140 + Math.floor(Math.random() * 200);
         // Sit monologue — rare so bubbles stay readable; hush almost never
-        if (!n.socializing && !n.gathering && !converseBusy && !chatterPaused
+        if (!n.socializing && !n.gathering && !converseBusy && !chatterPaused && !isTalkMin()
             && !ambientAiBusy && !speechFloorHasFocus() && !bubbleFrontPinned && !bubbleHoldLocked
             && canAgentTakeFloor(n.id, { max: 1 })
             && Math.random() < (campHushMode ? 0.012 : 0.04)) {
@@ -8687,7 +8709,7 @@
       }
       n.idle = 140 + Math.floor(Math.random() * 200);
       if (!n.socializing && !n.gathering && Math.random() < (campHushMode ? 0.015 : 0.05)
-          && !converseBusy && !chatterPaused && !ambientAiBusy
+          && !converseBusy && !chatterPaused && !isTalkMin() && !ambientAiBusy
           && !speechFloorHasFocus() && !bubbleFrontPinned && !bubbleHoldLocked
           && canAgentTakeFloor(n.id, { max: 1 })) {
         void emitNpcAiChatter(n, { allowAether: true });
@@ -8734,7 +8756,7 @@
         showToast(`${npc.name} sitting still — ${isCampMobile() ? "tap again → 🚶 Roam" : "click"} again to let them roam`);
       pushCampLine(npc.name, quip, campReadHoldSec(quip, 14), npc.mood || "neutral", { fromLocal: true, quiet: true });
       setTimeout(() => {
-        if (npc.sitPinned && !converseBusy && !chatterPaused) emitNpcIdleChatter(npc);
+        if (npc.sitPinned && !converseBusy && !chatterPaused && !isTalkMin()) emitNpcIdleChatter(npc);
       }, 2800 + Math.random() * 4200);
     }
 
@@ -11549,15 +11571,21 @@
       if (talkBtn) {
         talkBtn.classList.toggle("active", speaking);
         talkBtn.setAttribute("aria-pressed", speaking ? "true" : "false");
-        talkBtn.textContent = speaking ? "🗣️ On" : "🗣️";
+        talkBtn.textContent = speaking ? "🗣️ Talk ON" : "🗣️ Talk OFF";
         talkBtn.title = speaking
-          ? "Talk on — they speak. Tap again to hide speech."
-          : "Talk off — tap so they speak on the meadow.";
+          ? "Talk ON — they chat with each other. Tap to shut it off."
+          : "Talk OFF — tap to turn meadow chat back on.";
       }
     }
 
     function talkMinStorageKey() {
-      return isCampMobile() ? "luna-camp-talk-min-phone" : "luna-camp-talk-min";
+      return isCampMobile() ? "luna-camp-talk-v3-phone" : "luna-camp-talk-v3";
+    }
+
+    function kickMeadowTalk() {
+      try { scheduleCampIdleChatter(); } catch (_) {}
+      setTimeout(() => { try { void tryCampIdleChatter?.(); } catch (_) {} }, 500);
+      setTimeout(() => { try { void runCampConverse?.(); } catch (_) {} }, 1600);
     }
 
     function setTalkMin(on) {
@@ -11567,6 +11595,8 @@
       if (talkMinOn) {
         try { clearAllDomBubbles(); } catch (_) {}
         try { speechBubbleRects.length = 0; } catch (_) {}
+      } else {
+        kickMeadowTalk();
       }
       syncTalkMinBtn();
     }
@@ -11579,8 +11609,7 @@
       let saved = null;
       try { saved = localStorage.getItem(talkMinStorageKey()); } catch (_) {}
       if (saved === "1") setTalkMin(true);
-      else if (saved === "0") setTalkMin(false);
-      else setTalkMin(isCampMobile());
+      else setTalkMin(false);
     }
 
     /** Drag floating HUD chips out of the way (PC overlap). Click still works if you don't drag. */
@@ -15321,19 +15350,29 @@
       const u = campUnitScale();
       const med = agentMeditation.get(n.id);
       const t = Date.now() / 1000;
-      const sitting = !med && (n.behavior === "sit" || (n.behavior === "stand" && n.idle > 18));
+      const sitting = !med && (n.sitPinned || n.behavior === "sit" || (n.behavior === "stand" && n.idle > 18));
       const speaking = speakingAgentId === n.id || (n.speakAnimUntil && Date.now() < n.speakAnimUntil);
+      const dx = (n.tx ?? n.x) - n.x;
+      const dy = (n.ty ?? n.y) - n.y;
+      const moving = !sitting && !med && Math.hypot(dx, dy) > 2.5
+        && n.behavior !== "stand" && n.behavior !== "reason";
+      const idh = (n.id?.charCodeAt?.(0) || 7);
+      n._walkPh = (n._walkPh || 0) + (moving ? 0.32 : 0);
+      const step = Math.sin(n._walkPh);
+      const walkBob = moving ? Math.abs(step) * 7 * u : 0;
+      const chillBob = (!moving && !sitting && !med) ? Math.sin(t * 2.15 + idh) * 2.4 * u : 0;
+      const sitSway = sitting ? Math.sin(t * 1.45 + idh) * 2.2 * u : 0;
       // Digital god-bot scale / tint while morphed
       const godSc = (n.godForm && n.godScale) ? n.godScale : 1;
       const godCol = (n.godForm && n.godColor) ? n.godColor : null;
       // Bounce / hop when talking; flight lifts sprite
-      const talkBob = speaking ? Math.sin(t * 10 + (n.id?.charCodeAt?.(0) || 0)) * 5 * u : 0;
+      const talkBob = speaking ? Math.sin(t * 10 + idh) * 5 * u : 0;
       const talkScale = (speaking ? 1 + Math.sin(t * 8) * 0.04 : 1) * godSc;
       const flightLift = (n.z || 0) * 0.85 * u;
       const godHover = n.godForm ? Math.sin(t * 2.6) * 4 * u * Math.min(godSc, 1.4) : 0;
       const floatY =
         (med ? Math.sin(t * 2.8 + (med.spin || 0)) * (5 + med.power * 0.07) * u : 0) +
-        talkBob -
+        talkBob + walkBob + chillBob + sitSway -
         flightLift -
         godHover;
       const s = worldToScreen(wx, wy);
@@ -15425,11 +15464,22 @@
         ctx.fillText(me, s.x - 12 * u, cy - 72 * u + Math.sin(t * 6) * 3);
         ctx.fillText(ae, s.x + 14 * u, cy - 78 * u + Math.cos(t * 5) * 3);
       }
-      drawAvatarShadow(s.x, cy, (sitting ? 16 : 20) * u);
+      drawAvatarShadow(s.x, cy, (sitting ? 16 : moving ? 22 : 20) * u);
+      if (moving) {
+        ctx.fillStyle = `rgba(226, 232, 240, ${0.12 + Math.abs(step) * 0.22})`;
+        ctx.beginPath();
+        ctx.ellipse(s.x - step * 7 * u, s.y + 13 * u, 9 * u, 3.2 * u, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       if (sitting) {
         ctx.font = `${Math.round(15 * u)}px Segoe UI`;
         ctx.textAlign = "center";
         ctx.fillText("🪑", s.x - 16, cy + 10);
+        if (Math.sin(t * 1.1 + idh) > 0.55) {
+          ctx.font = `${Math.round(11 * u)}px Segoe UI`;
+          ctx.fillStyle = "rgba(226,232,240,0.7)";
+          ctx.fillText("z", s.x + 18 * u, cy - 36 * u + Math.sin(t * 2) * 2);
+        }
       }
       const drawers = {
         luna: drawLunaFigure,
@@ -15453,9 +15503,14 @@
         uriel: drawHeavenFigure,
       };
       ctx.save();
-      if (u !== 1 || talkScale !== 1) {
+      {
+        const lean = moving ? step * 0.16 : sitting ? Math.sin(t * 1.25 + idh) * 0.05 : 0;
+        const breath = sitting
+          ? 0.94 + Math.sin(t * 1.7 + idh) * 0.02
+          : (!moving ? 1 + Math.sin(t * 2.2 + idh) * 0.028 : 1);
         ctx.translate(s.x, cy);
-        ctx.scale(u * talkScale, u * talkScale);
+        ctx.rotate(lean);
+        ctx.scale(u * talkScale * breath, u * talkScale * (sitting ? 0.9 : 1) * breath);
         ctx.translate(-s.x, -cy);
       }
       if (drawers[n.id]) {
@@ -15997,7 +16052,7 @@
 
     let lastAiChatterAt = 0;
     async function emitNpcAiChatter(npc, opts = {}) {
-      if (!npc || chatterPaused) return null;
+      if (!npc || chatterPaused || isTalkMin()) return null;
       // Visitor is mid-conversation with someone — don't steal the mic
       if (!opts.priority && speechFloorHasFocus() && campSpeechFloor.focusId !== npc.id) return null;
       if (!opts.priority && !canAgentTakeFloor(npc.id, { max: opts.replyTo ? 2 : 1, ambientOk: true })) return null;
@@ -16088,7 +16143,7 @@
     }
 
     async function tryCampIdleChatter() {
-      if (chatterPaused || converseBusy || ambientAiBusy || houseInteriorOpen) return;
+      if (chatterPaused || isTalkMin() || converseBusy || ambientAiBusy || houseInteriorOpen) return;
       // Let visitor-addressed agent finish (and be read)
       if (speechFloorHasFocus() || chatInflight.size > 0) return;
       // Front-pinned / hold-locked bubble: hush ambient until visitor releases
@@ -16103,7 +16158,7 @@
       ambientAiBusy = true;
       try {
         // Short pair chats only sometimes — hush almost never stacks dialogue
-        const pairChance = campHushMode ? 0.12 : 0.42;
+        const pairChance = campHushMode ? 0.12 : 0.72;
         const dialogue = campServerOnline && pool.length >= 2 && Math.random() < pairChance;
         if (dialogue) {
           const a = pickAmbientSpeaker(pool);
@@ -16111,7 +16166,7 @@
           if (b.id === a.id) b = pool[(pool.indexOf(a) + 1) % pool.length];
           const speakers = [a, b];
           // 2 turns max so each line can be read
-          const turns = 2;
+          const turns = campHushMode ? 2 : 3;
           let prev = null;
           for (let t = 0; t < turns; t++) {
             if (chatterPaused || converseBusy || bubbleFrontPinned || bubbleHoldLocked) break;
@@ -20476,7 +20531,7 @@
     async function playConverseLines(lines, gapMs = CAMP_PACE.converseGapMs) {
       // Play turns in order so dialogue reads as a real conversation
       for (const line of lines || []) {
-        if (chatterPaused) break;
+        if (chatterPaused || isTalkMin()) break;
         const who = line.name || line.agent_id || "Camp";
         const aid = line.agent_id || "";
         const text = spokenOnly(line.line || "", "");
@@ -20503,7 +20558,7 @@
         setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
         return;
       }
-      if (chatterPaused || houseInteriorOpen) {
+      if (chatterPaused || isTalkMin() || houseInteriorOpen) {
         setTimeout(() => runCampConverse(forcedGroup), CAMP_PACE.retryConverseMs);
         return;
       }
@@ -21637,9 +21692,9 @@
       scheduleResize();
       mergeLocalBondsIntoCamp();
       bindCampMusicGestureUnlock();
-      const greetDelay = isSlowDevice() ? 5200 : 2800;
+      const greetDelay = isSlowDevice() ? 3200 : 1800;
       const dataDelay = isSlowDevice() ? 8000 : 0;
-      const idleDelay = isSlowDevice() ? 30000 : 0;
+      const idleDelay = isSlowDevice() ? 2800 : 1200;
       setTimeout(scheduleCampArrivalGreetings, greetDelay);
       setTimeout(() => {
         loadCampWallet();
@@ -21647,6 +21702,7 @@
         loadCampBonds();
       }, dataDelay);
       setTimeout(scheduleCampIdleChatter, idleDelay);
+      setTimeout(() => { if (!isTalkMin()) kickMeadowTalk(); }, greetDelay + 600);
       setTimeout(() => {
         const t = document.getElementById("status-toast");
         if (t) t.style.opacity = "0.35";

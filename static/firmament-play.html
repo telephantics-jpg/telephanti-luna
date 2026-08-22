@@ -210,7 +210,7 @@
     #camp-bubble-layer {
       position: absolute;
       inset: 0;
-      z-index: 8;
+      z-index: 40;
       pointer-events: none;
       overflow: visible;
     }
@@ -232,7 +232,7 @@
       transform: translate(-50%, -100%);
       touch-action: none;
       cursor: grab;
-      z-index: 10;
+      z-index: 40;
       overflow: hidden;
     }
     .camp-bubble.dragging {
@@ -298,6 +298,7 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       touch-action: pan-y;
+      cursor: grab;
       padding: 8px 12px 12px;
       font-size: 0.86rem;
       line-height: 1.45;
@@ -6003,7 +6004,7 @@
       "#camp-pick-agent-fab", "#camp-pick-agent-sheet", "#camp-tpx-fab",
       "#camp-heaven-fab", "#btn-header-heaven", "#camp-chat-panel",
       "#camp-act-fab", "#camp-act-sheet", "#constellation-layer",
-      "#camp-bubble-layer", "#btn-talk-min",
+      "#btn-talk-min",
     ].join(", ");
     function isCampUiTarget(el) {
       if (!el) return false;
@@ -6021,6 +6022,8 @@
     function bindCampUiGuards() {
       const stopUiToMap = (ev) => {
         if (!isCampUiTarget(ev.target)) return;
+        // Let chat bubbles receive drag — don't kill pointerdown in capture
+        if (ev.target?.closest?.(".camp-bubble, #camp-bubble-layer")) return;
         ev.stopPropagation();
       };
       const blockMapSelect = (ev) => {
@@ -13881,8 +13884,6 @@
      */
     function upsertDomBubble(speaker, text, opts = {}) {
       if (isTalkMin()) return null;
-      // Phone: don't park full bubbles on the meadow unless the visitor opened one
-      if (isCampMobile() && !opts.force && !opts.locked) return null;
       const layer = campBubbleLayer();
       if (!layer) return null;
       const clean = String(text || "").trim();
@@ -13979,41 +13980,23 @@
           quiet: false,
         });
       });
-      // Focus on bubble click (not when scrolling say)
-      el.addEventListener("pointerdown", (e) => {
-        if (e.target?.closest?.(".camp-bubble-say")) return;
-        if (e.target?.closest?.(".camp-bubble-btn")) return;
-        focusDomBubble(entry.speaker, { noDim: true });
-      });
-      // Drag from bar (or empty chrome) — not from scrollable text
-      const onDown = (e) => {
-        if (e.button != null && e.button !== 0) return;
-        if (e.target?.closest?.(".camp-bubble-btn")) return;
-        if (e.target?.closest?.(".camp-bubble-say")) return;
-        e.preventDefault();
-        e.stopPropagation();
-        focusDomBubble(entry.speaker, { noDim: true });
-        const rect = el.getBoundingClientRect();
-        const stage = document.getElementById("camp-stage")?.getBoundingClientRect();
-        domBubbleDrag = {
-          speaker: entry.speaker,
-          grabX: e.clientX - rect.left - rect.width / 2,
-          grabY: e.clientY - rect.top - rect.height, // tip at bottom-center of box
-          pointerId: e.pointerId,
-        };
-        el.classList.add("dragging");
-        try { el.setPointerCapture?.(e.pointerId); } catch (_) {}
-      };
-      bar?.addEventListener("pointerdown", onDown);
-      el.addEventListener("pointermove", (e) => {
+      const onMove = (e) => {
         if (!domBubbleDrag || domBubbleDrag.speaker !== entry.speaker) return;
         if (domBubbleDrag.pointerId != null && e.pointerId !== domBubbleDrag.pointerId) return;
+        const dx = e.clientX - domBubbleDrag.x0;
+        const dy = e.clientY - domBubbleDrag.y0;
+        if (!domBubbleDrag.moved && Math.hypot(dx, dy) < 6) return;
+        // Vertical on the text = scroll, not park
+        if (!domBubbleDrag.moved && domBubbleDrag.fromSay && Math.abs(dy) > Math.abs(dx) * 1.1) {
+          return;
+        }
+        e.preventDefault();
+        domBubbleDrag.moved = true;
         const stage = document.getElementById("camp-stage");
         const sr = stage?.getBoundingClientRect();
         if (!sr) return;
         let cx = e.clientX - sr.left - (domBubbleDrag.grabX || 0);
         let cy = e.clientY - sr.top - (domBubbleDrag.grabY || 0);
-        // clamp tip point inside stage
         const pad = 12;
         cx = Math.max(pad, Math.min(sr.width - pad, cx));
         cy = Math.max(pad + 40, Math.min(sr.height - pad, cy));
@@ -14022,22 +14005,48 @@
         entry.freeY = cy;
         el.style.left = `${cx}px`;
         el.style.top = `${cy}px`;
-        el.classList.add("is-parked");
+        el.classList.add("is-parked", "dragging");
         try {
           bubbleFreePos.set(entry.speaker, clampBubbleAnchor(cx, cy));
         } catch (_) {}
-      });
+      };
       const onUp = (e) => {
         if (!domBubbleDrag || domBubbleDrag.speaker !== entry.speaker) return;
+        if (domBubbleDrag.pointerId != null && e.pointerId !== domBubbleDrag.pointerId) return;
         el.classList.remove("dragging");
         try { el.releasePointerCapture?.(e.pointerId); } catch (_) {}
-        if (entry.free) {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        if (domBubbleDrag.moved) {
           try { showToast?.("📌 Bubble parked — ◎ to re-center"); } catch (_) {}
         }
         domBubbleDrag = null;
       };
-      el.addEventListener("pointerup", onUp);
-      el.addEventListener("pointercancel", onUp);
+      const onDown = (e) => {
+        if (e.button != null && e.button !== 0) return;
+        if (e.target?.closest?.(".camp-bubble-btn")) return;
+        e.stopPropagation();
+        focusDomBubble(entry.speaker, { noDim: true });
+        const rect = el.getBoundingClientRect();
+        const fromSay = !!e.target?.closest?.(".camp-bubble-say");
+        if (!fromSay) e.preventDefault();
+        domBubbleDrag = {
+          speaker: entry.speaker,
+          grabX: e.clientX - rect.left - rect.width / 2,
+          grabY: e.clientY - rect.top - rect.height,
+          pointerId: e.pointerId,
+          x0: e.clientX,
+          y0: e.clientY,
+          moved: false,
+          fromSay,
+        };
+        try { el.setPointerCapture?.(e.pointerId); } catch (_) {}
+        window.addEventListener("pointermove", onMove, { passive: false });
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
+      };
+      el.addEventListener("pointerdown", onDown);
       // Double-click / double-tap bar → center
       let lastTap = 0;
       bar?.addEventListener("click", () => {

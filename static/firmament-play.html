@@ -17526,7 +17526,7 @@
     }
 
     function maxCanvasSpeechBubbles() {
-      if (isCampMobile()) return 1;
+      if (isCampMobile()) return 4;
       return 8;
     }
 
@@ -17586,17 +17586,16 @@
       const lineH = fontSize + 5;
       const nameH = speakerName ? nameSize + 8 : 0;
       const visMax = selected
-        ? (mobile ? 4 : Math.max(6, Math.min(16, Math.floor((viewH * 0.42) / lineH))))
-        : (mobile ? 1 : 4);
+        ? (mobile ? 8 : Math.max(8, Math.min(18, Math.floor((viewH * 0.48) / lineH))))
+        : (mobile ? 5 : 8);
       const padY = selected ? 14 : 10;
       const scrollHintH = 0; // drawn inside last line zone
       const xBtnSpace = mobile ? 40 : 36;
       const maxBoxW = selected
-        ? (ios ? Math.min(viewW - 24, 260) : mobile ? Math.min(viewW - 28, 250) : Math.min(viewW - 48, 400))
-        : (ios ? 168 : mobile ? 172 : 248);
-      const minBoxW = selected ? (mobile ? 140 : 160) : (mobile ? 120 : 140);
-      // Prefer meta.fullLine when selected so the entire response can be scrolled
-      const drawRaw = selected && meta?.fullLine ? String(meta.fullLine).trim() || raw : raw;
+        ? (ios ? Math.min(viewW - 20, 300) : mobile ? Math.min(viewW - 22, 320) : Math.min(viewW - 40, 440))
+        : (ios ? 220 : mobile ? 240 : 300);
+      const minBoxW = selected ? (mobile ? 160 : 180) : (mobile ? 150 : 180);
+      const drawRaw = String(meta?.fullLine || raw).trim() || raw;
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
       // Full wrap (no ellipsis cut) for selected → scroll window; ambient soft-caps
@@ -17812,8 +17811,8 @@
       let drawn = 0;
       // Always draw several bubbles so you can TAP any of them to bring that one front
       const max = isCampMobile()
-        ? 1
-        : Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 6 : 4);
+        ? 4
+        : Math.max(maxCanvasSpeechBubbles(), selectedBubbleSpeaker ? 8 : 6);
       const now = Date.now();
       // Front-pinned / hold-locked stay until visitor closes (✕) or unpins
       if (selectedBubbleSpeaker) {

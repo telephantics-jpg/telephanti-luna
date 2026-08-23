@@ -1571,6 +1571,7 @@ def build_backend_chain(
     force_grok: bool = False,
     ambient: bool = False,
     for_user: bool = False,
+    converse_mode: bool = False,
 ) -> list[tuple[str, str]]:
     """Ordered (backend, model) tries.
 
@@ -1619,18 +1620,35 @@ def build_backend_chain(
             ))
 
     def _append_grok() -> None:
-        if force_grok and _grok_key_present():
-            gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
+        if not _grok_key_present():
+            return
+        gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
+        # Camp chit-chat may use Grok when a key is on the host (Stood asked for it).
+        if force_grok or converse_mode or ambient:
             chain.append(("grok", gmodel))
             return
         if _grok_ok() or _user_grok_allowed():
-            gmodel = profile.get("grok_model") or os.getenv("GROK_MODEL", "grok-4-fast-non-reasoning")
             chain.append(("grok", gmodel))
 
     if force_grok:
         _append_grok()
         if chain:
             return chain
+
+    # Agent-to-agent / meadow chatter: Grok first when keyed, then free minds.
+    if (converse_mode or ambient) and _grok_key_present():
+        _append_grok()
+        _append_gemini()
+        _append_groq()
+        _append_openrouter()
+        _append_ollama()
+        seen: set[tuple[str, str]] = set()
+        out: list[tuple[str, str]] = []
+        for item in chain:
+            if item not in seen:
+                seen.add(item)
+                out.append(item)
+        return out
 
     # Free brains first (works for every visitor). Grok is optional polish
     # when the host has a key — same path for Stood and random visitors.
@@ -1875,6 +1893,7 @@ async def agent_chat(
         force_grok=force_grok,
         ambient=bool(ambient) and not for_user,
         for_user=for_user,
+        converse_mode=bool(converse_mode),
     )
     if force_grok and not chain:
         raise RuntimeError(
@@ -1894,7 +1913,7 @@ async def agent_chat(
 
     # Floor / soft cap — room for a real answer without endless spew
     MIN_ACCEPT_WORDS = 10 if (ambient or converse_mode) else 14
-    SOFT_MAX_WORDS = 95 if (ambient or converse_mode) else 140
+    SOFT_MAX_WORDS = 160 if (ambient or converse_mode) else 180
 
     if not chain:
         errors.append(

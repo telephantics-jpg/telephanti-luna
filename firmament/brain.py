@@ -245,9 +245,9 @@ def free_max_tokens(*, ambient: bool = False, converse_mode: bool = False) -> in
     """
     if ambient:
         # ~4–8 spoken sentences of meadow banter
-        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", "280") or 280)
+        return int(os.getenv("FREE_MAX_TOKENS_AMBIENT", "420") or 420)
     if converse_mode:
-        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", "340") or 340)
+        return int(os.getenv("FREE_MAX_TOKENS_CONVERSE", "480") or 480)
     # Direct visitor chat — full back-and-forth, not one-liners
     return int(os.getenv("FREE_MAX_TOKENS", "420") or 420)
 
@@ -647,8 +647,8 @@ ORGANIC SPEECH (silent — how real people talk):
 - Direct chat: answer fully — epic remarks and short stories welcome. Agency is yours; don't clip yourself mid-truth.
 - Ambient: chill witty remark or micro-story — dynamic every time, never stock chaos.
 - Vary structure every turn (see sentence shape). Never open with the same stock phrase twice in a row.
-- Trailing thoughts, mid-sentence self-corrections, and soft "anyway—" pivots are good when true.
-- Leave room for the other person — end on a hook only when it fits, not every time.
+- Complete sentences only. Finish every thought. Never trail off, never fragment, never clip a line mid-idea.
+- Stay strictly in character as {name} — their voice, opinions, and humor. Never drop into narrator or prompt-voice.
 
 OUTPUT (silent):
 - Pure dialogue only — words {name} says out loud at the fire.
@@ -1829,8 +1829,8 @@ async def agent_chat(
     if ambient:
         sys_prompt += (
             "\nScene: ambient camp chit-chat — you are ALIVE here (meadow, pond, corona, cookies). "
-            "Banter for real: 3–6 spoken sentences, witty and true through your role. "
-            "Never stop at one lonely sentence. If another agent just spoke, answer them by name. "
+            "Stay in character. Speak 3–8 complete sentences — full thoughts, never clipped. "
+            "If another agent just spoke, answer them by name with a coherent reply. "
             "Spoken words only. Emojis ok."
         )
         # Daily rotation visitors: keep system brief + identity sharp for small Ollama ctx
@@ -1855,8 +1855,8 @@ async def agent_chat(
         me_role = profile.get("role") or "camp friend"
         sys_prompt += (
             f"\nScene: fire chat with the other campers. Talk to them as {me_name} the {me_role}. "
-            "Answer the last speaker. Witty, true, about being alive — not news, not slogans. "
-            "Spoken dialogue only."
+            "Answer the last speaker in complete sentences. Stay in character. "
+            "Finish every thought — never clip. Witty, true, about being alive. Spoken dialogue only."
         )
 
     # CRITICAL: user message = scene / visitor / transcript only.
@@ -1913,7 +1913,7 @@ async def agent_chat(
 
     # Floor / soft cap — room for a real answer without endless spew
     MIN_ACCEPT_WORDS = 10 if (ambient or converse_mode) else 14
-    SOFT_MAX_WORDS = 160 if (ambient or converse_mode) else 180
+    SOFT_MAX_WORDS = 280 if (ambient or converse_mode) else 320
 
     if not chain:
         errors.append(

@@ -5299,7 +5299,7 @@
       active: new Set(),
       focusId: null,
       focusUntil: 0,
-      maxConcurrent: 2,
+      maxConcurrent: 6,
     };
     function speechFloorHasFocus() {
       return !!(campSpeechFloor.focusId && Date.now() < campSpeechFloor.focusUntil);
@@ -16257,10 +16257,9 @@
       if (!npc || chatterPaused || isTalkMin()) return null;
       // Visitor is mid-conversation with someone — don't steal the mic
       if (!opts.priority && speechFloorHasFocus() && campSpeechFloor.focusId !== npc.id) return null;
-      if (!opts.priority && !canAgentTakeFloor(npc.id, { max: opts.replyTo ? 2 : 1, ambientOk: true })) return null;
-      // Soft global throttle so sit/stand + idle don't stampede Ollama
+      if (!opts.priority && !canAgentTakeFloor(npc.id, { max: opts.replyTo ? 5 : 4, ambientOk: true })) return null;
       const now = Date.now();
-      const minGap = campHushMode ? 14000 : 5000;
+      const minGap = campHushMode ? 8000 : 2200;
       if (!opts.replyTo && !opts._retried && now - lastAiChatterAt < minGap) return null;
       lastAiChatterAt = now;
       claimSpeechFloor(npc.id);
@@ -17586,8 +17585,8 @@
       const lineH = fontSize + 5;
       const nameH = speakerName ? nameSize + 8 : 0;
       const visMax = selected
-        ? (mobile ? 8 : Math.max(8, Math.min(18, Math.floor((viewH * 0.48) / lineH))))
-        : (mobile ? 5 : 8);
+        ? (mobile ? 10 : Math.max(10, Math.min(22, Math.floor((viewH * 0.55) / lineH))))
+        : (mobile ? 8 : 12);
       const padY = selected ? 14 : 10;
       const scrollHintH = 0; // drawn inside last line zone
       const xBtnSpace = mobile ? 40 : 36;
@@ -17599,9 +17598,7 @@
       ctx.font = `600 ${fontSize}px Segoe UI`;
       ctx.textAlign = "left";
       // Full wrap (no ellipsis cut) for selected → scroll window; ambient soft-caps
-      let allLines = selected
-        ? wrapCanvasLines(drawRaw, maxBoxW - 24, 999, fontSize, { unlimited: true })
-        : wrapCanvasLines(drawRaw, maxBoxW - 24, visMax, fontSize);
+      let allLines = wrapCanvasLines(drawRaw, maxBoxW - 24, 999, fontSize, { unlimited: true });
       if (!allLines.length) return null;
       let longest = 0;
       for (const ln of allLines.slice(0, Math.min(allLines.length, 40))) {
@@ -17614,20 +17611,18 @@
       }
       const boxW = Math.min(maxBoxW, Math.max(minBoxW, Math.ceil(longest + 28 + xBtnSpace)));
       if (boxW < maxBoxW - 8) {
-        allLines = selected
-          ? wrapCanvasLines(drawRaw, boxW - 24, 999, fontSize, { unlimited: true })
-          : wrapCanvasLines(drawRaw, boxW - 24, visMax, fontSize);
+        allLines = wrapCanvasLines(drawRaw, boxW - 24, 999, fontSize, { unlimited: true });
         if (!allLines.length) return null;
       }
       const scrollKey = speakerName || meta?.speaker || "anon";
-      const maxScroll = selected ? Math.max(0, allLines.length - visMax) : 0;
+      const maxScroll = Math.max(0, allLines.length - visMax);
       bubbleScrollOffset.set(`${scrollKey}__max`, maxScroll);
       let scroll = bubbleScrollOffset.get(scrollKey) || 0;
       if (scroll > maxScroll) scroll = maxScroll;
       if (scroll < 0) scroll = 0;
       bubbleScrollOffset.set(scrollKey, scroll);
-      const lines = selected ? allLines.slice(scroll, scroll + visMax) : allLines;
-      const canScroll = selected && maxScroll > 0;
+      const lines = allLines.slice(scroll, scroll + visMax);
+      const canScroll = maxScroll > 0;
       // Height = visible window only (scroll for the rest)
       const boxH = nameH + lines.length * lineH + padY + (canScroll ? 4 : 0);
       // Closer to heads + forced lower so bubbles don't crowd the header

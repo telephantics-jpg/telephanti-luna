@@ -1653,12 +1653,14 @@ def build_backend_chain(
         if chain:
             return chain
 
-    # Agent-to-agent / meadow chatter: Grok first when keyed, then free minds.
-    if (converse_mode or ambient) and _grok_key_present():
-        _append_grok()
+    # Camp / 4D Sense: free minds first (Gemini) so guests work without xAI credits.
+    # Grok is optional polish after Gemini if the key still has spend.
+    if converse_mode or ambient:
         _append_gemini()
         _append_groq()
         _append_openrouter()
+        if _grok_key_present():
+            _append_grok()
         _append_ollama()
         seen: set[tuple[str, str]] = set()
         out: list[tuple[str, str]] = []

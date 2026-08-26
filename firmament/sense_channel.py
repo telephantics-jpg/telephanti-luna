@@ -106,13 +106,20 @@ async def live_reading(
             skip_memory=True,
         )
         reply = str(chat.get("reply") or "").strip()
-        if reply and len(reply.split()) >= 80:
+        backend = str(chat.get("backend") or "")
+        leaked = "speak as the sense" in reply.lower() or "return json" in reply.lower()
+        if (
+            reply
+            and len(reply.split()) >= 60
+            and backend not in ("aether", "aether-local", "")
+            and not leaked
+        ):
             packet["reading"] = reply
             packet["headline"] = _sanitize_headline(reply[:80])
             packet["pulse"] = reply.split(".")[0][:140]
             packet["mood"] = chat.get("mood") or "love"
-            packet["source"] = chat.get("backend") or "grok"
-            packet["backend"] = chat.get("backend") or ""
+            packet["source"] = backend or "gemini"
+            packet["backend"] = backend
     except Exception:
         pass
     return packet

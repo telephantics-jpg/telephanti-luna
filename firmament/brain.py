@@ -452,7 +452,7 @@ _LENGTH_HINTS_DIRECT: tuple[str, ...] = (
 
 _LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
     "Meadow banter: 3–6 spoken sentences of chill chit-chat. Notice something, spin it, leave a door open.",
-    "Campfire talk: micro-story or layered remark (not one line). Witty, human, unfinished-on-purpose.",
+    "Campfire talk: micro-story or layered remark (not one line). Witty, human, finish every sentence.",
     "Dynamic ambient: 3–5 sentences, specific, emoji sprinkle ok. Never the same stock quip twice.",
     "Chit-chat energy — react, riff, soft land. Fill the moment with words, not a mute stub.",
     "Ambient agency: real banter length. Sitty, chill, multi-sentence. No chaos monologues.",
@@ -462,7 +462,7 @@ _LENGTH_HINTS_AMBIENT: tuple[str, ...] = (
 _DIALOGUE_SHAPES: tuple[str, ...] = (
     "Open with a reaction to the world signal (if any), then pivot to camp or the person in front of you.",
     "Name one real camp detail, then riff how it rhymes with the world signal.",
-    "Start mid-thought, land a joke or soft truth, optional one-emoji vibe.",
+    "Start with a complete thought, land a joke or soft truth, optional one-emoji vibe.",
     "Answer them first; if a world signal fits, glance at it once — never as a news report.",
     "Hot-take opener → personal spin → leave a door open for a reply.",
     "Mood first (emoji ok), then the point in plain words.",
@@ -500,6 +500,24 @@ def _pick_speech_beat() -> str:
     import random
 
     return random.choice(_SPEECH_BEATS)
+
+
+_SENT_END = re.compile(r"[.!?…][\"')\]]?\s*$")
+
+
+def _finish_complete_sentences(text: str) -> str:
+    """Drop a trailing fragment so 2D speech never shows a clipped thought."""
+    t = re.sub(r"\s+", " ", (text or "").strip())
+    if not t:
+        return t
+    if _SENT_END.search(t):
+        return t
+    parts = re.split(r"(?<=[.!?…])\s+", t)
+    if len(parts) > 1:
+        kept = " ".join(parts[:-1]).strip()
+        if kept:
+            return kept
+    return t.rstrip(" ,;:—-") + "."
 
 
 def _pick_length_hint(*, direct_chat: bool) -> str:
@@ -2003,6 +2021,7 @@ async def agent_chat(
                             cut = cut[: idx + 1].strip()
                             break
                     reply = cut
+                reply = _finish_complete_sentences(reply)
                 break
         except Exception as exc:
             errors.append(f"{backend}/{model}: {exc}")
@@ -2025,6 +2044,8 @@ async def agent_chat(
 
     if not reply:
         reply = "I'm here — say that again?"
+    else:
+        reply = _finish_complete_sentences(reply)
 
     # Feed every live line back into shared brains (free dynamic memory)
     try:

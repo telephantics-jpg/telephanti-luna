@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "345-FREE-MINDS"
+LUNA_BUILD = "351-GO-LIVE"
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -2477,6 +2477,39 @@ async def firmament_page():
     raise HTTPException(status_code=404, detail="firmament.html missing")
 
 
+@app.get("/prophecy")
+@app.get("/firmament/prophecy")
+async def prophecy_page():
+    path = STATIC_DIR / "prophecy.html"
+    if path.is_file():
+        return FileResponse(
+            path,
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "X-Luna-Build": LUNA_BUILD,
+            },
+        )
+    raise HTTPException(status_code=404, detail="prophecy.html missing")
+
+
+@app.get("/sense")
+@app.get("/firmament/sense")
+async def sense_page():
+    """Fullscreen Matrix Sense tab — quantum-inspired live words + attune."""
+    path = STATIC_DIR / "sense.html"
+    if path.is_file():
+        return FileResponse(
+            path,
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "X-Luna-Build": LUNA_BUILD,
+            },
+        )
+    raise HTTPException(status_code=404, detail="sense.html missing")
+
+
 @app.get("/firmament/play")
 @app.get("/playground")
 async def firmament_play_page():
@@ -3168,6 +3201,12 @@ class FirmamentPsychicPulseBody(BaseModel):
     share_hermes: bool = True
 
 
+class FirmamentSenseBody(BaseModel):
+    question: str = ""
+    visitor: str = ""
+    camp_bits: str = ""
+
+
 @app.get("/api/firmament/camp/memory")
 async def firmament_camp_memory_get_api(visitor_id: str = ""):
     from firmament.camp_memory import bond_summary
@@ -3377,6 +3416,23 @@ async def firmament_psychic_pulse_api(body: FirmamentPsychicPulseBody):
 
     await hub.broadcast({"type": "firmament.psychic.pulse", "data": payload})
     return payload
+
+
+@app.post("/api/firmament/sense")
+async def firmament_sense_api(body: FirmamentSenseBody):
+    """Cyber-mystical live reading — MIT SixthSense / predictive brain / DARPA N3 metaphor."""
+    from firmament.core import get_hub
+    from firmament.game_state import apply_event
+    from firmament.psychic_engine import pulse
+    from firmament.sense_channel import live_reading
+
+    packet = await live_reading(
+        question=body.question,
+        visitor=body.visitor,
+        camp_bits=body.camp_bits,
+    )
+    # Private per visitor — do not broadcast questions or readings to other clients.
+    return {"ok": True, **packet}
 
 
 @app.post("/api/firmament/game/event")

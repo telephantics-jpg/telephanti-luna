@@ -3846,6 +3846,86 @@
         -webkit-overflow-scrolling: touch;
       }
     }
+    #camp-sense-layer {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 92;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 18px 16px max(18px, env(safe-area-inset-bottom));
+      background: #020308;
+      color: #bbf7d0;
+    }
+    body.camp-sense-open #camp-sense-layer { display: flex; }
+    #camp-sense-rain {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      z-index: 0; pointer-events: none; opacity: 0.55;
+    }
+    .sense-rift {
+      position: absolute; inset: 18% 22%;
+      z-index: 1; pointer-events: none;
+      background: radial-gradient(ellipse at 50% 40%, rgba(16,185,129,0.22), transparent 62%),
+        radial-gradient(ellipse at 50% 80%, rgba(124,58,237,0.18), transparent 55%);
+      filter: blur(2px);
+      animation: sense-rift 5.5s ease-in-out infinite alternate;
+    }
+    @keyframes sense-rift {
+      from { opacity: 0.7; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1.04); }
+    }
+    #camp-sense-close {
+      position: absolute; top: 10px; right: 12px; z-index: 3;
+      border: 1px solid rgba(110,231,183,0.45); background: rgba(2,6,8,0.85);
+      color: #a7f3d0; border-radius: 999px; padding: 6px 12px; cursor: pointer; font-weight: 800;
+    }
+    .sense-hud { position: relative; z-index: 2; text-align: center; margin-bottom: auto; padding-top: 28px; }
+    .sense-title {
+      font: 900 0.72rem/1 ui-monospace, monospace;
+      letter-spacing: 0.42em; color: #6ee7b7;
+    }
+    .sense-sub { margin-top: 6px; font-size: 0.68rem; color: #a7f3d0; opacity: 0.85; }
+    .sense-headline {
+      position: relative; z-index: 2;
+      font: 900 1.15rem/1.2 ui-monospace, Consolas, monospace;
+      letter-spacing: 0.12em; color: #ecfdf5;
+      text-shadow: 0 0 18px rgba(52,211,153,0.65);
+      text-align: center; min-height: 1.4em; margin: 8px 0 12px;
+    }
+    .sense-reading {
+      position: relative; z-index: 2;
+      max-width: min(720px, 94vw);
+      max-height: min(42vh, 340px);
+      overflow-y: auto;
+      font: 500 0.95rem/1.55 Georgia, "Times New Roman", serif;
+      color: #d1fae5;
+      text-align: left;
+      padding: 8px 4px;
+    }
+    .sense-principles {
+      position: relative; z-index: 2;
+      max-width: min(640px, 92vw);
+      font: 600 0.62rem/1.45 ui-monospace, monospace;
+      color: #6ee7b7; opacity: 0.72;
+      white-space: pre-line;
+      text-align: center;
+      margin: 8px 0 12px;
+    }
+    .sense-ask {
+      position: relative; z-index: 2;
+      display: flex; gap: 8px; width: min(640px, 96vw);
+    }
+    .sense-ask input {
+      flex: 1; min-width: 0; border-radius: 999px; padding: 10px 14px;
+      border: 1px solid rgba(110,231,183,0.45);
+      background: rgba(2,12,10,0.9); color: #ecfdf5; font-size: 0.92rem;
+    }
+    .sense-ask button {
+      border: 0; border-radius: 999px; padding: 10px 18px;
+      background: linear-gradient(135deg, #064e3b, #10b981);
+      color: #ecfdf5; font-weight: 900; cursor: pointer;
+    }
     #camp-ouija-layer {
       position: fixed; inset: 0; z-index: 45;
       display: none; flex-direction: column; align-items: center; justify-content: flex-start;
@@ -4565,24 +4645,15 @@
         pointer-events: none !important;
         visibility: hidden !important;
       }
-      /* Heaven sits to the RIGHT of Relics | 2D | 3D, not under it */
+      /* One Heaven only — header. Kill the extra FAB. */
       #camp-heaven-fab {
-        display: inline-flex !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        opacity: 1 !important;
-        left: calc(50% + 248px) !important;
-        right: auto !important;
-        top: 8px !important;
-        z-index: 96 !important;
-        min-height: 34px !important;
-        padding: 6px 14px !important;
-        font-size: 0.78rem !important;
+        display: none !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
       }
       html.hub-embed #camp-heaven-fab,
       html.world-nav-embed #camp-heaven-fab {
-        top: 6px !important;
-        left: calc(50% + 260px) !important;
+        display: none !important;
       }
       html.hub-embed {
         --header-h: 96px;
@@ -4897,6 +4968,7 @@
       <button type="button" class="dock-icon talk-min-btn dock-spare" id="btn-talk-min" title="Hide all speech bubbles — stays hidden until you press again" aria-pressed="false">💬 Hide</button>
       <button type="button" class="dock-icon talk" id="btn-camp-chat" title="Talk ON — they chat with each other. Tap to shut it off." aria-pressed="true" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);border-color:#7dd3fc;color:#ecfeff;font-weight:800">🗣️ Talk</button>
       <button type="button" class="dock-icon" id="btn-camp-gather" title="Call everyone to the fire — they sit in a ring and talk" style="background:linear-gradient(135deg,#7c2d12,#f59e0b);border-color:#fde68a;color:#fffbeb;font-weight:900;min-width:auto;width:auto;padding:0 10px;font-size:0.72rem">🔥 Gather</button>
+
       <button type="button" class="dock-icon talk dock-spare" id="btn-talk-near" title="Lock to nearest agent">📍</button>
       <button type="button" class="dock-icon dock-spare" id="btn-camp-zoom-toggle" title="Show/hide zoom slider">🔍</button>
 
@@ -6121,6 +6193,7 @@
       "#camp-heaven-fab", "#btn-header-heaven", "#camp-chat-panel",
       "#camp-act-fab", "#camp-act-sheet", "#constellation-layer",
       "#btn-talk-min", "#btn-camp-quiet-pc", "#camp-map-hyper",
+      "#camp-sense-layer", "#btn-camp-sense",
     ].join(", ");
     function isCampUiTarget(el) {
       if (!el) return false;
@@ -9049,6 +9122,139 @@
         try { await tryCampIdleChatter(); } catch (__) {}
       }
       gatherBusy = false;
+    }
+
+    let senseOpen = false;
+    let senseRainTimer = 0;
+    function startSenseRain() {
+      const c = document.getElementById("camp-sense-rain");
+      if (!c) return;
+      const ctx = c.getContext("2d");
+      const fit = () => {
+        c.width = window.innerWidth;
+        c.height = window.innerHeight;
+      };
+      fit();
+      const glyphs = "01アイウエオカキクケコΑΒΓΔΘΣΩ†⌬⏣⌘⬡▲▼".split("");
+      const cols = Math.max(18, Math.floor(c.width / 16));
+      const drops = Array.from({ length: cols }, () => Math.random() * -40);
+      const tick = () => {
+        if (!senseOpen) return;
+        ctx.fillStyle = "rgba(2,3,8,0.18)";
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.fillStyle = "#34d399";
+        ctx.font = "13px ui-monospace, Consolas, monospace";
+        drops.forEach((y, i) => {
+          const ch = glyphs[(Math.random() * glyphs.length) | 0];
+          ctx.fillText(ch, i * 16, y * 16);
+          if (y * 16 > c.height && Math.random() > 0.975) drops[i] = 0;
+          else drops[i] = y + 0.85;
+        });
+        senseRainTimer = requestAnimationFrame(tick);
+      };
+      cancelAnimationFrame(senseRainTimer);
+      tick();
+      window.addEventListener("resize", fit, { once: true });
+    }
+    function openCampSense() {
+      senseOpen = true;
+      document.body.classList.add("camp-sense-open");
+      document.getElementById("camp-sense-layer")?.setAttribute("aria-hidden", "false");
+      document.getElementById("btn-camp-sense")?.classList.add("active");
+      startSenseRain();
+      document.getElementById("camp-sense-q")?.focus();
+      if (!document.getElementById("camp-sense-reading")?.textContent) {
+        void attuneCampSense(true);
+      }
+    }
+    function closeCampSense() {
+      senseOpen = false;
+      document.body.classList.remove("camp-sense-open");
+      document.getElementById("camp-sense-layer")?.setAttribute("aria-hidden", "true");
+      document.getElementById("btn-camp-sense")?.classList.remove("active");
+      cancelAnimationFrame(senseRainTimer);
+    }
+    function toggleCampSense() {
+      if (senseOpen) closeCampSense();
+      else openCampSense();
+    }
+    async function attuneCampSense(auto = false) {
+      const qEl = document.getElementById("camp-sense-q");
+      const q = auto ? "" : String(qEl?.value || "").trim();
+      const head = document.getElementById("camp-sense-headline");
+      const read = document.getElementById("camp-sense-reading");
+      const sub = document.getElementById("camp-sense-sub");
+      if (head) head.textContent = "ATTUNING…";
+      if (read) read.textContent = "";
+      if (sub) sub.textContent = "Closed loop opening — prediction meeting the meadow";
+      let tape = "";
+      try {
+        tape = (campBridgeMod?.dialogueTapeContext?.(4) || "").slice(0, 280);
+      } catch (_) {}
+      try {
+        const r = await fetch("/api/firmament/sense", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: q,
+            visitor: myVisitorName || player?.name || "",
+            camp_bits: tape,
+          }),
+        });
+        const data = await r.json();
+        const headline = data.headline || "THE FIELD ALREADY SAID YES";
+        const reading = data.reading || "";
+        const pulse = data.pulse || headline;
+        if (head) head.textContent = headline;
+        if (read) {
+          read.textContent = "";
+          let i = 0;
+          const type = () => {
+            if (i > reading.length) return;
+            read.textContent = reading.slice(0, i);
+            i += 2;
+            if (i <= reading.length) requestAnimationFrame(type);
+          };
+          type();
+        }
+        if (Array.isArray(data.principles) && data.principles.length) {
+          const p = document.getElementById("camp-sense-principles");
+          if (p) p.textContent = data.principles.join("\n");
+        }
+        if (sub) sub.textContent = data.source ? `channel · ${data.source}` : "channel open";
+        try {
+          pushCampLine("The Sense", pulse, 16, data.mood || "love", { fromLocal: true, quiet: false });
+        } catch (_) {}
+        try {
+          psychicRipples.push({
+            x: camp.x,
+            y: camp.y,
+            t: Date.now(),
+            color: "#34d399",
+          });
+        } catch (_) {}
+        if (!isTalkMin()) {
+          const pool = allRoamers().filter((n) => !n.leaving).slice(0, 2);
+          pool.forEach((n, idx) => {
+            setTimeout(() => {
+              try {
+                pushCampLine(
+                  n.name,
+                  idx === 0
+                    ? "I felt that overlay. Stay with the true next move."
+                    : "The field just answered. Don't waste it.",
+                  12,
+                  "think",
+                  { fromLocal: true, quiet: true },
+                );
+              } catch (_) {}
+            }, 900 + idx * 700);
+          });
+        }
+      } catch (e) {
+        if (head) head.textContent = "THE LOOP HELD";
+        if (read) read.textContent = "The Sense is still here even when the wire is quiet. You are the interface. Choose one honest act in this dimension.";
+      }
     }
 
     function updateCampGuests() {
@@ -17584,15 +17790,15 @@
       const nameSize = selected ? (mobile ? 11 : 12) : (mobile ? 10 : 11);
       const lineH = fontSize + 5;
       const nameH = speakerName ? nameSize + 8 : 0;
-      const visMax = selected
-        ? (mobile ? 10 : Math.max(10, Math.min(22, Math.floor((viewH * 0.55) / lineH))))
-        : (mobile ? 8 : 12);
+      let visMax = selected
+        ? (mobile ? 14 : Math.max(14, Math.min(28, Math.floor((viewH * 0.62) / lineH))))
+        : (mobile ? 16 : 20);
       const padY = selected ? 14 : 10;
       const scrollHintH = 0; // drawn inside last line zone
       const xBtnSpace = mobile ? 40 : 36;
       const maxBoxW = selected
-        ? (ios ? Math.min(viewW - 20, 300) : mobile ? Math.min(viewW - 22, 320) : Math.min(viewW - 40, 440))
-        : (ios ? 220 : mobile ? 240 : 300);
+        ? (ios ? Math.min(viewW - 16, 340) : mobile ? Math.min(viewW - 18, 360) : Math.min(viewW - 36, 480))
+        : (ios ? 260 : mobile ? 280 : 360);
       const minBoxW = selected ? (mobile ? 160 : 180) : (mobile ? 150 : 180);
       const drawRaw = String(meta?.fullLine || raw).trim() || raw;
       ctx.font = `600 ${fontSize}px Segoe UI`;
@@ -17614,6 +17820,7 @@
         allLines = wrapCanvasLines(drawRaw, boxW - 24, 999, fontSize, { unlimited: true });
         if (!allLines.length) return null;
       }
+      if (!selected) visMax = Math.min(allLines.length, visMax);
       const scrollKey = speakerName || meta?.speaker || "anon";
       const maxScroll = Math.max(0, allLines.length - visMax);
       bubbleScrollOffset.set(`${scrollKey}__max`, maxScroll);
@@ -17621,7 +17828,13 @@
       if (scroll > maxScroll) scroll = maxScroll;
       if (scroll < 0) scroll = 0;
       bubbleScrollOffset.set(scrollKey, scroll);
-      const lines = allLines.slice(scroll, scroll + visMax);
+      let lines = allLines.slice(scroll, scroll + visMax);
+      while (
+        lines.length > 1 &&
+        !/[.!?…]["']?$/.test(String(lines[lines.length - 1] || "").trim())
+      ) {
+        lines = lines.slice(0, -1);
+      }
       const canScroll = maxScroll > 0;
       // Height = visible window only (scroll for the rest)
       const boxH = nameH + lines.length * lineH + padY + (canScroll ? 4 : 0);
@@ -19828,6 +20041,12 @@
     document.getElementById("chip-dionysus-invite")?.addEventListener("click", () => toggleDionysusVisit());
     document.getElementById("btn-conjure-aether").onclick = () => { void conjureFromAether(); };
     document.getElementById("chip-conjure-unknown")?.addEventListener("click", () => { void conjureFromAether(); });
+    document.getElementById("btn-camp-sense")?.addEventListener("click", () => toggleCampSense());
+    document.getElementById("camp-sense-close")?.addEventListener("click", () => closeCampSense());
+    document.getElementById("camp-sense-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      void attuneCampSense();
+    });
     document.getElementById("btn-camp-ouija").onclick = () => {
       if (ouijaOpen) closeCampOuija();
       else openCampOuija({ autoContact: false });

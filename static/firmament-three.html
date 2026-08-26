@@ -54,9 +54,9 @@
   <link rel="modulepreload" href="/static/camp/camp-features.mjs?v=v107" />
   <link rel="modulepreload" href="/static/camp/camp-characters.mjs?v=v117-face" />
   <link rel="modulepreload" href="/static/camp/camp-props.mjs?v=v117-face" />
-  <link rel="modulepreload" href="/static/firmament-god-forms.mjs?v=heaven-talk" />
-  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=2026-08-16-heaven-talk" />
-  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-08-16-heaven-talk" />
+  <link rel="modulepreload" href="/static/firmament-god-forms.mjs?v=dom-bubbles" />
+  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=2026-08-16-dom-bubbles" />
+  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-08-16-dom-bubbles" />
   <script>
     // Kill stale service workers that cache-first'd a broken three.module.js graph
     (function () {
@@ -322,16 +322,58 @@
       outline: 2px solid #fbbf24;
       outline-offset: 2px;
     }
+    .bubble3d .bubble-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 0 0 auto;
+      padding: 2px 2px 6px 0;
+      cursor: grab;
+      user-select: none;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      margin-bottom: 4px;
+    }
+    .bubble3d.dragging .bubble-bar { cursor: grabbing; }
     .bubble3d .who {
       display: block;
-      flex: 0 0 auto;
-      pointer-events: none; /* clicks hit the bubble box */
+      flex: 1 1 auto;
+      min-width: 0;
+      pointer-events: none;
       font-weight: 800;
       color: var(--violet);
       font-size: 0.78rem;
-      margin: 0 28px 6px 0;
+      margin: 0;
       letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    .bubble3d .bubble-tool {
+      flex: 0 0 auto;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e2e8f0;
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      touch-action: manipulation;
+    }
+    .bubble3d .bubble-tool:hover { border-color: #fde68a; color: #fde68a; }
+    .bubble3d .bubble-scroll-hint {
+      flex: 0 0 auto;
+      font-size: 0.6rem;
+      color: #67e8f9;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      padding-top: 2px;
+    }
+    .bubble3d.has-scroll .bubble-scroll-hint { opacity: 0.9; }
     /* Scroll the monologue — up/down wheel + finger pan */
     .bubble3d .say {
       display: block;
@@ -378,9 +420,13 @@
       -webkit-mask-image: none;
     }
     .bubble3d .bubble-x {
-      position: absolute;
-      top: 4px;
-      right: 4px;
+      position: relative;
+      top: auto;
+      right: auto;
+      flex: 0 0 auto;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
       /* Mobile-friendly hit target (was 26px — easy to miss / steal by parent capture) */
       width: 36px;
       height: 36px;
@@ -1380,8 +1426,7 @@
       <button type="button" id="powwow">🔥 Circle</button>
     </div>
     <div id="talk-row">
-      <button type="button" class="btn-all-agents" id="btn-heaven-dock" title="Summon Heaven"
-        style="border-color:#fef3c7;background:linear-gradient(135deg,#422006,#fde68a);color:#1c1917;font-weight:900">✦ Heaven</button>
+
       <button type="button" class="btn-all-agents" id="btn-all-agents" title="Speak to every agent on the meadow">✦ All</button>
       <div class="who-dd" id="who-dd">
         <button type="button" class="who-dd-btn" id="who-dd-btn" aria-haspopup="listbox" aria-expanded="false" title="Who to talk to">Talk to…</button>
@@ -1407,7 +1452,7 @@
   </div>
 
     <!-- External progressive boot (tiny) → full app module -->
-  <script type="module" src="/static/firmament-three-boot.mjs?v=2026-08-16-heaven-talk"></script>
+  <script type="module" src="/static/firmament-three-boot.mjs?v=2026-08-16-dom-bubbles"></script>
 
   <script src="/static/world-nav.js?v=310-3d-live" defer></script>
 </body>

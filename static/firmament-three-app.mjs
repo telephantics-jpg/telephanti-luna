@@ -11,7 +11,7 @@
     import * as campProps from "camp-props";
     import * as godForms from "./firmament-god-forms.mjs?v=godbots-fix";
 
-    const BUILD = "2026-08-16-dom-bubbles";
+    const BUILD = "2026-08-28-suno-embed";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -9398,6 +9398,7 @@
               title: t.title,
               src: t.src || t.audio_url,
               artist: t.artist || "Telephantix",
+              duration_sec: t.duration_sec,
             }));
             // New browser session → fresh shuffle so open isn't always the same order
             try {
@@ -9677,6 +9678,48 @@
       try { musicChrome3d?.refresh?.(); } catch (_) {}
     }
 
+    let sunoEmbed3dTimer = null;
+    function isSunoClipId(id) {
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        String(id || "")
+      );
+    }
+    function clearSunoEmbed3d() {
+      if (sunoEmbed3dTimer) {
+        clearTimeout(sunoEmbed3dTimer);
+        sunoEmbed3dTimer = null;
+      }
+      const el = document.getElementById("camp-suno-embed");
+      if (el) {
+        el.hidden = true;
+        try { el.removeAttribute("src"); } catch (_) {}
+      }
+    }
+    function playSunoEmbed3d(t) {
+      let el = document.getElementById("camp-suno-embed");
+      if (!el) {
+        el = document.createElement("iframe");
+        el.id = "camp-suno-embed";
+        el.title = "Telephantix radio";
+        el.allow = "autoplay; encrypted-media";
+        el.setAttribute(
+          "style",
+          "position:fixed;left:0;bottom:0;width:8px;height:8px;opacity:0.04;pointer-events:none;border:0;z-index:1"
+        );
+        document.body.appendChild(el);
+      }
+      el.hidden = false;
+      el.src = `https://suno.com/embed/${encodeURIComponent(t.id)}?autoplay=true`;
+      if (sunoEmbed3dTimer) clearTimeout(sunoEmbed3dTimer);
+      const sec = Number(t.duration_sec);
+      const wait = Number.isFinite(sec) && sec > 30 ? sec : 240;
+      sunoEmbed3dTimer = setTimeout(() => {
+        sunoEmbed3dTimer = null;
+        if (!albumOn) return;
+        playAlbumTrack(albumIndex + 1, { hard: true, forceReload: true });
+      }, Math.round(wait * 1000) + 1500);
+    }
+
     function playAlbumTrack(i, opts = {}) {
       if (!ALBUM_TRACKS.length) {
         showToast("No Telephantix tracks found");
@@ -9684,6 +9727,14 @@
       }
       albumIndex = ((i % ALBUM_TRACKS.length) + ALBUM_TRACKS.length) % ALBUM_TRACKS.length;
       const t = ALBUM_TRACKS[albumIndex];
+      if (isSunoClipId(t?.id)) {
+        try { albumAudio?.pause(); } catch (_) {}
+        playSunoEmbed3d(t);
+        albumOn = true;
+        albumPlayPending = false;
+        onAlbumPlayingUi(t, opts);
+        return;
+      }
       const a = ensureAlbumAudio();
       wireAlbumMobileKeepAlive();
 
@@ -9772,6 +9823,7 @@
     function stopAlbum(opts = {}) {
       albumOn = false;
       albumPlayPending = false;
+      clearSunoEmbed3d();
       if (albumAudio) {
         albumAudio.pause();
         try {

@@ -2253,13 +2253,14 @@
     }
     #camp-music-yt-fallback {
       position: fixed;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
+      width: 8px;
+      height: 8px;
+      opacity: 0.04;
       pointer-events: none;
       border: 0;
-      left: -9999px;
-      top: -9999px;
+      left: 0;
+      bottom: 0;
+      z-index: 1;
     }
     #camp-music-bar { display: none !important; }
     #camp-music-picker { display: none !important; }
@@ -5197,7 +5198,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-16-dom-bubbles";
+    const CAMP_BUILD = "2026-08-28-suno-embed";
     let campWeather = "aurora";
     /** Caduceus still — always first on phones (reliable); wallpaper = fallback */
     const CAMP_BG_URL = `/static/camp/caduceus-3d.jpg?v=${CAMP_BUILD}`;
@@ -7045,6 +7046,7 @@
             title: t.title,
             src: t.src || t.audio_url,
             artist: t.artist || "Telephantix",
+            duration_sec: t.duration_sec,
           }));
           try {
             const mm = await import(`/static/camp/camp-music-mobile.mjs?v=${CAMP_BUILD}`);
@@ -7072,6 +7074,29 @@
     let campMusicUserStopped = false;
     let campMusicGestureBound = false;
     let campMusicYtFallback = false;
+    let campEmbedAdvanceTimer = null;
+
+    function isCampSunoId(id) {
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        String(id || "")
+      );
+    }
+    function clearCampEmbedAdvance() {
+      if (campEmbedAdvanceTimer) {
+        clearTimeout(campEmbedAdvanceTimer);
+        campEmbedAdvanceTimer = null;
+      }
+    }
+    function armCampEmbedAdvance(track) {
+      clearCampEmbedAdvance();
+      const sec = Number(track?.duration_sec);
+      const wait = Number.isFinite(sec) && sec > 30 ? sec : 240;
+      campEmbedAdvanceTimer = setTimeout(() => {
+        campEmbedAdvanceTimer = null;
+        if (!campMusicOn) return;
+        advanceCampMusicTrack("embed-ended");
+      }, Math.round(wait * 1000) + 1500);
+    }
     const props = [
       { id: "beer", name: "Beer", emoji: "🍺", x: 540, y: -50, color: "#f59e0b", radius: 90,
         useMsgs: [
@@ -13275,11 +13300,22 @@
     }
 
     function fallbackCampMusicYoutube(track) {
-      if (!track?.id || campMusicYtFallback) return;
+      if (!track) return;
       const yt = document.getElementById("camp-music-yt-fallback");
       if (!yt) return;
       campMusicYtFallback = true;
-      const url = new URL(`https://www.youtube-nocookie.com/embed/${track.id}`);
+      const id = track.id || track.songId;
+      if (isCampSunoId(id)) {
+        yt.hidden = false;
+        yt.src = `https://suno.com/embed/${encodeURIComponent(id)}?autoplay=true`;
+        armCampEmbedAdvance(track);
+        campMusicPlayPending = false;
+        updateCampMusicPrompt();
+        showToast(`♫ ${track.title}`);
+        return;
+      }
+      if (!id) return;
+      const url = new URL(`https://www.youtube-nocookie.com/embed/${id}`);
       url.searchParams.set("autoplay", "1");
       url.searchParams.set("mute", "0");
       url.searchParams.set("playsinline", "1");
@@ -13287,7 +13323,7 @@
       url.searchParams.set("rel", "0");
       url.searchParams.set("modestbranding", "1");
       url.searchParams.set("loop", "1");
-      url.searchParams.set("playlist", track.id);
+      url.searchParams.set("playlist", id);
       try { url.searchParams.set("origin", window.location.origin); } catch (_) {}
       yt.hidden = false;
       yt.src = url.toString();
@@ -13299,6 +13335,20 @@
     function playCampAudio(opts = {}) {
       const audio = campAudioElement();
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
+      if (
+        track &&
+        (isCampSunoId(track.id) ||
+          /cdn1\.suno\.ai|audiopipe\.suno\.ai|studio-api\.prod\.suno\.com\/api\/forbidden/i.test(
+            String(track.src || "")
+          ))
+      ) {
+        fallbackCampMusicYoutube(track);
+        updateCampMusicUi();
+        if (!opts.quiet) {
+          setCampLifeStatus(`🎶 Telephantix — ${track.title}`);
+        }
+        return;
+      }
       if (!audio || !track?.src) {
         showToast("Music file missing — trying YouTube…");
         fallbackCampMusicYoutube(track);
@@ -13447,6 +13497,7 @@
     }
 
     function stopCampMusicPlayback() {
+      clearCampEmbedAdvance();
       const audio = campAudioElement();
       if (audio) {
         audio.pause();

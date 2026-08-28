@@ -293,6 +293,7 @@ export async function loadSunoCatalog() {
       for (const row of rows) {
         const id = row.id || row.songId;
         if (!id || seen.has(id)) continue;
+        if (String(row.radio || "").toLowerCase() === "skip") continue;
         seen.add(id);
         const title = (row.title || "Untitled").trim();
         const src =

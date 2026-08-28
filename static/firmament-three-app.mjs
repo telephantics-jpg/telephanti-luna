@@ -11,7 +11,7 @@
     import * as campProps from "camp-props";
     import * as godForms from "./firmament-god-forms.mjs?v=godbots-fix";
 
-    const BUILD = "2026-08-28-suno-embed";
+    const BUILD = "2026-08-28-distrokid";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -4995,7 +4995,7 @@
     bindChat3dDom();
     let campBridgeMod = null;
     try {
-      campBridgeMod = await import(`/static/camp-bridge.mjs?v=310-ethereal`);
+      campBridgeMod = await import(`/static/camp-bridge.mjs?v=2026-08-28-distrokid`);
     } catch (_) {
       campBridgeMod = null;
     }
@@ -5362,7 +5362,7 @@
           campBridgeMod.pushDialogueTape(entry);
           campBridgeMod.pushEtherealMemory?.(entry);
         } else {
-          import(`/static/camp-bridge.mjs?v=310-ethereal`)
+          import(`/static/camp-bridge.mjs?v=2026-08-28-distrokid`)
             .then((mod) => {
               campBridgeMod = mod;
               mod.pushDialogueTapeWithEthereal?.(entry);
@@ -9386,7 +9386,7 @@
       })
       .catch((e) => console.warn("3d music mobile load", e));
 
-    import("/static/camp-bridge.mjs?v=310-ethereal")
+    import("/static/camp-bridge.mjs?v=2026-08-28-distrokid")
       .then(async (mod) => {
         campBridge3d = mod;
         campBridgeMod = mod;
@@ -9727,13 +9727,17 @@
       }
       albumIndex = ((i % ALBUM_TRACKS.length) + ALBUM_TRACKS.length) % ALBUM_TRACKS.length;
       const t = ALBUM_TRACKS[albumIndex];
-      if (isSunoClipId(t?.id)) {
+      const hosted = /\/releases\/download\/radio-|\/radio-mp3\//i.test(String(t?.src || ""));
+      if (isSunoClipId(t?.id) && !hosted) {
         try { albumAudio?.pause(); } catch (_) {}
         playSunoEmbed3d(t);
         albumOn = true;
         albumPlayPending = false;
         onAlbumPlayingUi(t, opts);
         return;
+      }
+      if (hosted) {
+        try { clearSunoEmbed3d(); } catch (_) {}
       }
       const a = ensureAlbumAudio();
       wireAlbumMobileKeepAlive();

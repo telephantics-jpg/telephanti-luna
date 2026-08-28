@@ -5,7 +5,7 @@
  */
 import * as THREE from "three";
 
-const BUILD = "2026-08-28-suno-embed";
+const BUILD = "2026-08-28-distrokid";
 
 function $(id) {
   return document.getElementById(id);

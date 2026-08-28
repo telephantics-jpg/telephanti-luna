@@ -5198,7 +5198,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-28-suno-embed";
+    const CAMP_BUILD = "2026-08-28-distrokid";
     let campWeather = "aurora";
     /** Caduceus still — always first on phones (reliable); wallpaper = fallback */
     const CAMP_BG_URL = `/static/camp/caduceus-3d.jpg?v=${CAMP_BUILD}`;
@@ -13332,16 +13332,21 @@
       showToast(`Streaming ${track.title} from YouTube`);
     }
 
+    function isHostedRadioSrc(src) {
+      return /\/releases\/download\/radio-|\/radio-mp3\//i.test(String(src || ""));
+    }
+    function isDeadSunoSrc(src) {
+      return /cdn1\.suno\.ai|audiopipe\.suno\.ai|studio-api\.prod\.suno\.com\/api\/forbidden/i.test(
+        String(src || "")
+      );
+    }
+
     function playCampAudio(opts = {}) {
       const audio = campAudioElement();
       const track = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
-      if (
-        track &&
-        (isCampSunoId(track.id) ||
-          /cdn1\.suno\.ai|audiopipe\.suno\.ai|studio-api\.prod\.suno\.com\/api\/forbidden/i.test(
-            String(track.src || "")
-          ))
-      ) {
+      if (track && isHostedRadioSrc(track.src)) {
+        // DistroKid master — play native <audio>
+      } else if (track && (isDeadSunoSrc(track.src) || isCampSunoId(track.id))) {
         fallbackCampMusicYoutube(track);
         updateCampMusicUi();
         if (!opts.quiet) {

@@ -21,7 +21,7 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from pydantic import BaseModel
@@ -34,7 +34,14 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "354-DISTROKID-RADIO"
+LUNA_BUILD = "355-RADIO-LIVE"
+RADIO_RELEASE_BASE = (
+    "https://github.com/telephantics-jpg/telephantim-hub/releases/download/radio-v1"
+)
+RADIO_CLIP_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.I,
+)
 
 log = logging.getLogger("luna")
 _lipsync_executor = ThreadPoolExecutor(max_workers=1)
@@ -3685,6 +3692,43 @@ async def manifest():
 @app.get("/sw.js")
 async def service_worker():
     return FileResponse(STATIC_DIR / "sw.js", media_type="application/javascript")
+
+
+@app.api_route("/radio-mp3/{clip_id}.mp3", methods=["GET", "HEAD"])
+async def radio_mp3(clip_id: str, request: Request):
+    """DistroKid masters with audio/mpeg so iPhone will actually play them."""
+    if not RADIO_CLIP_RE.match(clip_id or ""):
+        raise HTTPException(status_code=404, detail="unknown clip")
+    url = f"{RADIO_RELEASE_BASE}/{clip_id}.mp3"
+    headers = {"User-Agent": "TelephantixRadio/1.0", "Accept": "*/*"}
+    rng = request.headers.get("range")
+    if rng:
+        headers["Range"] = rng
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=90.0) as client:
+            upstream = await client.get(url, headers=headers)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"radio fetch failed: {exc}") from exc
+    if upstream.status_code >= 400:
+        raise HTTPException(status_code=upstream.status_code, detail="radio missing")
+    out = {
+        "Content-Type": "audio/mpeg",
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=86400",
+        "Access-Control-Allow-Origin": "*",
+    }
+    if upstream.headers.get("content-range"):
+        out["Content-Range"] = upstream.headers["content-range"]
+    if upstream.headers.get("content-length"):
+        out["Content-Length"] = upstream.headers["content-length"]
+    if request.method == "HEAD":
+        return Response(status_code=upstream.status_code, headers=out)
+    return Response(
+        content=upstream.content,
+        status_code=upstream.status_code,
+        media_type="audio/mpeg",
+        headers=out,
+    )
 
 
 @app.get("/api/health")

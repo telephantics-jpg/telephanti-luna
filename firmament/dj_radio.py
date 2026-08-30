@@ -8,6 +8,8 @@ Kinds:
   - ``bridge``  -  short witty handoff that names the next track (most songs)
   - ``truth``  -  slightly longer world-truth monologue, still lands on the track (~every 3-4 songs)
   - ``id``  -  station sign-on
+  - ``interject``  -  mid-song talk-over, song keeps rolling
+  - ``mix`` / ``remix``  -  blend into the next track like a live booth
 """
 
 from __future__ import annotations
@@ -447,6 +449,59 @@ def template_truth_drop(
     return _clamp(line, MAX_TRUTH_CHARS)
 
 
+def template_interject_drop(
+    *,
+    next_title: str,
+    prev_title: str = "",
+    artist: str = DEFAULT_ARTIST,
+    station: str = DEFAULT_STATION,
+) -> str:
+    """Talk over the bed mid-song — DJ still in the booth."""
+    now = _clean_title(next_title) or _clean_title(prev_title) or "this one"
+    art = _clean_title(artist) or DEFAULT_ARTIST
+    name = DJ_CHARACTER["handle"]
+    lines = [
+        f"{name} still here — don't you dare skip {now}. Chorus isn't a suggestion.",
+        f"Booth check: {now} by {art} is doing the work. Phone face down. That's an order dressed as a joke.",
+        f"Quick talk-over — {now} earned this minute. If you're hunting the next track, you're the problem.",
+        f"{name} riding the fader. {now} isn't background. Background is what grocery stores do.",
+        f"Stay. {now} has a second act. Most people leave movies at the trailers. Don't be most people.",
+        f"Mic in, music under — {art} said something in that last bar. Hear it twice.",
+        f"{name}: this is the part where radio used to take calls. We take silence. Better guests.",
+        f"Interjecting because the room went quiet in a good way. That's {now}. Let it finish the sentence.",
+        f"Remix in the head, not the DAW — same crate, same pulse. {now} is the stem. Stay on it.",
+        f"Don't touch skip. {name} will mix you out when it's time. Until then, {now} owns the booth.",
+    ]
+    return _clamp(random.choice(lines), MAX_DROP_CHARS)
+
+
+def template_mix_drop(
+    *,
+    next_title: str,
+    prev_title: str = "",
+    artist: str = DEFAULT_ARTIST,
+    station: str = DEFAULT_STATION,
+) -> str:
+    """Talk over a blend into the next record."""
+    nxt = _clean_title(next_title)
+    prev = _clean_title(prev_title) if prev_title else "this one"
+    art = _clean_title(artist) or DEFAULT_ARTIST
+    name = DJ_CHARACTER["handle"]
+    lines = [
+        f"{name} blending {prev} into {nxt}. Same night, new heat. Hands off skip — this is a mix, not a menu.",
+        f"Riding the tail of {prev}… slamming {nxt} by {art} on top. That's how a booth works.",
+        f"Remix energy: we're not stopping {prev}, we're letting {nxt} eat the fade. Stay for the collision.",
+        f"Two records, one pulse. {prev} out, {nxt} in. If you wanted a hard cut, that's podcasts.",
+        f"{name} on the crossfader — {nxt} coming through the filter. Don't blink, you'll miss the handshake.",
+        f"We're mixing {nxt} under this. Real DJ move: the song you love introduces the one you didn't know yet.",
+        f"Blend time. {art}'s {nxt} catching the kick. If it feels illegal, that's just good radio.",
+        f"{name}: tearing {prev} into {nxt}. Not a skip. A handoff with bass still in its mouth.",
+        f"Filter open on {nxt}. {prev} can ride shotgun for eight more seconds. That's the remix.",
+        f"Live mix — {nxt} incoming while {prev} still has a pulse. That's the point of a human in the booth.",
+    ]
+    return _clamp(random.choice(lines), MAX_DROP_CHARS)
+
+
 def station_id_drop() -> str:
     """Short sign-on  -  rides over whatever is already playing."""
     name = DJ_CHARACTER["name"]
@@ -490,9 +545,34 @@ def craft_drop_with_ollama(
     art = _clean_title(artist) or DEFAULT_ARTIST
     st = _clean_title(station) or DEFAULT_STATION
     char = DJ_CHARACTER
-    is_truth = (kind or "").lower() in ("truth", "world", "world_truth", "sermon")
+    kind_l = (kind or "").lower()
+    is_truth = kind_l in ("truth", "world", "world_truth", "sermon")
+    is_interject = kind_l in ("interject", "talkover", "mid")
+    is_mix = kind_l in ("mix", "remix", "blend", "crossfade")
 
-    if is_truth:
+    if is_interject:
+        prompt = (
+            f"You are {char['name']} ({char['handle']}), live in the booth on {st}. "
+            f"Persona: {char['vibe']} "
+            f"The song \"{nxt}\" by {art} is ALREADY PLAYING. Talk OVER it for 1-2 short sentences. "
+            "Do not intro it like it hasn't started. Tell the listener to stay, hear a bar, don't skip. "
+            "DJ talk-over energy. No hashtags, no emojis, no stage directions."
+        )
+        max_chars = MAX_DROP_CHARS
+        num_predict = 110
+    elif is_mix:
+        prompt = (
+            f"You are {char['name']} ({char['handle']}), live DJ mixing on {st}. "
+            f"Persona: {char['vibe']} "
+            f"You are BLENDING the current song"
+            + (f' \"{prev}\"' if prev else "")
+            + f" into the next record \"{nxt}\" by {art}. "
+            f"1-2 sentences: you're mixing/remixing live, not hitting next. Name {nxt}. "
+            "No hashtags, no emojis, no stage directions."
+        )
+        max_chars = MAX_DROP_CHARS
+        num_predict = 120
+    elif is_truth:
         truth_seed = random.choice(_todays_truths(12))
         prompt = (
             f"You are {char['name']} ({char['handle']}), free late-night DJ on {st}. "
@@ -585,15 +665,55 @@ def craft_dj_line(
     kind: str = "bridge",
 ) -> dict[str, Any]:
     """
-    kind: ``bridge`` | ``truth`` (world-truth every few songs) | ``id``
+    kind: ``bridge`` | ``truth`` | ``id`` | ``interject`` | ``mix``
     """
     raw_kind = (kind or "bridge").strip().lower() or "bridge"
     if raw_kind in ("world", "world_truth", "sermon", "truths"):
         raw_kind = "truth"
+    if raw_kind in ("remix", "blend", "crossfade"):
+        raw_kind = "mix"
     source = "template"
     line = None
 
-    if raw_kind == "id":
+    if raw_kind == "interject":
+        line = template_interject_drop(
+            next_title=next_title,
+            prev_title=prev_title,
+            artist=artist,
+            station=station,
+        )
+        source = "template-interject"
+        if use_llm:
+            punched = craft_drop_with_ollama(
+                next_title=next_title or prev_title,
+                prev_title=prev_title,
+                artist=artist,
+                station=station,
+                kind="interject",
+            )
+            if punched:
+                line = punched
+                source = "ollama-interject"
+    elif raw_kind == "mix":
+        line = template_mix_drop(
+            next_title=next_title,
+            prev_title=prev_title,
+            artist=artist,
+            station=station,
+        )
+        source = "template-mix"
+        if use_llm:
+            punched = craft_drop_with_ollama(
+                next_title=next_title,
+                prev_title=prev_title,
+                artist=artist,
+                station=station,
+                kind="mix",
+            )
+            if punched:
+                line = punched
+                source = "ollama-mix"
+    elif raw_kind == "id":
         line = station_id_drop()
         source = "template-id"
         if use_llm:

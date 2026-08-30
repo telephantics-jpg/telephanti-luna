@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "355-RADIO-LIVE"
+LUNA_BUILD = "356-RADIO-STREAM"
 RADIO_RELEASE_BASE = (
     "https://github.com/telephantics-jpg/telephantim-hub/releases/download/radio-v1"
 )
@@ -3696,7 +3696,7 @@ async def service_worker():
 
 @app.api_route("/radio-mp3/{clip_id}.mp3", methods=["GET", "HEAD"])
 async def radio_mp3(clip_id: str, request: Request):
-    """DistroKid masters with audio/mpeg so iPhone will actually play them."""
+    """Stream DistroKid masters with audio/mpeg so playback starts before Vox finishes."""
     if not RADIO_CLIP_RE.match(clip_id or ""):
         raise HTTPException(status_code=404, detail="unknown clip")
     url = f"{RADIO_RELEASE_BASE}/{clip_id}.mp3"
@@ -3704,12 +3704,15 @@ async def radio_mp3(clip_id: str, request: Request):
     rng = request.headers.get("range")
     if rng:
         headers["Range"] = rng
+    client = httpx.AsyncClient(follow_redirects=True, timeout=90.0)
     try:
-        async with httpx.AsyncClient(follow_redirects=True, timeout=90.0) as client:
-            upstream = await client.get(url, headers=headers)
+        upstream = await client.send(client.build_request("GET", url, headers=headers), stream=True)
     except Exception as exc:
+        await client.aclose()
         raise HTTPException(status_code=502, detail=f"radio fetch failed: {exc}") from exc
     if upstream.status_code >= 400:
+        await upstream.aclose()
+        await client.aclose()
         raise HTTPException(status_code=upstream.status_code, detail="radio missing")
     out = {
         "Content-Type": "audio/mpeg",
@@ -3721,10 +3724,22 @@ async def radio_mp3(clip_id: str, request: Request):
         out["Content-Range"] = upstream.headers["content-range"]
     if upstream.headers.get("content-length"):
         out["Content-Length"] = upstream.headers["content-length"]
+
     if request.method == "HEAD":
+        await upstream.aclose()
+        await client.aclose()
         return Response(status_code=upstream.status_code, headers=out)
-    return Response(
-        content=upstream.content,
+
+    async def body():
+        try:
+            async for chunk in upstream.aiter_bytes(64 * 1024):
+                yield chunk
+        finally:
+            await upstream.aclose()
+            await client.aclose()
+
+    return StreamingResponse(
+        body(),
         status_code=upstream.status_code,
         media_type="audio/mpeg",
         headers=out,

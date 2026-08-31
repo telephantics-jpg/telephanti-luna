@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "356-RADIO-STREAM"
+LUNA_BUILD = "357-VOX-ANDREW"
 RADIO_RELEASE_BASE = (
     "https://github.com/telephantics-jpg/telephantim-hub/releases/download/radio-v1"
 )
@@ -1776,6 +1776,7 @@ MOAN_PROSODY: dict[int, dict[str, int]] = {
 MOOD_PROSODY: dict[str, dict[str, int]] = {
     "love": {"rate": -6, "pitch": 5},
     "happy": {"rate": 4, "pitch": 6},
+    "booth": {"rate": -8, "pitch": -2},
     "sad": {"rate": -10, "pitch": -8},
     "angry": {"rate": 8, "pitch": -5},
     "fear": {"rate": 6, "pitch": 10},
@@ -2037,14 +2038,23 @@ VOICE_CHOICES = {
     "sara": "en-US-SaraNeural",
     "michelle": "en-US-MichelleNeural",
     "ana": "en-GB-AnaNeural",
-    # DJ / car radio (male neural — free edge-tts)
+    # DJ / car radio — Andrew multilingual is the most natural free male neural
     "guy": "en-US-GuyNeural",
-    "dj": "en-US-GuyNeural",
-    "vox": "en-US-GuyNeural",  # DJ Vox character (free)
+    "dj": "en-US-AndrewMultilingualNeural",
+    "vox": "en-US-AndrewMultilingualNeural",
+    "andrew": "en-US-AndrewMultilingualNeural",
     "chris": "en-US-ChristopherNeural",
     "davis": "en-US-DavisNeural",
     "tony": "en-US-TonyNeural",
+    "brian": "en-US-BrianMultilingualNeural",
+    "steffan": "en-US-SteffanNeural",
 }
+VOX_VOICE_FALLBACKS = (
+    "en-US-AndrewMultilingualNeural",
+    "en-US-AndrewNeural",
+    "en-US-BrianMultilingualNeural",
+    "en-US-GuyNeural",
+)
 
 
 async def synthesize_speech(
@@ -2062,13 +2072,29 @@ async def synthesize_speech(
     if not spoken:
         raise HTTPException(status_code=400, detail="Nothing to speak after cleanup")
     rate_str, pitch_str = mood_prosody(mood, rate, pitch)
-    communicate = edge_tts.Communicate(
-        spoken,
-        voice,
-        rate=rate_str,
-        pitch=pitch_str,
-        boundary="WordBoundary",
-    )
+    voices_to_try = [voice]
+    if voice_key.strip().lower() in ("vox", "dj", "andrew"):
+        voices_to_try = list(VOX_VOICE_FALLBACKS)
+        if voice not in voices_to_try:
+            voices_to_try.insert(0, voice)
+    last_err: Exception | None = None
+    communicate = None
+    for cand in voices_to_try:
+        try:
+            communicate = edge_tts.Communicate(
+                spoken,
+                cand,
+                rate=rate_str,
+                pitch=pitch_str,
+                boundary="WordBoundary",
+            )
+            voice = cand
+            break
+        except Exception as exc:
+            last_err = exc
+            communicate = None
+    if communicate is None:
+        raise HTTPException(status_code=500, detail=f"TTS voice failed: {last_err}")
 
     audio_chunks: list[bytes] = []
     words: list[str] = []
@@ -2863,9 +2889,9 @@ async def firmament_dj_drop_api(body: FirmamentDjDropBody):
         spoken = await synthesize_speech(
             crafted["text"],
             voice_key,
-            int(body.rate if body.rate is not None else 10),
-            int(body.pitch if body.pitch is not None else -3),
-            body.mood or "happy",
+            int(body.rate if body.rate is not None else 0),
+            int(body.pitch if body.pitch is not None else -1),
+            body.mood or "booth",
             fast=True,
         )
     except HTTPException:

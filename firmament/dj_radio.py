@@ -2,7 +2,8 @@
 
 Character: **DJ Vox**  -  late-night Luna Camp board op, free edge-tts voice.
 Script: Ollama (hermes3/llama3.2) when free minds is on · witty templates offline.
-Voice: edge-tts GuyNeural (free)  -  keyed as ``dj`` / ``vox``.
+Voice: edge-tts Andrew multilingual (free, natural US male). Suno personas
+sing; they cannot do live spoken DJ lines, so Vox stays neural TTS.
 
 Kinds:
   - ``bridge``  -  short witty handoff that names the next track (most songs)
@@ -38,7 +39,7 @@ DJ_CHARACTER = {
     "handle": "Vox",
     "title": "board op · Luna Camp overnight",
     "station": DEFAULT_STATION,
-    "voice_key": "vox",  # edge-tts free male neural
+    "voice_key": "vox",  # Andrew multilingual neural
     "vibe": (
         "Late-night board op with stand-up timing and a soft heart. "
         "Funnier first, true second — irony that winks, never sneers. "

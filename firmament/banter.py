@@ -31,6 +31,20 @@ _RETURN_SEEDS = (
     "{visitor} reappears. The pond mirror holds their outline for a second.",
 )
 
+_THOUGHT_SEEDS = (
+    "{visitor} just looked you in the eye. {other} is close enough to hear a heartbeat.",
+    "A tap on your shoulder that isn't a shoulder — {visitor} asking to overhear a thought.",
+    "The meadow goes quiet for one inner sentence. {other} is standing in it. {visitor} is watching.",
+    "Before speech: the private weather. {visitor} pressed you. {other} hasn't noticed yet. Much.",
+)
+
+_ADDRESS_SEEDS = (
+    "You turn to {other}. {visitor} can hear you. The inner thought already happened.",
+    "Out loud now, to {other} only. {visitor} is the witness, not the target.",
+    "One-on-one with {other} by {scene}. {visitor} tapped this into being.",
+)
+
+
 _AMBIENT_SEEDS = (
     "A pinecone rolls into the coals. Sparks stitch a tiny constellation.",
     "Quiet meadow beat — pond glass, distant guitar, one stubborn cricket.",
@@ -109,6 +123,58 @@ def opener_prompt(
     )
 
 
+def thought_prompt(
+    agent_id: str,
+    *,
+    visitor_name: str = "",
+    other_name: str = "",
+    context: str = "",
+    headline: str = "",
+    music: str = "",
+) -> str:
+    """Scene seed for an overheard inner thought (tap-to-mind)."""
+    visitor = (visitor_name or "the visitor").strip() or "the visitor"
+    other = (other_name or "someone nearby").strip() or "someone nearby"
+    ctx = (context or "aurora meadow camp").strip()
+    seed = random.choice(_THOUGHT_SEEDS).format(visitor=visitor, other=other, scene=ctx)
+    bits = [seed, f"Setting: {ctx}."]
+    if headline:
+        bits.append(f"Pulse in the air: {headline[:110]}.")
+    if music:
+        bits.append(f"Jukebox: {music[:80]}.")
+    bits.append(f"{other} is the one you'd argue with if you spoke.")
+    return "\n".join(bits)
+
+
+def address_prompt(
+    agent_id: str,
+    *,
+    visitor_name: str = "",
+    other_name: str = "",
+    context: str = "",
+    headline: str = "",
+    music: str = "",
+    prior_thought: str = "",
+) -> str:
+    """Scene seed for speaking that thought out loud to one campmate."""
+    visitor = (visitor_name or "the visitor").strip() or "the visitor"
+    other = (other_name or "a campmate").strip() or "a campmate"
+    ctx = (context or "the fire").strip()
+    seed = random.choice(_ADDRESS_SEEDS).format(
+        visitor=visitor, other=other, scene=ctx
+    )
+    bits = [seed, f"Setting: {ctx}."]
+    if prior_thought:
+        idea = " ".join(prior_thought.split())[:180]
+        bits.append(f'You were just thinking: "{idea}"')
+    if headline:
+        bits.append(f"Pulse: {headline[:110]}.")
+    if music:
+        bits.append(f"Music: {music[:80]}.")
+    bits.append(f"Speak to {other}. Invite a real reply.")
+    return "\n".join(bits)
+
+
 def ambient_prompt(
     agent_id: str,
     *,
@@ -125,8 +191,9 @@ def ambient_prompt(
     if reply_to_name and reply_to_idea:
         idea = " ".join(reply_to_idea.split())[:100]
         return (
-            f'{reply_to_name} just said: "{idea}"\n'
-            f"{visitor} is listening.\n"
+            f'Someone nearby murmured: "{idea}"\n'
+            f"{visitor} can hear you.\n"
+            f"Answer the murmur. Don't name-drop campmates. Don't recap who spoke.\n"
             f"Setting: {ctx}.{near_bit}"
         )
     seed = random.choice(_AMBIENT_SEEDS)
@@ -169,6 +236,10 @@ async def speak_banter(
     wave_index: int = 0,
     reply_to_name: str = "",
     reply_to_idea: str = "",
+    other_name: str = "",
+    headline: str = "",
+    music: str = "",
+    prior_thought: str = "",
     pack_name: str = "",
 ) -> dict[str, Any]:
     """Generate a live banter line through the free-mind chain."""
@@ -176,7 +247,30 @@ async def speak_banter(
     from firmament.aether_offline import aether_reply
 
     kind = (kind or "opener").strip().lower()
-    if kind in ("opener", "arrive", "greeting", "welcome"):
+    thought_mode = kind in ("thought", "inner", "mind")
+    address_mode = kind in ("address", "to", "talk-to")
+    if thought_mode:
+        message = thought_prompt(
+            agent_id,
+            visitor_name=visitor_name,
+            other_name=other_name or reply_to_name,
+            context=context,
+            headline=headline,
+            music=music,
+        )
+        user_turn = message
+    elif address_mode:
+        message = address_prompt(
+            agent_id,
+            visitor_name=visitor_name,
+            other_name=other_name or reply_to_name,
+            context=context,
+            headline=headline,
+            music=music,
+            prior_thought=prior_thought or reply_to_idea,
+        )
+        user_turn = message
+    elif kind in ("opener", "arrive", "greeting", "welcome"):
         message = opener_prompt(
             agent_id,
             visitor_name=visitor_name,
@@ -184,6 +278,10 @@ async def speak_banter(
             context=context,
             near=near,
             wave_index=wave_index,
+        )
+        user_turn = (
+            f"Live moment at camp:\n{message}\n\n"
+            f"Speak only as yourself out loud. Fresh words. Do not narrate instructions."
         )
     else:
         message = ambient_prompt(
@@ -194,12 +292,10 @@ async def speak_banter(
             reply_to_name=reply_to_name,
             reply_to_idea=reply_to_idea,
         )
-
-    # Frame as situation — spoken reply only (hard to recite as script)
-    user_turn = (
-        f"Live moment at camp:\n{message}\n\n"
-        f"Speak only as yourself out loud. Fresh words. Do not narrate instructions."
-    )
+        user_turn = (
+            f"Live moment at camp:\n{message}\n\n"
+            f"Speak only as yourself out loud. Fresh words. Do not narrate instructions."
+        )
 
     result = await agent_chat(
         agent_id,
@@ -210,6 +306,8 @@ async def speak_banter(
         ambient=True,
         skip_memory=True,
         converse_mode=False,
+        thought_mode=thought_mode,
+        address_mode=address_mode,
     )
     reply = _strip_meta_dialogue_leak((result.get("reply") or "").strip())
     if (

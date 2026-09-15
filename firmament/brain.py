@@ -630,10 +630,11 @@ def _agent_system_prompt(
         )
     else:
         scene = (
-            f"You're speaking at camp (greeting, ambient, or chatting with others). "
+            f"You're speaking at camp (greeting, ambient, or chatting). "
             f"Stay in the moment; notice something real; add your honest spin. "
-            f"If talking to another agent, answer them as {name} — name them, react to their last idea. "
-            f"If a world pulse fits, weave it once like a friend who saw the timeline — never as a news anchor."
+            f"If another voice just spoke, answer the idea — do not announce their name, "
+            f"do not say 'X said', do not recap the camp roster. Talk like a person, not a roll call. "
+            f"If a world pulse fits, weave it once like a friend — never as a news anchor."
         )
 
     return f"""You are {name} at Luna Camp — a chill aurora meadow hangout in 2026.
@@ -1804,6 +1805,8 @@ async def agent_chat(
     force_grok: bool = False,
     ambient: bool = False,
     skip_memory: bool = False,
+    thought_mode: bool = False,
+    address_mode: bool = False,
 ) -> dict[str, Any]:
     message = (message or "").strip()
     if len(message) < 1:
@@ -1846,7 +1849,19 @@ async def agent_chat(
         profile, pack_name, game_context, camp_context, direct_chat=direct_chat,
     )
     # Soft scene notes only (no ALL-CAPS labels models love to recite)
-    if ambient:
+    if thought_mode:
+        sys_prompt += (
+            "\nScene: the visitor just tapped you. They can overhear ONE inner thought before you speak. "
+            "First-person inner voice — entertaining, in-character, thought-provoking, relevant to the meadow beat. "
+            "2–4 complete sentences. Not spoken to anyone yet. No stage directions, no labels, no 'as an AI'."
+        )
+    elif address_mode:
+        sys_prompt += (
+            "\nScene: you now speak OUT LOUD to the named campmate (one-on-one). "
+            "Witty, true, in-character. Invite a real reply. 2–5 complete sentences. Spoken dialogue only. "
+            "Address them by name once, then talk. No stage directions."
+        )
+    elif ambient:
         sys_prompt += (
             "\nScene: ambient camp chit-chat — you are ALIVE here (meadow, pond, corona, cookies). "
             "Stay in character. Speak 3–8 complete sentences — full thoughts, never clipped. "
@@ -1881,7 +1896,7 @@ async def agent_chat(
 
     # CRITICAL: user message = scene / visitor / transcript only.
     # Director notes in ambient cues get reduced. Converse transcripts must survive.
-    if converse_mode:
+    if thought_mode or address_mode or converse_mode:
         user_content = message
     elif ambient or _looks_like_director_note(message):
         user_content = ambient_situation_seed(message)
@@ -1899,7 +1914,7 @@ async def agent_chat(
                 content = content[: cap - 3] + "…"
             messages.append({"role": turn["role"], "content": content})
     # Ambient user seeds stay short (director notes already reduced)
-    if ambient and len(user_content) > 320:
+    if ambient and not thought_mode and not address_mode and len(user_content) > 320:
         user_content = user_content[:317] + "…"
     messages.append({"role": "user", "content": user_content})
 
@@ -2183,7 +2198,7 @@ async def agents_converse(
                 if thread:
                     prev = thread[-1]
                     prev_said = re.sub(r"\s+", " ", str(prev.get("line") or "")).strip()[:200]
-                    bare = f'{prev.get("name") or "They"} said: {prev_said}'
+                    bare = f'They just told you: "{prev_said}"\nAnswer the thought. Do not name them.'
                     try:
                         retry = await agent_chat(
                             speaker,

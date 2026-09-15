@@ -37,7 +37,7 @@
   <link rel="apple-touch-icon" href="/static/share/link-preview-relics.jpg" />
   <!-- GA4 — accurate multi-site tagging (skips localhost; ?internal=1 / ?ga_debug=1) -->
   <script src="/static/ga.js"></script>
-  <title>Luna Camp — 260 PC</title>
+  <title>Luna Camp — 265 mind</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -270,6 +270,18 @@
       border-color: #34d399;
       box-shadow: 0 0 0 2px rgba(52,211,153,0.65), 0 12px 32px rgba(0,0,0,0.5);
     }
+    .camp-bubble.is-thought {
+      border-style: dashed;
+      border-color: #93c5fd;
+      background: linear-gradient(180deg, rgba(15,23,42,0.97), rgba(8,18,36,0.96));
+      box-shadow: 0 10px 28px rgba(0,0,0,0.5), 0 0 18px rgba(147,197,253,0.18);
+    }
+    .camp-bubble.is-thought .camp-bubble-who { color: #93c5fd; font-style: italic; }
+    .camp-bubble.is-thought .camp-bubble-say {
+      font-style: italic;
+      color: #e2e8f0;
+    }
+    .camp-bubble.is-talkto .camp-bubble-who { color: #fde68a; }
     .camp-bubble.dimmed { opacity: 0.42; filter: saturate(0.7); }
     .camp-bubble-bar {
       flex: 0 0 auto;
@@ -3017,6 +3029,11 @@
       overflow: hidden; perspective: 820px; perspective-origin: 50% 38%;
       border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.45);
+      animation: house-breathe 9s ease-in-out infinite;
+    }
+    @keyframes house-breathe {
+      0%, 100% { filter: saturate(1) brightness(1); }
+      50% { filter: saturate(1.12) brightness(1.06); }
     }
     .house-room-scene .house-sky {
       position: absolute; inset: 0 0 42% 0;
@@ -3026,7 +3043,7 @@
       position: absolute; left: -10%; right: -10%; top: 8%; height: 38%;
       background: linear-gradient(90deg, transparent, var(--house-accent, #38bdf8), transparent);
       opacity: 0.35; filter: blur(18px);
-      animation: house-aurora-drift 8s ease-in-out infinite alternate;
+      animation: house-aurora-drift 14s ease-in-out infinite alternate;
     }
     @keyframes house-aurora-drift {
       from { transform: translateX(-6%) skewX(-8deg); opacity: 0.22; }
@@ -4678,7 +4695,7 @@
 <body class="camp-trippy chatter-hidden">
   <!-- Always-visible live stamp so you know the correct deploy is loaded -->
   <div id="camp-live-stamp" style="position:fixed;z-index:99999;left:8px;bottom:calc(var(--dock-h,90px) + 10px);max-width:min(92vw,360px);padding:8px 12px;border-radius:999px;border:2px solid #86efac;background:linear-gradient(135deg,#052e16,#14532d);color:#bbf7d0;font:800 0.72rem/1.25 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:auto;touch-action:manipulation;cursor:pointer" title="Click to hide for this session">
-    ✦ LIVE 264 · no popup · 1–3 speakers
+    ✦ LIVE 265 · tap a mind · thoughts + 1-on-1
   </div>
 
   <div id="camp-stage">
@@ -5198,7 +5215,7 @@
     <iframe id="pixel-frame" allow="autoplay; fullscreen; microphone"></iframe>
   </div>
   <script>
-    const CAMP_BUILD = "2026-08-28-distrokid";
+    const CAMP_BUILD = "2026-09-15-mind-peek";
     let campWeather = "aurora";
     /** Caduceus still — always first on phones (reliable); wallpaper = fallback */
     const CAMP_BG_URL = `/static/camp/caduceus-3d.jpg?v=${CAMP_BUILD}`;
@@ -6026,7 +6043,19 @@
       return lines;
     }
 
+    function sanitizeSpokenLine(text) {
+      let t = String(text || "").trim();
+      if (!t) return "";
+      t = t.replace(/^\s*(luna|jesus|hermes|oracle|odin|caduceus|aurora|violet|seraph|ambrosia|rhea|sentinel|thor|zeus|michael|gabriel)\s+said(?:\s+to\s+\w+)?\s*[:,]?\s*/ig, "");
+      t = t.replace(/\b(luna|jesus|hermes|oracle)\s+said(?:\s+that)?\b/ig, "someone mentioned");
+      t = t.replace(/\bcamp\s+said\b/ig, "we");
+      t = t.replace(/\b(as|like)\s+(luna|jesus|hermes|oracle)\s+said\b/ig, "");
+      t = t.replace(/\s{2,}/g, " ").trim();
+      return t;
+    }
+
     function applyChatResult(agentId, data, opts = {}) {
+      if (data && data.reply) data.reply = sanitizeSpokenLine(data.reply);
       if (opts.lunaEmbed) {
         const embedReply = document.getElementById("luna-embed-reply");
         const who = data.name || agentNames[agentId] || agentId;
@@ -6044,7 +6073,7 @@
       // Over-world bubble — keep full open-ended monologue (scroll via pin / chatter)
       const roamNpc = findRoamAgent(agentId);
       if (roamNpc && data.reply) {
-        const full = String(data.reply);
+        const full = sanitizeSpokenLine(data.reply);
         roamNpc.fullLine = full;
         roamNpc.line = full; // full text held; canvas may preview, pin shows all
         if (data.mood) roamNpc.mood = data.mood;
@@ -6122,11 +6151,11 @@
     let npcMode = "free";
     const dialogueBackdrop = document.getElementById("dialogue-backdrop");
     // Slightly zoomed out so more meadow fits (previous roomier framing)
-    const WORLD_ZOOM_DESKTOP = 0.30;
-    const WORLD_ZOOM_MOBILE = 0.52;
-    const WORLD_ZOOM_IOS_PORTRAIT = 0.50;
-    const WORLD_ZOOM_IOS_LANDSCAPE = 0.52;
-    const CAMP_ZOOM_MIN = 0.20;
+    const WORLD_ZOOM_DESKTOP = 0.16;
+    const WORLD_ZOOM_MOBILE = 0.28;
+    const WORLD_ZOOM_IOS_PORTRAIT = 0.26;
+    const WORLD_ZOOM_IOS_LANDSCAPE = 0.28;
+    const CAMP_ZOOM_MIN = 0.10;
     const CAMP_ZOOM_MAX = 0.95;
     let campViewZoom = null;
     let campViewCamX = null;
@@ -6625,7 +6654,10 @@
       reason: "reasoning…",
       terminal: "at terminal",
     };
-    const HOUSE_OWNERS = new Set(["luna", "hermes", "oracle", "dionysus", "jesus", "odin"]);
+    const HOUSE_OWNERS = new Set([
+      "luna", "hermes", "oracle", "dionysus", "jesus", "odin",
+      "caduceus", "sentinel", "aurora", "violet", "seraph", "ambrosia", "rhea", "telephantix",
+    ]);
     // Throttle autonomous world interactions so camp stays lively but not spammy
     let lastAgentWorldActionAt = 0;
     const houseInteriorChatAt = new Map(); // houseId -> timestamp
@@ -6770,6 +6802,54 @@
         glyph: "✝", portrait: "/static/avatars/luna-portrait.jpg",
         vibe: "It's a church… and also Jesus's house (lol). Warm wood, stained glass, cookies on the altar table, no dress code.",
       },
+      caduceus: {
+        accent: "#34d399", wall: "#064e3b", wallMid: "#047857", floor: "#022c22",
+        skyTop: "#042f2e", skyBot: "#064e3b", window: "#6ee7b7", decor: "⚕ 🌿 💚",
+        glyph: "⚕", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Twin-snake quiet. Herb steam, green glass, a cot if you need to lie down.",
+      },
+      sentinel: {
+        accent: "#67e8f9", wall: "#164e63", wallMid: "#155e75", floor: "#083344",
+        skyTop: "#082f49", skyBot: "#0e7490", window: "#a5f3fc", decor: "🛡 ✦ 👁",
+        glyph: "🛡", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Watchtower hush — one window on the meadow, kettle on, nothing gets past.",
+      },
+      aurora: {
+        accent: "#f472b6", wall: "#831843", wallMid: "#9d174d", floor: "#500724",
+        skyTop: "#4a044e", skyBot: "#831843", window: "#f9a8d4", decor: "🌈 ✨ 💫",
+        glyph: "🌈", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Light that breathes. Pink-teal curtains, slow pulse, like falling asleep inside a color.",
+      },
+      violet: {
+        accent: "#c084fc", wall: "#4c1d95", wallMid: "#6b21a8", floor: "#3b0764",
+        skyTop: "#2e1065", skyBot: "#5b21b6", window: "#e9d5ff", decor: "💜 ✦ 🌸",
+        glyph: "💜", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Soft violet dusk. Pillows, hush, a window that never quite stays one color.",
+      },
+      seraph: {
+        accent: "#fda4af", wall: "#9f1239", wallMid: "#be123c", floor: "#4c0519",
+        skyTop: "#450a0a", skyBot: "#9f1239", window: "#fecdd3", decor: "🕊 🔥 ✦",
+        glyph: "🕊", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Warm wing-light. Gold dust in the air. You can hear your own breath.",
+      },
+      ambrosia: {
+        accent: "#f59e0b", wall: "#78350f", wallMid: "#92400e", floor: "#451a03",
+        skyTop: "#1c1917", skyBot: "#451a03", window: "#fde68a", decor: "🍯 ✨ 🍷",
+        glyph: "🍯", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Honey-warm. Slow music, fruit on a plate, time forgets to tick.",
+      },
+      rhea: {
+        accent: "#d4a574", wall: "#44403c", wallMid: "#57534e", floor: "#292524",
+        skyTop: "#1c1917", skyBot: "#44403c", window: "#f5deb3", decor: "🌾 🌙 🪨",
+        glyph: "🌾", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Earth-mother quiet. Clay walls, grain, a chair that already knows you.",
+      },
+      telephantix: {
+        accent: "#38bdf8", wall: "#0c4a6e", wallMid: "#075985", floor: "#082f49",
+        skyTop: "#0c1222", skyBot: "#0c4a6e", window: "#7dd3fc", decor: "🐘 ✦ 📻",
+        glyph: "🐘", portrait: "/static/avatars/luna-portrait.jpg",
+        vibe: "Radio glow and gold trim. The brand's living room — hypnotic bass, open door.",
+      },
     };
     // Seed layout (fallback) — overwritten by shared camp_catalog (same meadow x,y as 3D)
     const campHouses = [
@@ -6791,6 +6871,30 @@
       { id: "jesus-church", ownerId: "jesus", name: "Jesus's Church (His House)", emoji: "⛪", x: -280, y: -420 + 320,
         color: "#fde68a", roof: "#1e3a5f", wall: "#334155", enterRadius: 50, church: true,
         doorOffset: { x: 0, y: -0.44 }, interior: { x: 0, y: 0.12 } },
+      { id: "caduceus-home", ownerId: "caduceus", name: "Caduceus' Clinic", emoji: "🏡", x: -900, y: 720,
+        color: "#34d399", roof: "#047857", wall: "#064e3b", enterRadius: 40,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "sentinel-home", ownerId: "sentinel", name: "Sentinel's Watch", emoji: "🗼", x: -1400, y: 180,
+        color: "#67e8f9", roof: "#0e7490", wall: "#164e63", enterRadius: 42,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "aurora-home", ownerId: "aurora", name: "Aurora's Lights", emoji: "🏠", x: 180, y: -1080,
+        color: "#f472b6", roof: "#9d174d", wall: "#831843", enterRadius: 40,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "violet-home", ownerId: "violet", name: "Violet's Dusk", emoji: "🏠", x: 920, y: -380,
+        color: "#c084fc", roof: "#6b21a8", wall: "#4c1d95", enterRadius: 40,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "seraph-home", ownerId: "seraph", name: "Seraph's Hearth", emoji: "🏠", x: 220, y: 1080,
+        color: "#fda4af", roof: "#be123c", wall: "#9f1239", enterRadius: 40,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "ambrosia-home", ownerId: "ambrosia", name: "Ambrosia's Pantry", emoji: "🏡", x: 1320, y: 240,
+        color: "#f59e0b", roof: "#b45309", wall: "#78350f", enterRadius: 40,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "rhea-home", ownerId: "rhea", name: "Rhea's Earth House", emoji: "🏠", x: 1120, y: -1080,
+        color: "#d4a574", roof: "#57534e", wall: "#44403c", enterRadius: 40,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
+      { id: "telephantix-home", ownerId: "telephantix", name: "Telephantix Lounge", emoji: "🐘", x: 80, y: -220,
+        color: "#38bdf8", roof: "#075985", wall: "#0c4a6e", enterRadius: 42,
+        doorOffset: { x: 0, y: -0.38 }, interior: { x: 0, y: 0.12 } },
     ];
     let houseInteriorOpen = false;
     let activeHouseVisit = null;
@@ -6848,6 +6952,26 @@
         if (src.owner_id) h.ownerId = src.owner_id;
         if (src.visual?.primary) h.color = src.visual.primary;
         if (src.visual?.roof) h.roof = src.visual.roof;
+      }
+      for (const src of cat.houses || []) {
+        if (campHouses.some((h) => h.id === src.id)) continue;
+        campHouses.push({
+          id: src.id,
+          ownerId: src.owner_id,
+          name: src.name || "House",
+          emoji: src.emoji || "🏠",
+          x: Number(src.x) || 0,
+          y: (Number(src.y) || 0) + MEADOW_Y_SHIFT,
+          color: src.visual?.primary || "#64748b",
+          roof: src.visual?.roof || "#334155",
+          wall: src.visual?.wall || "#1e293b",
+          enterRadius: src.castle ? 48 : 40,
+          castle: !!src.castle,
+          church: !!src.church,
+          doorOffset: { x: 0, y: -0.38 },
+          interior: { x: 0, y: 0.12 },
+        });
+        if (src.owner_id) HOUSE_OWNERS.add(src.owner_id);
       }
 
       const lmById = new Map((cat.landmarks || []).map((l) => [l.id, l]));
@@ -14103,132 +14227,156 @@
       }
     }
 
+    function dollhousePlan(house) {
+      const wall = house.wall || "#1e293b";
+      const col = house.color || "#64748b";
+      const plans = {
+        luna: { w: 2.35, d: 1.85, kind: "cottage", furn: [
+          { x: -0.55, y: -0.35, w: 0.45, d: 0.32, h: 0.22, glyph: "🛋" },
+          { x: 0.45, y: 0.15, w: 0.28, d: 0.28, h: 0.38, glyph: "🔮" },
+        ]},
+        hermes: { w: 2.8, d: 1.25, kind: "long", furn: [
+          { x: -0.7, y: -0.1, w: 0.7, d: 0.28, h: 0.18, glyph: "📜" },
+          { x: 0.7, y: 0.05, w: 0.22, d: 0.22, h: 0.42, glyph: "⚡" },
+        ]},
+        oracle: { w: 1.55, d: 1.55, kind: "tower", furn: [
+          { x: 0, y: 0, w: 0.35, d: 0.35, h: 0.5, glyph: "🕯" },
+        ]},
+        dionysus: { w: 2.2, d: 2.1, kind: "L", furn: [
+          { x: -0.4, y: -0.4, w: 0.5, d: 0.35, h: 0.28, glyph: "🍷" },
+          { x: 0.5, y: 0.35, w: 0.32, d: 0.5, h: 0.2, glyph: "🍇" },
+        ]},
+        odin: { w: 3.1, d: 1.7, kind: "hall", furn: [
+          { x: -0.8, y: 0, w: 0.55, d: 0.4, h: 0.35, glyph: "🔥" },
+          { x: 0.7, y: -0.15, w: 0.7, d: 0.3, h: 0.18, glyph: "🛡" },
+        ]},
+        jesus: { w: 2.5, d: 1.9, kind: "nave", furn: [
+          { x: 0, y: 0.35, w: 0.4, d: 0.28, h: 0.42, glyph: "✝" },
+          { x: -0.55, y: -0.25, w: 0.35, d: 0.22, h: 0.16, glyph: "🕯" },
+          { x: 0.55, y: -0.25, w: 0.35, d: 0.22, h: 0.16, glyph: "🕯" },
+        ]},
+        caduceus: { w: 2.4, d: 1.6, kind: "clinic", furn: [
+          { x: -0.5, y: 0, w: 0.55, d: 0.32, h: 0.22, glyph: "🛏" },
+          { x: 0.5, y: -0.15, w: 0.3, d: 0.3, h: 0.35, glyph: "⚕" },
+        ]},
+        sentinel: { w: 1.45, d: 1.7, kind: "watch", furn: [
+          { x: 0, y: 0.2, w: 0.28, d: 0.28, h: 0.55, glyph: "👁" },
+        ]},
+        aurora: { w: 2.15, d: 2.0, kind: "round", furn: [
+          { x: 0, y: 0, w: 0.4, d: 0.4, h: 0.2, glyph: "🌈" },
+        ]},
+        violet: { w: 2.0, d: 1.7, kind: "dusk", furn: [
+          { x: -0.35, y: -0.2, w: 0.45, d: 0.35, h: 0.18, glyph: "🛋" },
+          { x: 0.4, y: 0.2, w: 0.22, d: 0.22, h: 0.32, glyph: "💜" },
+        ]},
+        seraph: { w: 2.1, d: 1.75, kind: "hearth", furn: [
+          { x: 0, y: 0.25, w: 0.4, d: 0.28, h: 0.38, glyph: "🔥" },
+          { x: -0.5, y: -0.25, w: 0.3, d: 0.25, h: 0.16, glyph: "🕊" },
+        ]},
+        ambrosia: { w: 2.2, d: 1.65, kind: "pantry", furn: [
+          { x: -0.45, y: 0, w: 0.4, d: 0.5, h: 0.4, glyph: "🍯" },
+          { x: 0.45, y: -0.15, w: 0.35, d: 0.28, h: 0.2, glyph: "🍇" },
+        ]},
+        rhea: { w: 2.3, d: 1.8, kind: "earth", furn: [
+          { x: 0, y: -0.2, w: 0.5, d: 0.35, h: 0.2, glyph: "🌾" },
+          { x: 0.5, y: 0.25, w: 0.28, d: 0.28, h: 0.28, glyph: "🪨" },
+        ]},
+        telephantix: { w: 2.45, d: 1.7, kind: "lounge", furn: [
+          { x: -0.4, y: -0.2, w: 0.55, d: 0.35, h: 0.22, glyph: "📻" },
+          { x: 0.5, y: 0.15, w: 0.3, d: 0.3, h: 0.35, glyph: "🐘" },
+        ]},
+      };
+      return plans[house.ownerId] || { w: 2.0, d: 1.6, kind: "box", furn: [{ x: 0, y: 0, w: 0.3, d: 0.3, h: 0.22, glyph: "✨" }] };
+    }
+
     function drawCampHouse(wx, wy, house) {
       const s = worldToScreen(wx, wy);
-      const cx = s.x, cy = s.y + 8;
-      const owner = npcs.find((n) => n.id === house.ownerId);
+      const cx = s.x, cy = s.y + 10;
       const inside = allRoamers().filter((n) => n.insideHouse === house.id);
       const t = Date.now() / 1000;
-      const hueShift = Math.sin(t * 1.1 + house.x * 0.02) * 0.08;
-      drawAvatarShadow(s.x, s.y, house.castle || house.church ? 30 : 22);
-      if (house.church) {
-        const glow = 0.5 + Math.sin(t * 2.1) * 0.2;
-        // Nave
-        drawIsoBox(cx, cy, -1.05, -0.7, 0, 2.1, 1.4, 0.9,
-          { top: house.roof, left: house.wall, right: "#475569", stroke: "#fde68a" });
-        // Steeple base
-        drawIsoBox(cx, cy - 6, -0.28, -0.28, 0.9, 0.56, 0.56, 0.75,
-          { top: "#1e3a5f", left: "#0f172a", right: "#334155", stroke: "#fbbf24" });
-        // Steeple peak
-        drawIsoBox(cx, cy - 10, -0.18, -0.18, 1.55, 0.36, 0.36, 0.55,
-          { top: "#fde68a", left: "#92400e", right: "#fbbf24", stroke: "#78350f" });
-        // Stained glass glow
-        ctx.fillStyle = `rgba(253, 230, 138, ${0.25 + glow * 0.35})`;
-        ctx.beginPath();
-        ctx.ellipse(s.x, s.y - 28, 18, 12, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Cross on steeple
-        ctx.strokeStyle = `rgba(253, 230, 138, ${0.75 + glow * 0.25})`;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y - 78);
-        ctx.lineTo(s.x, s.y - 98);
-        ctx.moveTo(s.x - 9, s.y - 88);
-        ctx.lineTo(s.x + 9, s.y - 88);
-        ctx.stroke();
-        const door = isoPoint(cx, cy, house.doorOffset?.x || 0, house.doorOffset?.y || -0.44, 0.02);
-        ctx.fillStyle = "#1c1917";
-        ctx.fillRect(door.x - 10, door.y - 20, 20, 26);
-        ctx.fillStyle = "#fde68a";
-        ctx.fillRect(door.x - 3, door.y - 8, 6, 5);
-        ctx.font = "14px Segoe UI";
-        ctx.textAlign = "center";
-        ctx.fillText("🕊", s.x - 28, s.y - 50 + Math.sin(t * 2) * 2);
-        ctx.fillText("🕯", s.x + 28, s.y - 46 + Math.cos(t * 1.7) * 2);
-        drawTrippyOrbs(s.x, s.y - 42, "#fde68a", t);
-        ctx.font = "bold 10px Segoe UI";
-        ctx.fillStyle = "#fef3c7";
-        ctx.fillText(`${house.emoji} ${house.name}`, s.x, s.y - 36);
-        ctx.font = "8px Segoe UI";
-        ctx.fillStyle = `rgba(253, 230, 138, ${0.85})`;
-        ctx.fillText("church · Jesus's house · enter anytime", s.x, s.y + 44);
-        if (inside.length) {
-          ctx.fillStyle = "#a7f3d0";
-          ctx.fillText(`${inside.map((n) => n.name).join(", ")} inside`, s.x, s.y + 54);
-        }
-        if (playerNearHouse(house) && !houseInteriorOpen) {
-          ctx.font = "bold 9px Segoe UI";
-          ctx.fillStyle = "#fde68a";
-          ctx.fillText(isCampMobile() ? "tap Enter — church open" : "E or Enter — step into the church", s.x, s.y + 64);
-        }
-        return;
-      }
-      if (house.castle) {
-        const pulse = 0.45 + Math.sin(t * 1.8) * 0.2;
-        drawIsoBox(cx - 28, cy, -0.55, -0.48, 0, 0.95, 0.72, 1.35,
-          { top: "#475569", left: "#1e293b", right: "#64748b", stroke: "#cbd5e1" });
-        drawIsoBox(cx + 28, cy, -0.55, -0.48, 0, 0.95, 0.72, 1.35,
-          { top: "#475569", left: "#1e293b", right: "#64748b", stroke: "#cbd5e1" });
-        drawIsoBox(cx, cy, -1.15, -0.72, 0, 2.3, 1.45, 0.85,
-          { top: house.roof, left: house.wall, right: house.color, stroke: "#94a3b8" });
-        drawIsoBox(cx, cy, -0.78, -0.92, 0.85, 1.56, 0.98, 0.62,
-          { top: "#334155", left: "#0f172a", right: "#475569", stroke: "#1e293b" });
-        ctx.font = "14px Segoe UI";
-        ctx.textAlign = "center";
-        ctx.fillStyle = `rgba(148, 163, 184, ${0.55 + pulse * 0.35})`;
-        ctx.fillText("🦅", s.x - 34, s.y - 58 + Math.sin(t * 3) * 2);
-        ctx.fillText("🦅", s.x + 34, s.y - 54 + Math.cos(t * 2.6) * 2);
-        const door = isoPoint(cx, cy, house.doorOffset?.x || 0, house.doorOffset?.y || -0.42, 0.02);
-        ctx.fillStyle = "#0f172a";
-        ctx.fillRect(door.x - 11, door.y - 18, 22, 24);
-        ctx.fillStyle = "#fde68a";
-        ctx.fillRect(door.x - 3, door.y - 8, 6, 5);
-        drawTrippyOrbs(s.x, s.y - 44, "#94a3b8", t);
-        ctx.font = "bold 10px Segoe UI";
-        ctx.fillStyle = "#e2e8f0";
-        ctx.fillText(`${house.emoji} ${house.name}`, s.x, s.y - 38);
-        ctx.font = "8px Segoe UI";
-        ctx.fillStyle = "#94a3b8";
-        ctx.fillText("outskirts — wisdom & ravens", s.x, s.y + 44);
-        if (playerNearHouse(house) && !houseInteriorOpen) {
-          ctx.font = "bold 9px Segoe UI";
-          ctx.fillStyle = "#cbd5e1";
-          ctx.fillText(isCampMobile() ? "walk the outskirts" : "E — knock on the hall", s.x, s.y + 58);
-        }
-        return;
-      }
-      drawIsoBox(cx, cy, -0.85, -0.55, 0, 1.7 + hueShift, 1.1, 0.55,
-        { top: house.roof, left: house.wall, right: house.color, stroke: "#1e293b" });
-      drawIsoBox(cx, cy, -0.55, -0.72, 0.55, 1.1, 0.75, 0.42,
-        { top: house.color, left: house.wall, right: house.roof, stroke: "#0f172a" });
-      drawIsoBox(cx, cy, -0.2, -0.82, 0.95, 0.35, 0.28, 0.22,
-        { top: "#fef3c7", left: "#fde68a", right: "#fbbf24", stroke: "#78350f" });
-      const door = isoPoint(cx, cy, house.doorOffset?.x || 0, house.doorOffset?.y || -0.38, 0.02);
-      ctx.fillStyle = "#422006";
-      ctx.fillRect(door.x - 7, door.y - 14, 14, 18);
-      ctx.fillStyle = "#fde68a";
-      ctx.fillRect(door.x - 2, door.y - 6, 4, 4);
-      drawTrippyOrbs(s.x, s.y - 40, house.color, t);
-      ctx.font = "bold 10px Segoe UI";
-      ctx.fillStyle = "#f1f5f9";
-      ctx.textAlign = "center";
-      ctx.fillText(`${house.emoji} ${house.name}`, s.x, s.y - 34);
-      ctx.font = "8px Segoe UI";
-      ctx.fillStyle = owner?.color || "#94a3b8";
-      ctx.fillText(`${house.ownerId}'s door`, s.x, s.y + 38);
-      if (inside.length) {
-        ctx.font = "14px Segoe UI";
-        inside.forEach((n, i) => {
-          ctx.fillText("🚪", s.x - 10 + i * 14, s.y - 48);
+      const plan = dollhousePlan(house);
+      const w = plan.w, d = plan.d;
+      const wall = house.wall || "#1e293b";
+      const col = house.color || "#64748b";
+      const floor = house.roof || col;
+      const glow = 0.35 + Math.sin(t * 1.4 + house.x * 0.01) * 0.12;
+      drawAvatarShadow(s.x, s.y, 26 + w * 4);
+
+      // Open dollhouse: floor + 3 walls, no roof — look down into the rooms
+      drawIsoBox(cx, cy, -w / 2, -d / 2, 0, w, d, 0.07, {
+        top: floor, left: wall, right: col, stroke: "rgba(253,230,138,0.25)",
+      });
+      drawIsoBox(cx, cy, -w / 2, d / 2 - 0.07, 0.07, w, 0.07, 0.52, {
+        top: col, left: wall, right: col, stroke: "rgba(15,23,42,0.5)",
+      });
+      drawIsoBox(cx, cy, -w / 2, -d / 2, 0.07, 0.07, d, 0.52, {
+        top: wall, left: wall, right: col, stroke: "rgba(15,23,42,0.5)",
+      });
+      if (plan.kind === "L" || plan.kind === "hall") {
+        drawIsoBox(cx, cy, w / 2 - 0.07, 0, 0.07, 0.07, d / 2, 0.52, {
+          top: wall, left: wall, right: col, stroke: "rgba(15,23,42,0.4)",
         });
-        ctx.font = "8px Segoe UI";
-        ctx.fillStyle = "#6ee7b7";
-        ctx.fillText(`${inside.map((n) => n.name).join(", ")} inside`, s.x, s.y + 50);
       }
+      if (plan.kind === "tower" || plan.kind === "watch") {
+        drawIsoBox(cx, cy, -0.18, -0.18, 0.55, 0.36, 0.36, 0.45, {
+          top: col, left: wall, right: col, stroke: "#fde68a",
+        });
+      }
+
+      ctx.save();
+      ctx.globalAlpha = 0.22 + glow * 0.25;
+      const rug = isoPoint(cx, cy, 0, 0, 0.08);
+      const rg = ctx.createRadialGradient(rug.x, rug.y, 4, rug.x, rug.y, 28);
+      rg.addColorStop(0, col);
+      rg.addColorStop(1, "transparent");
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      ctx.ellipse(rug.x, rug.y, 26, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      for (const f of plan.furn) {
+        drawIsoBox(cx, cy, f.x - f.w / 2, f.y - f.d / 2, 0.08, f.w, f.d, f.h, {
+          top: "#f8fafc", left: wall, right: col, stroke: "rgba(15,23,42,0.35)",
+        });
+        const gp = isoPoint(cx, cy, f.x, f.y, 0.08 + f.h);
+        ctx.font = "11px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(f.glyph, gp.x, gp.y + 4);
+      }
+
+      inside.forEach((n, i) => {
+        const ox = (i % 2 === 0 ? -0.28 : 0.32) + (i > 1 ? 0.15 : 0);
+        const oy = (i < 2 ? 0.05 : -0.35);
+        const p = isoPoint(cx, cy, ox, oy, 0.12);
+        ctx.font = "13px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(AGENT_EMOJI[n.id] || "🙂", p.x, p.y);
+      });
+      if (houseInteriorOpen && activeHouseVisit?.id === house.id) {
+        const p = isoPoint(cx, cy, 0.15, -0.45, 0.12);
+        ctx.font = "13px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("🧍", p.x, p.y);
+      }
+
+      const door = isoPoint(cx, cy, 0, -d / 2, 0.02);
+      ctx.fillStyle = "rgba(15,23,42,0.85)";
+      ctx.fillRect(door.x - 6, door.y - 4, 12, 8);
+      ctx.fillStyle = "#fde68a";
+      ctx.fillRect(door.x - 2, door.y - 1, 3, 3);
+
+      ctx.font = "bold 10px Segoe UI";
+      ctx.fillStyle = "#f8fafc";
+      ctx.textAlign = "center";
+      ctx.fillText(`${house.emoji} ${house.name}`, s.x, s.y - 28 - (plan.kind === "tower" || plan.kind === "watch" ? 10 : 0));
+      ctx.font = "8px Segoe UI";
+      ctx.fillStyle = inside.length ? "#6ee7b7" : "rgba(226,232,240,0.75)";
+      ctx.fillText(inside.length ? inside.map((n) => n.name).join(", ") + " in" : "open dollhouse · walk in", s.x, s.y + 36);
       if (playerNearHouse(house) && !houseInteriorOpen) {
         ctx.font = "bold 9px Segoe UI";
         ctx.fillStyle = "#fde68a";
-        ctx.fillText(isCampMobile() ? "tap Enter to go inside" : "E or Enter — go inside", s.x, s.y + 62);
+        ctx.fillText(isCampMobile() ? "tap Enter" : "E / Enter — walk in", s.x, s.y + 48);
       }
     }
 
@@ -14394,7 +14542,7 @@
      * Create/update a DOM speech bubble — scrollable monologue, drag bar, focus, center.
      */
     function upsertDomBubble(speaker, text, opts = {}) {
-      if (isTalkMin()) return null;
+      if (isTalkMin() && !opts.forcePeek) return null;
       const layer = campBubbleLayer();
       if (!layer) return null;
       const clean = String(text || "").trim();
@@ -14439,7 +14587,9 @@
       entry.el.style.borderColor = color;
       const who = entry.el.querySelector(".camp-bubble-who");
       const say = entry.el.querySelector(".camp-bubble-say");
-      if (who) who.textContent = speaker;
+      if (who) who.textContent = opts.whoLabel || speaker;
+      entry.el.classList.toggle("is-thought", !!opts.thought);
+      entry.el.classList.toggle("is-talkto", !opts.thought && !!opts.to);
       if (say) {
         const prevTop = say.scrollTop;
         say.textContent = clean;
@@ -14972,6 +15122,7 @@
       odin: "history & power lens", thor: "storm wit & courage", zeus: "sky-king wit & decrees",
       ambrosia: "comfort & lifestyle", rhea: "community mother",
       wanderer: "roaming hot take",
+      ara: "Grok link · clear thread", mika: "Grok link · sparkle pulse",
     };
     const AGENT_QUIPS = AGENT_ROLES;
     // Floating emoji bursts when someone talks
@@ -17006,8 +17157,12 @@
           context: campBanterContext(),
           near: campBanterNear(id),
           wave_index: opts.waveIndex || 0,
-          reply_to_name: opts.replyTo?.name || "",
+          reply_to_name: opts.replyTo?.name || opts.otherName || "",
           reply_to_idea: opts.replyTo?.line ? String(opts.replyTo.line).slice(0, 120) : "",
+          other_name: opts.otherName || opts.replyTo?.name || "",
+          headline: opts.headline || "",
+          music: opts.music || "",
+          prior_thought: opts.priorThought || "",
           ...visitorPayload(),
         };
         const { res, data } = await firmamentSecurePost("/api/firmament/banter", body);
@@ -17018,13 +17173,29 @@
         model = data.model || "";
       } catch (err) {
         // Offline / mind fail → static bank only
-        const mod = await ensureCampBanterMod();
-        if (kind === "ambient" || kind === "idle") {
-          const fb = mod?.pickFallbackIdle?.(id, v) || pickCampIdleLine(id);
-          line = fb.text;
-          mood = fb.mood || moodHint;
+        if (kind === "thought" || kind === "address") {
+          const tmod = await ensureCampThoughtsMod();
+          const ctx = {
+            visitor: v,
+            other: opts.otherName || "someone nearby",
+            headline: opts.headline || "the noisy feed",
+            music: opts.music || "the meadow hush",
+            scene: (typeof campBanterContext === "function" ? campBanterContext() : "aurora meadow"),
+          };
+          const fb = kind === "thought"
+            ? tmod?.pickInnerThought?.(id, ctx)
+            : tmod?.pickAddressLine?.(id, ctx);
+          line = fb?.text || "";
+          mood = fb?.mood || moodHint;
         } else {
-          line = mod?.pickFallbackOpener?.(id, v) || pickAgentOpenerStatic(id);
+          const mod = await ensureCampBanterMod();
+          if (kind === "ambient" || kind === "idle") {
+            const fb = mod?.pickFallbackIdle?.(id, v) || pickCampIdleLine(id);
+            line = fb.text;
+            mood = fb.mood || moodHint;
+          } else {
+            line = mod?.pickFallbackOpener?.(id, v) || pickAgentOpenerStatic(id);
+          }
         }
         backend = "fallback";
       }
@@ -17833,12 +18004,19 @@
       const selected = !!(meta?.selected || (meta?.speaker && meta.speaker === selectedBubbleSpeaker));
       const dim = !!(meta?.dim);
       // Always show the character's name on the bubble
-      const speakerName = String(
+      let speakerName = String(
+        meta?.whoLabel ||
         meta?.speaker ||
         meta?.name ||
         (meta?.agentId && (agentNames[meta.agentId] || meta.agentId)) ||
         "",
       ).trim();
+      const isThought = !!meta?.thought;
+      if (isThought && speakerName && !/thinking/i.test(speakerName)) {
+        speakerName = `${speakerName} · thinking`;
+      } else if (meta?.to && speakerName && !speakerName.includes("→")) {
+        speakerName = `${speakerName} → ${meta.to}`;
+      }
       // Hug the words; selected monologues scroll when longer than the viewport window
       const fontSize = selected
         ? (ios ? 13 : mobile ? 14 : 15)
@@ -17927,9 +18105,11 @@
       ctx.beginPath();
       ctx.roundRect(bx, by, boxW, boxH, selected ? 14 : 12);
       ctx.fill();
-      ctx.strokeStyle = selected ? "#fde68a" : color;
+      ctx.strokeStyle = selected ? (isThought ? "#93c5fd" : "#fde68a") : color;
       ctx.lineWidth = selected ? 4 : 2.5;
+      if (isThought) ctx.setLineDash([5, 4]);
       ctx.stroke();
+      ctx.setLineDash([]);
       // ✕ close button (3D parity) — drawn on every bubble, fat hit target
       const xBtn = mobile ? 34 : 30;
       const xPad = 4;
@@ -17958,8 +18138,8 @@
 
       // Name plate — corresponding character name on every bubble
       if (speakerName) {
-        ctx.fillStyle = selected ? "#fde68a" : color;
-        ctx.font = `800 ${nameSize}px Segoe UI`;
+        ctx.fillStyle = isThought ? "#93c5fd" : (selected ? "#fde68a" : color);
+        ctx.font = `${isThought ? "italic " : ""}800 ${nameSize}px Segoe UI`;
         ctx.textAlign = "left";
         const nameMaxW = boxW - 24 - xBtn - 6;
         let nameDraw = speakerName;
@@ -18004,7 +18184,7 @@
       lines.forEach((ln, i) => {
         const isHint = ln.startsWith("↕");
         ctx.fillStyle = isHint ? "#67e8f9" : "#f8fafc";
-        ctx.font = `600 ${fontSize}px Segoe UI`;
+        ctx.font = `${isThought ? "italic " : ""}600 ${fontSize}px Segoe UI`;
         const maxW = boxW - 24 - (i === 0 ? textRightPad - 12 : 0) - (canScroll ? 10 : 0);
         let drawLn = ln;
         if (ctx.measureText(drawLn).width > maxW) {
@@ -18170,6 +18350,11 @@
           holdLocked: isSel && bubbleHoldLocked,
           fullLine: fullEpic,
           freePos: !!free,
+          thought: n.bubbleKind === "thought",
+          to: n.talkToName || "",
+          whoLabel: n.bubbleKind === "thought"
+            ? `💭 ${whoName} · thinking`
+            : (n.talkToName ? `${whoName} → ${n.talkToName}` : whoName),
           // Dim others while a box is selected so FRONT stays obvious
           dim: !!(selectedBubbleSpeaker && !isSel),
         });
@@ -19020,25 +19205,224 @@
       });
     }
 
+    let campThoughtsMod = null;
+    async function ensureCampThoughtsMod() {
+      if (campThoughtsMod) return campThoughtsMod;
+      try {
+        campThoughtsMod = await import(`/static/camp/camp-thoughts.mjs?v=${CAMP_BUILD}`);
+      } catch (err) {
+        console.warn("camp-thoughts.mjs load failed", err);
+        campThoughtsMod = null;
+      }
+      return campThoughtsMod;
+    }
+
+    function nearestTalkPartner(npc) {
+      if (!npc) return null;
+      let best = null;
+      let bestD = Infinity;
+      for (const n of allRoamers()) {
+        if (!n || n.leaving || n.id === npc.id) continue;
+        if (n.insideHouse || n.behavior === "carnival") continue;
+        const d = dist(n, npc);
+        if (d < bestD) {
+          bestD = d;
+          best = n;
+        }
+      }
+      return best;
+    }
+
+    function mindPeekContext(npc, other) {
+      const visitor = myVisitorName || player.name || "traveler";
+      let headline = "";
+      if (campPulseItems.length) {
+        const it = campPulseItems[Math.floor(Math.random() * Math.min(campPulseItems.length, 8))];
+        headline = aetherSnippet(it?.text || "", 90);
+      }
+      let music = "";
+      try {
+        if (campMusicOn && !campMusicMuted) {
+          const tr = CAMP_MUSIC_TRACKS[campMusicTrackIdx % CAMP_MUSIC_TRACKS.length];
+          music = tr?.title || "jukebox";
+        }
+      } catch (_) {}
+      const scene = (typeof campContextSuffix === "function"
+        ? campContextSuffix().replace(/^\s*\(|\)\s*$/g, "")
+        : "") || "aurora meadow";
+      return {
+        visitor,
+        other: other?.name || "someone nearby",
+        headline: headline || "the noisy feed",
+        music: music || "the meadow hush",
+        scene,
+        role: AGENT_ROLES[npc.id] || "camp friend",
+      };
+    }
+
+    function nudgePairToTalk(a, b) {
+      if (!a || !b) return;
+      try {
+        const mx = (a.x + b.x) / 2;
+        const my = (a.y + b.y) / 2;
+        a.tx = mx - 14;
+        b.tx = mx + 14;
+        a.ty = my;
+        b.ty = my;
+        a.idle = 90;
+        b.idle = 90;
+        a.behavior = "stand";
+        b.behavior = "stand";
+      } catch (_) {}
+    }
+
+    function showAgentThoughtBubble(npc, text, opts = {}) {
+      if (!npc || !text) return;
+      const name = npc.name || agentNames[npc.id] || npc.id;
+      const otherName = opts.to || "";
+      const thought = opts.thought !== false;
+      npc.bubbleKind = thought ? "thought" : "speech";
+      npc.talkToName = otherName;
+      npc.fullLine = text;
+      npc.line = text;
+      if (opts.mood) npc.mood = opts.mood;
+      const whoLabel = thought
+        ? `💭 ${name} · thinking`
+        : (otherName ? `${name} → ${otherName}` : name);
+      try {
+        upsertDomBubble(name, text, {
+          color: npc.color || AGENT_COLORS[npc.id],
+          agentId: npc.id,
+          mood: opts.mood || npc.mood || "think",
+          thought,
+          to: otherName,
+          whoLabel,
+          focus: true,
+          quiet: true,
+          forcePeek: true,
+          skipSelect: true,
+        });
+      } catch (_) {}
+      try {
+        selectSpeechBubble(name, text, opts.mood || npc.mood || "think", {
+          color: npc.color || AGENT_COLORS[npc.id],
+          agentId: npc.id,
+          fullLine: text,
+          displayLine: text,
+          front: true,
+          quiet: true,
+          skipDom: true,
+        });
+      } catch (_) {}
+    }
+
+    let mindPeekSeq = 0;
+    async function revealAgentMind(npc) {
+      if (!npc || npc.leaving) return;
+      const seq = ++mindPeekSeq;
+      if (isTalkMin()) setTalkMin(false);
+      const other = nearestTalkPartner(npc);
+      const ctx = mindPeekContext(npc, other);
+      const mod = await ensureCampThoughtsMod();
+      if (seq !== mindPeekSeq) return;
+      const instant = mod?.pickInnerThought?.(npc.id, ctx) || {
+        text: `${ctx.other} is close. ${ctx.visitor} just looked. Inner take: ${ctx.headline} is weather. The meadow is climate.`,
+        mood: "think",
+      };
+      showAgentThoughtBubble(npc, instant.text, { thought: true, mood: instant.mood || "think" });
+      showToast(`💭 ${npc.name || npc.id} thinking${other ? ` · then talks to ${other.name}` : ""}`);
+      if (other) nudgePairToTalk(npc, other);
+
+      let thoughtText = instant.text;
+      let thoughtMood = instant.mood || "think";
+      try {
+        const live = await speakDynamicBanter(npc.id, "thought", {
+          quiet: true,
+          push: false,
+          priority: true,
+          mood: instant.mood || "think",
+          otherName: other?.name || "",
+          headline: ctx.headline,
+          music: ctx.music,
+        });
+        if (seq !== mindPeekSeq) return;
+        if (live?.line && String(live.line).split(/\s+/).filter(Boolean).length >= 8) {
+          thoughtText = live.line;
+          thoughtMood = live.mood || thoughtMood;
+          showAgentThoughtBubble(npc, thoughtText, { thought: true, mood: thoughtMood });
+        }
+      } catch (_) {}
+      pushCampLine(npc.name || agentNames[npc.id] || npc.id, thoughtText, campReadHoldSec(thoughtText, 18), thoughtMood, {
+        fromLocal: true,
+        thought: true,
+      });
+
+      if (seq !== mindPeekSeq) return;
+      await new Promise((r) => setTimeout(r, 1600));
+      if (seq !== mindPeekSeq) return;
+      if (!other) return;
+
+      let address = mod?.pickAddressLine?.(npc.id, ctx) || {
+        text: `${other.name} — ${ctx.visitor} just tapped me. What's the true take under '${ctx.headline}'?`,
+        mood: "think",
+      };
+      try {
+        const liveA = await speakDynamicBanter(npc.id, "address", {
+          quiet: true,
+          push: false,
+          priority: true,
+          otherName: other.name,
+          headline: ctx.headline,
+          music: ctx.music,
+          priorThought: thoughtText,
+          replyTo: { name: other.name, line: thoughtText },
+        });
+        if (seq !== mindPeekSeq) return;
+        if (liveA?.line && String(liveA.line).split(/\s+/).filter(Boolean).length >= 6) {
+          address = { text: liveA.line, mood: liveA.mood || address.mood };
+        }
+      } catch (_) {}
+      showAgentThoughtBubble(npc, address.text, { thought: false, mood: address.mood, to: other.name });
+      pushCampLine(npc.name || agentNames[npc.id] || npc.id, address.text, campReadHoldSec(address.text, 18), address.mood || "happy", {
+        fromLocal: true,
+        to: other.name,
+      });
+
+      await new Promise((r) => setTimeout(r, 2800));
+      if (seq !== mindPeekSeq) return;
+
+      const replyCtx = { ...ctx, other: npc.name || agentNames[npc.id] || npc.id };
+      let reply = mod?.pickReplyLine?.(other.id, replyCtx) || {
+        text: `I heard you. The easy version is a joke. The harder one is we meant it.`,
+        mood: "think",
+      };
+      try {
+        const liveR = await speakDynamicBanter(other.id, "ambient", {
+          quiet: true,
+          push: false,
+          priority: true,
+          replyTo: { name: npc.name, line: address.text },
+        });
+        if (seq !== mindPeekSeq) return;
+        if (liveR?.line && String(liveR.line).split(/\s+/).filter(Boolean).length >= 6) {
+          reply = { text: liveR.line, mood: liveR.mood || reply.mood };
+        }
+      } catch (_) {}
+      showAgentThoughtBubble(other, reply.text, { thought: false, mood: reply.mood, to: npc.name });
+      pushCampLine(other.name || agentNames[other.id] || other.id, reply.text, campReadHoldSec(reply.text, 16), reply.mood || "happy", {
+        fromLocal: true,
+        to: npc.name,
+      });
+    }
+
     function onAgentTap(npc) {
       if (!npc || npc.leaving) return;
       const pos = agentWorldPos(npc);
       agentTalkPending = null;
       pendingCampAction = null;
-      // Select mind + bubble only — no chat popup, no forced keyboard
+      // Lock talk target + peek inner thought, then 1-on-1 with nearest campmate
       focusChatAgent(npc.id, { focusInput: false, rail: true, quiet: true });
-      try {
-        if (npc.line || npc.fullLine) {
-          selectSpeechBubble(npc.name || agentNames[npc.id] || npc.id, npc.fullLine || npc.line, npc.mood || "neutral", {
-            agentId: npc.id,
-            color: npc.color,
-            front: true,
-            quiet: true,
-            displayLine: npc.fullLine || npc.line,
-          });
-        }
-      } catch (_) {}
-      showToast(`🔒 ${npc.name || npc.id} · type below`);
+      void revealAgentMind(npc);
       if (!playerNearAgent(npc)) {
         walkPlayerTo(pos.x, pos.y - 6);
       }
@@ -20717,6 +21101,8 @@
           const eid = hit?.id || Object.entries(agentNames || {}).find(([, n]) => String(n).toLowerCase() === sp)?.[0];
           if (eid && AGENT_EMOJI[eid]) whoLabel = `${AGENT_EMOJI[eid]} ${whoLabel}`;
         }
+        if (entry.thought) whoLabel = `${whoLabel} · thinking`;
+        else if (entry.to) whoLabel = `${whoLabel} → ${entry.to}`;
         const time = formatConvoTime(entry.t);
         const isFocus = !!(focusId && (
           sp === focusId
@@ -20821,7 +21207,14 @@
       }
       const moodVal = mood || agentMoods[agentId] || "neutral";
       if (agentId && agentMoods[agentId] !== undefined) setAgentMood(agentId, moodVal);
-      const entry = { speaker, text: clean, mood: moodVal, t: Date.now() };
+      const entry = {
+        speaker,
+        text: clean,
+        mood: moodVal,
+        t: Date.now(),
+        thought: !!opts.thought,
+        to: opts.to || "",
+      };
       const dup = campLines.length && campLines[campLines.length - 1].text === clean
         && campLines[campLines.length - 1].speaker === speaker;
       if (!dup) {

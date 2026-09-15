@@ -2788,7 +2788,7 @@ class FirmamentAgentTweetBody(BaseModel):
 class FirmamentBanterBody(BaseModel):
     """Dynamic camp openers / ambient banter (live free minds)."""
     agent_id: str = "luna"
-    kind: str = "opener"  # opener | ambient | arrive
+    kind: str = "opener"  # opener | ambient | arrive | thought | address
     visitor_id: str = ""
     visitor_name: str = ""
     returning: bool = False
@@ -2797,6 +2797,10 @@ class FirmamentBanterBody(BaseModel):
     wave_index: int = 0
     reply_to_name: str = ""
     reply_to_idea: str = ""
+    other_name: str = ""
+    headline: str = ""
+    music: str = ""
+    prior_thought: str = ""
 
 
 class FirmamentCampMemoryBody(BaseModel):
@@ -3106,6 +3110,10 @@ async def firmament_banter_api(request: Request):
             wave_index=body.wave_index,
             reply_to_name=body.reply_to_name,
             reply_to_idea=body.reply_to_idea,
+            other_name=getattr(body, "other_name", "") or "",
+            headline=getattr(body, "headline", "") or "",
+            music=getattr(body, "music", "") or "",
+            prior_thought=getattr(body, "prior_thought", "") or "",
             pack_name=str(hub.pack.get("name") or hub.pack_id),
         )
     except Exception as exc:

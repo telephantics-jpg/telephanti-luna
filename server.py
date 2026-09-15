@@ -34,7 +34,7 @@ from firmament.paths import data_file, script_path
 
 STATS_PATH = data_file("luna_stats.json")
 PORT = int(os.getenv("PORT", os.getenv("LUNA_PORT", "8767")))
-LUNA_BUILD = "357-VOX-ANDREW"
+LUNA_BUILD = "365-MIND-PEEK"
 RADIO_RELEASE_BASE = (
     "https://github.com/telephantics-jpg/telephantim-hub/releases/download/radio-v1"
 )

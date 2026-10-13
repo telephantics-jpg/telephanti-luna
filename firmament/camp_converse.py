@@ -253,10 +253,9 @@ def converse_thread_prompt(
         bits.append(f"{who}: {idea}")
     transcript = "\n".join(bits)
     return (
-        f"{', '.join(names)} are talking.\n"
-        f"{transcript}\n"
-        f"{prev_name} said: {prev_idea}\n"
-        f"Your turn — talk to {prev_name}."
+        f"You're in a quiet meadow conversation.\n"
+        f"Last line you heard:\n\"{prev_idea}\"\n"
+        f"Answer that thought. Do not name-drop the others. Do not write '{prev_name} said'. Just speak."
     )
 
 

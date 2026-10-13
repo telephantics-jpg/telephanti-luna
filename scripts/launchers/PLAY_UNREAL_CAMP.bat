@@ -6,6 +6,7 @@ cd /d "%ROOT%"
 echo.
 echo ========================================
 echo   OPENING LUNA UNREAL (cloud brain)
+echo   Brains: telephanti.com — NO local server needed
 echo ========================================
 echo.
 

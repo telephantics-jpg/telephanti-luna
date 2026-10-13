@@ -864,6 +864,86 @@
         "roof": "#f59e0b",
         "symbol": "cross"
       }
+    },
+    {
+      "id": "caduceus-home",
+      "kind": "house",
+      "owner_id": "caduceus",
+      "name": "Caduceus' Clinic",
+      "emoji": "🏡",
+      "x": -900,
+      "y": 720,
+      "visual": { "kit": "clinic", "primary": "#34d399", "roof": "#047857", "symbol": "caduceus" }
+    },
+    {
+      "id": "sentinel-home",
+      "kind": "house",
+      "owner_id": "sentinel",
+      "name": "Sentinel's Watch",
+      "emoji": "🗼",
+      "x": -1400,
+      "y": 180,
+      "visual": { "kit": "watch", "primary": "#67e8f9", "roof": "#0e7490", "symbol": "shield" }
+    },
+    {
+      "id": "aurora-home",
+      "kind": "house",
+      "owner_id": "aurora",
+      "name": "Aurora's Lights",
+      "emoji": "🏠",
+      "x": 180,
+      "y": -1080,
+      "visual": { "kit": "aurora", "primary": "#f472b6", "roof": "#9d174d", "symbol": "lights" }
+    },
+    {
+      "id": "violet-home",
+      "kind": "house",
+      "owner_id": "violet",
+      "name": "Violet's Dusk",
+      "emoji": "🏠",
+      "x": 920,
+      "y": -380,
+      "visual": { "kit": "dusk", "primary": "#c084fc", "roof": "#6b21a8", "symbol": "violet" }
+    },
+    {
+      "id": "seraph-home",
+      "kind": "house",
+      "owner_id": "seraph",
+      "name": "Seraph's Hearth",
+      "emoji": "🏠",
+      "x": 220,
+      "y": 1080,
+      "visual": { "kit": "hearth", "primary": "#fda4af", "roof": "#be123c", "symbol": "wing" }
+    },
+    {
+      "id": "ambrosia-home",
+      "kind": "house",
+      "owner_id": "ambrosia",
+      "name": "Ambrosia's Pantry",
+      "emoji": "🏡",
+      "x": 1320,
+      "y": 240,
+      "visual": { "kit": "pantry", "primary": "#f59e0b", "roof": "#b45309", "symbol": "honey" }
+    },
+    {
+      "id": "rhea-home",
+      "kind": "house",
+      "owner_id": "rhea",
+      "name": "Rhea's Earth House",
+      "emoji": "🏠",
+      "x": 1120,
+      "y": -1080,
+      "visual": { "kit": "earth", "primary": "#d4a574", "roof": "#57534e", "symbol": "grain" }
+    },
+    {
+      "id": "telephantix-home",
+      "kind": "house",
+      "owner_id": "telephantix",
+      "name": "Telephantix Lounge",
+      "emoji": "🐘",
+      "x": 80,
+      "y": -220,
+      "visual": { "kit": "lounge", "primary": "#38bdf8", "roof": "#075985", "symbol": "elephant" }
     }
   ],
   "agents": [

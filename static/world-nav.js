@@ -114,9 +114,10 @@
       "#world-nav button:active{transform:scale(.97)}",
       "#world-nav button.active{color:#0b1220;background:linear-gradient(135deg,#f0d060,#c9a227);",
       "box-shadow:0 0 12px rgba(201,162,39,.35)}",
-      "#world-nav button[data-id='luna-2d'].active,",
-      "#world-nav button[data-id='luna-3d'].active{color:#e8f6ff;",
+      "#world-nav button[data-id='luna-2d'].active{color:#e8f6ff;",
       "background:linear-gradient(135deg,#1a4a7a,#0c2848)}",
+      "#world-nav button[data-id='luna-3d'].active{color:#17140f;",
+      "background:linear-gradient(135deg,#e8ddc0,#c8993c)}",
       "@media (max-width:380px){#world-nav button{font-size:10px;padding:6px 8px;min-width:40px}}",
     ].join("");
     document.head.appendChild(s);

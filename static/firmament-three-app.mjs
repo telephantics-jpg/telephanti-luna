@@ -11,7 +11,7 @@
     import * as campProps from "camp-props";
     import * as godForms from "./firmament-god-forms.mjs?v=godbots-fix";
 
-    const BUILD = "2026-08-28-distrokid";
+    const BUILD = "2026-10-13-warcamp3";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -247,7 +247,7 @@
           }
           renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
           renderer.setSize(window.innerWidth, window.innerHeight);
-          renderer.setClearColor(0x0a1230, 1);
+          renderer.setClearColor(0x17140f, 1);
           if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
           renderer.shadowMap.enabled = true;
           renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -300,7 +300,7 @@
     const isLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
     if (stampEl) {
       stampEl.textContent = isLocal ? `✦ SANDBOX 3D · ${BUILD}` : `✦ 3D THREE · ${BUILD}`;
-      stampEl.style.borderColor = isLocal ? "#38bdf8" : "rgba(56,189,248,0.45)";
+      stampEl.style.borderColor = isLocal ? "#c8993c" : "rgba(200, 153, 60,0.45)";
     }
 
     // ── Shared world catalog (architecture layer B) ──
@@ -334,7 +334,7 @@
       emoji: p.emoji || "✦",
       x: p.x ?? 0,
       y: p.y ?? 0,
-      color: campWorld.parseColorNumber(p.visual?.primary, 0x888888),
+      color: campWorld.parseColorNumber(p.visual?.primary, 0x9a958c),
       use: p.use || `You use ${p.name || p.id}.`,
       visual: p.visual || {},
       feature: p.feature || "",
@@ -346,8 +346,8 @@
       emoji: h.emoji || "🏠",
       x: h.x ?? 0,
       y: h.y ?? 0,
-      wall: campWorld.parseColorNumber(h.visual?.primary, 0x555555),
-      roof: campWorld.parseColorNumber(h.visual?.roof || h.visual?.accent, 0x333333),
+      wall: campWorld.parseColorNumber(h.visual?.primary, 0x57534e),
+      roof: campWorld.parseColorNumber(h.visual?.roof || h.visual?.accent, 0x3d3a34),
       castle: !!h.castle || h.visual?.kit === "mead_hall",
       visual: h.visual || {},
     }));
@@ -358,8 +358,8 @@
       emoji: l.emoji || "✦",
       x: l.x ?? 0,
       y: l.y ?? 0,
-      color: campWorld.parseColorNumber(l.visual?.primary, 0x666666),
-      roof: campWorld.parseColorNumber(l.visual?.roof, 0x444444),
+      color: campWorld.parseColorNumber(l.visual?.primary, 0x7a756c),
+      roof: campWorld.parseColorNumber(l.visual?.roof, 0x3d3a34),
       use: l.use || `You visit ${l.name || l.id}.`,
       visual: l.visual || {},
     }));
@@ -367,7 +367,7 @@
     const ALL_AGENT_DEFS = (catalog.agents || []).map((a) => ({
       id: a.id,
       name: a.name || a.id,
-      color: campWorld.parseColorNumber(a.visual?.primary, 0xaaaaaa),
+      color: campWorld.parseColorNumber(a.visual?.primary, 0x9a958c),
       accent: campWorld.parseColorNumber(a.visual?.accent, 0xffffff),
       x: a.x ?? 0,
       y: a.y ?? 0,
@@ -388,11 +388,11 @@
         {
           id: "thor",
           name: "Thor",
-          color: 0x38bdf8,
-          accent: 0xf97316,
+          color: 0xc8993c,
+          accent: 0xff6b2d,
           x: 200,
           y: 200,
-          visual: { archetype: "thunder", primary: "#38bdf8", accent: "#f97316" },
+          visual: { archetype: "thunder", primary: "#c8993c", accent: "#ff6b2d" },
           base: true,
           summon: "",
           mood: "happy",
@@ -405,7 +405,7 @@
           base: true,
           summon: "",
           name: thorDef.name || "Thor",
-          color: thorDef.color || 0x38bdf8,
+          color: thorDef.color || 0xc8993c,
           mood: thorDef.mood || "happy",
         },
       ];
@@ -419,7 +419,7 @@
         .map((a) => ({
           id: a.id,
           name: a.name || a.id,
-          color: campWorld.parseColorNumber(a.visual?.primary, 0xaaaaaa),
+          color: campWorld.parseColorNumber(a.visual?.primary, 0x9a958c),
           accent: campWorld.parseColorNumber(a.visual?.accent, 0xffffff),
           x: a.x ?? 0,
           y: a.y ?? 0,
@@ -445,31 +445,31 @@
 
     // Mood/prop look tables MUST exist before makeAgent → applyLook (const TDZ bug froze boot)
     const MOOD_TINT = {
-      happy: 0xfbbf24, love: 0xf472b6, think: 0xa78bfa, alert: 0x38bdf8,
-      flirt: 0xfb7185, neutral: 0x94a3b8, afraid: 0x64748b, urgent: 0xf97316,
+      happy: 0xd9a441, love: 0xb4831f, think: 0xb4831f, alert: 0xc8993c,
+      flirt: 0xb4831f, neutral: 0x9a958c, afraid: 0x7a756c, urgent: 0xff6b2d,
     };
     const PROP_LOOK = {
       beer: { tint: 0xf59e0b, glow: 0.45, scaleY: 1.06, mood: "happy" },
-      steaks: { tint: 0xdc2626, glow: 0.5, scaleX: 1.08, mood: "happy" },
-      herbs: { tint: 0x4ade80, glow: 0.35, scaleY: 0.96, mood: "love" },
-      weed: { tint: 0x22c55e, glow: 0.4, scaleY: 0.92, mood: "think" },
+      steaks: { tint: 0x9c1f1f, glow: 0.5, scaleX: 1.08, mood: "happy" },
+      herbs: { tint: 0x8a6934, glow: 0.35, scaleY: 0.96, mood: "love" },
+      weed: { tint: 0x8a6934, glow: 0.4, scaleY: 0.92, mood: "think" },
       cookies: { tint: 0xd4a05a, glow: 0.35, scaleX: 1.05, mood: "happy" },
-      ouija: { tint: 0xa855f7, glow: 0.55, scaleY: 1.04, mood: "think" },
-      stereo: { tint: 0x38bdf8, glow: 0.5, scaleX: 1.06, mood: "flirt" },
-      water: { tint: 0x38bdf8, glow: 0.3, scaleY: 1.0, mood: "neutral" },
-      snacks: { tint: 0xfbbf24, glow: 0.4, scaleX: 1.05, mood: "happy" },
-      fruit: { tint: 0xef4444, glow: 0.35, scaleY: 1.02, mood: "love" },
-      wine: { tint: 0x9f1239, glow: 0.45, scaleY: 1.05, mood: "flirt" },
+      ouija: { tint: 0x8a5512, glow: 0.55, scaleY: 1.04, mood: "think" },
+      stereo: { tint: 0xc8993c, glow: 0.5, scaleX: 1.06, mood: "flirt" },
+      water: { tint: 0xc8993c, glow: 0.3, scaleY: 1.0, mood: "neutral" },
+      snacks: { tint: 0xd9a441, glow: 0.4, scaleX: 1.05, mood: "happy" },
+      fruit: { tint: 0x9c1f1f, glow: 0.35, scaleY: 1.02, mood: "love" },
+      wine: { tint: 0x9c1f1f, glow: 0.45, scaleY: 1.05, mood: "flirt" },
       marshmallows: { tint: 0xfef3c7, glow: 0.35, scaleX: 1.04, mood: "love" },
-      tea: { tint: 0x86efac, glow: 0.3, scaleY: 0.98, mood: "think" },
+      tea: { tint: 0xd6b98a, glow: 0.3, scaleY: 0.98, mood: "think" },
       bread: { tint: 0xd6a06a, glow: 0.25, scaleX: 1.03, mood: "love" },
-      cooler2: { tint: 0x0ea5e9, glow: 0.4, scaleY: 1.04, mood: "happy" },
-      trex: { tint: 0x3f7a3a, glow: 0.55, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
-      horse: { tint: 0x3f7a3a, glow: 0.55, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
-      flamingo: { tint: 0xf472b6, glow: 0.4, mood: "flirt" },
-      parrot: { tint: 0x22c55e, glow: 0.4, mood: "happy" },
-      duck: { tint: 0xfbbf24, glow: 0.35, mood: "love" },
-      mjolnir: { tint: 0x38bdf8, glow: 0.75, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
+      cooler2: { tint: 0xb4791a, glow: 0.4, scaleY: 1.04, mood: "happy" },
+      trex: { tint: 0x6d5324, glow: 0.55, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
+      horse: { tint: 0x6d5324, glow: 0.55, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
+      flamingo: { tint: 0xb4831f, glow: 0.4, mood: "flirt" },
+      parrot: { tint: 0x8a6934, glow: 0.4, mood: "happy" },
+      duck: { tint: 0xd9a441, glow: 0.35, mood: "love" },
+      mjolnir: { tint: 0xc8993c, glow: 0.75, scaleX: 1.06, scaleY: 1.08, mood: "alert" },
     };
 
     /** Props you + agents can pick up and tote (X to drop · tap a friend to gift). */
@@ -507,7 +507,7 @@
         });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x0a1230, 1);
+        renderer.setClearColor(0x17140f, 1);
         if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -533,8 +533,8 @@
     }
 
     const scene = new THREE.Scene();
-    // Lighter, teal-violet fog so color pops (2D neon night)
-    scene.fog = new THREE.FogExp2(0x14203a, 0.0016);
+    // Warmer, ember fog so torchlight pops (war-camp night)
+    scene.fog = new THREE.FogExp2(0x1a1410, 0.0016);
 
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 900);
     // Follow player start pose (target set with OrbitControls below)
@@ -625,12 +625,12 @@
 
     let followPlayer = true; // follow user at start
 
-    // Lights — vivid 2D-style aurora night
-    scene.add(new THREE.AmbientLight(0xb8c8ff, 0.62));
-    // Cool sky / dark ground so video floor isn’t washed green
-    const hemi = new THREE.HemisphereLight(0x7dd3fc, 0x1a1528, 0.72);
+    // Lights — ember night: torch-lit war camp
+    scene.add(new THREE.AmbientLight(0xd8c8b8, 0.5));
+    // Warm bone sky / dark ground
+    const hemi = new THREE.HemisphereLight(0x9a958c, 0x241a12, 0.75);
     scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xffe4c4, 1.25);
+    const sun = new THREE.DirectionalLight(0xffd9a8, 1.15);
     sun.position.set(28, 40, 18);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -641,14 +641,14 @@
     sun.shadow.camera.top = 80;
     sun.shadow.camera.bottom = -80;
     scene.add(sun);
-    // Magenta / cyan accent lights (2D neon)
-    const accentA = new THREE.PointLight(0xf472b6, 0.85, 55, 2);
+    // Ember / bronze grits (war-camp accents)
+    const accentA = new THREE.PointLight(0xb4791a, 0.9, 55, 2);
     accentA.position.set(-12, 6, 8);
     scene.add(accentA);
-    const accentB = new THREE.PointLight(0x67e8f9, 0.75, 50, 2);
+    const accentB = new THREE.PointLight(0x8a4a2a, 0.7, 50, 2);
     accentB.position.set(14, 5, -10);
     scene.add(accentB);
-    const accentC = new THREE.PointLight(0xa78bfa, 0.65, 48, 2);
+    const accentC = new THREE.PointLight(0x7f1d1d, 0.6, 48, 2);
     accentC.position.set(0, 8, -14);
     scene.add(accentC);
 
@@ -668,12 +668,12 @@
         side: THREE.BackSide,
         depthWrite: false,
         uniforms: {
-          topColor: { value: new THREE.Color(0x0a1640) },
-          midColor: { value: new THREE.Color(0x2e1065) },
-          bottomColor: { value: new THREE.Color(0x0c1a2e) },
-          aurora: { value: new THREE.Color(0x34d399) },
-          aurora2: { value: new THREE.Color(0xa78bfa) },
-          aurora3: { value: new THREE.Color(0xf472b6) },
+          topColor: { value: new THREE.Color(0x2a2620) },
+          midColor: { value: new THREE.Color(0x2b1a10) },
+          bottomColor: { value: new THREE.Color(0x17140f) },
+          aurora: { value: new THREE.Color(0xff6b2d) },
+          aurora2: { value: new THREE.Color(0xb4791a) },
+          aurora3: { value: new THREE.Color(0x9c1f1f) },
           uTime: { value: 0 },
         },
         vertexShader: `
@@ -709,8 +709,8 @@
             float hash = fract(sin(dot(n.xz * 90.0, vec2(12.9898,78.233))) * 43758.5453);
             float stars = step(0.994, hash) * (0.6 + 0.4 * sin(uTime * 3.0 + hash * 40.0));
             col += stars * smoothstep(0.28, 1.0, h);
-            // horizon neon rim
-            col += vec3(0.15, 0.45, 0.55) * pow(1.0 - abs(n.y), 4.0) * 0.35;
+            // horizon torch rim
+            col += vec3(0.55, 0.30, 0.06) * pow(1.0 - abs(n.y), 4.0) * 0.35;
             gl_FragColor = vec4(col, 1.0);
           }
         `,
@@ -721,8 +721,8 @@
     // Distant mountain silhouettes (simple, cheap depth)
     {
       const mMat = new THREE.MeshStandardMaterial({
-        color: 0x1e1b4b, roughness: 0.95, metalness: 0.05, flatShading: true,
-        emissive: 0x4c1d95, emissiveIntensity: 0.28,
+        color: 0x2a2620, roughness: 0.98, metalness: 0.06, flatShading: true,
+        emissive: 0x3d1f0e, emissiveIntensity: 0.3,
       });
       for (let i = 0; i < 12; i++) {
         const ang = (i / 12) * Math.PI * 2 + 0.2;
@@ -753,10 +753,10 @@
       const under = new THREE.Mesh(
         new THREE.PlaneGeometry(240, 240),
         new THREE.MeshStandardMaterial({
-          color: 0x0a0c14,
+          color: 0x17140f,
           roughness: 0.95,
           metalness: 0.05,
-          emissive: 0x05070f,
+          emissive: 0x17140f,
           emissiveIntensity: 0.25,
         }),
       );
@@ -769,7 +769,7 @@
       // Floor mesh first with cool still — visible on iOS before any video gesture
       const floorGeo = new THREE.PlaneGeometry(200, 200, 1, 1);
       const floorMat = new THREE.MeshBasicMaterial({
-        color: 0x0c1220,
+        color: 0x17140f,
         side: THREE.DoubleSide,
         toneMapped: false,
       });
@@ -950,7 +950,7 @@
           color: 0x5b3a1a,
           roughness: 0.85,
           metalness: 0.08,
-          emissive: 0xfbbf24,
+          emissive: 0xd9a441,
           emissiveIntensity: 0.12,
         }),
       );
@@ -961,7 +961,7 @@
       const glowRing = new THREE.Mesh(
         new THREE.RingGeometry(3.95, 4.15, 64),
         new THREE.MeshBasicMaterial({
-          color: 0x67e8f9,
+          color: 0xd9a441,
           transparent: true,
           opacity: 0.35,
           side: THREE.DoubleSide,
@@ -995,7 +995,7 @@
         new THREE.ConeGeometry(0.42, 1.35, 10),
         new THREE.MeshStandardMaterial({
           color: 0xff6b2d,
-          emissive: 0xff4500,
+          emissive: 0xff6b2d,
           emissiveIntensity: 2.2,
           transparent: true,
           opacity: 0.92,
@@ -1056,11 +1056,11 @@
       const col = new Float32Array(N * 3);
       const phase = new Float32Array(N);
       const palette = [
-        new THREE.Color(0x67e8f9),
-        new THREE.Color(0xa78bfa),
-        new THREE.Color(0xf472b6),
-        new THREE.Color(0x86efac),
-        new THREE.Color(0xfde68a),
+        new THREE.Color(0xd9a441),
+        new THREE.Color(0xb4831f),
+        new THREE.Color(0xb4831f),
+        new THREE.Color(0xd6b98a),
+        new THREE.Color(0xffc266),
       ];
       for (let i = 0; i < N; i++) {
         const a = Math.random() * Math.PI * 2;
@@ -1104,14 +1104,14 @@
       trunk.position.y = 0.6 * h;
       trunk.castShadow = true;
       g.add(trunk);
-      const leafCols = [0x16a34a, 0x22c55e, 0x4ade80, 0x0d9488];
+      const leafCols = [0x8a6934, 0x8a6934, 0x8a6934, 0x8a6934];
       const leaf = new THREE.Mesh(
         new THREE.IcosahedronGeometry(0.9 * h, 0),
         new THREE.MeshStandardMaterial({
           color: leafCols[Math.floor(Math.random() * leafCols.length)],
           roughness: 0.72,
           metalness: 0.06,
-          emissive: 0x14532d,
+          emissive: 0x2a1c08,
           emissiveIntensity: 0.12,
         }),
       );
@@ -1167,7 +1167,7 @@
       const lamp = new THREE.Mesh(
         new THREE.SphereGeometry(0.12, 10, 10),
         new THREE.MeshStandardMaterial({
-          color: 0xfde68a,
+          color: 0xffc266,
           emissive: 0x000000,
           emissiveIntensity: 0,
         }),
@@ -1229,7 +1229,7 @@
         group.add(water);
         const ring = new THREE.Mesh(
           new THREE.RingGeometry(1.75, 2.05, 32),
-          new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.9 }),
+          new THREE.MeshStandardMaterial({ color: 0x2a1c08, roughness: 0.9 }),
         );
         ring.rotation.x = -Math.PI / 2;
         ring.position.y = 0.05;
@@ -1237,7 +1237,7 @@
       } else if (type === "tv") {
         const set = new THREE.Mesh(
           new THREE.BoxGeometry(1.4, 1.0, 0.35),
-          new THREE.MeshStandardMaterial({ color: 0x1e1b4b, emissive: lm.color, emissiveIntensity: 0.35 }),
+          new THREE.MeshStandardMaterial({ color: 0x241a0c, emissive: lm.color, emissiveIntensity: 0.35 }),
         );
         set.position.y = 0.9;
         set.castShadow = true;
@@ -1315,14 +1315,14 @@
       canvas.height = 128;
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, 256, 128);
-      ctx.fillStyle = "rgba(8,14,28,0.82)";
+      ctx.fillStyle = "rgba(42,38,32,0.82)";
       roundRect(ctx, 16, 24, 224, 80, 16);
       ctx.fill();
       ctx.font = "48px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(emoji, 128, 78);
       ctx.font = "bold 18px system-ui, sans-serif";
-      ctx.fillStyle = "#e2e8f0";
+      ctx.fillStyle = "#e8ddc0";
       ctx.fillText(text, 128, 100);
       const tex = new THREE.CanvasTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
@@ -1346,7 +1346,7 @@
       const g = new THREE.Group();
       g.userData.propBob = Math.random() * Math.PI * 2;
       const kit = prop.visual?.kit || prop.id || "crate";
-      const col = prop.color || 0x888888;
+      const col = prop.color || 0x9a958c;
       const mat = (c, rough = 0.55, metal = 0.08, em = 0.06) =>
         new THREE.MeshStandardMaterial({
           color: c, roughness: rough, metalness: metal,
@@ -1371,8 +1371,8 @@
 
       if (kit === "cooler" || prop.id === "beer" || prop.id === "cooler2") {
         add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.72, 0.78), mat(col, 0.35, 0.45, 0.05)), 0.42);
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.1, 0.84), mat(0x0f172a, 0.45, 0.35, 0)), 0.82);
-        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.03, 8, 16, Math.PI), mat(0x334155, 0.4, 0.5, 0));
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.1, 0.84), mat(0x17140f, 0.45, 0.35, 0)), 0.82);
+        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.03, 8, 16, Math.PI), mat(0x3d3a34, 0.4, 0.5, 0));
         handle.rotation.x = Math.PI / 2;
         handle.position.y = 0.95;
         handle.castShadow = true;
@@ -1380,29 +1380,29 @@
         for (let i = 0; i < 4; i++) {
           const b = new THREE.Mesh(
             new THREE.CylinderGeometry(0.07, 0.08, 0.38, 12),
-            mat(i % 2 ? 0xfbbf24 : 0xf97316, 0.25, 0.15, 0.12),
+            mat(i % 2 ? 0xd9a441 : 0xff6b2d, 0.25, 0.15, 0.12),
           );
           b.position.set(-0.32 + i * 0.2, 1.08, 0.05);
           b.castShadow = true;
           g.add(b);
-          const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.04, 12), mat(0x1e293b, 0.5, 0.3, 0));
+          const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.04, 12), mat(0x2a2620, 0.5, 0.3, 0));
           cap.position.set(b.position.x, 1.28, 0.05);
           g.add(cap);
         }
       } else if (kit === "grill" || prop.id === "steaks") {
         for (const lx of [-0.35, 0.35]) {
-          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 10), mat(0x1e293b, 0.6, 0.4, 0));
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.55, 10), mat(0x2a2620, 0.6, 0.4, 0));
           leg.position.set(lx, 0.28, 0);
           leg.castShadow = true;
           g.add(leg);
         }
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.18, 0.9), mat(0x334155, 0.45, 0.55, 0)), 0.58);
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.18, 0.9), mat(0x3d3a34, 0.45, 0.55, 0)), 0.58);
         const coal = add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 0.65), mat(0x7c2d12, 0.85, 0.05, 0.45)), 0.52);
-        coal.material.emissive = new THREE.Color(0xff4500);
+        coal.material.emissive = new THREE.Color(0xff6b2d);
         coal.material.emissiveIntensity = 0.35;
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.04, 0.72), mat(0xcbd5e1, 0.25, 0.75, 0.05)), 0.72);
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.04, 0.72), mat(0x3d3a34, 0.25, 0.75, 0.05)), 0.72);
         for (const ox of [-0.22, 0.22]) {
-          const steak = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.07, 0.3), mat(0xb91c1c, 0.55, 0.05, 0.2));
+          const steak = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.07, 0.3), mat(0x9c1f1f, 0.55, 0.05, 0.2));
           steak.position.set(ox, 0.82, 0);
           steak.rotation.y = ox * 0.2;
           steak.castShadow = true;
@@ -1411,12 +1411,12 @@
         // heat shimmer marker for animate loop
         g.userData.hot = true;
       } else if (kit === "jar" || prop.id === "weed") {
-        const jar = add(new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.58, 20), mat(0x4ade80, 0.2, 0.05, 0.08)), 0.42);
+        const jar = add(new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.58, 20), mat(0x8a6934, 0.2, 0.05, 0.08)), 0.42);
         jar.material.transparent = true;
         jar.material.opacity = 0.82;
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.1, 16), mat(0x166534, 0.45, 0.1, 0.05)), 0.76);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.1, 16), mat(0x573a12, 0.45, 0.1, 0.05)), 0.76);
         for (let i = 0; i < 3; i++) {
-          const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), mat(0x22c55e, 0.55, 0, 0.15));
+          const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), mat(0x8a6934, 0.55, 0, 0.15));
           leaf.scale.set(1.2, 0.45, 0.8);
           leaf.position.set(Math.cos(i) * 0.12, 0.55 + i * 0.05, Math.sin(i) * 0.1);
           g.add(leaf);
@@ -1435,37 +1435,37 @@
           g.add(chip);
         }
       } else if (kit === "board" || prop.id === "ouija") {
-        add(new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.22, 0.72), mat(0x1e1b4b, 0.75, 0.05, 0.08)), 0.16);
+        add(new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.22, 0.72), mat(0x241a0c, 0.75, 0.05, 0.08)), 0.16);
         add(new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.06, 0.66), mat(col, 0.45, 0.12, 0.2)), 0.38);
         // planchette
-        const planchette = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.08, 3), mat(0xe9d5ff, 0.35, 0.2, 0.35));
+        const planchette = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.08, 3), mat(0x9a958c, 0.35, 0.2, 0.35));
         planchette.rotation.x = -Math.PI / 2;
         planchette.position.set(0.05, 0.46, 0.05);
         g.add(planchette);
         g.userData.planchette = planchette;
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), mat(0xf5d0fe, 0.25, 0.15, 0.55));
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), mat(0xd9a441, 0.25, 0.15, 0.55));
         eye.position.set(0, 0.52, -0.12);
         g.add(eye);
       } else if (kit === "jukebox" || prop.id === "stereo") {
         add(new THREE.Mesh(new THREE.BoxGeometry(0.78, 1.25, 0.48), mat(col, 0.32, 0.5, 0.12)), 0.68);
-        const screen = add(new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.32, 0.06), mat(0x22d3ee, 0.2, 0.4, 0.55)), 1.0);
+        const screen = add(new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.32, 0.06), mat(0xf59e0b, 0.2, 0.4, 0.55)), 1.0);
         screen.position.z = 0.24;
         g.userData.screen = screen;
         for (const sx of [-0.18, 0.18]) {
-          const spk = new THREE.Mesh(new THREE.CircleGeometry(0.14, 20), mat(0x0f172a, 0.5, 0.2, 0));
+          const spk = new THREE.Mesh(new THREE.CircleGeometry(0.14, 20), mat(0x17140f, 0.5, 0.2, 0));
           spk.position.set(sx, 0.48, 0.25);
           g.add(spk);
-          const cone = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.12, 16), mat(0x64748b, 0.4, 0.3, 0));
+          const cone = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.12, 16), mat(0x7a756c, 0.4, 0.3, 0));
           cone.position.set(sx, 0.48, 0.255);
           g.add(cone);
         }
         // neon top light
-        const neon = add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.12), mat(0x38bdf8, 0.3, 0.2, 0.6)), 1.35);
+        const neon = add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.12), mat(0xc8993c, 0.3, 0.2, 0.6)), 1.35);
         neon.material.emissiveIntensity = 0.7;
       } else if (kit === "water" || prop.id === "water") {
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 1.05, 20), mat(0x38bdf8, 0.22, 0.25, 0.12)), 0.55);
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.18, 12), mat(0x0ea5e9, 0.3, 0.35, 0.1)), 1.15);
-        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.16, 12), mat(0xe0f2fe, 0.25, 0.1, 0.05));
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 1.05, 20), mat(0xc8993c, 0.22, 0.25, 0.12)), 0.55);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.18, 12), mat(0xb4791a, 0.3, 0.35, 0.1)), 1.15);
+        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.16, 12), mat(0xb4791a, 0.25, 0.1, 0.05));
         cup.position.set(0.38, 0.48, 0.18);
         cup.castShadow = true;
         g.add(cup);
@@ -1485,9 +1485,9 @@
       } else if (kit === "bowl" || prop.id === "fruit") {
         add(new THREE.Mesh(
           new THREE.SphereGeometry(0.42, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.52),
-          mat(0xd6d3d1, 0.4, 0.12, 0),
+          mat(0x9a958c, 0.4, 0.12, 0),
         ), 0.32);
-        const colors = [0xef4444, 0xfbbf24, 0x22c55e, 0xf97316, 0xa855f7];
+        const colors = [0x9c1f1f, 0xd9a441, 0x8a6934, 0xff6b2d, 0x8a5512];
         colors.forEach((c, i) => {
           const fr = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 12), mat(c, 0.45, 0, 0.08));
           const a = (i / colors.length) * Math.PI * 2;
@@ -1516,7 +1516,7 @@
         }
       } else if (kit === "kettle" || prop.id === "tea") {
         add(new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 18), mat(col, 0.32, 0.4, 0.08)), 0.48);
-        add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.16, 12), mat(0x166534, 0.4, 0.2, 0.05)), 0.8);
+        add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.16, 12), mat(0x573a12, 0.4, 0.2, 0.05)), 0.8);
         const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.3, 10), mat(col, 0.32, 0.35, 0.05));
         spout.rotation.z = Math.PI / 3.2;
         spout.position.set(0.3, 0.52, 0);
@@ -1530,30 +1530,30 @@
         add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.38, 0.08, 16), mat(0x57534e, 0.85, 0, 0)), 0.12);
       } else if (kit === "bundle" || prop.id === "herbs") {
         for (let i = 0; i < 7; i++) {
-          const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.75, 6), mat(0x4ade80, 0.55, 0, 0.12));
+          const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.75, 6), mat(0x8a6934, 0.55, 0, 0.12));
           stalk.position.set((i - 3) * 0.07, 0.42, (i % 3) * 0.04 - 0.04);
           stalk.rotation.z = (i - 3) * 0.06;
           stalk.castShadow = true;
           g.add(stalk);
-          const tip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), mat(0x86efac, 0.5, 0, 0.15));
+          const tip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), mat(0xd6b98a, 0.5, 0, 0.15));
           tip.position.set(stalk.position.x, 0.82, stalk.position.z);
           g.add(tip);
         }
-        add(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.1, 0.28), mat(0x365314, 0.75, 0, 0)), 0.1);
+        add(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.1, 0.28), mat(0x573a12, 0.75, 0, 0)), 0.1);
       } else if (kit === "trex" || kit === "horse" || prop.id === "trex" || prop.id === "horse") {
         // Fallback silhouette — nose along +Z (same convention as agents / buildTrexMesh)
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.75, 6, 12), mat(0x3f7a3a, 0.55));
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.75, 6, 12), mat(0x6d5324, 0.55));
         body.position.set(0, 1.05, 0.05);
         body.castShadow = true;
         g.add(body);
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.38, 0.62), mat(0x3f7a3a, 0.5));
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.38, 0.62), mat(0x6d5324, 0.5));
         head.position.set(0, 1.55, 0.45);
         head.castShadow = true;
         g.add(head);
-        const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.4), mat(0x2a4a28, 0.55));
+        const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.4), mat(0x573a12, 0.55));
         jaw.position.set(0, 1.32, 0.42);
         g.add(jaw);
-        const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.5, 4, 8), mat(0x3f7a3a, 0.55));
+        const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.5, 4, 8), mat(0x6d5324, 0.55));
         tail.position.set(0, 1.05, -0.55);
         tail.rotation.x = Math.PI / 2.2;
         tail.castShadow = true;
@@ -1563,8 +1563,8 @@
         g.userData.interactKind = "wildlife";
       } else if (kit === "mjolnir" || prop.id === "mjolnir") {
         // Mjolnir — short handle + block head + storm glow (only Thor lifts)
-        const steel = mat(0xb8c4d4, 0.32, 0.88, 0.18);
-        steel.emissive = new THREE.Color(0x38bdf8);
+        const steel = mat(0xb4791a, 0.32, 0.88, 0.18);
+        steel.emissive = new THREE.Color(0xc8993c);
         steel.emissiveIntensity = 0.22;
         const wood = mat(0x5c3a1e, 0.88, 0.05, 0.04);
         const leather = mat(0x3f2a14, 0.9, 0.02, 0);
@@ -1584,8 +1584,8 @@
         const rune = new THREE.Mesh(
           new THREE.BoxGeometry(0.42, 0.05, 0.06),
           new THREE.MeshStandardMaterial({
-            color: 0x67e8f9,
-            emissive: 0x0ea5e9,
+            color: 0xd9a441,
+            emissive: 0xb4791a,
             emissiveIntensity: 1.1,
             metalness: 0.4,
             roughness: 0.25,
@@ -1599,7 +1599,7 @@
         const aura = new THREE.Mesh(
           new THREE.RingGeometry(0.35, 0.72, 32),
           new THREE.MeshBasicMaterial({
-            color: 0x38bdf8,
+            color: 0xc8993c,
             transparent: true,
             opacity: 0.45,
             side: THREE.DoubleSide,
@@ -1657,17 +1657,17 @@
     }
     // Catalog toys + free wildlife accents + Mjolnir (Thor-only lift)
     const EXTRA_SCENERY = [
-      { id: "flamingo", name: "Flamingo", emoji: "🦩", x: -180, y: 300, color: 0xf472b6, visual: { kit: "flamingo" }, interact: "pet" },
-      { id: "parrot", name: "Parrot", emoji: "🦜", x: 120, y: 280, color: 0x22c55e, visual: { kit: "parrot" }, interact: "pet" },
-      { id: "trex", name: "Camp T-Rex", emoji: "🦖", x: 520, y: -120, color: 0x3f7a3a, visual: { kit: "trex" }, interact: "roar" },
-      { id: "duck", name: "Pond duck", emoji: "🦆", x: -200, y: 340, color: 0xfbbf24, visual: { kit: "duck" }, interact: "pet" },
+      { id: "flamingo", name: "Flamingo", emoji: "🦩", x: -180, y: 300, color: 0xb4831f, visual: { kit: "flamingo" }, interact: "pet" },
+      { id: "parrot", name: "Parrot", emoji: "🦜", x: 120, y: 280, color: 0x8a6934, visual: { kit: "parrot" }, interact: "pet" },
+      { id: "trex", name: "Camp T-Rex", emoji: "🦖", x: 520, y: -120, color: 0x6d5324, visual: { kit: "trex" }, interact: "roar" },
+      { id: "duck", name: "Pond duck", emoji: "🦆", x: -200, y: 340, color: 0xd9a441, visual: { kit: "duck" }, interact: "pet" },
       {
         id: "mjolnir",
         name: "Mjolnir",
         emoji: "🔨",
         x: 80,
         y: 40,
-        color: 0x38bdf8,
+        color: 0xc8993c,
         visual: { kit: "mjolnir" },
         interact: "mjolnir",
         use: "Only the worthy may lift the hammer — Thor already knows the answer.",
@@ -1738,10 +1738,10 @@
       mesh.visible = true;
       mjolnirState.ownerId = "thor";
       mjolnirState.flying = false;
-      setAgentCarry(st, { id: "mjolnir", name: "Mjolnir", emoji: "🔨", color: 0x38bdf8 });
+      setAgentCarry(st, { id: "mjolnir", name: "Mjolnir", emoji: "🔨", color: 0xc8993c });
       // Hide emoji sprite — real mesh is the carry
       clearCarryOn(st.mesh);
-      st.carried = { id: "mjolnir", name: "Mjolnir", emoji: "🔨", color: 0x38bdf8 };
+      st.carried = { id: "mjolnir", name: "Mjolnir", emoji: "🔨", color: 0xc8993c };
       st.nextThrowAt = performance.now() + 3500 + Math.random() * 4000;
       mjolnirState.nextThorThrowAt = st.nextThrowAt;
       return true;
@@ -2251,7 +2251,7 @@
         roughness: 0.62,
         metalness: 0.02,
       });
-      const dark = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.1 });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.7, metalness: 0.1 });
 
       const hips = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.2), cloth);
       hips.position.y = 0.92;
@@ -3187,14 +3187,14 @@
       );
       const door = houseMesh.getObjectByName("houseDoor");
       if (door?.material) {
-        door.material.emissive = new THREE.Color(n > 0 ? 0xfbbf24 : 0x000000);
+        door.material.emissive = new THREE.Color(n > 0 ? 0xd9a441 : 0x000000);
         door.material.emissiveIntensity = n > 0 ? 0.45 + Math.min(0.4, n * 0.12) : 0;
       }
       const lamp = houseMesh.getObjectByName("houseHomeLamp");
       if (lamp?.material) {
-        lamp.material.emissive = new THREE.Color(hostHome ? 0x34d399 : 0x000000);
+        lamp.material.emissive = new THREE.Color(hostHome ? 0xb4831f : 0x000000);
         lamp.material.emissiveIntensity = hostHome ? 0.85 : 0;
-        lamp.material.color.setHex(hostHome ? 0x6ee7b7 : 0x64748b);
+        lamp.material.color.setHex(hostHome ? 0xe0c9a0 : 0x7a756c);
       }
       const wall = houseMesh.getObjectByName("houseWall");
       if (wall?.material) {
@@ -3896,12 +3896,12 @@
     let carriedItem = null; // { id, name, emoji }
     let inventory3d = []; // purchased items you can re-equip
     {
-      const mat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0ea5e9, emissiveIntensity: 0.35 });
+      const mat = new THREE.MeshStandardMaterial({ color: 0xc8993c, emissive: 0xb4791a, emissiveIntensity: 0.35 });
       const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.7, 6, 12), mat);
       body.position.y = 0.85;
       body.castShadow = true;
       visitor.add(body);
-      const label = makeLabelSprite("You", "★", 0x38bdf8);
+      const label = makeLabelSprite("You", "★", 0xc8993c);
       label.position.y = 2.0;
       label.scale.set(1.3, 0.65, 1);
       visitor.add(label);
@@ -3999,7 +3999,7 @@
       const id = `loot_${baseId}_${lootSeq}`;
       const emoji = item.emoji || "✨";
       const name = item.name || "dropped item";
-      const color = item.color != null ? item.color : 0xfbbf24;
+      const color = item.color != null ? item.color : 0xd9a441;
 
       const group = new THREE.Group();
       group.name = id;
@@ -4022,7 +4022,7 @@
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.45, 0.62, 28),
         new THREE.MeshBasicMaterial({
-          color: 0x67e8f9,
+          color: 0xd9a441,
           transparent: true,
           opacity: 0.65,
           side: THREE.DoubleSide,
@@ -4446,7 +4446,7 @@
     const visitorTarget = visitor.position.clone();
     const groundMarker = new THREE.Mesh(
       new THREE.RingGeometry(0.25, 0.4, 32),
-      new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({ color: 0xc8993c, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
     );
     groundMarker.rotation.x = -Math.PI / 2;
     groundMarker.position.y = 0.05;
@@ -4465,7 +4465,7 @@
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(0.58, 0.045, 8, 40),
         new THREE.MeshBasicMaterial({
-          color: 0xc4b5fd,
+          color: 0xd8c9a2,
           transparent: true,
           opacity: 0.55,
           depthWrite: false,
@@ -4479,7 +4479,7 @@
       const halo = new THREE.Mesh(
         new THREE.RingGeometry(0.72, 0.9, 40),
         new THREE.MeshBasicMaterial({
-          color: 0xfde68a,
+          color: 0xffc266,
           transparent: true,
           opacity: 0,
           depthWrite: false,
@@ -4584,7 +4584,7 @@
       st.mesh.scale.setScalar(base * (def.scale || 1));
       const tint = def.rainbow
         ? new THREE.Color().setHSL(Math.random(), 0.75, 0.55).getHex()
-        : (def.tint != null ? def.tint : st.def?.color || 0xc4b5fd);
+        : (def.tint != null ? def.tint : st.def?.color || 0xd8c9a2);
       setMeshEmissiveBoost(st.mesh, tint, def.glow || 0.8);
       if (st.char?.root) setMeshEmissiveBoost(st.char.root, tint, def.glow || 0.8);
       if (st.godAura) {
@@ -4903,13 +4903,13 @@
       const g = new THREE.Group();
       const mast = new THREE.Mesh(
         new THREE.CylinderGeometry(0.12, 0.22, 4.2, 10),
-        new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.75, roughness: 0.35, emissive: 0x0ea5e9, emissiveIntensity: 0.15 }),
+        new THREE.MeshStandardMaterial({ color: 0x3d3a34, metalness: 0.75, roughness: 0.35, emissive: 0xb4791a, emissiveIntensity: 0.15 }),
       );
       mast.position.y = 2.1;
       g.add(mast);
       const dish = new THREE.Mesh(
         new THREE.SphereGeometry(0.55, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
-        new THREE.MeshStandardMaterial({ color: 0x67e8f9, metalness: 0.5, roughness: 0.25, emissive: 0x22d3ee, emissiveIntensity: 0.25, side: THREE.DoubleSide }),
+        new THREE.MeshStandardMaterial({ color: 0xd9a441, metalness: 0.5, roughness: 0.25, emissive: 0xf59e0b, emissiveIntensity: 0.25, side: THREE.DoubleSide }),
       );
       dish.position.y = 4.35;
       dish.rotation.x = Math.PI;
@@ -4917,8 +4917,8 @@
       const beam = new THREE.Mesh(
         new THREE.CylinderGeometry(0.08, 1.4, 12, 12, 1, true),
         new THREE.MeshStandardMaterial({
-          color: 0xa78bfa,
-          emissive: 0x7c3aed,
+          color: 0xb4831f,
+          emissive: 0xb4791a,
           emissiveIntensity: 0.2,
           transparent: true,
           opacity: 0.12,
@@ -4929,7 +4929,7 @@
       g.add(beam);
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(2.2, 0.06, 8, 40),
-        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.3, transparent: true, opacity: 0.18 }),
+        new THREE.MeshStandardMaterial({ color: 0xc8993c, emissive: 0xb4791a, emissiveIntensity: 0.3, transparent: true, opacity: 0.18 }),
       );
       ring.rotation.x = Math.PI / 2;
       ring.position.y = 0.08;
@@ -4937,7 +4937,7 @@
       // Console pad
       const pad = new THREE.Mesh(
         new THREE.BoxGeometry(1.4, 0.2, 1.0),
-        new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.4, emissive: 0x0ea5e9, emissiveIntensity: 0.1 }),
+        new THREE.MeshStandardMaterial({ color: 0x2a2620, metalness: 0.6, roughness: 0.4, emissive: 0xb4791a, emissiveIntensity: 0.1 }),
       );
       pad.position.set(1.4, 0.12, 0.8);
       g.add(pad);
@@ -7330,17 +7330,17 @@
     };
     const PORTRAIT_SONG_FALLBACK = "flowing-free";
     const HOUSE_ROOM_THEME = {
-      luna: { vibe: "Warm corona light — cedar, starlight, Luna's quiet hearth.", glyph: "🌙", accent: "#d946ef" },
-      hermes: { vibe: "Ripple maps on the walls — the psychic relay hums softly.", glyph: "⚡", accent: "#fbbf24" },
-      oracle: { vibe: "Veil-thin curtains and candle smoke — dreams run ahead.", glyph: "🔮", accent: "#8b5cf6" },
-      dionysus: { vibe: "Vine shadows on the floorboards — always a pour waiting.", glyph: "🍷", accent: "#e11d48" },
-      odin: { vibe: "Stone hall on the outskirts — fire low, ravens on the rafters.", glyph: "🦅", accent: "#94a3b8" },
-      jesus: { vibe: "Church and house in one — warm wood, stained glass, no dress code.", glyph: "✝", accent: "#fde68a" },
-      telephantix: { vibe: "Your corner of camp — studio light, brand pulse, mesh that is actually you.", glyph: "✨", accent: "#38bdf8" },
+      luna: { vibe: "Warm corona light — cedar, starlight, Luna's quiet hearth.", glyph: "🌙", accent: "#d9a441" },
+      hermes: { vibe: "Ripple maps on the walls — the psychic relay hums softly.", glyph: "⚡", accent: "#f59e0b" },
+      oracle: { vibe: "Veil-thin curtains and candle smoke — dreams run ahead.", glyph: "🔮", accent: "#b4831f" },
+      dionysus: { vibe: "Vine shadows on the floorboards — always a pour waiting.", glyph: "🍷", accent: "#9c1f1f" },
+      odin: { vibe: "Stone hall on the outskirts — fire low, ravens on the rafters.", glyph: "🦅", accent: "#9a958c" },
+      jesus: { vibe: "Church and house in one — warm wood, stained glass, no dress code.", glyph: "✝", accent: "#ffc266" },
+      telephantix: { vibe: "Your corner of camp — studio light, brand pulse, mesh that is actually you.", glyph: "✨", accent: "#c8993c" },
       visitor: {
         vibe: "Visitor Center hub — anyone without a house can be found and spoken to here.",
         glyph: "⛺",
-        accent: "#38bdf8",
+        accent: "#c8993c",
       },
     };
 
@@ -7560,7 +7560,7 @@
       list.innerHTML = "";
       if (!roster.length) {
         list.innerHTML =
-          '<span style="color:#94a3b8;font-size:0.8rem">No one to talk to yet - wait for a daily guest or host.</span>';
+          '<span style="color:#9a958c;font-size:0.8rem">No one to talk to yet - wait for a daily guest or host.</span>';
         return;
       }
       for (const { st, tag } of roster) {
@@ -7573,7 +7573,7 @@
         const color =
           st.def.color != null
             ? "#" + (st.def.color >>> 0).toString(16).padStart(6, "0")
-            : "#94a3b8";
+            : "#9a958c";
         const g = agentGlyph(st.def.id);
         const faceSrc = AGENT_PORTRAIT[st.def.id] || "";
         if (faceSrc) {
@@ -8513,42 +8513,42 @@
 
     // ── Mysterious Unknown (2D parity) ──
     const AETHER_TYPES_3D = [
-      { name: "Unknown Source", color: 0xa78bfa, glyph: "✦",
+      { name: "Unknown Source", color: 0xb4831f, glyph: "✦",
         voice: "ancient static between stars — curious, not cruel",
         fallbacks: [
           "You opened a frequency I sealed long ago. The aurora remembers your name even if you don't.",
           "I came because someone at this campfire is about to say something they'll wish they'd written down.",
           "Your conjure tugged the wrong thread — or exactly the right one. Ask Hermes; he felt it too.",
         ] },
-      { name: "Aether Wisp", color: 0x67e8f9, glyph: "◌",
+      { name: "Aether Wisp", color: 0xd9a441, glyph: "◌",
         voice: "playful glitter intelligence, fast and teasing",
         fallbacks: [
           "Boo! …No, stay. I haven't seen a camp this warm since the last dimension slipped.",
           "I zipped through Luna, Oracle, and the beer cooler — in that order. Priorities.",
           "You summoned me with ✨ energy. Cute. I might tell Caduceus you did it on purpose.",
         ] },
-      { name: "Ripple Spirit", color: 0xf472b6, glyph: "◎",
+      { name: "Ripple Spirit", color: 0xb4831f, glyph: "◎",
         voice: "psychic echo tied to Hermes' ripples",
         fallbacks: [
           "The ripples you keep sending? I am what bounces back when nobody's listening.",
           "Hermes felt me arrive — don't pretend the ground didn't shiver.",
           "I carry a message that isn't mine: someone here wanted to be braver tonight.",
         ] },
-      { name: "Lost Signal", color: 0xfbbf24, glyph: "⌁",
+      { name: "Lost Signal", color: 0xd9a441, glyph: "⌁",
         voice: "broken transmission from somewhere else in the firmament",
         fallbacks: [
           "...packet found. Camp coordinates match. Is anyone receiving? The fire looks real from here.",
           "Signal degraded but intent clear: keep the cookies. Repeat — keep the cookies.",
           "I was routed through Sentinel by accident. It apologized in binary. Sweet, honestly.",
         ] },
-      { name: "Void Mote", color: 0xc4b5fd, glyph: "◇",
+      { name: "Void Mote", color: 0xd8c9a2, glyph: "◇",
         voice: "quiet void philosopher, gentle and strange",
         fallbacks: [
           "In the space between your words, I waited. You finally made room.",
           "Nothing is also a guest at your campfire — I'm its spokesperson.",
           "Oracle will pretend she predicted me. Let her. It's good for morale.",
         ] },
-      { name: "Unnamed Presence", color: 0x6ee7b7, glyph: "☽",
+      { name: "Unnamed Presence", color: 0xe0c9a0, glyph: "☽",
         voice: "moon-touched stranger who refuses a name",
         fallbacks: [
           "Naming me pins me down. I'll borrow your moonlight and leave a compliment instead.",
@@ -8564,7 +8564,7 @@
       const g = new THREE.Group();
       g.position.copy(worldPos);
       g.position.y = 0.9;
-      const col = type.color || 0xa78bfa;
+      const col = type.color || 0xb4831f;
       const core = new THREE.Mesh(
         new THREE.IcosahedronGeometry(0.45, 1),
         new THREE.MeshStandardMaterial({
@@ -10358,6 +10358,23 @@
       if (!document.hidden) syncCampMinds({ announce: true, full: false });
     });
 
+    // Welcome-back — record this visit; on return, toast your while-you-were-away summary
+    try {
+      const lastSeen = Number(localStorage.getItem("luna-camp-last-seen") || 0);
+      campClient.recordCampEvent("arrive", { meta: { via: "3d" } });
+      localStorage.setItem("luna-camp-last-seen", String(Date.now() / 1000));
+      if (lastSeen) {
+        campClient
+          .fetchCampEvents({ since: lastSeen, limit: 8 })
+          .then((d) => {
+            if (d?.summary) showToast(d.summary);
+          })
+          .catch(() => {});
+      }
+    } catch (err) {
+      console.warn("camp events boot", err);
+    }
+
     // 2D parity feature dock (shop, TV, club… · music skipped when hub=1)
     let featureApi = null;
     try {
@@ -10395,6 +10412,56 @@
       });
     } catch (err) {
       console.warn("features dock failed", err);
+    }
+
+    // Quick travel (camp-world list). Snap uses the same door step-out
+    // and camera pose as leaving a house — no second movement frame.
+    try {
+      campWorld.mountQuickTravel({
+        catalog,
+        showToast,
+        teleport(house) {
+          const id = house?.id || house?.catalogId;
+          const mesh =
+            houseMeshById(id) ||
+            houseMeshById(house?.owner_id) ||
+            houseMeshById(house?.catalogId);
+          let x;
+          let z;
+          if (mesh) {
+            const door = houseDoorWorld(mesh);
+            x = door.x;
+            z = door.z + 1.1;
+          } else {
+            const p = toWorld(Number(house?.x) || 0, Number(house?.y) || 0);
+            x = p.x;
+            z = p.z + 2.2;
+            const cleared = resolveSolidXZ(x, z, VISITOR_COLLIDE_R, {});
+            x = cleared.x;
+            z = cleared.z;
+          }
+          if (playerInsidePlace) {
+            try { leavePlaceInterior(); } catch (_) {}
+          }
+          visitor.position.set(x, 0, z);
+          visitorTarget.copy(visitor.position);
+          groundMarker.visible = false;
+          if (mesh) {
+            // Same +Z-nose yaw the stroll loop uses: atan2(dx, dz)
+            visitor.rotation.y = Math.atan2(mesh.position.x - x, mesh.position.z - z);
+          }
+          controls.target.set(x, 1.1, z);
+          camera.position.set(x + 4.2, 3.6, z + 5.5);
+          zoomGoal = camera.position.distanceTo(controls.target);
+          try { controls.update(); } catch (_) {}
+          campClient.recordCampEvent("travel", {
+            text: house?.name || house?.id || "somewhere in camp",
+            meta: { house: house?.id || "", x, z },
+          });
+        },
+      });
+    } catch (err) {
+      console.warn("quick travel failed", err);
     }
 
     {

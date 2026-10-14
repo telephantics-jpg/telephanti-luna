@@ -5,7 +5,7 @@
  */
 import * as THREE from "three";
 
-const BUILD = "2026-08-28-distrokid";
+const BUILD = "2026-10-13-warcamp3";
 
 function $(id) {
   return document.getElementById(id);
@@ -71,7 +71,7 @@ try {
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0x0a1230, 1);
+  renderer.setClearColor(0x17140f, 1);
   if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;

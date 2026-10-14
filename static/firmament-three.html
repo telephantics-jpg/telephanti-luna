@@ -55,8 +55,8 @@
   <link rel="modulepreload" href="/static/camp/camp-characters.mjs?v=v117-face" />
   <link rel="modulepreload" href="/static/camp/camp-props.mjs?v=v118-warcamp2" />
   <link rel="modulepreload" href="/static/firmament-god-forms.mjs?v=warcamp2" />
-  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=2026-10-13-warcamp3" />
-  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-10-13-warcamp3" />
+  <link rel="modulepreload" href="/static/firmament-three-boot.mjs?v=2026-10-14-pixelgpu" />
+  <link rel="modulepreload" href="/static/firmament-three-app.mjs?v=2026-10-14-pixelgpu" />
   <script>
     // Kill stale service workers that cache-first'd a broken three.module.js graph
     (function () {
@@ -155,6 +155,11 @@
         radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(5, 6, 8, 0.45) 100%);
       mix-blend-mode: screen;
       opacity: 0.9;
+    }
+    /* Chrome on Android hides the WebGL meadow when this vignette uses screen blend. */
+    html[data-camp-gpu="android"] #canvas-host::after {
+      mix-blend-mode: normal;
+      opacity: 0.72;
     }
     /* Always-visible boot card — blank meadow used to look "stuck" with #status hidden */
     #boot-overlay {
@@ -1452,7 +1457,7 @@
   </div>
 
     <!-- External progressive boot (tiny) → full app module -->
-  <script type="module" src="/static/firmament-three-boot.mjs?v=2026-10-13-warcamp3"></script>
+  <script type="module" src="/static/firmament-three-boot.mjs?v=2026-10-14-pixelgpu"></script>
 
   <script src="/static/world-nav.js?v=warcamp3" defer></script>
 </body>

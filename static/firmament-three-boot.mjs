@@ -5,7 +5,11 @@
  */
 import * as THREE from "three";
 
-const BUILD = "2026-10-13-warcamp3";
+const BUILD = "2026-10-14-pixelgpu";
+// Pixel/Chrome blanks a WebGL canvas under mix-blend-mode and drops the
+// context on a 2048 soft shadow map. iPhone and desktop keep the full path.
+const LOW_GPU = /Android/i.test(navigator.userAgent || "");
+if (LOW_GPU) document.documentElement.dataset.campGpu = "android";
 
 function $(id) {
   return document.getElementById(id);
@@ -64,17 +68,17 @@ let renderer;
 try {
   if (!THREE.WebGLRenderer) throw new Error("WebGLRenderer missing from Three.js");
   renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    powerPreference: "high-performance",
+    antialias: !LOW_GPU,
+    powerPreference: LOW_GPU ? "default" : "high-performance",
     alpha: false,
     failIfMajorPerformanceCaveat: false,
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LOW_GPU ? 1 : 1.75));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x17140f, 1);
   if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = LOW_GPU ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.28;
   host.appendChild(renderer.domElement);
@@ -96,6 +100,7 @@ window.__LUNA_THREE_BOOT__ = {
   host,
   clearBoot,
   setStep,
+  lowGpu: LOW_GPU,
 };
 
 setStep("Loading full camp app…");

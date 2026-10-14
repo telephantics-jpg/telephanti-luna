@@ -11,7 +11,7 @@
     import * as campProps from "camp-props";
     import * as godForms from "./firmament-god-forms.mjs?v=godbots-fix";
 
-    const BUILD = "2026-10-13-warcamp3";
+    const BUILD = "2026-10-14-pixelgpu";
     /** Talk-to-everyone id — must exist before first refreshWhoSelect() */
     const TALK_ALL_ID = "__all__";
     const statusEl = document.getElementById("status");
@@ -217,6 +217,8 @@
     let charSystem = null;
     let propSystem = null;
     // Prefer progressive boot canvas (firmament-three-boot.mjs) — no second WebGL context
+    const lowGpu = !!((typeof window !== "undefined" && window.__LUNA_THREE_BOOT__ && window.__LUNA_THREE_BOOT__.lowGpu)
+      || /Android/i.test(navigator.userAgent || ""));
     let renderer = (typeof window !== "undefined" && window.__LUNA_THREE_BOOT__ && window.__LUNA_THREE_BOOT__.renderer) || null;
     try {
       if (!THREE || !THREE.WebGLRenderer) {
@@ -233,8 +235,8 @@
           setBootStep("Starting WebGL meadow…");
           try {
             renderer = new THREE.WebGLRenderer({
-              antialias: true,
-              powerPreference: "high-performance",
+              antialias: !lowGpu,
+              powerPreference: lowGpu ? "default" : "high-performance",
               alpha: false,
               failIfMajorPerformanceCaveat: false,
             });
@@ -245,12 +247,12 @@
             );
             throw err;
           }
-          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowGpu ? 1 : 1.75));
           renderer.setSize(window.innerWidth, window.innerHeight);
           renderer.setClearColor(0x17140f, 1);
           if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
           renderer.shadowMap.enabled = true;
-          renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          renderer.shadowMap.type = lowGpu ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
           renderer.toneMapping = THREE.ACESFilmicToneMapping;
           renderer.toneMappingExposure = 1.28;
           hostEarly.appendChild(renderer.domElement);
@@ -500,17 +502,17 @@
       try {
         setBootStep("Starting WebGL meadow…");
         renderer = new THREE.WebGLRenderer({
-          antialias: true,
-          powerPreference: "high-performance",
+          antialias: !lowGpu,
+          powerPreference: lowGpu ? "default" : "high-performance",
           alpha: false,
           failIfMajorPerformanceCaveat: false,
         });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowGpu ? 1 : 1.75));
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setClearColor(0x17140f, 1);
         if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.shadowMap.type = lowGpu ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.28;
         host.appendChild(renderer.domElement);
@@ -633,7 +635,7 @@
     const sun = new THREE.DirectionalLight(0xffd9a8, 1.15);
     sun.position.set(28, 40, 18);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(lowGpu ? 512 : 2048, lowGpu ? 512 : 2048);
     sun.shadow.camera.near = 1;
     sun.shadow.camera.far = 160;
     sun.shadow.camera.left = -80;
@@ -11281,7 +11283,7 @@
     window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowGpu ? 1 : 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
   
